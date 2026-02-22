@@ -1,0 +1,215 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+
+<div class="welcome-container">
+  <!-- Hero Banner with Chess Theme -->
+  <div class="hero-banner">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-greeting">Welcome Back</h1>
+        <h2 class="hero-username"><%=username %></h2>
+        <p class="hero-tagline">Your move awaits</p>
+      </div>
+      <div class="hero-chess-icon">
+        <div class="chess-pieces-container">
+          <!-- <span class="chess-piece-symbol king-symbol">♔</span> -->
+        
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Action Cards -->
+  <div class="action-cards-grid">
+    <div class="action-card multiplayer-card" id="startSearchingForOpponenet" onclick="startSearchingForOpponenet()">
+      <div class="card-image-area">
+        <div class="card-pattern"></div>
+        <div class="card-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <circle cx="6.5" cy="6.5" r="1" fill="currentColor"/>
+            <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+            <circle cx="6.5" cy="17.5" r="1" fill="currentColor"/>
+            <circle cx="17.5" cy="17.5" r="1" fill="currentColor"/>
+            <circle cx="10.5" cy="10.5" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Multiplayer</h3>
+        <p class="card-description">Challenge players worldwide</p>
+      </div>
+    </div>
+
+    <div class="action-card singleplayer-card" id="startAIGame" onclick="startAIGame()">
+      <div class="card-image-area">
+        <div class="card-pattern"></div>
+        <div class="card-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M6 8h4"/>
+            <path d="M6 12h8"/>
+            <path d="M6 16h4"/>
+            <circle cx="16" cy="12" r="2"/>
+            <path d="M14 10l2 2-2 2"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Single Player</h3>
+        <p class="card-description">Play against computer</p>
+      </div>
+    </div>
+
+    <div class="action-card research-card" id="startPracticeGame" onclick="startPracticeGame()">
+      <div class="card-image-area">
+        <div class="card-pattern"></div>
+        <div class="card-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <path d="M8 7h6"/>
+            <path d="M8 11h6"/>
+            <path d="M8 15h4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Research</h3>
+        <p class="card-description">Practice & analyze</p>
+      </div>
+    </div>
+
+    <div class="action-card list-card" id="navigateToGameList" onclick="navigateToGameList()">
+      <div class="card-image-area">
+        <div class="card-pattern"></div>
+        <div class="card-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Game List</h3>
+        <p class="card-description">Browse all games</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Games Section -->
+  <div class="games-section">
+    <!-- Online Games -->
+    <div class="games-panel online-games-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h3 class="panel-title">Online Games</h3>
+          <span class="panel-badge">Live</span>
+        </div>
+        <div class="panel-subtitle">Active matches in progress</div>
+      </div>
+      <div class="panel-body">
+        <% if(allGames && allGames.length > 0) { %>
+        <div class="table-scroll">
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <%obj=allGames[0];i=1%>
+                <% for(const key in obj) { %>
+                <% if(key !="Id" ) { %>
+                <th><%=key %></th>
+                <% } %>
+                <% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% for(const obj of allGames){ %>
+              <tr onclick=<%-`"window.location='/watch?id=${obj.Id}'"`%>>
+                <td class="row-number"><%=i++ %></td>
+                <% for(const key in obj) { %>
+                <% if(key != 'Id' ) { %>
+                <td class="<%=key==' Reason' ? 'align-left' : '' %>" onclick=<%-`"window.location='/watch?id=${obj.Id}'"`%>>
+                  <%= obj[key] %>
+                </td>
+                <% } %>
+                <% } %>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        <% } else { %>
+        <div class="no-games-message">
+          <p>No games at the moment</p>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- My Games -->
+    <div class="games-panel my-games-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h3 class="panel-title">My Games</h3>
+        </div>
+        <div class="panel-subtitle">Your recent matches</div>
+      </div>
+      <div class="panel-body">
+        <% if(playerGames && playerGames.length > 0) { %>
+        <div class="table-scroll compact">
+          <table class="games-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <%obj=playerGames[0];i=1%>
+                <% for(const key in obj) { %>
+                <% if(key !="Id" ) { %>
+                <th><%=key %></th>
+                <% } %>
+                <% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% for(const obj of playerGames){ %>
+              <tr onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                <td class="row-number"><%=i++ %></td>
+                <% for(const key in obj) { %>
+                <% if(key != 'Id' ) { %>
+                <td class="<%=key==' Reason' ? 'align-left' : '' %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                  <%= obj[key] %>
+                </td>
+                <% } %>
+                <% } %>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        <% } else { %>
+        <div class="no-games-message">
+          <p>No games at the moment</p>
+        </div>
+        <% } %>
+        <div class="panel-footer">
+          <a href="/list" class="footer-link">
+            <span>View All Games</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

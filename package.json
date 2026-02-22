@@ -1,0 +1,48 @@
+{
+  "name": "onlinechess",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "nyc --reporter=html mocha ./test/chess.test.js",
+    "analysis": "npx eslint ./src/**/*.js",
+    "start": "node ./server.js",
+    "start:dev": "node --inspect ./server.js",
+    "start:prod": "node ./server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
+    "connect-flash": "^0.1.1",
+    "cookie-session": "^2.1.0",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.0.2",
+    "ejs-mate": "^4.0.0",
+    "express": "^4.21.0",
+    "express-session": "^1.18.1",
+    "express-ws": "^5.0.2",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.3",
+    "jsdoc": "^4.0.3",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.7.0",
+    "nodemon": "^3.1.7",
+    "nyc": "^17.1.0",
+    "path": "^0.12.7",
+    "sanitize-html": "^2.14.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^10.0.1",
+    "globals": "^15.14.0",
+    "mocha": "^5.0.5"
+  }
+}

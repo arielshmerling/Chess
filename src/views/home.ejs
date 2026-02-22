@@ -1,0 +1,108 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<div class="home">
+  <div class="flexRow">
+    <div class="header">
+      Welcome Back,
+    </div>
+    <div class="header mute">
+      <%=username %>
+    </div>
+  </div>
+
+  <!-- <div class="flexRow">
+            <div id="playButton" class="bigButton dropShadow" onclick="startAIGame()">
+                Play Chess!
+            </div>
+        </div> -->
+  <div class="flexRow">
+
+    <div class="startGameButtons">
+      <button class="button" id="startSearchingForOpponenet" onclick="startSearchingForOpponenet()">
+        Random</button>
+
+      <button class="button" id="startAIGame" onclick="startAIGame()">Human Vs. AI</button>
+
+      <button class="button" id="startPracticeGame" onclick="startPracticeGame()">Practice</button>
+
+      <button class="button" id="navigateToGameList" onclick="navigateToGameList()">Game List</button>
+    </div>
+
+
+  </div>
+  <div class="flexRow">
+    <div class="pillars">
+      <div class="pillar">Online Games
+        <table class="homeGamesTable">
+          <tr>
+            <th>#</th>
+            <%obj=allGames[0];i=1%>
+            <% for(const key in obj) { %>
+            <% if(key !="Id" ) { %>
+            <th>
+              <%=key %>
+            </th>
+            <% } %>
+            <% } %>
+          </tr>
+          <% for(const obj of allGames){ %>
+          <tr>
+            <td onclick=<%-`"window.location='/watch?id=${obj.Id}'"`%>><%=i++ %></td>
+            <% for(const key in obj) { %>
+            <% if(key != 'Id' ) { %>
+            <% if(key==" Reason" ) { %>
+            <td class="alignLeft" onclick=<%-`"window.location='/watch?id=${obj.Id}'"`%>>
+              <% } else {%>
+            <td onclick=<%-`" window.location='/watch?id=${obj.Id}'"`%>>
+              <% } %>
+              <%= obj[key] %>
+            </td>
+            <% } %>
+            <% } %>
+          </tr>
+          <% } %>
+        </table>
+
+      </div>
+      <div class="pillar">My Games
+
+        <table class="homeGamesTable">
+          <tr>
+            <th>#</th>
+            <%obj=playerGames[0];i=1%>
+            <% for(const key in obj) { %>
+            <% if(key !="Id" ) { %>
+            <th>
+              <%=key %>
+            </th>
+            <% } %>
+            <% } %>
+          </tr>
+          <% for(const obj of playerGames){ %>
+          <tr>
+            <td onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>><%=i++ %></td>
+            <% for(const key in obj) { %>
+            <% if(key != 'Id' ) { %>
+            <% if(key==" Reason" ) { %>
+            <td class="alignLeft" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+              <% } else {%>
+            <td onclick=<%-`" window.location='/review?type=history&id=${obj.Id}'"`%>>
+              <% } %>
+              <%= obj[key] %>
+            </td>
+            <% } %>
+            <% } %>
+          </tr>
+          <% } %>
+        </table>
+        <br>
+        <a href=" ShowGames">Show All...</a>
+      </div>
+
+
+    </div>
+
+
+
+
+  </div>

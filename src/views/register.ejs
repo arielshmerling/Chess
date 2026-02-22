@@ -1,0 +1,53 @@
+<% layout("../views/layouts/boilerplate") %>
+<div id="main">
+  <form method="post" action="/register" class="validated-form" novalidate>
+    <div class="loginBoxWrapper">
+      <div class="loginBox">
+        <div class="labelRow"> <label for="username">Username:</label> </div>
+        <div class="labelRow"> <input id="username" username="username" name="username" autofocus autocomplete="username" required><span></span></div><span id="usernameValidationMessage" class="validationMessage"></span>
+        <br>
+        <div class="labelRow"><label for="password">Password:</label></div>
+        <div class="labelRow"> <input id="password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="30"><span></span></div><span id="passwordValidationMessage" class="validationMessage"></span>
+        <br>
+        <div class="labelRow"><label for="confirmPassword">Confirm password:</label> </div>
+        <div class="labelRow"> <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required><span class="ht"></span></div>
+        <span id="confirmPasswordValidationMessage" class="validationMessage"></span>
+        <br>
+        <div class="labelRow"><label for="email">Email:</label> </div>
+        <div class="labelRow"> <input id="email" name="email" type="email" autocomplete="email" required><span></span></div>
+        <span id="emailValidationMessage" class="validationMessage"></span>
+        <br>
+        <div class="labelRow"><label for="email">Player level:</label></div>
+        <div class="selectionBox">
+          <div class="selectionOption selectedOption" name="level" onclick="selectOption(this)">Rookie
+          </div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)">Skilled</div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)">Elite</div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)">Grand Master</div>
+        </div>
+        <input type="hidden" id="level" name="level" value="Rookie" />
+
+        <br><br>
+        <button class="button">Register</button>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    function selectOption(selectedOption) {
+      const selectionBox = selectedOption.parentElement;
+      Array.from(selectionBox.children).forEach(opt => opt.classList.remove("selectedOption"));
+      selectedOption.classList.add("selectedOption");
+      const name = selectedOption.getAttribute("name");
+      const hidden = document.getElementById(name);
+      hidden.value = selectedOption.innerText;
+    }
+  </script>
+  <script src="formValidations.js"></script>
+</div>
+
+<script>
+  window.onload = (e) => {
+    overrideFormValidity();
+  }
+</script>

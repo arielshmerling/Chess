@@ -1,0 +1,43 @@
+<div id="header">
+  <div id="logoArea" class="flexRow">
+    <span class="chess-piece-symbol knight-symbol">♘</span>
+    <div class="site-title">Shmerling Chess Club</div>
+  </div>
+
+  <div class="topBarMenu">
+    <div class="menuBarMenuItem"><a href="/home">Home</a></div>
+    <div class="menuBarMenuItem"><a href="/search">Search</a></div>
+    <div class="menuBarMenuItem"><a href="#">Friends</a></div>
+    <div class="menuBarMenuItem"><a href="#">Group</a></div>
+    <div class="menuBarMenuItem"><a href="#">Preferences</a></div>
+  </div>
+
+  <div id="logout">
+    <label class="switch">
+      <input type="checkbox" id="themeSwitch">
+      <span class="slider round"></span>
+    </label>
+    <% if (username) { %>
+    <a href="/logout"> Log out </a>
+    <% } else { %>
+    <a href="/Login"> Log in </a>
+    <% } %>
+    <% if (admin) { %>
+    <a href="/Register"> Add User </a>
+    <% } %>
+  </div>
+
+</div>
+
+
+<div id="mainMenu" class="mainMenu" style="visibility: hidden;">
+  <div class="menuItem" onclick="menuNewGameOnePlayer()">Human Vs. Computer</div>
+  <div class="menuItem" onclick="menuNewGameTwoPlayers()">New Game 2 Players</div>
+  <div class="menuItem" onclick="menuResignEventHandler()">Resign</div>
+  <div class="menuItem" onclick="menuUndo()">Undo</div>
+  <div class="menuItem" onclick="menuSaveEventHandler();">Save</div>
+  <div class="menuItem" onclick="menuLoadEventHandler()">Load</div>
+  <div class="menuItem" onclick="menuPositionSetup()">Position Setup</div>
+  <div class="menuItem" onclick="menuSettings()">Settings</div>
+  <div class="menuItem last" onclick="">Help</div>
+</div>

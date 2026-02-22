@@ -1,0 +1,43 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<section id="main">
+  version 1.0.0.1131
+  <div class="flexRow">
+    <img src="/images/logo.png" width="200px" alt="chess king logo">
+    <form method="post" action="/login" class="validated-form" novalidate>
+      <div class="loginBoxWrapper">
+        <div class="loginBox">
+          <div class="labelRow">
+            <label for="username">Username:</label>
+          </div>
+          <div class="labelRow">
+            <input id="username" username="username" name="username" autofocus required autocomplete="off" aria-autocomplete="none" list="autocompleteOff">
+            <span></span>
+          </div>
+
+
+          <div class="labelRow">
+            <label for="password">Password:</label>
+          </div>
+          <div class="labelRow">
+            <input id="password" name="password" type="password" required autocomplete="off" list="autocompleteOff" aria-autocomplete="list" aria-invalid="false" spellcheck="false">
+            <span></span>
+          </div>
+
+
+          <button>Login</button>
+
+          <div class="errorMessage">
+            <%=errorMessage%>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+  window.onload = (e) => {
+    overrideFormValidity();
+  }
+</script>

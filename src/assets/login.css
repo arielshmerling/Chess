@@ -1,0 +1,138 @@
+/*Body {
+    background-color: #242424;
+    background-image: none;
+    color: var(--textbox-forecolor);
+
+}
+
+/* 
+.loginBoxWrapper {
+    width: 500px;
+    background-color: var(--panel-background);
+    display: flex;
+    justify-content: center;
+    border-radius: 5px;
+    border: 0px solid white;
+
+    margin-left: 50px;
+} */
+
+/* .loginBox {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    padding-top: 50px;
+} */
+
+/* .loginBox input {
+    border-bottom: 4px solid var(--textbox-forecolor);
+    background-color: var(--textbox-background);
+    color: var(--textbox-forecolor);
+} */
+
+input:-webkit-autofill,
+input:-webkit-autofill::first-line,
+input:-webkit-autofill:active,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    background-color: var(--textbox-background);
+    -webkit-box-shadow: 0 0 0px 1000px var(--textbox-background) inset;
+    -webkit-text-fill-color: var(--textbox-forecolor);
+
+
+}
+
+
+.loginBox input[type="checkbox"] {
+    width: 20px;
+    margin: 0px;
+    margin-top: 20px;
+    margin-right: -15px;
+    height: 20px;
+    background-color: var(--textbox-background);
+    outline: 0px solid transparent;
+}
+
+
+
+
+.loginBox label {
+    margin-bottom: -15px;
+    margin-left: 20px;
+}
+
+.loginBox button {
+    margin-left: 20px;
+    align-self: center;
+    border-radius: 5px;
+    border: 0px solid var(--light);
+    background-color: var(--textbox-background);
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, .08) 0%, rgba(0, 0, 0, .08) 100%);
+    color: var(--textbox-forecolor);
+    margin-bottom: 50px;
+    width: 140px;
+    height: 3em;
+    filter: drop-shadow(rgb(28, 28, 28) 1px 3px 2px);
+    font-size: 18px;
+}
+
+.loginBox button:hover {
+    color: var(--textbox-highlight);
+
+}
+
+.loginBox button:active {
+    color: white;
+    background-image: linear-gradient(to top, rgba(255, 255, 255, .08) 0%, rgba(0, 0, 0, .08) 100%);
+    filter: none;
+}
+
+.loginBox button:disabled {
+    color: var(--textbox-disabled);
+    background-color: var(--textbox-forecolor);
+    background-image: none;
+    filter: none;
+}
+
+
+
+
+
+.loginBox .labelRow {
+
+    margin-bottom: -15px;
+}
+
+.loginBox .optionsRow {
+    display: flex;
+    flex-direction: row;
+    margin-left: 20px;
+    margin-right: 20px;
+    justify-content: space-between;
+    height: 20px;
+    width: -webkit-fill-available;
+    font-size: 14px;
+    align-items: baseline;
+    align-content: center;
+
+
+}
+
+.loginBox A {
+    font-size: 16px;
+    color: var(--textbox-forecolor);
+}
+
+.loginBox A:hover {
+    font-size: 16px;
+    color: var(--textbox-highlight);
+}
+
+
+.rememberMe {
+    font-size: 16px;
+}
+
+*/

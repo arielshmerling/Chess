@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chessboard</title>
+    <link rel="stylesheet" href="/app.css">
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="/ChessGame.js"></script>
+    <script src="/themes.js"></script>
+    <script src="/chessboard.js"></script>
+    <script src="/lobby.js"></script>
+</head>
+
+<body>
+    <%- include("../partials/flash") %>
+
+        <main>
+            <%-body %>
+
+        </main>
+        <div id="paletteSelctor" class="palettes">
+        </div>
+
+        <%- include('../partials/footer') %>
+
+</body>
+
+</html>

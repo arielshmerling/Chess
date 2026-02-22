@@ -1,0 +1,49 @@
+<% layout("../views/layouts/boilerplate") %>
+
+    <section id="PlayerGameList">
+        <br><br><br><br>
+        <h1>My Game list:</h1>
+        <br><br>
+        <div class="gamesTableContainer">
+            <table class="gamesTable">
+                <tr>
+                    <th>#</th>
+                    <%obj=playerGames[0];i=1%>
+                        <% for(const key in obj) { %>
+                            <% if(key !="Id" ) { %>
+                                <th>
+
+                                    <%=key %>
+
+                                </th>
+                                <% } %>
+                                    <% } %>
+                                        <th>Action</th>
+                </tr>
+                <% for(const obj of playerGames){ %>
+
+                    <tr>
+
+                        <td onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>><%=i++ %></td>
+                            <% for(const key in obj) { %>
+                                <% if(key != 'Id' ) { %>
+                        <% if(key==" Reason" ) { %>
+                        <td class="alignLeft" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                                <% } else {%>
+                            <td onclick=<%-`" window.location='/review?type=history&id=${obj.Id}'"`%>>
+                                <% } %>
+                                    <%= obj[key] %>
+                            </td>
+                            <% } %>
+                                <% } %>
+                                    <td>
+                                        <form action=" /list/<%=obj.Id%>?_method=delete" method="POST">
+                            <a href="javascript:{}" onclick="this.closest('form').submit();return false;">Delete</a>
+                            </form>
+                        </td>
+                    </tr>
+                    <% } %>
+            </table>
+        </div>
+    </section>
+    <br><br>

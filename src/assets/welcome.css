@@ -1,0 +1,601 @@
+/* Welcome Page - Chess Gaming Theme */
+
+:root {
+    --darker: #293241;
+    --dark: #3d5a80;
+    --semiDark: #668ea5;
+    --semiLight: #98c1d9;
+    --light: #e0fbfc;
+    --lighter: #ffffff;
+
+    --panel-background: #2D3134;
+    --panel-border: #3b3b3b;
+    --button-background: #21334f;
+    --button-forecolor: #A5A5A5;
+    --button-highlight: #e5e5e5;
+    --body-background: #3d5a80;
+}
+
+/* Override body overflow for welcome page */
+body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh;
+}
+
+main {
+    width: 100%;
+    overflow: visible;
+}
+
+.welcome-container {
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* Hero Banner with Chess Board Pattern */
+.hero-banner {
+    position: relative;
+    background: linear-gradient(135deg, rgba(41, 50, 65, 0.95) 0%, rgba(61, 90, 128, 0.95) 50%, rgba(41, 50, 65, 0.95) 100%);
+    padding: 40px 60px;
+    margin-bottom: 40px;
+    overflow: hidden;
+    border-bottom: 3px solid rgba(152, 193, 217, 0.3);
+}
+
+.hero-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(152, 193, 217, 0.03) 50px, rgba(152, 193, 217, 0.03) 100px),
+        repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(152, 193, 217, 0.03) 50px, rgba(152, 193, 217, 0.03) 100px);
+    pointer-events: none;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at top right, rgba(152, 193, 217, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.hero-text-section {
+    flex: 1;
+}
+
+.hero-greeting {
+    font-size: 42px;
+    font-weight: 200;
+    color: #6595b4;
+    margin: 0 0 10px 0;
+    letter-spacing: 2px;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.hero-username {
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--lighter);
+    margin: 0 0 12px 0;
+    background: linear-gradient(135deg, var(--lighter) 0%, var(--semiLight) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.hero-tagline {
+    font-size: 18px;
+    color: var(--semiLight);
+    margin: 0;
+    font-weight: 300;
+    letter-spacing: 1px;
+    font-style: italic;
+}
+
+.hero-chess-icon {
+    width: 160px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--semiLight);
+    opacity: 0.85;
+}
+
+.chess-pieces-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    filter: drop-shadow(0 0 20px rgba(152, 193, 217, 0.6)) drop-shadow(0 0 40px rgba(152, 193, 217, 0.3));
+}
+
+
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes float-king {
+
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-6px) rotate(-3deg);
+    }
+}
+
+@keyframes float-knight {
+
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-6px) rotate(3deg);
+    }
+}
+
+/* Action Cards Grid */
+.action-cards-grid {
+    max-width: 1400px;
+    margin: 0 auto 60px;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.action-card {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(33, 51, 79, 0.6) 100%);
+    border: 2px solid rgba(152, 193, 217, 0.2);
+    border-radius: 20px;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+}
+
+.action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(152, 193, 217, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.action-card:hover::before {
+    opacity: 1;
+}
+
+.action-card:hover {
+    border-color: rgba(152, 193, 217, 0.5);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(152, 193, 217, 0.3);
+}
+
+.card-image-area {
+    height: 100px;
+    position: relative;
+    background: linear-gradient(135deg, rgba(152, 193, 217, 0.1) 0%, rgba(102, 142, 165, 0.15) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.card-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(152, 193, 217, 0.05) 20px, rgba(152, 193, 217, 0.05) 40px);
+    opacity: 0.5;
+}
+
+.multiplayer-card .card-image-area {
+    background: linear-gradient(135deg, rgba(152, 193, 217, 0.15) 0%, rgba(102, 142, 165, 0.2) 100%);
+}
+
+.singleplayer-card .card-image-area {
+    background: linear-gradient(135deg, rgba(102, 142, 165, 0.15) 0%, rgba(61, 90, 128, 0.2) 100%);
+}
+
+.research-card .card-image-area {
+    background: linear-gradient(135deg, rgba(61, 90, 128, 0.15) 0%, rgba(41, 50, 65, 0.2) 100%);
+}
+
+.list-card .card-image-area {
+    background: linear-gradient(135deg, rgba(41, 50, 65, 0.15) 0%, rgba(33, 51, 79, 0.2) 100%);
+}
+
+.card-icon {
+    position: relative;
+    z-index: 1;
+    color: var(--semiLight);
+    transition: all 0.4s ease;
+}
+
+.action-card:hover .card-icon {
+    color: var(--light);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 20px rgba(152, 193, 217, 0.6));
+}
+
+.card-content {
+    padding: 20px 25px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--light);
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.card-description {
+    font-size: 14px;
+    color: var(--semiLight);
+    margin: 0;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* Games Section */
+.games-section {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.games-panel {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(33, 51, 79, 0.5) 100%);
+    border: 2px solid rgba(152, 193, 217, 0.25);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+
+.panel-header {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(45, 49, 52, 0.7) 100%);
+    padding: 25px 30px;
+    border-bottom: 2px solid rgba(152, 193, 217, 0.2);
+}
+
+.panel-title-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.panel-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--light);
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.panel-badge {
+    background: linear-gradient(135deg, rgba(152, 193, 217, 0.4) 0%, rgba(102, 142, 165, 0.5) 100%);
+    color: var(--light);
+    padding: 6px 14px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(152, 193, 217, 0.5);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(152, 193, 217, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(152, 193, 217, 0.8);
+    }
+}
+
+.panel-subtitle {
+    font-size: 14px;
+    color: var(--semiLight);
+    opacity: 0.8;
+    font-weight: 300;
+}
+
+.panel-body {
+    padding: 25px 30px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-scroll {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 500px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0;
+    border: none;
+}
+
+.table-scroll.compact {
+    max-height: 400px;
+}
+
+.table-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--semiDark), var(--semiLight));
+    border-radius: 5px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--semiLight), var(--light));
+}
+
+.games-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+    border: none;
+}
+
+.games-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.games-table th {
+    background: var(--panel-background);
+    color: var(--light);
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--semiLight);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.games-table th:first-child {
+    text-align: center;
+    width: 50px;
+}
+
+.games-table tbody tr {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.games-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.games-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(152, 193, 217, 0.25) 0%, rgba(152, 193, 217, 0.15) 100%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.games-table td {
+    padding: 14px 12px;
+    color: var(--light);
+    font-size: 14px;
+}
+
+.games-table td.align-left {
+    text-align: left;
+}
+
+.games-table .row-number {
+    text-align: center;
+    font-weight: 700;
+    color: var(--semiLight);
+    width: 50px;
+    font-size: 15px;
+}
+
+.panel-footer {
+    padding: 20px 30px;
+    margin-top: auto;
+}
+
+.footer-link {
+    color: var(--semiLight);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    background: rgba(152, 193, 217, 0.1);
+    border: 1px solid rgba(152, 193, 217, 0.2);
+}
+
+.footer-link svg {
+    transition: transform 0.3s ease;
+}
+
+.footer-link:hover {
+    color: var(--lighter);
+    background: rgba(152, 193, 217, 0.25);
+    border-color: rgba(152, 193, 217, 0.4);
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(152, 193, 217, 0.3);
+}
+
+.footer-link:hover svg {
+    transform: translateX(5px);
+}
+
+/* No Games Message */
+.no-games-message {
+    padding: 60px 30px;
+    text-align: center;
+    color: var(--semiLight);
+    opacity: 0.8;
+}
+
+.no-games-message p {
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .action-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-banner {
+        padding: 30px 20px;
+    }
+
+    .hero-content {
+        flex-direction: column;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .hero-greeting {
+        font-size: 32px;
+    }
+
+    .hero-username {
+        font-size: 36px;
+    }
+
+    .hero-tagline {
+        font-size: 16px;
+    }
+
+    .hero-chess-icon {
+        width: 140px;
+        height: 100px;
+    }
+
+    .chess-piece-symbol {
+        font-size: 60px;
+    }
+
+    .action-cards-grid {
+        grid-template-columns: 1fr;
+        padding: 0 20px;
+        margin-bottom: 40px;
+    }
+
+    .games-section {
+        padding: 0 20px 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-greeting {
+        font-size: 32px;
+    }
+
+    .hero-username {
+        font-size: 36px;
+    }
+
+    .card-image-area {
+        height: 150px;
+    }
+
+    .games-table {
+        font-size: 12px;
+    }
+
+    .games-table th,
+    .games-table td {
+        padding: 10px 6px;
+    }
+}

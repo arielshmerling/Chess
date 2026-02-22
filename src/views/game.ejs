@@ -1,0 +1,105 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<!-- <div id="gameBar" class="gameBar">
+        <div class="gameBarElement">AI Vs. Ariel</div>
+        <div class="gameBarElement"></div>
+        <div class="gameBarElement"></div>
+    </div> -->
+
+<div id="main">
+  <div id="bookmarksPanel" class="bookmarksPanel">
+    <div class="panelHeader">
+      <div>
+        <h1>Bookmarks</h1>
+      </div>
+      <div>
+        <a href="#"><img src="images/x.png" onclick="closeBookmarkPanel()" class="xButton"></a>
+      </div>
+
+    </div>
+    <button class="button" onclick="addBookmark()">Bookmark</button>
+    <div class="bookmarksSeperator"></div>
+    <div id="bookmarksList" class="bookmarksList">
+      <!--   <div class="bookmark">
+        <div>01/01/2025 12:50</div>
+        <div>Practice</div>
+      </div>
+
+      <div class="bookmark">
+
+      </div> -->
+    </div>
+    <div class="bookmarksFooter">
+
+    </div>
+
+  </div>
+  <div class="controlPanel">
+    <div id="blackClock" class="sideBlock clock short blackClock">
+      <div id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" />
+      </div>
+      <div id="blackClockTimeText">05:00:00</div>
+
+    </div>
+    <div id=" blackPlayersInfo" class="sideBlock playerInfo short">
+      <div class="dot" id="blackPlayerStatus"></div>
+      <div id="blackPlayerName"></div>
+      <div id="blackPlayerDiconnectionTimer" class="disconnectionTimer hide"> (60)</div>
+    </div>
+
+    <div id="whiteCapturedPiece" class="sideBlock captureToolsList"></div>
+    <div>
+
+      <div id="movesDivContainer" class="movesDivContainer">
+        <div id="movesDivHeader" class="movesDivHeader">
+          <table class="movesTableHeader">
+            <tr>
+              <th>#</th>
+              <th>White</th>
+              <th>Black</th>
+            </tr>
+          </table>
+        </div>
+        <div id="movesDiv" class="movesDiv">
+
+        </div>
+      </div>
+      <div id="gameNav" class="gameNav">
+
+      </div>
+    </div>
+  </div>
+
+  <div class="seperator"></div>
+
+  <div id="chessboard"> </div>
+
+  <div class="seperator"></div>
+
+
+  <div class="controlPanel">
+    <div id="whiteClock" class="sideBlock clock short whiteClock">
+      <div id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" />
+      </div>
+      <div id="whiteClockTimeText">05:00:00</div>
+    </div>
+    <div id="whitePlayersInfo" class="sideBlock playerInfo short">
+      <div class="dot" id="whitePlayerStatus"></div>
+      <div id="whitePlayerName"></div>
+      <div id="whitePlayerDiconnectionTimer" class="disconnectionTimer hide"> (60)</div>
+    </div>
+    <div id="blackCapturedPiece" class="sideBlock captureToolsList"></div>
+    <div class="messagesContainer">
+      <!-- <textarea id="messages" class="messages" readonly>                </textarea> -->
+      <div id="messages" class="messages"></div>
+      <div class="chatSendLine">
+        <input type="text" class="chatline" id="chatline" maxlength="30" />
+        <img src="/images/whiteSend.png" alt="send" class="sendButton" onclick="onSendChatButtonClick(event)" />
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<section id="options">
+</section>

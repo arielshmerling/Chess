@@ -1,0 +1,120 @@
+
+
+const { GameBase } = require("./GameBase");
+const { Player } = require("./Player");
+const { SinglePlayerMessageProcessor } = require("./SinglePlayerMessageProcessor");
+const { brainNextMoveFunc, Name, BrainTimeoutFallbackError } = require("./../../brain4");
+
+class SinglePlayerGame extends GameBase {
+    //  brain;
+    worker;
+
+    //events
+    OnMoveChanged;
+
+    constructor(gameInfo, player, mode) {
+        super(gameInfo, player, mode);
+        this.whitePlayer = mode == "review" ? new Player(null, gameInfo.whitePlayer) : player;
+        this.blackPlayer = mode == "review" ? new Player(null, gameInfo.blackPlayer) : new Player(null, Name);
+        this.messageProcessor = new SinglePlayerMessageProcessor();
+
+    }
+
+    init(ws, userId) {
+        super.init(ws, userId);
+        //this.brain = new Brain();
+        this.chessGame.startNewGame(true); // for now, online game are always white view. might be changed in the future
+        this.status = "in progress";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+    }
+
+
+    /**
+     * 
+     * @param {string} gameId - A unique number identified the game
+     * @param {boolean} isWhite - Wheathe the AI player, plays with white piece set
+     */
+    makeBrainMove = async (brainPlaysAsWhite) => {
+
+        const chessGame = this.chessGame;
+
+        try {
+            // console.profile();
+            console.time("brain");
+            const brainMove = await brainNextMoveFunc(chessGame);
+            console.timeEnd("brain");
+            //    console.profileEnd();
+
+            console.log("Brain suggested a move: " + chessGame.getPGNMoveNotation(brainMove));
+            const move = await this.handleMove(brainPlaysAsWhite, brainMove, "brain");
+            if (move.valid) {
+                this.sendMoveToOpponenet(brainPlaysAsWhite, brainMove);
+
+            }
+            else {
+                console.log("Brain created an invalid move");
+            }
+
+        } catch (err) {
+            // Check if this is a timeout fallback error
+            if (err instanceof BrainTimeoutFallbackError) {
+                // Use the fallback move
+                const fallbackMove = err.fallbackMove;
+                console.log("Brain timed out, using fallback move: " + chessGame.getPGNMoveNotation(fallbackMove));
+
+                // Send chat message
+                const chatMessage = {
+                    type: "info",
+                    info: "chat",
+                    data: "WOW you're good!",
+                    gameId: this.gameId,
+                    username: Name,
+                    isWhite: brainPlaysAsWhite
+                };
+                this.sendMessage(chatMessage, !brainPlaysAsWhite); // Send to the human player
+
+                // Execute the fallback move
+                const move = await this.handleMove(brainPlaysAsWhite, fallbackMove, "brain");
+                if (move.valid) {
+                    this.sendMoveToOpponenet(brainPlaysAsWhite, fallbackMove);
+                } else {
+                    console.log("Fallback move validation failed");
+                    const message = { type: "info", info: "move validation failed", gameId: this.gameId };
+                    this.sendMessage(message, brainPlaysAsWhite);
+                }
+            } else {
+                const message = { type: "info", info: "move validation failed", gameId: this.gameId };
+                this.sendMessage(message, brainPlaysAsWhite);
+                console.log("makeBrainMove - " + err);
+            }
+        }
+    };
+
+    onConnectionClosed = () => {
+        if (this.status != "game over") {
+            this.lastStatus = this.status;
+            this.status = "on hold";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        }
+    };
+
+    updateLastMoveTime = (gameTime) => {
+
+        const lastMove = this.moves[this.moves.length - 1];
+        lastMove.moveTime = gameTime;
+        this.raiseEvent(this.OnMoveChanged, { game: this, lastMove });
+    };
+
+    async resign(resignedPlayer) {
+        await super.resign(resignedPlayer);
+        const message = {
+            type: "move",
+            data: this.chessGame.ResultMove,
+            gameId: this.gameId,
+        };
+        this.sendMessage(message, resignedPlayer);
+    }
+}
+
+
+module.exports = { SinglePlayerGame };

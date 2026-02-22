@@ -1,0 +1,35 @@
+
+const { MessageProcessor } = require("./MessageProcessor");
+
+class PracticeGameMessageProcessor extends MessageProcessor {
+
+
+    infoTypeHandlers = {
+        "move accepted": null,
+        "resign": this.resign,
+        "offer draw": null,
+        "draw accepted": null,
+        "draw declined": null,
+        "offer rematch": null,
+        "rematch accepted": null,
+        "rematch declined": null,
+        "outOfTime": null,
+    };
+
+    onInfoReceived(game, msg) {
+        if (game?.messageProcessor.infoTypeHandlers[msg.info] != null) {
+            const infoHandler = game.messageProcessor.infoTypeHandlers[msg.info];
+            if (infoHandler) { infoHandler(game, msg); }
+        }
+    }
+
+
+    resign(game, msg) {
+        const resignedPlayer = msg.isWhite ? "White" : "Black";
+        game.resign(resignedPlayer);
+        msg.info = "Opponent resigned";
+        game.sendMessageToOpponent(msg, msg.isWhite);
+    }
+}
+
+module.exports = { PracticeGameMessageProcessor };

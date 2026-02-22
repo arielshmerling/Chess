@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+    <%- include('partials/topbar') %>
+        <section
+            style="margin: auto 50%; width:500px; background-color:var(--darker); border-radius: 5px; padding: 10px; border:1px solid black;">
+            <div>
+                <h1 style="font-size: 32px;">An unexpected error occurred</h1>
+            </div>
+            <div>
+                <h2>We are very sorry</h2>
+            </div>
+            <h3>Error code:<%=statusCode %>
+            </h3>
+
+            <a href="/" style="text-align: right;">Back to Home Page</a>
+
+        </section>
+
+        <%- include('partials/footer') %>
