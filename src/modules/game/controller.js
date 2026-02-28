@@ -188,6 +188,10 @@ exports.startGame = catchAsync(async (req, res) => {
 
     validate(req.query, "gameType");
     const gameTypeInt = parseInt(req.query.gameType);
+    /* Debug (gameType 3 / Practice) is admin-only */
+    if (gameTypeInt === 3 && !req.session.admin) {
+        return res.redirect("/home");
+    }
     const username = req.session.user_name;
     const userId = req.session.user_id;
 

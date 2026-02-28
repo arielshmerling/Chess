@@ -21,89 +21,9 @@
     </div>
   </div>
 
-  <!-- Main Action Cards -->
-  <div class="action-cards-grid">
-    <div class="action-card multiplayer-card" id="startSearchingForOpponenet" onclick="startSearchingForOpponenet()">
-      <div class="card-image-area">
-        <div class="card-pattern"></div>
-        <div class="card-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-            <circle cx="6.5" cy="6.5" r="1" fill="currentColor"/>
-            <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
-            <circle cx="6.5" cy="17.5" r="1" fill="currentColor"/>
-            <circle cx="17.5" cy="17.5" r="1" fill="currentColor"/>
-            <circle cx="10.5" cy="10.5" r="1" fill="currentColor"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Multiplayer</h3>
-        <p class="card-description">Challenge players worldwide</p>
-      </div>
-    </div>
-
-    <div class="action-card singleplayer-card" id="startAIGame" onclick="startAIGame()">
-      <div class="card-image-area">
-        <div class="card-pattern"></div>
-        <div class="card-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2"/>
-            <path d="M6 8h4"/>
-            <path d="M6 12h8"/>
-            <path d="M6 16h4"/>
-            <circle cx="16" cy="12" r="2"/>
-            <path d="M14 10l2 2-2 2"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Single Player</h3>
-        <p class="card-description">Play against computer</p>
-      </div>
-    </div>
-
-    <div class="action-card research-card" id="startPracticeGame" onclick="startPracticeGame()">
-      <div class="card-image-area">
-        <div class="card-pattern"></div>
-        <div class="card-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            <path d="M8 7h6"/>
-            <path d="M8 11h6"/>
-            <path d="M8 15h4"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Research</h3>
-        <p class="card-description">Practice & analyze</p>
-      </div>
-    </div>
-
-    <div class="action-card list-card" id="navigateToGameList" onclick="navigateToGameList()">
-      <div class="card-image-area">
-        <div class="card-pattern"></div>
-        <div class="card-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"/>
-            <line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/>
-            <line x1="3" y1="12" x2="3.01" y2="12"/>
-            <line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Game List</h3>
-        <p class="card-description">Browse all games</p>
-      </div>
-    </div>
+  <!-- Play now - single primary action (same as Single Player) -->
+  <div class="play-now-section">
+    <button type="button" class="play-now-btn" id="startAIGame" onclick="startAIGame()">Play now</button>
   </div>
 
   <!-- Games Section -->

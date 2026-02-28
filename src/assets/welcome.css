@@ -171,124 +171,40 @@ main {
     }
 }
 
-/* Action Cards Grid */
-.action-cards-grid {
+/* Play now - single primary CTA */
+.play-now-section {
     max-width: 1400px;
     margin: 0 auto 60px;
     padding: 0 40px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 30px;
-}
-
-.action-card {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(33, 51, 79, 0.6) 100%);
-    border: 2px solid rgba(152, 193, 217, 0.2);
-    border-radius: 20px;
-    padding: 0;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     display: flex;
-    flex-direction: column;
-}
-
-.action-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, transparent 0%, rgba(152, 193, 217, 0.1) 100%);
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
-}
-
-.action-card:hover::before {
-    opacity: 1;
-}
-
-.action-card:hover {
-    border-color: rgba(152, 193, 217, 0.5);
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(152, 193, 217, 0.3);
-}
-
-.card-image-area {
-    height: 100px;
-    position: relative;
-    background: linear-gradient(135deg, rgba(152, 193, 217, 0.1) 0%, rgba(102, 142, 165, 0.15) 100%);
-    display: flex;
-    align-items: center;
     justify-content: center;
-    overflow: hidden;
+    align-items: center;
 }
 
-.card-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(152, 193, 217, 0.05) 20px, rgba(152, 193, 217, 0.05) 40px);
-    opacity: 0.5;
-}
-
-.multiplayer-card .card-image-area {
-    background: linear-gradient(135deg, rgba(152, 193, 217, 0.15) 0%, rgba(102, 142, 165, 0.2) 100%);
-}
-
-.singleplayer-card .card-image-area {
-    background: linear-gradient(135deg, rgba(102, 142, 165, 0.15) 0%, rgba(61, 90, 128, 0.2) 100%);
-}
-
-.research-card .card-image-area {
-    background: linear-gradient(135deg, rgba(61, 90, 128, 0.15) 0%, rgba(41, 50, 65, 0.2) 100%);
-}
-
-.list-card .card-image-area {
-    background: linear-gradient(135deg, rgba(41, 50, 65, 0.15) 0%, rgba(33, 51, 79, 0.2) 100%);
-}
-
-.card-icon {
-    position: relative;
-    z-index: 1;
-    color: var(--semiLight);
-    transition: all 0.4s ease;
-}
-
-.action-card:hover .card-icon {
-    color: var(--light);
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 20px rgba(152, 193, 217, 0.6));
-}
-
-.card-content {
-    padding: 20px 25px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.card-title {
-    font-size: 24px;
+.play-now-btn {
+    display: inline-block;
+    padding: 24px 80px;
+    font-size: 28px;
     font-weight: 600;
-    color: var(--light);
-    margin: 0;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    color: #fff;
+    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 
-.card-description {
-    font-size: 14px;
-    color: var(--semiLight);
-    margin: 0;
-    opacity: 0.9;
-    font-weight: 300;
+.play-now-btn:hover {
+    background: linear-gradient(135deg, #40916c 0%, #2d6a4f 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 40px rgba(45, 106, 79, 0.5);
+    transform: translateY(-2px);
+}
+
+.play-now-btn:active {
+    transform: translateY(0);
 }
 
 /* Games Section */
@@ -528,12 +444,6 @@ main {
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .action-cards-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
 @media (max-width: 768px) {
     .hero-banner {
         padding: 30px 20px;
@@ -566,10 +476,14 @@ main {
         font-size: 60px;
     }
 
-    .action-cards-grid {
-        grid-template-columns: 1fr;
+    .play-now-section {
         padding: 0 20px;
         margin-bottom: 40px;
+    }
+
+    .play-now-btn {
+        padding: 20px 56px;
+        font-size: 22px;
     }
 
     .games-section {
@@ -586,8 +500,9 @@ main {
         font-size: 36px;
     }
 
-    .card-image-area {
-        height: 150px;
+    .play-now-btn {
+        padding: 18px 40px;
+        font-size: 20px;
     }
 
     .games-table {

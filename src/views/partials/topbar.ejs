@@ -9,6 +9,10 @@
     <div class="menuBarMenuItem"><a href="/search">Search</a></div>
     <div class="menuBarMenuItem"><a href="#">Friends</a></div>
     <div class="menuBarMenuItem"><a href="#">Group</a></div>
+    <div class="menuBarMenuItem"><a href="/game?gameType=2">Multiplayer</a></div>
+    <% if (admin) { %>
+    <div class="menuBarMenuItem"><a href="/game?gameType=3">Debug</a></div>
+    <% } %>
     <div class="menuBarMenuItem"><a href="#">Preferences</a></div>
   </div>
 
