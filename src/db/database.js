@@ -52,6 +52,8 @@ class Database {
       connectionOptions.tlsAllowInvalidHostnames = false;
       console.log("Detected remote MongoDB connection (non-Atlas) - TLS enabled");
     } else if (isAtlasConnection) {
+      // Force IPv4 to avoid ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR on some hosts (e.g. AWS EB)
+      connectionOptions.family = 4;
       console.log("Detected MongoDB Atlas connection - TLS handled automatically by connection string");
     } else {
       console.log("Detected local MongoDB connection - TLS disabled");
