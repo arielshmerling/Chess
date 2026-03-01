@@ -76,13 +76,28 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 40px;
     max-width: 100%;
     margin: 0 auto;
     padding: 0 20px;
 }
 
+.hero-logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.hero-logo-img {
+    display: block;
+    max-height: 280px;
+    width: auto;
+    object-fit: contain;
+}
+
 .hero-text-section {
     flex: 1;
+    min-width: 0;
 }
 
 .hero-greeting {
@@ -492,6 +507,10 @@ main {
         flex-direction: column;
         gap: 30px;
         text-align: center;
+    }
+
+    .hero-logo-img {
+        max-height: 160px;
     }
 
     .hero-greeting {

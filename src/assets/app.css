@@ -591,10 +591,14 @@ main {
     height: 50px;
     display: flex;
     align-items: center;
-    /* justify-items: center; */
     justify-content: space-between;
     font-size: 2em;
+    z-index: 100;
+    box-sizing: border-box;
+}
 
+#logoArea a {
+    text-decoration: none;
 }
 
 .site-title {
