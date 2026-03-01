@@ -1,20 +1,4 @@
-/* Welcome Page - Chess Gaming Theme */
-
-:root {
-    --darker: #293241;
-    --dark: #3d5a80;
-    --semiDark: #668ea5;
-    --semiLight: #98c1d9;
-    --light: #e0fbfc;
-    --lighter: #ffffff;
-
-    --panel-background: #2D3134;
-    --panel-border: #3b3b3b;
-    --button-background: #21334f;
-    --button-forecolor: #A5A5A5;
-    --button-highlight: #e5e5e5;
-    --body-background: #3d5a80;
-}
+/* Welcome Page - uses theme variables from themes.js (blue/dark) */
 
 /* Override body overflow for welcome page */
 body {
@@ -37,14 +21,14 @@ main {
     min-height: 100vh;
 }
 
-/* Hero Banner with Chess Board Pattern */
+/* Hero Banner - colors from theme (--hero-* set in themes.js) */
 .hero-banner {
     position: relative;
-    background: linear-gradient(135deg, rgba(41, 50, 65, 0.95) 0%, rgba(61, 90, 128, 0.95) 50%, rgba(41, 50, 65, 0.95) 100%);
+    background: linear-gradient(135deg, var(--hero-bg-start) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-end) 100%);
     padding: 40px 60px;
     margin-bottom: 40px;
     overflow: hidden;
-    border-bottom: 3px solid rgba(152, 193, 217, 0.3);
+    border-bottom: 3px solid var(--hero-border);
 }
 
 .hero-banner::before {
@@ -55,8 +39,8 @@ main {
     right: 0;
     bottom: 0;
     background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(152, 193, 217, 0.03) 50px, rgba(152, 193, 217, 0.03) 100px),
-        repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(152, 193, 217, 0.03) 50px, rgba(152, 193, 217, 0.03) 100px);
+        repeating-linear-gradient(0deg, transparent, transparent 50px, var(--hero-pattern) 50px, var(--hero-pattern) 100px),
+        repeating-linear-gradient(90deg, transparent, transparent 50px, var(--hero-pattern) 50px, var(--hero-pattern) 100px);
     pointer-events: none;
 }
 
@@ -66,7 +50,7 @@ main {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(ellipse at top right, rgba(152, 193, 217, 0.15) 0%, transparent 60%);
+    background: radial-gradient(ellipse at top right, var(--hero-overlay) 0%, transparent 60%);
     pointer-events: none;
 }
 
@@ -103,7 +87,7 @@ main {
 .hero-greeting {
     font-size: 42px;
     font-weight: 200;
-    color: #6595b4;
+    color: var(--hero-greeting);
     margin: 0 0 10px 0;
     letter-spacing: 2px;
     text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -231,7 +215,7 @@ main {
     border-radius: 20px;
     cursor: pointer;
     transition: background 0.25s ease, box-shadow 0.25s ease;
-    animation: play-now-breathe 4s ease-in-out infinite;
+    animation: play-now-breathe 3s ease-in-out infinite;
     box-shadow:
         0 0 50px rgba(64, 145, 108, 0.25),
         0 4px 0 #0d2818,

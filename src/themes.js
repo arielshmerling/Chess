@@ -87,6 +87,20 @@ const themes = {
         "--table-link-text": "rgb(44 ,70 ,104)",
         "--table-link-hover": "rgb(255,255,255)",
         "--turnClock": "invert(1)",
+
+        "--darker": "#293241",
+        "--dark": "#3d5a80",
+        "--semiDark": "#668ea5",
+        "--semiLight": "#98c1d9",
+        "--light": "#e0fbfc",
+        "--lighter": "#ffffff",
+        "--hero-bg-start": "rgba(41, 50, 65, 0.95)",
+        "--hero-bg-mid": "rgba(61, 90, 128, 0.95)",
+        "--hero-bg-end": "rgba(41, 50, 65, 0.95)",
+        "--hero-border": "rgba(152, 193, 217, 0.3)",
+        "--hero-pattern": "rgba(152, 193, 217, 0.03)",
+        "--hero-overlay": "rgba(152, 193, 217, 0.15)",
+        "--hero-greeting": "#6595b4",
     },
 
     darkTheme: {
@@ -129,6 +143,19 @@ const themes = {
 
         "--turnClock": "invert(0.5)",
 
+        "--darker": "#1a1a1a",
+        "--dark": "#2d2d2d",
+        "--semiDark": "#555555",
+        "--semiLight": "#888888",
+        "--light": "#bbbbbb",
+        "--lighter": "#eeeeee",
+        "--hero-bg-start": "rgba(28, 28, 28, 0.98)",
+        "--hero-bg-mid": "rgba(45, 45, 45, 0.98)",
+        "--hero-bg-end": "rgba(28, 28, 28, 0.98)",
+        "--hero-border": "rgba(136, 136, 136, 0.25)",
+        "--hero-pattern": "rgba(136, 136, 136, 0.04)",
+        "--hero-overlay": "rgba(136, 136, 136, 0.08)",
+        "--hero-greeting": "#888888",
     },
 };
 
