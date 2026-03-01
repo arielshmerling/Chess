@@ -553,10 +553,9 @@ main {
     background-color: var(--darkSquare);
 }
 
-.option {
-    background: var(--optionSquare);
-    max-width: calc(var(--board-height)-1);
-    overflow: hidden;
+/* Available-move square: inner border only so the square stays clickable (e.g. double-click mode) */
+.square.option {
+    box-shadow: inset 0 0 0 2px var(--optionSquare);
 }
 
 

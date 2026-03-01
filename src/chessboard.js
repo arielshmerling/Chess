@@ -238,7 +238,7 @@ function startDrag(e) {
     if (gameInfo.showAvailableMoves !== false) {
         const options = game.possibleMoves(sourcePosition);
         for (const option of options) {
-            guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+            guiBoard[option.target.row][option.target.col].classList.add("option");
         }
     }
 
@@ -543,7 +543,7 @@ function onBoardClickToMove(e) {
             if (gameInfo.showAvailableMoves !== false) {
                 const options = game.possibleMoves(pos);
                 for (const option of options) {
-                    guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+                    guiBoard[option.target.row][option.target.col].classList.add("option");
                 }
             }
         }
@@ -561,7 +561,7 @@ function onBoardClickToMove(e) {
         if (gameInfo.showAvailableMoves !== false) {
             const options = game.possibleMoves(pos);
             for (const option of options) {
-                guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+                guiBoard[option.target.row][option.target.col].classList.add("option");
             }
         }
         return;
