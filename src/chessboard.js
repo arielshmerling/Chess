@@ -2241,9 +2241,13 @@ async function getGameInfo(isRematch) {
     if (isRematch) {
         return await getServerInfo("/gameInfo?id=" + gameInfo.id);
     }
-    else {
-        return await getServerInfo("/gameInfo");
+    const initialIdEl = document.querySelector("[data-initial-game-id]");
+    const initialId = initialIdEl ? initialIdEl.getAttribute("data-initial-game-id") : null;
+    if (initialId) {
+        initialIdEl.removeAttribute("data-initial-game-id");
+        return await getServerInfo("/gameInfo?id=" + initialId);
     }
+    return await getServerInfo("/gameInfo");
 }
 
 async function setRematchGameId(newGameID) {

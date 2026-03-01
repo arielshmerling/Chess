@@ -13,6 +13,12 @@ const { Player } = require("./Player");
 const catchAsync = require("../../utils/catchAsync");
 const { response } = require("express");
 
+function setGamePageNoCache(res) {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+}
+
 /**
  * 
  * Handles requests related to reviewing games.
@@ -38,7 +44,8 @@ exports.review = catchAsync(async (req, res) => {
         game.mode = "review";
     }
 
-    res.render("game");
+    setGamePageNoCache(res);
+    res.render("game", { gameId: game && game.gameId != null ? game.gameId : undefined });
 });
 
 exports.watchGame = catchAsync(async (req, res) => {
@@ -48,7 +55,8 @@ exports.watchGame = catchAsync(async (req, res) => {
     const game = gamesManagerService.getGameById(id);
     if (game != null) {
         req.session.gameId = game.gameId;
-        res.render("game");
+        setGamePageNoCache(res);
+        res.render("game", { gameId: game.gameId });
         return;
 
     }
@@ -216,7 +224,8 @@ exports.startGame = catchAsync(async (req, res) => {
     game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "in progress");
     if (game) {
         req.session.gameId = game.gameId;
-        res.render("game", { username });
+        setGamePageNoCache(res);
+        res.render("game", { username, gameId: game.gameId });
         return;
     }
 
@@ -227,7 +236,8 @@ exports.startGame = catchAsync(async (req, res) => {
         game.status = "reJoining";
         req.session.gameId = game.gameId;
         registerEvents(game);
-        res.render("game", { username });
+        setGamePageNoCache(res);
+        res.render("game", { username, gameId: game.gameId });
         return;
     }
 
@@ -236,7 +246,8 @@ exports.startGame = catchAsync(async (req, res) => {
     if (game) {
         req.session.gameId = game.gameId;
         registerEvents(game);
-        res.render("game", { username });
+        setGamePageNoCache(res);
+        res.render("game", { username, gameId: game.gameId });
         return;
     }
 
@@ -253,7 +264,8 @@ exports.startGame = catchAsync(async (req, res) => {
         game.joinGame(blackPlayer);
         req.session.gameId = game.gameId;
         registerEvents(game);
-        res.render("game", { username });
+        setGamePageNoCache(res);
+        res.render("game", { username, gameId: game.gameId });
         return;
     }
 
@@ -265,7 +277,8 @@ exports.startGame = catchAsync(async (req, res) => {
     game.gameId = gameDoc.id;
     req.session.gameId = game.gameId;
     registerEvents(game);
-    res.render("game", { username });
+    setGamePageNoCache(res);
+    res.render("game", { username, gameId: game.gameId });
 });
 
 function registerEvents(game) {
