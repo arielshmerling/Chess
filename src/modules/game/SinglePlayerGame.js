@@ -1,9 +1,35 @@
 
-
+const path = require("path");
 const { GameBase } = require("./GameBase");
 const { Player } = require("./Player");
 const { SinglePlayerMessageProcessor } = require("./SinglePlayerMessageProcessor");
-const { brainNextMoveFunc, Name, BrainTimeoutFallbackError } = require("./../../brain4");
+
+const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain5"];
+
+function loadEngine(engineName) {
+    const name = (engineName && ALLOWED_ENGINES.includes(engineName)) ? engineName : "brain4";
+    const enginePath = path.join(__dirname, "..", "..", name);
+    const mod = require(enginePath);
+
+    if (name === "brain2") {
+        const { Brain } = mod;
+        return {
+            brainNextMoveFunc: async (game) => {
+                const brain = new Brain();
+                return brain.nextMove(game);
+            },
+            Name: "Brain 2",
+            BrainTimeoutFallbackError: class BrainTimeoutFallbackError extends Error {}
+        };
+    }
+
+    const BrainTimeoutFallbackError = mod.BrainTimeoutFallbackError || class BrainTimeoutFallbackError extends Error {};
+    return {
+        brainNextMoveFunc: mod.brainNextMoveFunc,
+        Name: mod.Name || name,
+        BrainTimeoutFallbackError
+    };
+}
 
 class SinglePlayerGame extends GameBase {
     //  brain;
@@ -18,9 +44,17 @@ class SinglePlayerGame extends GameBase {
         if (mode === "review") {
             this.whitePlayer = new Player(null, gameInfo.whitePlayer);
             this.blackPlayer = new Player(null, gameInfo.blackPlayer);
+            this._brainNextMoveFunc = null;
+            this._brainName = null;
+            this._BrainTimeoutFallbackError = null;
         } else {
+            const engine = loadEngine(this.options.engine);
+            this._brainNextMoveFunc = engine.brainNextMoveFunc;
+            this._brainName = engine.Name;
+            this._BrainTimeoutFallbackError = engine.BrainTimeoutFallbackError;
+            console.log("SinglePlayerGame engine:", this.options.engine, "->", this._brainName);
             const humanPlayer = player;
-            const aiPlayer = new Player(null, Name);
+            const aiPlayer = new Player(null, this._brainName);
             if (gameInfo.playAsBlack) {
                 this.whitePlayer = aiPlayer;
                 this.blackPlayer = humanPlayer;
@@ -50,6 +84,11 @@ class SinglePlayerGame extends GameBase {
 
         const chessGame = this.chessGame;
 
+        const brainNextMoveFunc = this._brainNextMoveFunc;
+        const BrainTimeoutFallbackError = this._BrainTimeoutFallbackError;
+        const brainName = this._brainName;
+        if (!brainNextMoveFunc) { return; }
+
         try {
             // console.profile();
             console.time("brain");
@@ -69,7 +108,7 @@ class SinglePlayerGame extends GameBase {
 
         } catch (err) {
             // Check if this is a timeout fallback error
-            if (err instanceof BrainTimeoutFallbackError) {
+            if (BrainTimeoutFallbackError && err instanceof BrainTimeoutFallbackError) {
                 // Use the fallback move
                 const fallbackMove = err.fallbackMove;
                 console.log("Brain timed out, using fallback move: " + chessGame.getPGNMoveNotation(fallbackMove));
@@ -80,7 +119,7 @@ class SinglePlayerGame extends GameBase {
                     info: "chat",
                     data: "WOW you're good!",
                     gameId: this.gameId,
-                    username: Name,
+                    username: brainName,
                     isWhite: brainPlaysAsWhite
                 };
                 this.sendMessage(chatMessage, !brainPlaysAsWhite); // Send to the human player

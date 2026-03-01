@@ -67,7 +67,7 @@ function startNewGameFromModal(event) {
         showMoves: showMoves
     });
     closePlayNowModal();
-    window.location = "./game?" + params.toString();
+    window.location = "/game?" + params.toString();
 }
 
 /* eslint-disable-next-line no-unused-vars */

@@ -217,38 +217,47 @@ exports.startGame = catchAsync(async (req, res) => {
     const username = req.session.user_name;
     const userId = req.session.user_id;
 
+    // When user picks options from Play Now modal (engine in query), they want a NEW game; don't reuse existing
+    const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.engine !== undefined;
+
     let gameDoc;
     let game;
 
-    // Game is in progress - for example, user refresh the game page
-    game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "in progress");
-    if (game) {
-        req.session.gameId = game.gameId;
-        setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId });
-        return;
+    // Game is in progress - for example, user refresh the game page (skip if they asked for new game with options)
+    if (!wantsNewGameWithOptions) {
+        game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "in progress");
+        if (game) {
+            req.session.gameId = game.gameId;
+            setGamePageNoCache(res);
+            res.render("game", { username, gameId: game.gameId });
+            return;
+        }
     }
 
     // Game is in on hold - for example, user disconnected and want to rejoin the game
-    game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "on hold");
-    if (game) {
-        // rejoin a game
-        game.status = "reJoining";
-        req.session.gameId = game.gameId;
-        registerEvents(game);
-        setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId });
-        return;
+    if (!wantsNewGameWithOptions) {
+        game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "on hold");
+        if (game) {
+            // rejoin a game
+            game.status = "reJoining";
+            req.session.gameId = game.gameId;
+            registerEvents(game);
+            setGamePageNoCache(res);
+            res.render("game", { username, gameId: game.gameId });
+            return;
+        }
     }
 
     // pending Game created by me - a user waiting for opponent refreshed the page
-    game = gamesManagerService.findPendingGameCreatedByMe(gameTypeInt, userId);
-    if (game) {
-        req.session.gameId = game.gameId;
-        registerEvents(game);
-        setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId });
-        return;
+    if (!wantsNewGameWithOptions) {
+        game = gamesManagerService.findPendingGameCreatedByMe(gameTypeInt, userId);
+        if (game) {
+            req.session.gameId = game.gameId;
+            registerEvents(game);
+            setGamePageNoCache(res);
+            res.render("game", { username, gameId: game.gameId });
+            return;
+        }
     }
 
 
