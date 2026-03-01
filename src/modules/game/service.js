@@ -7,9 +7,18 @@ const { GameFactory } = require("./GameFactory");
 const { Player } = require("./Player");
 
 
-exports.newGame = (gameType, username, userId) => {
+exports.newGame = (gameType, username, userId, options = {}) => {
     const player = new Player(userId, username);
-    const gameInfo = { gameType };
+    const gameInfo = {
+        gameType,
+        playAsBlack: options.color === "black",
+        options: {
+            engine: options.engine || "brain4",
+            difficulty: options.difficulty || 3,
+            mouse: options.mouse || "drag",
+            showAvailableMoves: options.showAvailableMoves !== false
+        }
+    };
     const game = GameFactory.createGame(gameInfo, player, "play");
     return game;
 };

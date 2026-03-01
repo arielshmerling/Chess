@@ -24,9 +24,71 @@
     </div>
   </div>
 
-  <!-- Play now - single primary action (same as Single Player) -->
+  <!-- Play now - single primary action; opens options modal -->
   <div class="play-now-section">
-    <button type="button" class="play-now-btn" id="startAIGame" onclick="startAIGame()">Play Now!</button>
+    <button type="button" class="play-now-btn" id="startAIGame" onclick="openPlayNowModal()">Play Now!</button>
+  </div>
+
+  <!-- New game options modal -->
+  <div id="playNowModal" class="play-now-modal" aria-hidden="true">
+    <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
+    <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
+      <h2 id="playNowModalTitle" class="play-now-modal-title">Start a new Game</h2>
+      <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
+        <div class="play-now-field">
+          <label class="play-now-label">Playing color</label>
+          <div class="play-now-radio-group">
+            <label class="play-now-radio">
+              <input type="radio" name="color" value="white" checked>
+              <span>White</span>
+            </label>
+            <label class="play-now-radio">
+              <input type="radio" name="color" value="black">
+              <span>Black</span>
+            </label>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-label" for="playNowEngine">Engine</label>
+          <select id="playNowEngine" name="engine" class="play-now-select">
+            <option value="brain4">Brain 4.0</option>
+            <option value="brain3">Brain 3</option>
+            <option value="brain2">Brain 2</option>
+            <option value="brain5">Brain 5</option>
+          </select>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-label" for="playNowDifficulty">Difficulty (1–5)</label>
+          <div class="play-now-slider-row">
+            <input type="range" min="1" max="5" value="3" name="difficulty" id="playNowDifficulty" class="play-now-slider" oninput="document.getElementById('playNowDifficultyValue').textContent=this.value">
+            <span id="playNowDifficultyValue" class="play-now-slider-value">3</span>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-label">Mouse preference</label>
+          <div class="play-now-radio-group">
+            <label class="play-now-radio" id="mouseDragLabel">
+              <input type="radio" name="mouse" value="drag" id="mouseDrag" checked>
+              <span>Drag</span>
+            </label>
+            <label class="play-now-radio">
+              <input type="radio" name="mouse" value="double" id="mouseDouble">
+              <span>Double click</span>
+            </label>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-checkbox-label">
+            <input type="checkbox" name="showMoves" id="playNowShowMoves" value="1" checked>
+            <span>Show available moves</span>
+          </label>
+        </div>
+        <div class="play-now-modal-actions">
+          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()">Cancel</button>
+          <button type="submit" class="play-now-btn-start">Start</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Games Section -->

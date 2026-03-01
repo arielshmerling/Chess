@@ -116,6 +116,10 @@ app.ws("/ws", async (ws, req) => {
     console.log("ws connection established");
 });
 
+app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
+    res.status(404).end();
+});
+
 app.all("*", (req, res, next) => {
     next(new ExpressError("Page not found: " + req.path, 404));
 });

@@ -25,6 +25,7 @@ let animating = false;
 let pause = false;
 let draggedImage, offsetX, offsetY, chessboard, coordX, coordY, sourcePosition, targetPosition;
 let currentEditingBookmark = null;
+let clickToMoveSelected = null;
 
 const WhitePawnUrl = "images/3409_white-pawn.png";
 const WhiteRookUrl = "images/3406_white-rook.png";
@@ -234,11 +235,12 @@ function startDrag(e) {
 
     targetPosition = findPosition();
 
-    const options = game.possibleMoves(sourcePosition);
-    for (const option of options) {
-        guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+    if (gameInfo.showAvailableMoves !== false) {
+        const options = game.possibleMoves(sourcePosition);
+        for (const option of options) {
+            guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+        }
     }
-
 
     return false;
 
@@ -266,27 +268,45 @@ async function stopDrag() {
     drag = false;
 
     targetPosition = findPosition();
-    let moveObj = game.validateMove(sourcePosition, targetPosition, game.Turn);
-    if (moveObj.valid) {
-        moveObj = game.makeMove(sourcePosition, targetPosition);
-        lastMove = moveObj;
-        switchClocks();
-        if (gameType != "PracticeGame") {
-            await sendMove(moveObj);//, targetPosition);
-        }
-        else {
-            gameMoves.moves.push(moveObj);
-            updateMovesTable(gameMoves.moves);
-        }
-    }
-    else {
-        // move piece back to source location       
-        movePieceOnBoardTo(moveObj.source);
+    const moved = await tryMove(sourcePosition, targetPosition);
+    if (!moved) {
+        movePieceOnBoardTo(sourcePosition);
     }
 
     document.onmousemove = null;
     resetSqaureColor();
 
+}
+
+async function tryMove(sourcePos, targetPos) {
+    const moveObj = game.validateMove(sourcePos, targetPos, game.Turn);
+    if (moveObj.valid) {
+        const executed = game.makeMove(sourcePos, targetPos);
+        lastMove = executed;
+        switchClocks();
+        if (gameType != "PracticeGame") {
+            await sendMove(executed);
+        } else {
+            gameMoves.moves.push(executed);
+            updateMovesTable(gameMoves.moves);
+        }
+        const state = game.GameState;
+        if (state && state.board) {
+            drawBoard(state.board);
+            if (state.capturedPiecesList) {
+                updateCaptureLists(state.capturedPiecesList);
+            }
+            if (gameInfo.mousePreference === "double") {
+                applyMousePreference("double");
+            }
+        }
+        if (gameType !== "PracticeGame") {
+            gameMoves = await getGameMoves();
+            updateMovesTable(gameMoves.moves);
+        }
+        return true;
+    }
+    return false;
 }
 
 function movePieceOnBoardTo(position) {
@@ -480,6 +500,76 @@ function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch) {
     enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
     hideButtons(["undoBtn", "redoBtn"]);
 
+    applyMousePreference(gameInfo.mousePreference);
+}
+
+function applyMousePreference(preference) {
+    clickToMoveSelected = null;
+    const innerBoard = document.getElementById("innerBoard");
+    if (!innerBoard) { return; }
+    innerBoard.removeEventListener("click", onBoardClickToMove);
+    if (preference === "double") {
+        const pieces = document.querySelectorAll("#innerBoard .square img");
+        pieces.forEach(function (img) {
+            const isOurPiece = currentPlayerIsWhite && img.src.indexOf("white") !== -1 ||
+                !currentPlayerIsWhite && img.src.indexOf("black") !== -1;
+            if (isOurPiece) {
+                img.setAttribute("class", "nondraggable");
+            }
+        });
+        innerBoard.addEventListener("click", onBoardClickToMove);
+    }
+}
+
+function onBoardClickToMove(e) {
+    if (gameInfo.mode === "review" || game.GameOver) { return; }
+    if (gameType !== "SinglePlayerGame" && gameType !== "PracticeGame") { return; }
+    const square = e.target.closest(".square");
+    if (!square) { return; }
+    const row = parseInt(square.getAttribute("data-row"), 10);
+    const col = parseInt(square.getAttribute("data-col"), 10);
+    if (isNaN(row) || isNaN(col)) { return; }
+    const pos = { row: row, col: col };
+    const pieceImg = square.querySelector("img");
+    const isOurPiece = pieceImg && (
+        (currentPlayerIsWhite && pieceImg.src.indexOf("white") !== -1) ||
+        (!currentPlayerIsWhite && pieceImg.src.indexOf("black") !== -1)
+    );
+    if (!clickToMoveSelected) {
+        if (isOurPiece && game.Turn === (currentPlayerIsWhite ? "white" : "black")) {
+            clickToMoveSelected = pos;
+            resetSqaureColor();
+            square.classList.add("optionSquare");
+            if (gameInfo.showAvailableMoves !== false) {
+                const options = game.possibleMoves(pos);
+                for (const option of options) {
+                    guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+                }
+            }
+        }
+        return;
+    }
+    if (clickToMoveSelected.row === row && clickToMoveSelected.col === col) {
+        clickToMoveSelected = null;
+        resetSqaureColor();
+        return;
+    }
+    if (isOurPiece) {
+        clickToMoveSelected = pos;
+        resetSqaureColor();
+        square.classList.add("optionSquare");
+        if (gameInfo.showAvailableMoves !== false) {
+            const options = game.possibleMoves(pos);
+            for (const option of options) {
+                guiBoard[option.target.row][option.target.col].setAttribute("class", "option");
+            }
+        }
+        return;
+    }
+    tryMove(clickToMoveSelected, pos).then(function (moved) {
+        clickToMoveSelected = null;
+        resetSqaureColor();
+    });
 }
 
 /**
@@ -667,6 +757,8 @@ function createSquares() {
             const square = document.createElement("div");
             const className = `square ${((i + j) % 2) === 0 ? "white" : "black"}`;
             square.setAttribute("class", className);
+            square.setAttribute("data-row", i);
+            square.setAttribute("data-col", j);
             squares.appendChild(square);
             guiBoard[i][j] = square;
         }
@@ -1097,6 +1189,9 @@ async function onUpdateReceivedEventHandler(gameState) {
     drag = false;
     const { board, capturedPiecesList } = gameState;
     drawBoard(board);
+    if (gameInfo.mousePreference === "double") {
+        applyMousePreference("double");
+    }
     updateCaptureLists(capturedPiecesList);
 
     if (gameInfo.mode != "review") {

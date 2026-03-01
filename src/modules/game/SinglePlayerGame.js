@@ -14,10 +14,22 @@ class SinglePlayerGame extends GameBase {
 
     constructor(gameInfo, player, mode) {
         super(gameInfo, player, mode);
-        this.whitePlayer = mode == "review" ? new Player(null, gameInfo.whitePlayer) : player;
-        this.blackPlayer = mode == "review" ? new Player(null, gameInfo.blackPlayer) : new Player(null, Name);
+        this.options = gameInfo.options || {};
+        if (mode === "review") {
+            this.whitePlayer = new Player(null, gameInfo.whitePlayer);
+            this.blackPlayer = new Player(null, gameInfo.blackPlayer);
+        } else {
+            const humanPlayer = player;
+            const aiPlayer = new Player(null, Name);
+            if (gameInfo.playAsBlack) {
+                this.whitePlayer = aiPlayer;
+                this.blackPlayer = humanPlayer;
+            } else {
+                this.whitePlayer = humanPlayer;
+                this.blackPlayer = aiPlayer;
+            }
+        }
         this.messageProcessor = new SinglePlayerMessageProcessor();
-
     }
 
     init(ws, userId) {

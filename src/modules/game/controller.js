@@ -92,6 +92,12 @@ function createGameInfo(game, userName, userId) {
         whiteTimer: calculateTimer(game, true),
         blackTimer: calculateTimer(game, false),
     };
+    if (game.options) {
+        clientDate.mousePreference = game.options.mouse || "drag";
+        clientDate.difficulty = game.options.difficulty;
+        clientDate.engine = game.options.engine;
+        clientDate.showAvailableMoves = game.options.showAvailableMoves !== false;
+    }
 
     if (userName != clientDate.whitePlayerName && userName != clientDate.blackPlayerName) {
         watcher = true;
@@ -186,12 +192,20 @@ exports.rematch = async (req, res) => {
 
 exports.startGame = catchAsync(async (req, res) => {
 
-    validate(req.query, "gameType");
+    validate({ gameType: req.query.gameType }, "gameType");
     const gameTypeInt = parseInt(req.query.gameType);
     /* Debug (gameType 3 / Practice) is admin-only */
     if (gameTypeInt === 3 && !req.session.admin) {
         return res.redirect("/home");
     }
+    const color = (req.query.color === "black" || req.query.color === "white") ? req.query.color : "white";
+    const engine = typeof req.query.engine === "string" && req.query.engine.length <= 20 ? req.query.engine : "brain4";
+    const difficulty = parseInt(req.query.difficulty, 10);
+    const difficultyNum = (difficulty >= 1 && difficulty <= 5) ? difficulty : 3;
+    const mouse = (req.query.mouse === "double" || req.query.mouse === "drag") ? req.query.mouse : "drag";
+    const showAvailableMoves = req.query.showMoves !== "0";
+    req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves };
+
     const username = req.session.user_name;
     const userId = req.session.user_id;
 
@@ -243,8 +257,9 @@ exports.startGame = catchAsync(async (req, res) => {
         return;
     }
 
-    // create a new game
-    game = gameService.newGame(gameTypeInt, username, userId);
+    // create a new game (pass options for single-player: color, engine, difficulty, mouse)
+    const options = req.session.newGameOptions || {};
+    game = gameService.newGame(gameTypeInt, username, userId, options);
     gamesManagerService.AddGame(game);
     gameDoc = await gamesManagerService.storeGameInDB(game);
     game.gameId = gameDoc.id;

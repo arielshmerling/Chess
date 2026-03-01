@@ -174,7 +174,7 @@ function findBestMove(moves) {
     const max = Math.max(...moves.map(o => o.score));
     moves = moves.filter(o => o.score == max);
     const rand = Math.floor(Math.random() * moves.length);
-    console.log("findBestMove: " + moves.length + " moves, choosing random move #" + rand);
+    //console.log("findBestMove: " + moves.length + " moves, choosing random move #" + rand);
     return moves[rand];
 }
 /**
