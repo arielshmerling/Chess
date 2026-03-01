@@ -11,7 +11,10 @@ class Brain {
     #canceling = false;
 
 
-    constructor() {
+    constructor(maxDepth = 1) {
+        if (maxDepth != null) {
+            this.MAX_DEPTH = Math.min(5, Math.max(1, Number(maxDepth) || 1));
+        }
         console.log("Chess Brain Created");
         this.#initOpenings();
 

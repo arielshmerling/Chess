@@ -4,14 +4,15 @@ const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 var chess;
 var depth = 0;
-const MAX_DEPTH = 4;
+const DEFAULT_MAX_DEPTH = 4;
 
 exports.Name = "Brain 3.0";
 
-exports.brainNextMoveFunc = async (game) => {
+exports.brainNextMoveFunc = async (game, options) => {
 
     const state = game.GameState;
     const strState = JSON.stringify(state);
+    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
         // resolve(move);
@@ -19,7 +20,7 @@ exports.brainNextMoveFunc = async (game) => {
     }
     return new Promise((resolve, reject) => {
         if (isMainThread) {
-            const worker = new Worker(__filename, { workerData: strState });
+            const worker = new Worker(__filename, { workerData: { strState, maxDepth } });
             worker.on("message", (move) => {
                 console.log(`Worker message received: ${move}`);
                 resolve(move);
@@ -35,16 +36,16 @@ exports.brainNextMoveFunc = async (game) => {
     });
 };
 
-function suggestMove(chess) {
+function suggestMove(chess, maxDepth) {
     depth++;
     const moves = allPossibleMoves(chess);
-    if (depth > MAX_DEPTH) {
+    if (depth > maxDepth) {
         return moves[0];
     }
 
     for (let i = 0; i < moves.length; i++) {
         const move = moves[i];
-        move.score = scoreMove(chess, move);
+        move.score = scoreMove(chess, move, maxDepth);
     }
 
     const finalResult = findBestMove(moves);
@@ -96,7 +97,7 @@ function stateScore(chess, move) {
     return score;
 }
 
-function scoreMove(chess, move) {
+function scoreMove(chess, move, maxDepth) {
 
     let score = stateScore(chess, move);
     chess.makeMove(move.source, move.target);
@@ -123,8 +124,8 @@ function scoreMove(chess, move) {
         if (chess.Check) { score += 3; }
     }
 
-    if (depth < MAX_DEPTH) {
-        const opponentMove = suggestMove(chess);
+    if (depth < maxDepth) {
+        const opponentMove = suggestMove(chess, maxDepth);
         if (opponentMove) {
             score -= opponentMove.score;
         }
@@ -168,11 +169,16 @@ async function tryFindMatchState(game) {
 
 if (!isMainThread) {
     depth = 0;
-    const strState = workerData;
+    const strState = typeof workerData === "object" && workerData != null && workerData.strState != null
+        ? workerData.strState
+        : workerData;
+    const maxDepth = typeof workerData === "object" && workerData != null && workerData.maxDepth != null
+        ? Math.min(5, Math.max(1, Number(workerData.maxDepth)))
+        : DEFAULT_MAX_DEPTH;
     chess = new ChessGame();
     chess.loadGame(strState);
     chess.SearchMode = true;
-    const move = suggestMove(chess);
+    const move = suggestMove(chess, maxDepth);
     chess.SearchMode = false;
     move.turn = chess.Turn;
     parentPort.postMessage(move);

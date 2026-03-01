@@ -4,7 +4,7 @@ const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 var chess;
 var depth = 0;
-const MAX_DEPTH = 2;
+const DEFAULT_MAX_DEPTH = 2;
 
 exports.Name = "Brain 4.0";
 
@@ -70,7 +70,7 @@ function getOrCreateWorker() {
     return persistentWorker;
 }
 
-function createWorkerPromise(strState) {
+function createWorkerPromise(strState, maxDepth) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
@@ -79,6 +79,7 @@ function createWorkerPromise(strState) {
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
+        const depthLimit = maxDepth != null ? Math.min(5, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
 
         // Add timeout to prevent hanging
         const timeout = setTimeout(() => {
@@ -93,8 +94,8 @@ function createWorkerPromise(strState) {
         pendingRequests.set(requestId, { resolve, reject, timeout });
 
         // Send request to worker
-        console.log(`Sending request ${requestId} to worker thread`);
-        worker.postMessage({ requestId, gameState: strState });
+        console.log(`Sending request ${requestId} to worker thread (depth ${depthLimit})`);
+        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit });
     });
 }
 
@@ -116,9 +117,10 @@ function getFirstLegalMove(game) {
     return moves[0];
 }
 
-exports.brainNextMoveFunc = async (game) => {
+exports.brainNextMoveFunc = async (game, options) => {
     const state = game.GameState;
     const strState = JSON.stringify(state);
+    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
         return move;
@@ -126,12 +128,12 @@ exports.brainNextMoveFunc = async (game) => {
 
     // Try once, and retry once if it fails
     try {
-        return await createWorkerPromise(strState);
+        return await createWorkerPromise(strState, maxDepth);
     } catch (err) {
         console.log(`Brain move failed, retrying once. Error: ${err.message}`);
         // Retry once
         try {
-            return await createWorkerPromise(strState);
+            return await createWorkerPromise(strState, maxDepth);
         } catch (retryErr) {
             // Both attempts timed out - get first legal move as fallback
             console.log("Both brain move attempts timed out, using fallback move");
@@ -147,21 +149,21 @@ exports.brainNextMoveFunc = async (game) => {
 // Export the error class so it can be caught in makeBrainMove
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
 
-function suggestMove(chess) {
+function suggestMove(chess, maxDepth) {
     depth++;
     const moves = allPossibleMoves(chess);
     if (moves.length === 0) {
         depth--;
         return null; // No legal moves available (checkmate or stalemate)
     }
-    if (depth > MAX_DEPTH) {
+    if (depth > maxDepth) {
         depth--;
         return moves[0];
     }
 
     for (let i = 0; i < moves.length; i++) {
         const move = moves[i];
-        move.score = scoreMove(chess, move);
+        move.score = scoreMove(chess, move, maxDepth);
     }
 
     const finalResult = findBestMove(moves);
@@ -214,7 +216,7 @@ function stateScore(chess, move) {
     return score;
 }
 
-function scoreMove(chess, move) {
+function scoreMove(chess, move, maxDepth) {
 
     let score = stateScore(chess, move);
     chess.makeMove(move.source, move.target);
@@ -241,8 +243,8 @@ function scoreMove(chess, move) {
         if (chess.Check) { score += 3; }
     }
 
-    if (depth < MAX_DEPTH) {
-        const opponentMove = suggestMove(chess);
+    if (depth < maxDepth) {
+        const opponentMove = suggestMove(chess, maxDepth);
         if (opponentMove) {
             score -= opponentMove.score;
         }
@@ -294,7 +296,7 @@ if (!isMainThread) {
 
     // Listen for messages from main thread
     parentPort.on("message", (request) => {
-        const { requestId, gameState } = request;
+        const { requestId, gameState, maxDepth: requestMaxDepth } = request;
 
         if (!requestId || !gameState) {
             console.error("Worker thread: Invalid request received", request);
@@ -302,14 +304,15 @@ if (!isMainThread) {
             return;
         }
 
-        console.log(`Brain 4 is thinking... (request ${requestId})`);
+        const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        console.log(`Brain 4 is thinking... (request ${requestId}, depth ${maxDepth})`);
         const startTime = Date.now();
 
         try {
             depth = 0;
             chess.loadGame(gameState);
             chess.SearchMode = true;
-            const move = suggestMove(chess);
+            const move = suggestMove(chess, maxDepth);
             chess.SearchMode = false;
 
             const duration = Date.now() - startTime;

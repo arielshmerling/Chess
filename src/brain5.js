@@ -4,7 +4,7 @@ const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 var chess;
 var depth = 0;
-const MAX_DEPTH = 4;
+const DEFAULT_MAX_DEPTH = 4;
 
 exports.Name = "Brain 5.0";
 
@@ -70,7 +70,7 @@ function getOrCreateWorker() {
     return persistentWorker;
 }
 
-function createWorkerPromise(strState) {
+function createWorkerPromise(strState, maxDepth) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
@@ -79,6 +79,7 @@ function createWorkerPromise(strState) {
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
+        const depthLimit = maxDepth != null ? Math.min(5, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
 
         // Add timeout to prevent hanging
         const timeout = setTimeout(() => {
@@ -93,8 +94,8 @@ function createWorkerPromise(strState) {
         pendingRequests.set(requestId, { resolve, reject, timeout });
 
         // Send request to worker
-        console.log(`Sending request ${requestId} to worker thread`);
-        worker.postMessage({ requestId, gameState: strState });
+        console.log(`Sending request ${requestId} to worker thread (depth ${depthLimit})`);
+        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit });
     });
 }
 
@@ -116,9 +117,10 @@ function getFirstLegalMove(game) {
     return moves[0];
 }
 
-exports.brainNextMoveFunc = async (game) => {
+exports.brainNextMoveFunc = async (game, options) => {
     const state = game.GameState;
     const strState = JSON.stringify(state);
+    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
         return move;
@@ -126,12 +128,12 @@ exports.brainNextMoveFunc = async (game) => {
 
     // Try once, and retry once if it fails
     try {
-        return await createWorkerPromise(strState);
+        return await createWorkerPromise(strState, maxDepth);
     } catch (err) {
         console.log(`Brain move failed, retrying once. Error: ${err.message}`);
         // Retry once
         try {
-            return await createWorkerPromise(strState);
+            return await createWorkerPromise(strState, maxDepth);
         } catch (retryErr) {
             // Both attempts timed out - get first legal move as fallback
             console.log("Both brain move attempts timed out, using fallback move");
@@ -156,7 +158,7 @@ exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
  * @param {string} originalTurn - The turn color at root level ("white" or "black")
  * @returns {Object|null} - Best move with score at root, or best score when recursing
  */
-function suggestMove(chess, alpha = -Infinity, beta = Infinity, originalTurn = null) {
+function suggestMove(chess, maxDepth, alpha = -Infinity, beta = Infinity, originalTurn = null) {
     depth++;
 
     // Track original turn at root level
@@ -177,7 +179,7 @@ function suggestMove(chess, alpha = -Infinity, beta = Infinity, originalTurn = n
         return { score: 0 };
     }
 
-    if (depth > MAX_DEPTH) {
+    if (depth > maxDepth) {
         depth--;
         // At max depth, return static evaluation from current player's perspective
         const eval = evaluatePosition(chess, chess.Turn);
@@ -192,7 +194,7 @@ function suggestMove(chess, alpha = -Infinity, beta = Infinity, originalTurn = n
 
     for (let i = 0; i < orderedMoves.length; i++) {
         const move = orderedMoves[i];
-        const moveScore = scoreMove(chess, move, alpha, beta, originalTurn);
+        const moveScore = scoreMove(chess, move, maxDepth, alpha, beta, originalTurn);
 
         // Always maximize for the current player (matching brain4's behavior)
         if (moveScore > bestScore) {
@@ -341,12 +343,13 @@ function stateScore(chess, move) {
  * 
  * @param {ChessGame} chess - The chess game instance
  * @param {Object} move - The move to evaluate
+ * @param {number} maxDepth - Maximum search depth
  * @param {number} alpha - Best value for maximizing player
  * @param {number} beta - Best value for minimizing player
  * @param {string} originalTurn - The turn color at root level
  * @returns {number} - The score of this move (from the player making the move's perspective)
  */
-function scoreMove(chess, move, alpha, beta, originalTurn) {
+function scoreMove(chess, move, maxDepth, alpha, beta, originalTurn) {
     // Score is from the perspective of the player making the move (before the move)
     const movePlayerTurn = chess.Turn;
     let score = stateScore(chess, move);
@@ -388,7 +391,7 @@ function scoreMove(chess, move, alpha, beta, originalTurn) {
     }
 
     // Recursively evaluate opponent's best response
-    if (depth < MAX_DEPTH) {
+    if (depth < maxDepth) {
         // Determine if opponent is the original player or not
         const opponentIsOriginal = (chess.Turn === originalTurn);
 
@@ -407,7 +410,7 @@ function scoreMove(chess, move, alpha, beta, originalTurn) {
             opponentBeta = -alpha;
         }
 
-        const opponentResult = suggestMove(chess, opponentAlpha, opponentBeta, originalTurn);
+        const opponentResult = suggestMove(chess, maxDepth, opponentAlpha, opponentBeta, originalTurn);
         if (opponentResult && opponentResult.score !== undefined) {
             // Opponent's score is from their perspective (positive = good for them)
             // We subtract it to flip to our perspective (positive = good for us)
@@ -468,7 +471,7 @@ if (!isMainThread) {
 
     // Listen for messages from main thread
     parentPort.on("message", (request) => {
-        const { requestId, gameState } = request;
+        const { requestId, gameState, maxDepth: requestMaxDepth } = request;
 
         if (!requestId || !gameState) {
             console.error("Worker thread: Invalid request received", request);
@@ -476,14 +479,15 @@ if (!isMainThread) {
             return;
         }
 
-        console.log(`Brain 5 is thinking... (request ${requestId})`);
+        const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        console.log(`Brain 5 is thinking... (request ${requestId}, depth ${maxDepth})`);
         const startTime = Date.now();
 
         try {
             depth = 0;
             chess.loadGame(gameState);
             chess.SearchMode = true;
-            const move = suggestMove(chess);
+            const move = suggestMove(chess, maxDepth);
             chess.SearchMode = false;
 
             const duration = Date.now() - startTime;
