@@ -553,9 +553,35 @@ main {
     background-color: var(--darkSquare);
 }
 
-/* Available-move square: inner border only so the square stays clickable (e.g. double-click mode) */
+/* Available-move square: corner brackets (top-left + bottom-right) so adjacent squares never share a line */
 .square.option {
-    box-shadow: inset 0 0 0 2px var(--optionSquare);
+    position: relative;
+}
+
+.square.option::before,
+.square.option::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: var(--optionSquare);
+    border-style: solid;
+    border-width: 0;
+    box-sizing: border-box;
+}
+
+.square.option::before {
+    top: 2px;
+    left: 2px;
+    border-top-width: 2px;
+    border-left-width: 2px;
+}
+
+.square.option::after {
+    bottom: 2px;
+    right: 2px;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
 }
 
 
@@ -601,13 +627,14 @@ main {
 }
 
 .site-title {
-    font-family: 'Raleway', sans-serif;
-    font-weight: 700;
-    font-size: 1.3em;
-    letter-spacing: 1px;
-    color: #98c1d9;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    /* font-family: 'Raleway', sans-serif; */
+    /* font-weight: 700; */
+    /* letter-spacing: 1px; */
+    /* color: #98c1d9; */
+    text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
     margin-left: 10px;
+    margin-right: 10px;
+    font-size: 0.9em;
 }
 
 a {
