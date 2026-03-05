@@ -58,18 +58,28 @@
   <%} %>
 
   <%if(pgn.length>0) { %>
+  <%
+    const windowSize = 10;
+    const startPage = Math.floor((page - 1) / windowSize) * windowSize + 1;
+    const endPage = Math.min(startPage + windowSize - 1, totalPages);
+    const prev10Page = Math.max(1, startPage - windowSize);
+    const next10Page = Math.min(totalPages, startPage + windowSize);
+  %>
   <nav class="pagesNav">
-    <a href="search?page=1">First</a>
-
-    <% for(let i=1;i<=Math.min(totalPages,10);i++) { %>
+    <a href="search?q=<%=q%>&page=1">First</a>
+    <% if (startPage > 1) { %>
+    <a href="search?q=<%=q%>&page=<%=prev10Page%>" title="Previous 10 pages" class="pageNavIcon">‹‹</a>
+    <% } %>
+    <% for(let i=startPage;i<=endPage;i++) { %>
     <% if (i==page) { %>
     <a class="selectedPage" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
     <%} else { %>
     <a href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
     <% } %>
-
-
-    <% }%>
+    <% } %>
+    <% if (endPage < totalPages) { %>
+    <a href="search?q=<%=q%>&page=<%=next10Page%>" title="Next 10 pages" class="pageNavIcon">››</a>
+    <% } %>
     <a href="search?q=<%=q%>&page=<%=totalPages%>">Last</a>
   </nav>
 
