@@ -73,6 +73,10 @@ class SinglePlayerGame extends GameBase {
         this.chessGame.startNewGame(true); // for now, online game are always white view. might be changed in the future
         this.status = "in progress";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        // When human plays black, engine plays white and must make the first move
+        if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
+            this.makeBrainMove(true);
+        }
     }
 
 
