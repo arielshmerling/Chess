@@ -5,22 +5,20 @@ const { User } = require("../user/model");
 exports.showHomePage = async (req, res) => {
 
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
-    // console.log(onGoing);
-    const allGames = onGoing.map(g => {
+    const allGames = onGoing.map((g) => {
         return {
             Id: g.gameId,
             Game: g.whitePlayer.userName + " Vs. " + g.blackPlayer.userName,
-            Started: g.startedOn ? parseInt((Date.now() - g.startedOn) / 1000 / 60) + " minutes ago" : "Not started",
+            Started: g.startedOn ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago" : "Not started",
             Moves: Math.ceil(g.moves.length / 2),
         };
-    }
-    );
+    });
     //console.log(allGames);
     //req.session.gameId = null; // why? this causes a crash on back button
 
     const username = req.session.user_name;
     res.locals.username = username;
-    let playerGames = await gamesManagerService.getRecentGamesByUsername(username, 10);
+    let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
     playerGames = playerGames.map(({ Reason, Type, ...rest }) => rest);
     res.locals.playerGames = playerGames;
     let lastGameOptions = null;

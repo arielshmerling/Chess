@@ -70,6 +70,23 @@ exports.getRecentGamesByUsername = catchAsync(async (username, amount) => {
     return playerGames;
 });
 
+/**
+ * Retrieves recent games by username that finished with state "game over" only.
+ * Used for "My Games" on home page; for all statuses use getRecentGamesByUsername (e.g. list page).
+ */
+exports.getRecentFinishedGamesByUsername = catchAsync(async (username, amount) => {
+    const gameDocs = await Game.find({
+        $or: [
+            { blackPlayer: username },
+            { whitePlayer: username },
+        ],
+        state: "game over",
+    })
+        .sort({ _id: -1 })
+        .limit(amount);
+    return this.parseGames(gameDocs);
+});
+
 
 /**
  * Retrieves a list of recent games played.
@@ -82,6 +99,27 @@ exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
     let ongoing = games.filter(g => g.status == "in progress");
     ongoing = ongoing.slice(0, amount);
     return ongoing;
+});
+
+/**
+ * Retrieves recent games that finished with state "game over" from the database.
+ * Excludes in progress, on hold, new, pending, etc.
+ *
+ * @param {number} amount - Maximum number of games to return.
+ * @returns {Promise<Object[]>} Array of game objects with gameId, whitePlayer, blackPlayer, moves, created.
+ */
+exports.getFinishedGames = catchAsync(async (amount) => {
+    const gameDocs = await Game.find({ state: "game over" })
+        .sort({ created: -1 })
+        .limit(amount)
+        .lean();
+    return gameDocs.map((doc) => ({
+        gameId: doc._id.toString(),
+        whitePlayer: { userName: doc.whitePlayer || "" },
+        blackPlayer: { userName: doc.blackPlayer || "" },
+        moves: doc.moves || [],
+        created: doc.created,
+    }));
 });
 
 /**
