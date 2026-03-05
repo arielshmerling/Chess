@@ -1,5 +1,6 @@
 const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
+const { User } = require("../user/model");
 
 exports.showHomePage = async (req, res) => {
 
@@ -22,7 +23,14 @@ exports.showHomePage = async (req, res) => {
     let playerGames = await gamesManagerService.getRecentGamesByUsername(username, 10);
     playerGames = playerGames.map(({ Reason, Type, ...rest }) => rest);
     res.locals.playerGames = playerGames;
-    res.render("welcome", { allGames });
+    let lastGameOptions = null;
+    if (req.session.user_id) {
+        const user = await User.findById(req.session.user_id).select("lastGameOptions").lean();
+        if (user && user.lastGameOptions) {
+            lastGameOptions = user.lastGameOptions;
+        }
+    }
+    res.render("welcome", { allGames, lastGameOptions });
 };
 
 exports.showList = async (req, res) => {

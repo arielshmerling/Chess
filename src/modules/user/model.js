@@ -72,7 +72,15 @@ const userSchema = new mongoose.Schema({
     bookmarks: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Bookmark",
-    }]
+    }],
+
+    lastGameOptions: {
+        color: { type: String, enum: ["white", "black"], default: "white" },
+        engine: { type: String, default: "brain4" },
+        difficulty: { type: Number, min: 1, max: 5, default: 3 },
+        mouse: { type: String, enum: ["drag", "double"], default: "drag" },
+        showAvailableMoves: { type: Boolean, default: true },
+    },
 
 });
 

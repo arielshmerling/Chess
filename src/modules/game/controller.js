@@ -9,6 +9,7 @@ const gameService = require("./service");
 const gamesManagerService = require("../gamesManager/service");
 const { Game } = require("./model");
 const { Player } = require("./Player");
+const { User } = require("../user/model");
 //const ExpressError = require("../../utils/ExpressError");
 const catchAsync = require("../../utils/catchAsync");
 const { response } = require("express");
@@ -286,6 +287,18 @@ exports.startGame = catchAsync(async (req, res) => {
     game.gameId = gameDoc.id;
     req.session.gameId = game.gameId;
     registerEvents(game);
+    // Save last game options for single-player so they become defaults next time
+    if (gameTypeInt === 1 && options.engine != null) {
+        await User.findByIdAndUpdate(userId, {
+            lastGameOptions: {
+                color: options.color || "white",
+                engine: options.engine || "brain4",
+                difficulty: options.difficulty != null ? options.difficulty : 3,
+                mouse: options.mouse || "drag",
+                showAvailableMoves: options.showAvailableMoves !== false,
+            },
+        });
+    }
     setGamePageNoCache(res);
     res.render("game", { username, gameId: game.gameId });
 });

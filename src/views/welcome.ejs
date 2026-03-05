@@ -1,6 +1,9 @@
 <% layout("../views/layouts/boilerplate") %>
 
 <link rel="stylesheet" href="/welcome.css">
+<script>
+  window.__LAST_GAME_OPTIONS__ = <%- JSON.stringify(typeof lastGameOptions !== "undefined" && lastGameOptions ? lastGameOptions : {}) %>;
+</script>
 
 <div class="welcome-container">
   <!-- Hero Banner with Chess Theme -->
