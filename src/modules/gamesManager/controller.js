@@ -19,7 +19,15 @@ exports.showHomePage = async (req, res) => {
     const username = req.session.user_name;
     res.locals.username = username;
     let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
-    playerGames = playerGames.map(({ Reason, Type, ...rest }) => rest);
+    // Home page: only these columns (exclude Reason, Type, Status)
+    const homeColumns = ["Id", "Date", "Time", "White", "Black", "Result", "Moves"];
+    playerGames = playerGames.map((g) => {
+        const out = {};
+        for (const k of homeColumns) {
+            if (Object.prototype.hasOwnProperty.call(g, k)) out[k] = g[k];
+        }
+        return out;
+    });
     res.locals.playerGames = playerGames;
     let lastGameOptions = null;
     if (req.session.user_id) {

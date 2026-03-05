@@ -292,10 +292,11 @@ exports.parseGames = (gameDocs) => {
 
             White: gameDoc.whitePlayer,
             Black: gameDoc.blackPlayer,
-            Result: gameDoc.result || "-",
+            Result: gameDoc.state === "cancelled" ? "Cancelled" : (gameDoc.result || "-"),
+            Status: gameDoc.state || "-",
             Reason: gameDoc.reason,
             Type: gameDoc.gameType,
-            Moves: Math.ceil(gameDoc.moves.length / 2),
+            Moves: gameDoc.state === "cancelled" ? 0 : Math.ceil(gameDoc.moves.length / 2),
         };
     });
 };

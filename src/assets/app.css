@@ -1076,6 +1076,9 @@ table.movesTable td:hover {
 .gamesTableContainer {
     border-radius: 5px;
     background-color: var(--table-header-bg);
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .gamesTable {
@@ -1083,7 +1086,8 @@ table.movesTable td:hover {
     border-collapse: separate;
     border: 1px solid Black;
     /* border-collapse: collapse !important; */
-    width: 850px;
+    width: 1150px;
+    min-width: 1150px;
     border-spacing: 1px 0;
     border-color: blue;
     border-radius: 5px !important;
@@ -1123,8 +1127,7 @@ table.gamesTable th {
     height: 20px;
     font-weight: normal;
     border-bottom: 4px solid var(--panel-background);
-
-
+    white-space: nowrap;
 }
 
 table.gamesTable th::first-letter {
@@ -1136,6 +1139,7 @@ table.gamesTable td {
     padding: 4px;
     text-align: center;
     border-color: wheat;
+    white-space: nowrap;
 }
 
 
@@ -1148,6 +1152,60 @@ table.gamesTable td {
 
 .gamesTable a:hover {
     color: white !important;
+}
+
+/* List page table: responsive breakpoints */
+@media (max-width: 1200px) {
+    .gamesTable {
+        width: 980px;
+        min-width: 980px;
+    }
+    table.gamesTable th,
+    table.gamesTable td {
+        padding: 4px 6px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) {
+    .gamesTable {
+        width: 100%;
+        min-width: 0;
+        font-size: 12px;
+        padding: 6px;
+    }
+    table.gamesTable th,
+    table.gamesTable td {
+        white-space: normal;
+        padding: 6px 4px;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    table.gamesTable th {
+        height: auto;
+        min-height: 20px;
+    }
+    table.gamesTable tr {
+        height: auto;
+        min-height: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    #PlayerGameList .gamesTableContainer {
+        margin-left: -8px;
+        margin-right: -8px;
+        border-radius: 0;
+    }
+    .gamesTable {
+        font-size: 11px;
+        padding: 4px;
+    }
+    table.gamesTable th,
+    table.gamesTable td {
+        padding: 4px 3px;
+        font-size: 11px;
+    }
 }
 
 .selectedMove {

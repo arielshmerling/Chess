@@ -84,7 +84,11 @@ class GameBase {
 
     async resign(resignedPlayer) {
 
-        this.status = "game over";
+        if (this.moves.length === 0) {
+            this.status = "cancelled";
+        } else {
+            this.status = "game over";
+        }
         this.chessGame.resign(resignedPlayer);
         await this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
 

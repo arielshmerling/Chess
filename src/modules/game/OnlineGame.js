@@ -34,17 +34,22 @@ class OnlineGame extends GameBase {
 
     onConnectionClosed = () => {
 
-        if (this.status != "game over") {
-            //remaining player
-            const isWhite = this.whitePlayer.channel.readyState == this.whitePlayer.channel.OPEN;
-            const message = { type: "info", info: "Opponent disconnected" };
-            this.sendMessage(message, isWhite);
-            this.lastStatus = this.status;
-            this.status = "on hold";
+        if (this.status === "game over") { return; }
+        if (this.moves.length === 0) {
+            this.status = "cancelled";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-            this.waitForRejoin(!isWhite);
+            const isWhite = this.whitePlayer.channel.readyState === this.whitePlayer.channel.OPEN;
+            const message = { type: "info", info: "Game cancelled", data: "Opponent left before first move" };
+            this.sendMessage(message, isWhite);
+            return;
         }
-
+        const isWhite = this.whitePlayer.channel.readyState == this.whitePlayer.channel.OPEN;
+        const message = { type: "info", info: "Opponent disconnected" };
+        this.sendMessage(message, isWhite);
+        this.lastStatus = this.status;
+        this.status = "on hold";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        this.waitForRejoin(!isWhite);
     };
 
 

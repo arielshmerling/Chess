@@ -148,11 +148,15 @@ class SinglePlayerGame extends GameBase {
     };
 
     onConnectionClosed = () => {
-        if (this.status != "game over") {
-            this.lastStatus = this.status;
-            this.status = "on hold";
+        if (this.status === "game over") { return; }
+        if (this.moves.length === 0) {
+            this.status = "cancelled";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            return;
         }
+        this.lastStatus = this.status;
+        this.status = "on hold";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
     };
 
     updateLastMoveTime = (gameTime) => {
