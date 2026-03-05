@@ -377,6 +377,10 @@ const onGameOver = async (e) => {
         if (gameDoc) {
             gameDoc.state = "game over";
             gameDoc.reason = reason;
+            const resultStr = game.chessGame.ResultMove?.moveStr;
+            if (resultStr) {
+                gameDoc.result = resultStr;
+            }
             await gameDoc.save();
         }
     } catch (error) {

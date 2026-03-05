@@ -292,7 +292,7 @@ exports.parseGames = (gameDocs) => {
 
             White: gameDoc.whitePlayer,
             Black: gameDoc.blackPlayer,
-            Status: gameDoc.state,
+            Result: gameDoc.result || "-",
             Reason: gameDoc.reason,
             Type: gameDoc.gameType,
             Moves: Math.ceil(gameDoc.moves.length / 2),

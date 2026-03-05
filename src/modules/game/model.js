@@ -27,6 +27,9 @@ const gameSchema = new mongoose.Schema({
     reason: {
         type: String,
     },
+    result: {
+        type: String,
+    },
     created: {
         type: Date,
         default: Date.now
