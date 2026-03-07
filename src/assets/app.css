@@ -1154,6 +1154,22 @@ table.gamesTable td {
     color: white !important;
 }
 
+/* Empty state: no games (list page, same as welcome) */
+#PlayerGameList .no-games-message {
+    padding: 60px 30px;
+    text-align: center;
+    color: var(--semiLight);
+    opacity: 0.8;
+}
+
+#PlayerGameList .no-games-message p {
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    margin: 0;
+    font-style: italic;
+}
+
 /* List page table: responsive breakpoints */
 @media (max-width: 1200px) {
     .gamesTable {

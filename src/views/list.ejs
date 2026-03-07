@@ -4,46 +4,46 @@
         <br><br><br><br>
         <h1>My Game list:</h1>
         <br><br>
+        <% if (playerGames && playerGames.length > 0) { %>
         <div class="gamesTableContainer">
             <table class="gamesTable">
                 <tr>
                     <th>#</th>
-                    <%obj=playerGames[0];i=1%>
-                        <% for(const key in obj) { %>
-                            <% if(key !="Id" ) { %>
-                                <th>
-
-                                    <%=key %>
-
-                                </th>
-                                <% } %>
-                                    <% } %>
-                                        <th>Action</th>
+                    <% obj = playerGames[0]; i = 1; %>
+                    <% for(const key in obj) { %>
+                        <% if(key !== "Id") { %>
+                            <th><%= key %></th>
+                        <% } %>
+                    <% } %>
+                    <th>Action</th>
                 </tr>
-                <% for(const obj of playerGames){ %>
-
+                <% for(const obj of playerGames) { %>
                     <tr>
-
-                        <td onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>><%=i++ %></td>
-                            <% for(const key in obj) { %>
-                                <% if(key != 'Id' ) { %>
-                        <% if(key==" Reason" ) { %>
+                        <td onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>><%= i++ %></td>
+                        <% for(const key in obj) { %>
+                            <% if(key !== 'Id') { %>
+                                <% if(key === " Reason") { %>
                         <td class="alignLeft" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
-                                <% } else {%>
-                            <td onclick=<%-`" window.location='/review?type=history&id=${obj.Id}'"`%>>
+                                <% } else { %>
+                            <td onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
                                 <% } %>
                                     <%= obj[key] %>
                             </td>
                             <% } %>
-                                <% } %>
-                                    <td>
-                                        <form action=" /list/<%=obj.Id%>?_method=delete" method="POST">
-                            <a href="javascript:{}" onclick="this.closest('form').submit();return false;">Delete</a>
+                        <% } %>
+                        <td>
+                            <form action="/list/<%= obj.Id %>?_method=delete" method="POST">
+                                <a href="javascript:{}" onclick="this.closest('form').submit();return false;">Delete</a>
                             </form>
                         </td>
                     </tr>
-                    <% } %>
+                <% } %>
             </table>
         </div>
+        <% } else { %>
+        <div class="no-games-message">
+            <p>No completed games yet</p>
+        </div>
+        <% } %>
     </section>
     <br><br>
