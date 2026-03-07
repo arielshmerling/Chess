@@ -18,18 +18,17 @@
         <h2 class="hero-username"><%=username %></h2>
         <p class="hero-tagline">Your move awaits</p>
       </div>
-      <div class="hero-chess-icon">
-        <div class="chess-pieces-container">
-          <!-- <span class="chess-piece-symbol king-symbol">♔</span> -->
-        
+      <div class="hero-right">
+        <div class="hero-chess-icon">
+          <div class="chess-pieces-container">
+            <!-- <span class="chess-piece-symbol king-symbol">♔</span> -->
+          </div>
+        </div>
+        <div class="hero-play-now">
+          <button type="button" class="play-now-btn" id="startAIGame" onclick="openPlayNowModal()">Play Now!</button>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Play now - single primary action; opens options modal -->
-  <div class="play-now-section">
-    <button type="button" class="play-now-btn" id="startAIGame" onclick="openPlayNowModal()">Play Now!</button>
   </div>
 
   <!-- New game options modal -->
