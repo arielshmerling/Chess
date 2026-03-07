@@ -2765,10 +2765,14 @@ async function backToHome() {
 
     if (game.GameOver || gameInfo.mode == "review") {
         goBackHome();
-    } else {
-        messageBox("Resign?", goBackHome, () => { });
+        return;
     }
-
+    const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+    if (!humanHasMoved) {
+        goBackHome();
+        return;
+    }
+    messageBox("Resign?", goBackHome, () => { });
 };
 
 async function goBackHome() {
