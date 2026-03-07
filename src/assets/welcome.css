@@ -737,6 +737,41 @@ main {
     width: 50px;
 }
 
+/* Sortable My Games table */
+.games-table.sortable th.sortable-th {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 22px;
+    position: relative;
+}
+
+.games-table.sortable th.sortable-th:hover {
+    opacity: 0.9;
+}
+
+.games-table.sortable .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--semiLight);
+    opacity: 0.7;
+}
+
+.games-table.sortable th.sortable-th .sort-icon:not(.asc):not(.desc) {
+    visibility: hidden;
+}
+
+.games-table.sortable th.sortable-th:hover .sort-icon {
+    visibility: visible;
+}
+
+.games-table.sortable th.sortable-th .sort-icon.asc,
+.games-table.sortable th.sortable-th .sort-icon.desc {
+    visibility: visible;
+    opacity: 1;
+}
+
 .games-table tbody tr {
     background: rgba(255, 255, 255, 0.05);
     border-bottom: none;

@@ -26,6 +26,7 @@ exports.showHomePage = async (req, res) => {
         for (const k of homeColumns) {
             if (Object.prototype.hasOwnProperty.call(g, k)) out[k] = g[k];
         }
+        if (Object.prototype.hasOwnProperty.call(g, "_sortableDate")) out._sortableDate = g._sortableDate;
         return out;
     });
     res.locals.playerGames = playerGames;

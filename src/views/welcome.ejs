@@ -154,34 +154,91 @@
       <div class="panel-body">
         <% if(playerGames && playerGames.length > 0) { %>
         <div class="table-scroll compact">
-          <table class="games-table">
+          <table class="games-table sortable">
             <thead>
               <tr>
-                <th>#</th>
-                <%obj=playerGames[0];i=1%>
+                <th class="sortable-th" data-sort-key="rowIndex" title="Sort by row number">
+                  <span class="th-label">#</span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                <% obj = playerGames[0]; %>
                 <% for(const key in obj) { %>
-                <% if(key !="Id" ) { %>
-                <th><%=key %></th>
-                <% } %>
+                  <% if(key !== "Id" && !key.startsWith("_")) { %>
+                <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="Sort by <%= key.trim() %>">
+                  <span class="th-label"><%= key %></span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                  <% } %>
                 <% } %>
               </tr>
             </thead>
             <tbody>
-              <% for(const obj of playerGames){ %>
-              <tr onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
-                <td class="row-number"><%=i++ %></td>
+              <% rowIndex = 0; for(const obj of playerGames) { %>
+              <tr data-row-index="<%= rowIndex %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                <td class="row-number sortable-td" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>"><%= rowIndex + 1 %></td>
                 <% for(const key in obj) { %>
-                <% if(key != 'Id' ) { %>
-                <td class="<%=key==' Reason' ? 'align-left' : '' %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                  <% if(key !== 'Id' && !key.startsWith('_')) { %>
+                    <% sortVal = key === 'Date' ? (obj._sortableDate != null ? obj._sortableDate : 0) : (key === 'Moves' ? (obj.Moves != null ? obj.Moves : 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
+                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
                   <%= obj[key] %>
                 </td>
-                <% } %>
+                  <% } %>
                 <% } %>
               </tr>
-              <% } %>
+              <% rowIndex++; } %>
             </tbody>
           </table>
         </div>
+        <script>
+(function() {
+    var table = document.querySelector('.my-games-panel table.sortable');
+    if (!table) return;
+    var thead = table.querySelector('thead tr');
+    var tbody = table.querySelector('tbody');
+    var sortState = { key: null, asc: true };
+    function getSortValue(cell) {
+        var key = cell.getAttribute('data-sort-key');
+        var raw = cell.getAttribute('data-sort-value');
+        if (key === 'rowIndex' || key === 'Date' || key === 'Moves') return Number(raw) || 0;
+        return raw;
+    }
+    function compare(a, b) {
+        var na = typeof a === 'number', nb = typeof b === 'number';
+        if (na && nb) return a - b;
+        if (na) return -1;
+        if (nb) return 1;
+        return String(a).localeCompare(String(b));
+    }
+    thead.addEventListener('click', function(ev) {
+        var th = ev.target.closest('th.sortable-th');
+        if (!th) return;
+        ev.preventDefault();
+        var key = th.getAttribute('data-sort-key');
+        if (sortState.key === key) sortState.asc = !sortState.asc;
+        else { sortState.key = key; sortState.asc = true; }
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function(ra, rb) {
+            var ca = ra.querySelector('td[data-sort-key="' + key + '"]');
+            var cb = rb.querySelector('td[data-sort-key="' + key + '"]');
+            if (!ca || !cb) return 0;
+            var va = getSortValue(ca), vb = getSortValue(cb);
+            var cmp = compare(va, vb);
+            return sortState.asc ? cmp : -cmp;
+        });
+        rows.forEach(function(r) { tbody.appendChild(r); });
+        rows.forEach(function(r, i) {
+            var numCell = r.querySelector('td[data-sort-key="rowIndex"]');
+            if (numCell) { numCell.setAttribute('data-sort-value', i); numCell.textContent = i + 1; }
+        });
+        thead.querySelectorAll('.sort-icon').forEach(function(icon) { icon.textContent = ''; icon.classList.remove('asc', 'desc'); });
+        var activeIcon = th.querySelector('.sort-icon');
+        if (activeIcon) {
+            activeIcon.textContent = sortState.asc ? '\u25B2' : '\u25BC';
+            activeIcon.classList.add(sortState.asc ? 'asc' : 'desc');
+        }
+    });
+})();
+        </script>
         <% } else { %>
         <div class="no-games-message">
           <p>No completed games yet</p>
