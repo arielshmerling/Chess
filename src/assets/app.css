@@ -1134,6 +1134,41 @@ table.gamesTable th::first-letter {
     text-transform: capitalize;
 }
 
+/* Sortable list table: clickable headers and sort indicator */
+#PlayerGameList table.sortable th.sortable-th {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 18px;
+    position: relative;
+}
+
+#PlayerGameList table.sortable th.sortable-th:hover {
+    opacity: 0.9;
+}
+
+#PlayerGameList table.sortable .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--semiLight);
+    opacity: 0.7;
+}
+
+#PlayerGameList table.sortable th.sortable-th .sort-icon:not(.asc):not(.desc) {
+    visibility: hidden;
+}
+
+#PlayerGameList table.sortable th.sortable-th:hover .sort-icon {
+    visibility: visible;
+}
+
+#PlayerGameList table.sortable th.sortable-th .sort-icon.asc,
+#PlayerGameList table.sortable th.sortable-th .sort-icon.desc {
+    visibility: visible;
+    opacity: 1;
+}
+
 
 table.gamesTable td {
     padding: 4px;

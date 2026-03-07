@@ -281,6 +281,7 @@ exports.parseGames = (gameDocs) => {
 
     return gameDocs.map(function (gameDoc) {
 
+        const created = gameDoc.created ? new Date(gameDoc.created).getTime() : 0;
         return {
             Id: gameDoc._id,
             Date: new Date(gameDoc.created).toLocaleDateString("en-US", {
@@ -289,7 +290,7 @@ exports.parseGames = (gameDocs) => {
                 day: "numeric",
             }),
             Time: new Date(gameDoc.created).toLocaleTimeString("en-US"),
-
+            _sortableDate: created,
             White: gameDoc.whitePlayer,
             Black: gameDoc.blackPlayer,
             Result: gameDoc.state === "cancelled" ? "Cancelled" : (gameDoc.result || "-"),
