@@ -1212,7 +1212,7 @@ async function onUpdateReceivedEventHandler(gameState) {
         const turnStr = "td_move" + moveIndex;
         const td = document.getElementById(turnStr);
         if (td) {
-            td.scrollIntoView({ behavior: "smooth", block: "center" });
+            scrollMoveCellIntoView(td);
         }
 
     }
@@ -1337,6 +1337,24 @@ function undoEventHandler(moves) {
             , 2);
     }
     else { animating = false; console.log("error"); }
+}
+
+/**
+ * Scroll the moves panel so the given cell is visible. Does not scroll the document.
+ */
+function scrollMoveCellIntoView(td) {
+    if (!td) { return; }
+    const movesDiv = document.getElementById("movesDiv");
+    if (!movesDiv) { return; }
+    const row = td.closest("tr");
+    if (!row) { return; }
+    const rowTop = row.offsetTop;
+    const rowHeight = row.offsetHeight;
+    const containerHeight = movesDiv.clientHeight;
+    const scrollBottom = movesDiv.scrollTop + containerHeight;
+    if (rowTop < movesDiv.scrollTop || rowTop + rowHeight > scrollBottom) {
+        movesDiv.scrollTop = Math.max(0, rowTop - Math.floor(containerHeight / 2) + Math.floor(rowHeight / 2));
+    }
 }
 
 function updateMovesTable(moves) {
@@ -1777,12 +1795,21 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             if (info == "offer rematch") {
                 displayMessage("");
-                if (gameInfo.gameType == "OnlineGame") // Online
-                { messageBox("Opponenet offer a rematch, agree?", acceptRematch, declineRematch); }
-
-                else if (gameInfo.gameType == "SinglePlayerGame") // One player
-                {
-                    messageBox("New game?", acceptRematch, declineRematch);
+                if (gameInfo.gameType == "OnlineGame") {
+                    messageBox("Opponenet offer a rematch, agree?", acceptRematch, declineRematch);
+                } else if (gameInfo.gameType == "SinglePlayerGame") {
+                    if (typeof gameInfo !== "undefined" && gameInfo) {
+                        window.__LAST_GAME_OPTIONS__ = {
+                            color: currentPlayerIsWhite ? "white" : "black",
+                            engine: gameInfo.engine || "brain4",
+                            difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
+                            mouse: gameInfo.mousePreference || "drag",
+                            showAvailableMoves: gameInfo.showAvailableMoves !== false
+                        };
+                    }
+                    if (typeof openPlayNowModal === "function") {
+                        openPlayNowModal();
+                    }
                 }
             }
 
@@ -2072,8 +2099,24 @@ async function menuRematchEventHandler() {
 
     if (!game.GameOver || dialogOn) { return; }
 
-    if (gameType == "SinglePlayerGame" || gameType == "OnlineGame") // AI or Online
-    {
+    if (gameType == "SinglePlayerGame") {
+        // Single player: open new game options dialog instead of message box
+        if (typeof gameInfo !== "undefined" && gameInfo) {
+            window.__LAST_GAME_OPTIONS__ = {
+                color: currentPlayerIsWhite ? "white" : "black",
+                engine: gameInfo.engine || "brain4",
+                difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
+                mouse: gameInfo.mousePreference || "drag",
+                showAvailableMoves: gameInfo.showAvailableMoves !== false
+            };
+        }
+        if (typeof openPlayNowModal === "function") {
+            openPlayNowModal();
+        }
+        return;
+    }
+
+    if (gameType == "OnlineGame") {
         const message = {
             type: "info",
             info: "offer rematch",
@@ -2089,11 +2132,11 @@ async function menuRematchEventHandler() {
         log("System", "Rematch offer sent");
         disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
         document.getElementById("rematchBtn").classList.remove("btnDisabled");
+        return;
     }
-    else {
-        displayMessage("New Game Started");
-        startGame();
-    }
+
+    displayMessage("New Game Started");
+    startGame();
 }
 
 
@@ -2491,7 +2534,7 @@ function moveEnd() {
                 const td = document.getElementById(turnStr);
                 if (td) {
                     td.classList.toggle("selectedMove");
-                    td.scrollIntoView({ behavior: "smooth", block: "center" });
+                    scrollMoveCellIntoView(td);
                 }
             }
             clearInterval(temp);
@@ -2547,7 +2590,7 @@ function movePlay() {
             const td = document.getElementById(turnStr);
             if (!td) { clearInterval(moveHandle); return; }
             td.classList.toggle("selectedMove");
-            td.scrollIntoView({ behavior: "smooth", block: "center" });
+            scrollMoveCellIntoView(td);
         }
 
         else { clearInterval(moveHandle); console.log("moveIndex:" + moveIndex); }
@@ -2569,7 +2612,7 @@ async function moveStart() {
             moveIndex = 0;
             const turnStr = "td_move1";
             const td = document.getElementById(turnStr);
-            td.scrollIntoView({ behavior: "smooth", block: "end" });
+            if (td) { scrollMoveCellIntoView(td); }
             const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
             movesTDList.forEach(td => td.classList.remove("selectedMove"));
             clearInterval(temp);
@@ -2594,7 +2637,7 @@ async function moveNext() {
             const td = document.getElementById(turnStr);
             if (td) {
                 td.classList.toggle("selectedMove");
-                td.scrollIntoView({ behavior: "smooth", block: "center" });
+                scrollMoveCellIntoView(td);
             }
         }
     }
@@ -2616,8 +2659,8 @@ async function movePrev() {
         const turnStr = "td_move" + moveIndex;
         const td = document.getElementById(turnStr);
         if (!td) { return; }
-        if (td) { td.classList.toggle("selectedMove"); }
-        td.scrollIntoView({ behavior: "smooth", block: "center" });
+        td.classList.toggle("selectedMove");
+        scrollMoveCellIntoView(td);
     }
     console.log("moveIndex:" + moveIndex);
 }
@@ -2710,7 +2753,7 @@ async function loadMove(e) {
     const td = document.getElementById(turnStr);
     if (!td) { return; }
     td.classList.add("selectedMove");
-    td.scrollIntoView({ behavior: "smooth" });
+    scrollMoveCellIntoView(td);
     autoCompletePromotion = false;
 }
 
@@ -2776,7 +2819,6 @@ function log(logger, message, isChat) {
         msgDiv.classList.add("chatlog");
     }
     messages.appendChild(msgDiv);
-    messages.scrollIntoView({ behavior: "smooth", block: "end" });
     messages.scrollTop = messages.scrollHeight;
 }
 
