@@ -176,6 +176,10 @@ main {
     margin-top: 50px;
 }
 
+body.hide-topbar #main {
+    margin-top: 16px;
+}
+
 /* Debug: show game ID on game page (below buttons, centered) */
 .debug-game-id {
     display: block;

@@ -46,7 +46,7 @@ exports.review = catchAsync(async (req, res) => {
     }
 
     setGamePageNoCache(res);
-    res.render("game", { gameId: game && game.gameId != null ? game.gameId : undefined });
+    res.render("game", { gameId: game && game.gameId != null ? game.gameId : undefined, hideTopbar: true });
 });
 
 exports.watchGame = catchAsync(async (req, res) => {
@@ -57,7 +57,7 @@ exports.watchGame = catchAsync(async (req, res) => {
     if (game != null) {
         req.session.gameId = game.gameId;
         setGamePageNoCache(res);
-        res.render("game", { gameId: game.gameId });
+        res.render("game", { gameId: game.gameId, hideTopbar: true });
         return;
 
     }
@@ -230,7 +230,7 @@ exports.startGame = catchAsync(async (req, res) => {
         if (game) {
             req.session.gameId = game.gameId;
             setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId });
+            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -244,7 +244,7 @@ exports.startGame = catchAsync(async (req, res) => {
             req.session.gameId = game.gameId;
             registerEvents(game);
             setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId });
+            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -256,7 +256,7 @@ exports.startGame = catchAsync(async (req, res) => {
             req.session.gameId = game.gameId;
             registerEvents(game);
             setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId });
+            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -275,7 +275,7 @@ exports.startGame = catchAsync(async (req, res) => {
         req.session.gameId = game.gameId;
         registerEvents(game);
         setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId });
+        res.render("game", { username, gameId: game.gameId, hideTopbar: true });
         return;
     }
 
@@ -300,7 +300,7 @@ exports.startGame = catchAsync(async (req, res) => {
         });
     }
     setGamePageNoCache(res);
-    res.render("game", { username, gameId: game.gameId });
+    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
 });
 
 function registerEvents(game) {

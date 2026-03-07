@@ -18,7 +18,7 @@
   <script src="/customValidation.js"></script>
 </head>
 
-<body>
+<body<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> class="hide-topbar"<% } %>>
   <% if(username) { %>
   <%- include('../partials/topbar') %>
   <% }%>

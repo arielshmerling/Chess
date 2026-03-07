@@ -74,7 +74,7 @@ const Labels = {
     UNDO: "Undo",
     REDO: "Redo",
     LAST_MOVE: "Last Move",
-    HOME: "Home",
+    HOME: "Quit",
     FLIP: "Flip",
     BOOKMARKS: "Bookmarks",
 };
@@ -2723,7 +2723,7 @@ async function backToHome() {
     if (game.GameOver || gameInfo.mode == "review") {
         goBackHome();
     } else {
-        messageBox("Are you sure?", goBackHome, () => { });
+        messageBox("Resign?", goBackHome, () => { });
     }
 
 };

@@ -1,8 +1,10 @@
+<% var minimalTopbar = typeof hideTopbar !== 'undefined' && hideTopbar; %>
 <div id="header">
   <div id="logoArea" class="flexRow">
     <div class="site-title">Shmerling</div>
   </div>
 
+  <% if (!minimalTopbar) { %>
   <div class="topBarMenu">
     <div class="menuBarMenuItem"><a href="/home">Home</a></div>
     <div class="menuBarMenuItem"><a href="/search">Search</a></div>
@@ -14,12 +16,14 @@
     <% } %>
     <div class="menuBarMenuItem"><a href="#">Preferences</a></div>
   </div>
+  <% } %>
 
   <div id="logout">
     <label class="switch">
       <input type="checkbox" id="themeSwitch">
       <span class="slider round"></span>
     </label>
+    <% if (!minimalTopbar) { %>
     <% if (username) { %>
     <a href="/logout"> Log out </a>
     <% } else { %>
@@ -27,6 +31,7 @@
     <% } %>
     <% if (admin) { %>
     <a href="/Register"> Add User </a>
+    <% } %>
     <% } %>
   </div>
 
