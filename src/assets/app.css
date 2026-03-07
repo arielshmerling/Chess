@@ -176,6 +176,18 @@ main {
     margin-top: 50px;
 }
 
+/* Debug: show game ID on game page (below buttons, centered) */
+.debug-game-id {
+    display: block;
+    text-align: center;
+    margin: 16px auto 24px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--semiLight, #98c1d9);
+    opacity: 0.85;
+    user-select: all;
+}
+
 
 .seperator {
     width: 10px;

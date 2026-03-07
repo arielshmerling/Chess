@@ -341,9 +341,18 @@ function findPosition() {
  *
  *     startGame()
  */
+function updateDebugGameId() {
+    const el = document.getElementById("debugGameId");
+    if (el) {
+        const id = (typeof gameInfo !== "undefined" && gameInfo && gameInfo.id) ? gameInfo.id : "(none)";
+        el.textContent = "Game ID: " + id;
+    }
+}
+
 async function startGame(isRematch) {
 
     gameInfo = await getGameInfo(isRematch);
+    updateDebugGameId();
     //console.log(gameInfo);
     gameType = gameInfo.gameType;
     currentPlayerIsWhite = gameInfo.username == gameInfo.whitePlayerName;
