@@ -317,10 +317,10 @@ class ChessGame {
     /**
      * Sets the state to indicate that the given player has resigned.
      *
-     * @param {string} resignedPlayer The player who has resigned.
+     * @param {string} resignedPlayer The player who has resigned ("white"/"black" or "White"/"Black").
      */
     resign(resignedPlayer) {
-        this.#state.resigned = resignedPlayer;
+        this.#state.resigned = (resignedPlayer && resignedPlayer.toLowerCase()) || "";
     }
 
     /**

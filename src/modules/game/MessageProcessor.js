@@ -4,9 +4,12 @@ class MessageProcessor {
         "info": this.onInfoReceived,
         "cmd": this.onCommandReceived
     };
-    process(game, message) {
+    async process(game, message) {
         const func = this.handlers[message.type];
-        func(game, message);
+        const result = func(game, message);
+        if (result && typeof result.then === "function") {
+            await result;
+        }
     }
 
     onMoveReceived() { }

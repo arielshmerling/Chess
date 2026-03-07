@@ -237,10 +237,10 @@ class GameBase {
 
     }
 
-    onMessageReceived = (recivedData) => {
+    onMessageReceived = async (recivedData) => {
         const msg = JSON.parse(recivedData);
         validate(msg, "webSocketsMessage");
-        this.messageProcessor.process(this, msg);
+        await this.messageProcessor.process(this, msg);
     };
 
     onConnectionClosed = () => { };

@@ -2136,6 +2136,8 @@ async function menuResignEventHandler() {
         log("System", "Game Over");
     }
     else {
+        const player = currentPlayerIsWhite ? "White" : "Black";
+        game.resign(player);
         const message = {
             type: "info",
             info: "resign",
@@ -2147,12 +2149,20 @@ async function menuResignEventHandler() {
         };
         await sendMessage(message);
         gameMoves = await getGameMoves();
+        if (gameMoves.moves && game.ResultMove) {
+            const last = gameMoves.moves[gameMoves.moves.length - 1];
+            if (!last || last.moveStr !== game.ResultMove.moveStr) {
+                gameMoves.moves = [...gameMoves.moves, game.ResultMove];
+            }
+        }
         updateMovesTable(gameMoves.moves);
         displayMessage(`You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins `);
     }
 
     const player = currentPlayerIsWhite ? "White" : "Black";
-    game.resign(player);
+    if (gameInfo.gameType === "PracticeGame") {
+        game.resign(player);
+    }
     const playerName = currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
     log(playerName, "I resign!");
 }

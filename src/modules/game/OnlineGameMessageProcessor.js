@@ -20,9 +20,10 @@ class OnlineGameMessageProcessor extends MessageProcessor {
 
     resign(game, msg) {
         const resignedPlayer = msg.isWhite ? "White" : "Black";
-        game.resign(resignedPlayer);
         msg.info = "Opponent resigned";
-        game.sendMessageToOpponent(msg, msg.isWhite);
+        return game.resign(resignedPlayer).then(() => {
+            game.sendMessageToOpponent(msg, msg.isWhite);
+        });
     }
 
     opponentForwardHandler(game, msg) {
@@ -59,7 +60,7 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     onInfoReceived(game, msg) {
         if (game?.messageProcessor.infoTypeHandlers[msg.info] != null) {
             const infoHandler = game.messageProcessor.infoTypeHandlers[msg.info];
-            if (infoHandler) { infoHandler(game, msg); }
+            if (infoHandler) { return infoHandler(game, msg); }
         }
     }
 

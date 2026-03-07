@@ -147,9 +147,26 @@ class SinglePlayerGame extends GameBase {
         }
     };
 
+    /** True if the human player has made at least one move (white moves first, so black has moved only when moves.length >= 2). */
+    humanHasMadeAnyMove = () => {
+        const humanIsWhite = this.whitePlayer && this.whitePlayer.userId != null;
+        if (humanIsWhite) {
+            return this.moves.length >= 1;
+        }
+        return this.moves.length >= 2;
+    };
+
     onConnectionClosed = () => {
         if (this.status === "game over") { return; }
+        if (this.status === "cancelled") { return; }
+        // No moves at all: game never really started → cancelled (covers human white with 0 moves)
         if (this.moves.length === 0) {
+            this.status = "cancelled";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            return;
+        }
+        // Human plays black: only the engine's first move exists → cancelled
+        if (!this.humanHasMadeAnyMove()) {
             this.status = "cancelled";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             return;
@@ -167,6 +184,11 @@ class SinglePlayerGame extends GameBase {
     };
 
     async resign(resignedPlayer) {
+        if (!this.humanHasMadeAnyMove()) {
+            this.status = "cancelled";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            return;
+        }
         await super.resign(resignedPlayer);
         const message = {
             type: "move",

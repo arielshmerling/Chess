@@ -2,7 +2,7 @@
 const { MessageProcessor } = require("./MessageProcessor");
 
 class SinglePlayerMessageProcessor extends MessageProcessor {
-    onInfoReceived(game, msg) {
+    async onInfoReceived(game, msg) {
         //   console.log("onInfoReceived in Single MessageProcessor");
         super.onInfoReceived(game, msg);
         switch (msg.info) {
@@ -22,7 +22,7 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
 
                 break;
             case "resign":
-                game.resign("white");
+                await game.resign(msg.isWhite ? "white" : "black");
                 msg.info = "Opponent resigned";
                 break;
             case "offer draw":
