@@ -2829,6 +2829,8 @@ function onSendChatButtonClick() {
 }
 
 async function sendChatMessage(chatMessage) {
+    const chatInput = document.getElementById("chatline");
+    if (chatInput) { chatInput.value = ""; }
     log(gameInfo.username, chatMessage, true);
 
     if (gameInfo.gameType == "OnlineGame") {
