@@ -1241,6 +1241,16 @@ async function onUpdateReceivedEventHandler(gameState) {
         gameMoves = await getGameMoves();
         updateMovesTable(gameMoves.moves);
     }
+
+    if (gameInfo.gameType === "SinglePlayerGame" && !game.GameOver) {
+        const humanTurn = (game.Turn === "white" && currentPlayerIsWhite) || (game.Turn === "black" && !currentPlayerIsWhite);
+        const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+        if (humanTurn && humanHasMoved) {
+            enableButtons(["drawBtn"]);
+        } else {
+            disableButtons(["drawBtn"]);
+        }
+    }
 }
 
 function checkEventHandler(turn) {
@@ -1845,7 +1855,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
             }
 
-            if (info == "offer draw") {
+            if (info == "offer draw" && gameInfo.gameType != "SinglePlayerGame") {
                 displayMessage("");
                 messageBox("Opponent sent a draw offer, accept?", acceptDraw, declineDraw);
             }
@@ -1928,6 +1938,7 @@ async function declineRematch() {
 
 async function moveAccepted(move) {
     if (gameInfo.gameType == "SinglePlayerGame") {
+        disableButtons(["drawBtn"]);
         const message = {
             type: "info",
             info: "move accepted",
@@ -2816,6 +2827,9 @@ function resetChat() {
 }
 
 function log(logger, message, isChat) {
+    if (gameInfo.mode === "review" && (logger === "System" || logger === "Server")) {
+        return;
+    }
     const messages = document.getElementById("messages");
     const msgDiv = document.createElement("div");
     msgDiv.innerHTML = `${logger}: ${message}\n`;

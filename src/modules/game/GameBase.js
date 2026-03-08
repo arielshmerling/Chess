@@ -150,6 +150,7 @@ class GameBase {
 
 
     async gameOverHandler(moveObj) {
+        this.status = "game over";
         await this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
         const resultMove = this.chessGame.ResultMove;
         resultMove.moveTime = moveObj.moveTime;

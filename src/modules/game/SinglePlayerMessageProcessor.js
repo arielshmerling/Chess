@@ -25,8 +25,18 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
                 await game.resign(msg.isWhite ? "white" : "black");
                 msg.info = "Opponent resigned";
                 break;
-            case "offer draw":
+            case "offer draw": {
+                const numFullMoves = Math.floor(game.moves.length / 2);
+                const offeredBy = msg.isWhite ? "white" : "black";
+                if (numFullMoves < 10) {
+                    game.sendMessage({ type: "info", info: "draw declined", gameId: game.gameId }, msg.isWhite);
+                } else {
+                    await game.draw(offeredBy, () => {
+                        game.sendMessage({ type: "info", info: "draw accepted", gameId: game.gameId, isWhite: !msg.isWhite }, msg.isWhite);
+                    });
+                }
                 break;
+            }
             case "move accepted":
                 if (game.moves.length > 0) {
                     game.updateLastMoveTime(msg.moveTime);
