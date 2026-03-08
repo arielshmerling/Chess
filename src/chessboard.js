@@ -594,7 +594,7 @@ function registerGameEvents() {
     // game.OnCheck = checkEventHandler;
     // game.OnCheckmate = checkmateEventHandler;
     game.OnPromotion = promotionEventHandler;
-    // game.OnDraw = drawEventHandler;
+    game.OnDraw = drawEventHandler;
     game.OnUndo = undoEventHandler;
 }
 
@@ -1224,9 +1224,7 @@ async function onUpdateReceivedEventHandler(gameState) {
         await checkEventHandler(game.Turn);
     }
 
-    if (gameState.draw) {
-        await drawEventHandler(game.DrawReason);
-    }
+    // Draw is handled via game.OnDraw (drawEventHandler), including draw-offer accepted.
 
     //we were in check but not anymore
     if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
@@ -1294,7 +1292,7 @@ async function drawEventHandler(reason) {
     for (const el of frame) { el.classList.add("drawAlert"); }
     disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
     //document.getElementById("rematchBtn").classList.remove("btnDisabled");
-    enableButtons(["rematchBtn"]);
+    enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
     gameMoves = await getGameMoves();
     updateMovesTable(gameMoves.moves);
 }
@@ -1861,17 +1859,8 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "draw accepted") {
-
                 const offerBy = message.isWhite ? "black" : "white";
-                displayMessage("Draw offer accepted");
-                log("System", "Draw offer accepted");
                 game.drawOfferAccepted(offerBy);
-                disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
-                enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
-
-
-                gameMoves = await getGameMoves();
-                updateMovesTable(gameMoves.moves);
             }
 
             if (info == "draw declined") {
@@ -1989,16 +1978,7 @@ async function acceptDraw() {
     }
 
     const offerBy = currentPlayerIsWhite ? "black" : "white";
-
-    displayMessage("Draw offer accepted");
     game.drawOfferAccepted(offerBy);
-
-    gameMoves = await getGameMoves();
-    updateMovesTable(gameMoves.moves);
-
-    disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
-    enableButtons(["rematchBtn"]);
-    //document.getElementById("rematchBtn").classList.remove("btnDisabled");
 }
 
 async function offerDraw() {
