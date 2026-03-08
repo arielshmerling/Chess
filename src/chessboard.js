@@ -2827,7 +2827,7 @@ function resetChat() {
 }
 
 function log(logger, message, isChat) {
-    if (gameInfo.mode === "review" && (logger === "System" || logger === "Server")) {
+    if (gameInfo.mode === "review") {
         return;
     }
     const messages = document.getElementById("messages");
