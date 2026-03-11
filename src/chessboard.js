@@ -284,12 +284,7 @@ async function tryMove(sourcePos, targetPos) {
         const executed = game.makeMove(sourcePos, targetPos);
         lastMove = executed;
         switchClocks();
-        if (gameType != "PracticeGame") {
-            await sendMove(executed);
-        } else {
-            gameMoves.moves.push(executed);
-            updateMovesTable(gameMoves.moves);
-        }
+        await sendMove(executed);
         const state = game.GameState;
         if (state && state.board) {
             drawBoard(state.board);
@@ -300,10 +295,8 @@ async function tryMove(sourcePos, targetPos) {
                 applyMousePreference("double");
             }
         }
-        if (gameType !== "PracticeGame") {
-            gameMoves = await getGameMoves();
-            updateMovesTable(gameMoves.moves);
-        }
+        gameMoves = await getGameMoves();
+        updateMovesTable(gameMoves.moves);
         return true;
     }
     return false;
@@ -431,7 +424,10 @@ async function startGame(isRematch) {
     }
 }
 
-function initPracticeGame(gameInfo) {
+function initPracticeGame(gameInfo, currentPlayerIsWhite) {
+    if (gameInfo.mode != "review") {
+        startWebSockets(gameInfo.username, currentPlayerIsWhite);
+    }
     const whitePlayerInfoDiv = document.getElementById("whitePlayerName");
     const blackPlayerInfoDiv = document.getElementById("blackPlayerName");
     whitePlayerInfoDiv.innerText = gameInfo.whitePlayerName;
@@ -1023,7 +1019,7 @@ async function promotionEventHandler(turn) {
         showPromotionDialog((selectedPiece) => {
             lastMove.selectedPiece = selectedPiece;
             game.completePromotion(lastMove);
-            if (gameType == "OnlineGame" || gameType == "SinglePlayerGame") {
+            if (gameType == "OnlineGame" || gameType == "SinglePlayerGame" || gameType == "PracticeGame") {
                 sendMove(lastMove);
             }
             console.log("promotion completed:");
@@ -2174,12 +2170,24 @@ async function menuResignEventHandler() {
     disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
     enableButtons(["rematchBtn"]);
 
+    const player = currentPlayerIsWhite ? "White" : "Black";
     if (gameInfo.gameType == "PracticeGame") {
         displayMessage("Game Over");
         log("System", "Game Over");
+        game.resign(player);
+        const message = {
+            type: "info",
+            info: "resign",
+            gameId: gameInfo.id,
+            userId: gameInfo.userId,
+            username: gameInfo.username,
+            isWhite: currentPlayerIsWhite,
+        };
+        await sendMessage(message);
+        const playerName = currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+        log(playerName, "I resign!");
     }
     else {
-        const player = currentPlayerIsWhite ? "White" : "Black";
         const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
         game.resign(player);
         const message = {
@@ -2202,13 +2210,6 @@ async function menuResignEventHandler() {
         updateMovesTable(gameMoves.moves);
         displayMessage(humanHasMoved ? `You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins ` : "Game cancelled");
         log(humanHasMoved ? currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName : "System", humanHasMoved ? "I resign!" : "Game cancelled");
-    }
-
-    const player = currentPlayerIsWhite ? "White" : "Black";
-    if (gameInfo.gameType === "PracticeGame") {
-        game.resign(player);
-        const playerName = currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
-        log(playerName, "I resign!");
     }
 }
 
@@ -2763,7 +2764,8 @@ async function backToHome() {
         goBackHome();
         return;
     }
-    messageBox("Resign?", goBackHome, () => { });
+    const confirmText = gameInfo.gameType === "PracticeGame" ? "Are you sure?" : "Resign?";
+    messageBox(confirmText, goBackHome, () => { });
 };
 
 async function goBackHome() {

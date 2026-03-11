@@ -3,7 +3,6 @@ const { MessageProcessor } = require("./MessageProcessor");
 
 class PracticeGameMessageProcessor extends MessageProcessor {
 
-
     infoTypeHandlers = {
         "move accepted": null,
         "resign": this.resign,
@@ -23,12 +22,14 @@ class PracticeGameMessageProcessor extends MessageProcessor {
         }
     }
 
+    async onMoveReceived(game, msg) {
+        if (!msg.data) { return; }
+        await game.handleMove(msg.isWhite, msg.data, "player");
+    }
 
     resign(game, msg) {
         const resignedPlayer = msg.isWhite ? "White" : "Black";
         game.resign(resignedPlayer);
-        msg.info = "Opponent resigned";
-        game.sendMessageToOpponent(msg, msg.isWhite);
     }
 }
 

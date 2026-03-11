@@ -11,7 +11,21 @@ class PracticeGame extends GameBase {
         this.messageProcessor = new PracticeGameMessageProcessor();
     }
 
-    init() {
+    init(ws, userId) {
+        super.init(ws, userId);
+        this.status = "in progress";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+    }
+
+    onConnectionClosed = () => {
+        if (this.status === "game over" || this.status === "cancelled") { return; }
+        this.status = "cancelled";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+    };
+
+    async resign(resignedPlayer) {
+        await super.resign(resignedPlayer);
+        this.status = "game over";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
     }
 }
