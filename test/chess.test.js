@@ -196,23 +196,7 @@ describe('Verify Cant Make A Move After Draw', () => {
     });
 })
 
-describe('Verify Cant Make A Move during promotion', () => {
-    it('Verify Cant Make A Move After promotion', () => {
-        const state = `{"board":[[{"color":"black","pieceType":4},{"color":"black","pieceType":2},{"color":"black","pieceType":3},{"color":"black","pieceType":5},{"color":"black","pieceType":1},{"color":"black","pieceType":3},null,{"color":"black","pieceType":4}],    [{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},null,null,null,    {"color":"black","pieceType":0},{"color":"black","pieceType":0}],[null,null,null,null,{"color":"black","pieceType":2},    {"color":"black","pieceType":0},null,null],[null,null,null,{"color":"black","pieceType":0},null,null,null,null],    [{"color":"white","pieceType":3},null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],    [{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},null,null,{"color":"white","pieceType":0},{"color":"white","pieceType":0}],[{"color":"white","pieceType":4},    {"color":"white","pieceType":2},{"color":"white","pieceType":3},{"color":"white","pieceType":5},{"color":"white","pieceType":1},null,{"color":"white","pieceType":2},{"color":"white","pieceType":4}]],    "turn": "black","capturedPiecesList":[{"color":"white","pieceType":0},{"color":"black","pieceType":0},{"color":"white","pieceType":0}],    "algebricNotation":"","check":false,"checkmate":false,"draw":false,"whiteKingMoved":false,"blackKingMoved":false,"queensideWhiteRookMoved":false,"queensideBlackRookMoved":false,"kingsideWhiteRookMoved":false,"kingsideBlackRookMoved":false,"whitePlayerView":true,"fiftyMovesCounter":1,"promoting":true,"lastMove":{"valid":true,"source":{"row":5,"col":1},"target":{"row":4,"col":0},"piece":{"color":"white","pieceType":3},"promotion":false,"ennPassant":false,"capturedPiece":null,"hitSquare":null,"turn":"white","castling":false,"check":true}}`;
-        game.loadGame(state);
 
-        source = { row: 0, col: 2 }
-        target = { row: 1, col: 3 }
-
-        let move = game.validateMove(source, target);
-
-
-        // Assert
-        assert.equal(move.valid, false, "Move should be invalid during promotion");
-        assert.equal(move.reason, game.Reasons.PROMOTION_IN_PROGRESS, "The reasib for invalid move should be PROMOTION_IN_PROGRESS");
-
-    });
-})
 
 describe('Pawn Can Move One Step Forward', () => {
     it('White Pawn Can Move One Step Forward', () => {

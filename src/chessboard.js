@@ -1014,6 +1014,7 @@ async function promotionEventHandler(turn) {
 
         displayMessage("Promotion!");
         log("System", "Promotion");
+        //menuSaveEventHandler();
         promotingMode = true;
         dialogOn = true;
         showPromotionDialog((selectedPiece) => {
@@ -2216,7 +2217,7 @@ async function menuResignEventHandler() {
 function menuSaveEventHandler() {
     const state = game.GameState;
     const str = JSON.stringify(state);
-    //   console.log(str);
+    console.log(str);
 }
 
 function menuUndo() {

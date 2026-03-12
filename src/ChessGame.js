@@ -587,12 +587,13 @@ class ChessGame {
         // Safety check: ensure moves array is not empty before accessing last element
         if (this.#moves.length > 0) {
             this.#moves[this.#moves.length - 1] = lastMove;
+            
         } else {
             // If moves array is empty, push the move instead
             console.warn("completePromotion: moves array was empty, pushing move instead");
             this.#moves.push(lastMove);
         }
-
+        this.#state.turn = this.opponent(this.Turn);
         this.#updateState();
         this.#analyzeGameStatus(lastMove);
         if (this.OnUpdate) {
@@ -1084,9 +1085,9 @@ class ChessGame {
             }
 
             if (this.#promotionDone(source, target, move)) {
-
+                this.#state.promoting = true;
                 if (this.OnPromotion && !this.#simulation) {
-                    this.#state.promoting = true;
+                    
                     this.raiseEvent(this.OnPromotion, this.Turn);
                     //this.#recordState(); //??
                 }
@@ -1103,7 +1104,9 @@ class ChessGame {
         }
 
         this.#state.lastMove = move;
-        this.#state.turn = this.opponent(this.Turn);
+        if (!this.#state.promoting) {   
+            this.#state.turn = this.opponent(this.Turn);
+        }
         this.#recordState();
         if (!this.#simulation) {
             move.moveStr = this.getPGNMoveNotation(move);
