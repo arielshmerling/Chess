@@ -27,12 +27,13 @@ class Database {
 
     // Detect if this is a local MongoDB connection
     const isLocalConnection =
-      process.env.DATABASE_URL.includes('127.0.0.1') ||
-      process.env.DATABASE_URL.includes('localhost') ||
-      (process.env.DATABASE_URL.startsWith('mongodb://') && !process.env.DATABASE_URL.startsWith('mongodb+srv://'));
+      process.env.DATABASE_URL.includes("127.0.0.1") ||
+      process.env.DATABASE_URL.includes("ocalhost") ||
+      (process.env.DATABASE_URL.startsWith("mongodb://") &&
+       !process.env.DATABASE_URL.startsWith("mongodb+srv://"));
 
     // Detect if this is a MongoDB Atlas connection (mongodb+srv://)
-    const isAtlasConnection = process.env.DATABASE_URL.startsWith('mongodb+srv://');
+    const isAtlasConnection = process.env.DATABASE_URL.startsWith("mongodb+srv://");
 
     const connectionOptions = {
       serverSelectionTimeoutMS: 30000, // Timeout after 30s (increased for network issues)

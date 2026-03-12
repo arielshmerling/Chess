@@ -4,6 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "nyc --reporter=html mocha ./test/chess.test.js",
+    "test:app": "mocha ./test/chess.app.test.js",
+    "test:heavy": "mocha ./test/chess.heavy.test.js",
+    "test:all": "npm run test && npm run test:heavy",
     "analysis": "npx eslint ./src/**/*.js",
     "start": "node ./server.js",
     "start:dev": "node --inspect ./server.js",

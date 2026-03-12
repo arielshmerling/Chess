@@ -329,13 +329,24 @@ exports.readPGNGames = catchAsync(async (files) => {
 });
 
 
-exports.addGamesToDB = catchAsync(async (games) => {
-
+/**
+ * Replays PGN games through ChessGame (same logic as addGamesToDB).
+ * When saveToDB is true, each state is persisted; when false, no DB writes (for tests).
+ * @param {Object[]} games - PGN game objects from readPGNGames
+ * @param {{ saveToDB?: boolean }} [options] - saveToDB: persist State docs (default true)
+ * @returns {Promise<void>}
+ */
+exports.replayPGNGames = catchAsync(async (games, options = {}) => {
+    const saveToDB = options.saveToDB !== false;
+    const totalGames = games.length;
     let gameNum = 0;
     let game;
     const movesArr = [];
 
-    for (game of games) {
+    for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
+        game = games[gameIndex];
+        const gameNumber = gameIndex + 1;
+        console.log(`Replay game ${gameNumber}/${totalGames}`);
         let gameMove = 0;
         try {
             const chess = new ChessGame();
@@ -346,7 +357,6 @@ exports.addGamesToDB = catchAsync(async (games) => {
                     const move = chess.convertPGNMove(pgnMove);
                     movesArr.push(move.moveStr);
                     const gameStateBeforeMove = chess.SavedGameState;
-                    // console.log(gameStateBeforeMove);
                     const actual = chess.makeMove(move.source, move.target);
                     if (actual.promotion) {
                         actual.selectedPiece = chess.letterToPiece(move.promotedTo);
@@ -355,9 +365,10 @@ exports.addGamesToDB = catchAsync(async (games) => {
                     const stateDoc = new State({
                         state: gameStateBeforeMove,
                         move: JSON.stringify(actual),
-
                     });
-                    await stateDoc.save();
+                    if (saveToDB) {
+                        await stateDoc.save();
+                    }
                 }
 
                 gameMove++;
@@ -365,7 +376,6 @@ exports.addGamesToDB = catchAsync(async (games) => {
                 if (chess.GameOver) {
                     break;
                 }
-
             }
             gameNum++;
         }
@@ -375,5 +385,12 @@ exports.addGamesToDB = catchAsync(async (games) => {
         }
     }
 
-    console.log(gameNum + " games added");
+    console.log(`Replay finished. Completed ${gameNum}/${totalGames} games successfully.`);
+    if (saveToDB) {
+        console.log(gameNum + " games added");
+    }
+});
+
+exports.addGamesToDB = catchAsync(async (games) => {
+    await exports.replayPGNGames(games, { saveToDB: true });
 });

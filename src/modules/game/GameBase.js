@@ -25,6 +25,8 @@ class GameBase {
     // events
     OnMove;
     OnGameOver;
+    /** Optional: PracticeGame uses to persist quit mid-game without ending the game in DB */
+    OnPracticeQuitMidGame;
     OnGameStateChanged;
     OnRematch;
     OnBookmarkLoaded;
@@ -82,7 +84,11 @@ class GameBase {
     }
 
 
-    async resign(resignedPlayer) {
+    /**
+     * @param {string} resignedPlayer
+     * @param {{ reasonOverride?: string }} [options] If reasonOverride is set, OnGameOver receives it instead of chessGame.GameOverReason (e.g. PracticeGame uses "in progress").
+     */
+    async resign(resignedPlayer, options = {}) {
 
         if (this.moves.length === 0) {
             this.status = "cancelled";
@@ -90,7 +96,9 @@ class GameBase {
             this.status = "game over";
         }
         this.chessGame.resign(resignedPlayer);
-        await this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
+        const reason =
+            options.reasonOverride != null ? options.reasonOverride : this.chessGame.GameOverReason;
+        await this.raiseEvent(this.OnGameOver, { game: this, reason });
 
         const resultMove = this.chessGame.ResultMove;
         if (this.moves.length > 0) { resultMove.moveTime = this.moves[this.moves.length - 1].moveTime; }

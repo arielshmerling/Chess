@@ -303,11 +303,28 @@ exports.startGame = catchAsync(async (req, res) => {
     res.render("game", { username, gameId: game.gameId, hideTopbar: true });
 });
 
+const onPracticeQuitMidGame = async (e) => {
+    const { game } = e;
+    try {
+        const gameDoc = await Game.findOne({ _id: game.gameId });
+        if (gameDoc) {
+            // Quit practice mid-game: leave session as still in progress, no result/reason
+            gameDoc.state = "in progress";
+            gameDoc.reason = null;
+            gameDoc.result = null;
+            await gameDoc.save();
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
+
 function registerEvents(game) {
 
     game.OnMove = onMoveConfirmed;
     game.OnGameStateChanged = onGameStateChanged;
     game.OnGameOver = onGameOver;
+    game.OnPracticeQuitMidGame = onPracticeQuitMidGame;
     game.OnRematch = onRematch;
     game.OnBookmarkLoaded = onBookmarkLoaded;
     game.OnMoveChanged = onMoveUpdated;
@@ -406,6 +423,7 @@ const onRematch = async (e) => {
     oldGame.OnBookmarkLoaded = null;
     oldGame.OnGameStateChanged = null;
     oldGame.OnGameOver = null;
+    oldGame.OnPracticeQuitMidGame = null;
     oldGame.OnRematch = null;
 
     const newGame = gameService.newGame(oldGame.constructor.name, initiator.userName, initiator.userId);
@@ -420,6 +438,7 @@ const onRematch = async (e) => {
     newGame.OnMove = onMoveConfirmed;
     newGame.OnGameStateChanged = onGameStateChanged;
     newGame.OnGameOver = onGameOver;
+    newGame.OnPracticeQuitMidGame = onPracticeQuitMidGame;
     newGame.OnRematch = onRematch;
 
     newGame.status = "establishing";

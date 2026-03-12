@@ -27,9 +27,9 @@ class PracticeGameMessageProcessor extends MessageProcessor {
         await game.handleMove(msg.isWhite, msg.data, "player");
     }
 
-    resign(game, msg) {
+    async resign(game, msg) {
         const resignedPlayer = msg.isWhite ? "White" : "Black";
-        game.resign(resignedPlayer);
+        await game.resign(resignedPlayer);
     }
 }
 

@@ -2756,7 +2756,7 @@ async function backToHome() {
 
     if (isButtonDisabled("homeBtn")) { return; }
 
-    if (game.GameOver || gameInfo.mode == "review") {
+    if (game.GameOver || gameInfo.mode == "review" || gameInfo.watcher) {
         goBackHome();
         return;
     }
@@ -2770,6 +2770,10 @@ async function backToHome() {
 };
 
 async function goBackHome() {
+    if (gameInfo.watcher || gameInfo.mode === "review") {
+        window.location = "/home";
+        return;
+    }
     await menuResignEventHandler();
     window.location = "/home";
 }
