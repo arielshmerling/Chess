@@ -1104,7 +1104,7 @@ class ChessGame {
         }
 
         this.#state.lastMove = move;
-        if (!this.#state.promoting) {   
+        if (!this.#state.promoting || this.#simulation) {
             this.#state.turn = this.opponent(this.Turn);
         }
         this.#recordState();
