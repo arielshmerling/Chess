@@ -41,6 +41,14 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
                 if (game.moves.length > 0) {
                     game.updateLastMoveTime(msg.moveTime);
                 }
+                if (typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number") {
+                    game.sendClockSyncToWatchers(msg.whiteTimer, msg.blackTimer);
+                }
+                break;
+            case "clockSync":
+                if (typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number") {
+                    game.sendClockSyncToWatchers(msg.whiteTimer, msg.blackTimer);
+                }
                 break;
             case "draw accepted":
                 break;

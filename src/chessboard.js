@@ -459,7 +459,9 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
 
         disableButtons(["redoBtn", "undoBtn", "rematchBtn", "resignBtn", "drawBtn", "lastMoveBtn"]);
         hideButtons(["undoBtn", "redoBtn"]);
-        if (isRematch) {
+        if (isWatcher) {
+            enableButtons(["lastMoveBtn", "homeBtn"]);
+        } else if (isRematch) {
             enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
         }
     }
@@ -470,8 +472,12 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         whitePlayerInfoDiv.innerText = gameInfo.whitePlayerName;
 
         disableButtons(["redoBtn", "undoBtn", "rematchBtn"]);
-        enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
         hideButtons(["undoBtn", "redoBtn"]);
+        if (isWatcher) {
+            enableButtons(["lastMoveBtn", "homeBtn"]);
+        } else {
+            enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+        }
     }
 
 
@@ -495,7 +501,6 @@ function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatch
         startWebSockets(gameInfo.username, currentPlayerIsWhite, isWatcher);
     }
 
-
     const whitePlayerInfoDiv = document.getElementById("whitePlayerName");
     whitePlayerInfoDiv.innerText = gameInfo.whitePlayerName;
 
@@ -506,7 +511,12 @@ function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatch
     opponentStatus.style.background = "var(--online-color)";
 
     disableButtons(["rematchBtn", "redoBtn", "undoBtn", "drawBtn"]);
-    enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+    if (isWatcher) {
+        disableButtons(["resignBtn", "bookmarkBtn"]);
+        enableButtons(["lastMoveBtn", "homeBtn"]);
+    } else {
+        enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+    }
     hideButtons(["undoBtn", "redoBtn"]);
 
     applyMousePreference(gameInfo.mousePreference);
@@ -1699,6 +1709,19 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             lastMove = moveObj;
             moveAccepted(move);
+            if (move.moveTime != null && typeof move.moveTime === "number") {
+                if (message.isWhite) {
+                    whiteTimer = move.moveTime;
+                    if (whiteHandle) { clearInterval(whiteHandle); whiteHandle = null; }
+                    const whiteClock = document.getElementById("whiteClockTimeText");
+                    if (whiteClock) whiteClock.innerText = timerToText(whiteTimer);
+                } else {
+                    blackTimer = move.moveTime;
+                    if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
+                    const blackClock = document.getElementById("blackClockTimeText");
+                    if (blackClock) blackClock.innerText = timerToText(blackTimer);
+                }
+            }
             switchClocks();
             gameMoves = await getMovesForTable();
             updateMovesTable(gameMoves.moves);
@@ -1708,7 +1731,24 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (td) {
                 scrollMoveCellIntoView(td);
             }
+            if (gameInfo.gameType === "SinglePlayerGame" && !gameInfo.watcher) {
+                sendMessage({ type: "info", info: "clockSync", gameId: gameInfo.id, whiteTimer: whiteTimer, blackTimer: blackTimer });
+            }
         };
+
+        if (message.type == "clockSync") {
+            if (typeof message.whiteTimer === "number" && typeof message.blackTimer === "number") {
+                whiteTimer = message.whiteTimer;
+                blackTimer = message.blackTimer;
+                if (whiteHandle) { clearInterval(whiteHandle); whiteHandle = null; }
+                if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
+                const whiteClock = document.getElementById("whiteClockTimeText");
+                const blackClock = document.getElementById("blackClockTimeText");
+                if (whiteClock) whiteClock.innerText = timerToText(whiteTimer);
+                if (blackClock) blackClock.innerText = timerToText(blackTimer);
+                switchClocks();
+            }
+        }
 
         if (message.type == "info") {
             const info = message.info;
@@ -1891,7 +1931,6 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (info == "new watcher") {
                 const watcherName = message.data;
                 displayMessage(watcherName + " is watching the game");
-                disableButtons(["rematchBtn", "resignBtn", "redoBtn", "undoBtn", "drawBtn", "bookmarkBtn"]);
             }
 
             if (info == "chat") {
@@ -1956,7 +1995,8 @@ async function moveAccepted(move) {
             isWhite: currentPlayerIsWhite,
             moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
             moveStr: move.moveStr,
-
+            whiteTimer: whiteTimer,
+            blackTimer: blackTimer,
         };
         await sendMessage(message);
     }
