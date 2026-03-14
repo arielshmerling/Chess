@@ -2072,15 +2072,20 @@ input:checked+.slider:before {
 
 .pagesNav .pageNavIcon img {
     display: block;
-    width: 100%;
-    height: 100%;
+    width: 75%;
+    height: 75%;
     object-fit: contain;
+}
+
+/* Match moves table nav: invert for visibility, stronger invert on hover */
+.pagesNav a.pageNavIcon {
+    filter: invert(0.3);
     transition: filter 0.15s ease;
 }
 
-.pagesNav a.pageNavIcon:hover img,
-.pagesNav a.pageNavIcon:focus img {
-    filter: brightness(1.4);
+.pagesNav a.pageNavIcon:hover,
+.pagesNav a.pageNavIcon:focus {
+    filter: invert(0.99);
 }
 
 @media (max-width: 1200px) {
