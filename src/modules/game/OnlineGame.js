@@ -27,6 +27,7 @@ class OnlineGame extends GameBase {
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             const message = { type: "info", info: "opponent joined", gameId: this.gameId, data: this.blackPlayer.userName };
             this.sendMessageToOpponent(message, isWhitePlayer);
+            this.sendInfoToWatchers(message);
         }
 
     }
@@ -39,13 +40,15 @@ class OnlineGame extends GameBase {
             this.status = "cancelled";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             const isWhite = this.whitePlayer.channel.readyState === this.whitePlayer.channel.OPEN;
-            const message = { type: "info", info: "Game cancelled", data: "Opponent left before first move" };
+            const message = { type: "info", info: "Game cancelled", gameId: this.gameId, data: "Opponent left before first move" };
             this.sendMessage(message, isWhite);
+            this.sendInfoToWatchers(message);
             return;
         }
         const isWhite = this.whitePlayer.channel.readyState == this.whitePlayer.channel.OPEN;
-        const message = { type: "info", info: "Opponent disconnected" };
+        const message = { type: "info", info: "Opponent disconnected", gameId: this.gameId };
         this.sendMessage(message, isWhite);
+        this.sendInfoToWatchers(message);
         this.lastStatus = this.status;
         this.status = "on hold";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
@@ -124,8 +127,9 @@ class OnlineGame extends GameBase {
                 this.status = "game over";
                 this.chessGame.resign(isWhite ? "white" : "black");
                 this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
-                const message = { type: "info", info: "Opponent failed to reconnect" };
+                const message = { type: "info", info: "Opponent failed to reconnect", gameId: this.gameId };
                 this.sendMessage(message, !isWhite);
+                this.sendInfoToWatchers(message);
                 this.closeGame();
 
             }
@@ -141,6 +145,7 @@ class OnlineGame extends GameBase {
                     const message = { type: "info", info: "opponent rejoined", gameId: this.gameId };
                     const isWhite = (this.whitePlayer.userId == player.userId);
                     this.sendMessageToOpponent(message, isWhite);
+                    this.sendInfoToWatchers(message);
                 }
             }
             super.updateChannel(player, channel);

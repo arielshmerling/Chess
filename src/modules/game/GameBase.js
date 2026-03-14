@@ -203,6 +203,15 @@ class GameBase {
         }
     }
 
+    sendInfoToWatchers(message) {
+        if (!message || message.type !== "info") return;
+        for (const watcher of this.watchers) {
+            if (!watcher || !watcher.ws) continue;
+            const ws = watcher.ws;
+            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
+        }
+    }
+
     getChannel(isWhite) {
         if (isWhite) {
             if (this.whitePlayer) {

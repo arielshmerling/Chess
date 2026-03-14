@@ -1770,38 +1770,48 @@ function startWebSockets(username, isWhite, isWatcher) {
                 clearInterval(blackHandle);
             }
 
+            if (info == "Game cancelled") {
+                displayMessage(message.data || "Game cancelled");
+                log("System", message.data || "Game cancelled");
+            }
+
             if (info == "Opponent disconnected") {
                 displayMessage("The opponent disconnected");
                 log("System", "The opponent disconnected");
-                const opponentStatus = currentPlayerIsWhite ?
-                    document.getElementById("blackPlayerStatus") :
-                    document.getElementById("whitePlayerStatus");
-                opponentStatus.style.background = "var(--error-color)";
-                hideMessageBox();
-                clearInterval(whiteHandle);
-                clearInterval(blackHandle);
-                startDisconnectionTimer();
+                if (!gameInfo.watcher) {
+                    const opponentStatus = currentPlayerIsWhite ?
+                        document.getElementById("blackPlayerStatus") :
+                        document.getElementById("whitePlayerStatus");
+                    opponentStatus.style.background = "var(--error-color)";
+                    hideMessageBox();
+                    clearInterval(whiteHandle);
+                    clearInterval(blackHandle);
+                    startDisconnectionTimer();
+                }
             }
 
             if (info == "Opponent failed to reconnect") {
                 displayMessage(UserMessages.OPPONENT_RECONNCETION_FAILED);
-
-                const opponentStatus = currentPlayerIsWhite ?
-                    document.getElementById("blackPlayerStatus") :
-                    document.getElementById("whitePlayerStatus");
-                opponentStatus.style.background = "var(--offline-color)";
+                log("System", UserMessages.OPPONENT_RECONNCETION_FAILED);
                 const player = currentPlayerIsWhite ? "White" : "Black";
                 game.resign(player);
+                if (!gameInfo.watcher) {
+                    const opponentStatus = currentPlayerIsWhite ?
+                        document.getElementById("blackPlayerStatus") :
+                        document.getElementById("whitePlayerStatus");
+                    opponentStatus.style.background = "var(--offline-color)";
+                }
             }
 
 
             if (info == "Opponent resigned") {
-                const player = currentPlayerIsWhite ? "White" : "Black";
-                displayMessage(`The opponent resigned, ${player} wins `);
-                const playerName = !currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+                const resignedPlayer = (message.isWhite === true) ? "White" : "Black";
+                const winner = resignedPlayer === "White" ? "Black" : "White";
+                displayMessage(`The opponent resigned, ${winner} wins `);
+                const playerName = resignedPlayer === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
                 log(playerName, "I resign!");
                 hideMessageBox();
-                game.resign(player);
+                game.resign(resignedPlayer);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 gameMoves = await getMovesForTable();
@@ -1912,9 +1922,15 @@ function startWebSockets(username, isWhite, isWatcher) {
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
             }
 
-            if (info == "offer draw" && gameInfo.gameType != "SinglePlayerGame") {
-                displayMessage("");
-                messageBox("Opponent sent a draw offer, accept?", acceptDraw, declineDraw);
+            if (info == "offer draw") {
+                if (gameInfo.gameType != "SinglePlayerGame") {
+                    displayMessage("");
+                    messageBox("Opponent sent a draw offer, accept?", acceptDraw, declineDraw);
+                } else if (gameInfo.watcher) {
+                    const side = message.isWhite ? "White" : "Black";
+                    displayMessage(side + " offers draw");
+                    log("System", side + " offers draw");
+                }
             }
 
             if (info == "draw accepted") {
@@ -2217,6 +2233,7 @@ function hideButtons(btnList) {
 function enableButtons(btnList) {
 
     for (const btnName of btnList) {
+        if (btnName === "rematchBtn" && gameInfo?.watcher) { continue; }
         const button = document.getElementById(btnName);
         if (button) {
             button.disabled = false;

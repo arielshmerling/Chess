@@ -28,11 +28,17 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
             case "offer draw": {
                 const numFullMoves = Math.floor(game.moves.length / 2);
                 const offeredBy = msg.isWhite ? "white" : "black";
+                const drawOfferedMsg = { type: "info", info: "offer draw", gameId: game.gameId, isWhite: msg.isWhite };
+                game.sendInfoToWatchers(drawOfferedMsg);
                 if (numFullMoves < 10) {
-                    game.sendMessage({ type: "info", info: "draw declined", gameId: game.gameId }, msg.isWhite);
+                    const declinedMsg = { type: "info", info: "draw declined", gameId: game.gameId };
+                    game.sendMessage(declinedMsg, msg.isWhite);
+                    game.sendInfoToWatchers(declinedMsg);
                 } else {
                     await game.draw(offeredBy, () => {
-                        game.sendMessage({ type: "info", info: "draw accepted", gameId: game.gameId, isWhite: !msg.isWhite }, msg.isWhite);
+                        const acceptedMsg = { type: "info", info: "draw accepted", gameId: game.gameId, isWhite: !msg.isWhite };
+                        game.sendMessage(acceptedMsg, msg.isWhite);
+                        game.sendInfoToWatchers(acceptedMsg);
                     });
                 }
                 break;

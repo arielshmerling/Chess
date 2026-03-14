@@ -198,6 +198,7 @@ class SinglePlayerGame extends GameBase {
         };
         this.sendMessage(message, resignedPlayer);
         this.sendMoveToWatchers(this.gameId, resignedPlayer === "white", this.chessGame.ResultMove);
+        this.sendInfoToWatchers({ type: "info", info: "Opponent resigned", gameId: this.gameId, isWhite: resignedPlayer === "white" });
     }
 }
 

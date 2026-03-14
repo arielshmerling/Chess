@@ -162,15 +162,17 @@ function calculateTimer(game, isWhite) {
 }
 
 async function rejoinGame(game, userName, userId) {
-    // 1. notify opponent
+    // 1. notify opponent and watchers
     const message = { type: "info", info: "opponent rejoined", gameId: game.gameId };
     const isWhite = (game.whitePlayer.userId == userId);
     if (game.sendMessageToOpponent) {
         game.sendMessageToOpponent(message, isWhite);
     }
+    if (game.sendInfoToWatchers) {
+        game.sendInfoToWatchers(message);
+    }
 
-
-    // 2. updat game status
+    // 2. update game status
     const gameDoc = await gamesManagerService.findGameInDB(game);
     game.status = "in progress";
     gameDoc.state = game.status;

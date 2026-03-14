@@ -23,11 +23,14 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         msg.info = "Opponent resigned";
         return game.resign(resignedPlayer).then(() => {
             game.sendMessageToOpponent(msg, msg.isWhite);
+            game.sendInfoToWatchers(msg);
+            game.sendMoveToWatchers(game.gameId, resignedPlayer === "White", game.chessGame.ResultMove);
         });
     }
 
     opponentForwardHandler(game, msg) {
         game.sendMessageToOpponent(msg, msg.isWhite);
+        game.sendInfoToWatchers(msg);
     }
 
     rematchOfferAccepted(game, msg) {
@@ -45,7 +48,7 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         const offerBy = msg.isWhite ? "black" : "white";
         game.draw(offerBy, () => {
             game.sendMessageToOpponent(msg, msg.isWhite);
-
+            game.sendInfoToWatchers(msg);
         });
     }
 
