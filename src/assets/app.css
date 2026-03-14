@@ -1096,6 +1096,13 @@ table.movesTable td:hover {
 }
 
 
+/* Search page: align Search Game section with table (same left indentation) */
+[id="Search Game"] {
+    margin-left: 0;
+    padding-left: 10px;
+    box-sizing: border-box;
+}
+
 .gamesTableContainer {
     border-radius: 5px;
     background-color: var(--table-header-bg);
@@ -1228,6 +1235,20 @@ table.gamesTable td {
     font-style: italic;
 }
 
+/* Search page nav: default (large screens) show 10-window and step-10 << >> */
+.pagesNav .pageNavStep5 {
+    display: none !important;
+}
+.pagesNav .pageNavStep10 {
+    display: inline-flex !important;
+}
+.pagesNav .pageNavWindow5 {
+    display: none !important;
+}
+.pagesNav .pageNavWindow10 {
+    display: inline-block !important;
+}
+
 /* List page table: responsive breakpoints */
 @media (max-width: 1200px) {
     .gamesTable {
@@ -1242,6 +1263,13 @@ table.gamesTable td {
 }
 
 @media (max-width: 768px) {
+    /* Use full width so table and nav aren’t squeezed by body’s align-items: center */
+    main {
+        width: 100%;
+        box-sizing: border-box;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
     .gamesTable {
         width: 100%;
         min-width: 0;
@@ -1262,6 +1290,24 @@ table.gamesTable td {
     table.gamesTable tr {
         height: auto;
         min-height: 20px;
+    }
+    /* Search page: hide event and round columns */
+    #PGNGameList .gamesTable .col-event,
+    #PGNGameList .gamesTable .col-round {
+        display: none;
+    }
+    /* Pages nav: show 5-window numbers and step-5 << >> (override default) */
+    .pagesNav A.pageNavWindow5 {
+        display: inline-flex !important;
+    }
+    .pagesNav A.pageNavWindow10 {
+        display: none !important;
+    }
+    .pagesNav .pageNavStep5 {
+        display: inline-flex !important;
+    }
+    .pagesNav .pageNavStep10 {
+        display: none !important;
     }
 }
 
@@ -1971,27 +2017,83 @@ input:checked+.slider:before {
 
 
 .pagesNav {
-    width: 830px;
+    width: 1150px;
+    box-sizing: border-box;
     text-align: center;
     padding: 10px;
     margin-top: 10px;
     background-color: var(--table-row-bg);
     font-size: 20px;
     border-radius: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
 }
 
 .pagesNav A {
     text-decoration: none;
-    margin: 4px;
+    margin: 0;
+    padding: 0;
     color: var(--table-row-text);
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    line-height: 1;
+    box-sizing: border-box;
+}
+
+.pagesNav .pageNavItem {
     width: 34px;
     height: 34px;
     line-height: 34px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Show/hide 5 vs 10 window: only on large screens (so 768px media query can win on small) */
+@media (min-width: 769px) {
+    .pagesNav A.pageNavWindow5 {
+        display: none !important;
+    }
+    .pagesNav A.pageNavWindow10 {
+        display: inline-flex !important;
+    }
 }
 
 .pagesNav A:hover {
     color: var(--table-link-hover);
+}
+
+.pagesNav .pageNavIcon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: filter 0.15s ease;
+}
+
+.pagesNav a.pageNavIcon:hover img,
+.pagesNav a.pageNavIcon:focus img {
+    filter: brightness(1.4);
+}
+
+@media (max-width: 1200px) {
+    .pagesNav {
+        width: 980px;
+    }
+}
+
+@media (max-width: 768px) {
+    .pagesNav {
+        width: 100%;
+        box-sizing: border-box;
+    }
 }
 
 .selectedPage {

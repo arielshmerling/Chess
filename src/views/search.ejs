@@ -21,13 +21,13 @@
   <div class="gamesTableContainer">
     <table class="gamesTable">
       <tr>
-        <th>#</th>
+        <th class="col-num">#</th>
 
         <%obj=pgn[0];%>
         <% for(const key in obj) { %>
 
         <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" ) { %>
-        <th>
+        <th class="col-<%= key.toLowerCase().replace(/\s+/g, '-') %>">
           <%=key %>
         </th>
         <%}%>
@@ -37,14 +37,14 @@
       <% if(obj) { %>
       <tr onclick=<%-`"window.location='/review?type=pgn&id=${obj.Id}'"`%>>
 
-        <td>
+        <td class="col-num">
           <a href=<%=`/review?&type=pgn&id=${obj.Id} %`%>>
             <%=i+1 %>
           </a>
         </td>
         <% for(const key in obj) { %>
         <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` ) { %>
-        <td>
+        <td class="col-<%= key.toLowerCase().replace(/\s+/g, '-') %>">
           <%= obj[key] %>
 
         </td>
@@ -64,21 +64,31 @@
     const endPage = Math.min(startPage + windowSize - 1, totalPages);
     const prev10Page = Math.max(1, startPage - windowSize);
     const next10Page = Math.min(totalPages, startPage + windowSize);
+    const smallWindowSize = 5;
+    const startPage5 = Math.floor((page - 1) / smallWindowSize) * smallWindowSize + 1;
+    const endPage5 = Math.min(startPage5 + smallWindowSize - 1, totalPages);
+    const prev5Page = Math.max(1, startPage5 - smallWindowSize);
+    const next5Page = Math.min(totalPages, startPage5 + smallWindowSize);
   %>
   <nav class="pagesNav">
     <a href="search?q=<%=q%>&page=1">First</a>
     <% if (startPage > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev10Page%>" title="Previous 10 pages" class="pageNavIcon">‹‹</a>
+    <a href="search?q=<%=q%>&page=<%=prev10Page%>" title="Previous 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="Previous"></a>
+    <% } %>
+    <% if (startPage5 > 1) { %>
+    <a href="search?q=<%=q%>&page=<%=prev5Page%>" title="Previous 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="Previous"></a>
+    <% } %>
+    <% for(let i=startPage5;i<=endPage5;i++) { %>
+    <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
     <% } %>
     <% for(let i=startPage;i<=endPage;i++) { %>
-    <% if (i==page) { %>
-    <a class="selectedPage" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
-    <%} else { %>
-    <a href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
+    <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
     <% } %>
+    <% if (endPage5 < totalPages) { %>
+    <a href="search?q=<%=q%>&page=<%=next5Page%>" title="Next 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="Next"></a>
     <% } %>
     <% if (endPage < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next10Page%>" title="Next 10 pages" class="pageNavIcon">››</a>
+    <a href="search?q=<%=q%>&page=<%=next10Page%>" title="Next 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="Next"></a>
     <% } %>
     <a href="search?q=<%=q%>&page=<%=totalPages%>">Last</a>
   </nav>
