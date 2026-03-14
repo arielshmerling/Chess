@@ -2318,14 +2318,21 @@ async function getGameMoves() {
 }
 
 async function sendMove(moveObj) {
-    moveObj.moveTime = currentPlayerIsWhite ? whiteTimer : blackTimer;
+    // PracticeGame: one human plays both sides; currentPlayerIsWhite is fixed at load.
+    // Server handleMove uses msg.isWhite to flip the move and match this.turn — must be the side that moved.
+    // After client makeMove, game.Turn is already the next player, so the mover is the opposite color.
+    let isWhite = currentPlayerIsWhite;
+    if (gameType === "PracticeGame") {
+        isWhite = game.Turn === "black"; // black to move => white just moved; white to move => black just moved
+    }
+    moveObj.moveTime = isWhite ? whiteTimer : blackTimer;
 
     const message = {
         type: "move",
         data: moveObj,
         gameId: gameInfo.id,
         username: gameInfo.username,
-        isWhite: currentPlayerIsWhite,
+        isWhite: isWhite,
     };
 
     await sendMessage(message);

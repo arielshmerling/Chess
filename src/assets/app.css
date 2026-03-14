@@ -653,6 +653,13 @@ body.hide-topbar #main {
     font-size: 0.9em;
 }
 
+.site-logo-img {
+    display: block;
+    height: 2em;
+    width: 150px;
+    object-fit: contain;
+}
+
 a {
     color: white;
     font-size: 0.8em;
