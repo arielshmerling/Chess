@@ -89,16 +89,27 @@ exports.getRecentFinishedGamesByUsername = catchAsync(async (username, amount) =
 
 
 /**
- * Retrieves a list of recent games played.
+ * Retrieves ongoing online games for the home page. Reads from the database so the list
+ * stays in sync when games are added/removed in the DB (e.g. after clearing all games).
  *
- * @param {string} username - The username of the user whose recent games are to be retrieved.
- * @returns {Promise<Object[]>} A promise resolving to an array of game objects, each containing information about a recent game played by the specified user.
+ * @param {number} amount - Maximum number of games to return.
+ * @returns {Promise<Object[]>} Array of game objects with gameId, whitePlayer, blackPlayer, startedOn, moves.
  */
 exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
-
-    let ongoing = games.filter(g => g.status == "in progress");
-    ongoing = ongoing.slice(0, amount);
-    return ongoing;
+    const gameDocs = await Game.find({
+        state: "in progress",
+        gameType: "OnlineGame",
+    })
+        .sort({ created: -1 })
+        .limit(amount)
+        .lean();
+    return gameDocs.map((doc) => ({
+        gameId: doc._id.toString(),
+        whitePlayer: { userName: doc.whitePlayer || "" },
+        blackPlayer: { userName: doc.blackPlayer || "" },
+        startedOn: doc.created ? new Date(doc.created).getTime() : null,
+        moves: doc.moves || [],
+    }));
 });
 
 /**
