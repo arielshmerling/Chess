@@ -36,7 +36,6 @@ exports.review = catchAsync(async (req, res) => {
             res.redirect("login");
             return;
         }
-        console.log("username: " + req.session.user_name);
         //console.log(gameInfo);
         game = gameService.createReviewGame(req.session.user_id, req.session.user_name, gameInfo, "review");
         gamesManagerService.AddGame(game);
@@ -198,7 +197,6 @@ exports.rematch = async (req, res) => {
     const { id } = req.body;
     req.session.gameId = id;
     res.send("{ \"status\": \"OK\" }");
-    console.log("update new game id for rematch: " + id);
 };
 
 exports.startGame = catchAsync(async (req, res) => {

@@ -105,28 +105,11 @@ exports.getRecentFinishedGamesByUsername = catchAsync(async (username, amount) =
  * @returns {Promise<Object[]>} Array of game objects with gameId, whitePlayer, blackPlayer, startedOn, moves.
  */
 exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
-    const recentAny = await Game.find({}).sort({ created: -1 }).limit(5).select("state gameType whitePlayer blackPlayer").lean();
-    console.log("[getOnGoingOnlineGames] last 5 games in DB (any state):", recentAny.map((d) => ({
-        state: d.state,
-        gameType: d.gameType,
-        white: d.whitePlayer,
-        black: d.blackPlayer,
-    })));
     const query = { state: "in progress" };
     const gameDocs = await Game.find(query)
         .sort({ created: -1 })
         .limit(amount)
         .lean();
-    console.log("[getOnGoingOnlineGames] query returned", gameDocs.length, "docs");
-    if (gameDocs.length > 0) {
-        console.log("[getOnGoingOnlineGames] first doc:", JSON.stringify({
-            _id: gameDocs[0]._id,
-            state: gameDocs[0].state,
-            gameType: gameDocs[0].gameType,
-            whitePlayer: gameDocs[0].whitePlayer,
-            blackPlayer: gameDocs[0].blackPlayer,
-        }));
-    }
     return gameDocs.map((doc) => ({
         gameId: doc._id.toString(),
         whitePlayer: { userName: doc.whitePlayer || "" },

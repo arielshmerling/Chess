@@ -5,7 +5,6 @@ const { User } = require("../user/model");
 exports.showHomePage = async (req, res) => {
 
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
-    console.log("[showHomePage] onGoing.length =", onGoing.length, "allGames will have", onGoing.length, "items");
     const allGames = onGoing.map((g) => {
         return {
             Id: g.gameId,

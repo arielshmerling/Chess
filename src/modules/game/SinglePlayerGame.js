@@ -53,7 +53,6 @@ class SinglePlayerGame extends GameBase {
             this._brainNextMoveFunc = engine.brainNextMoveFunc;
             this._brainName = engine.Name;
             this._BrainTimeoutFallbackError = engine.BrainTimeoutFallbackError;
-            console.log("SinglePlayerGame engine:", this.options.engine, "->", this._brainName);
             const humanPlayer = player;
             const aiPlayer = new Player(null, this._brainName);
             if (gameInfo.playAsBlack) {
@@ -102,14 +101,12 @@ class SinglePlayerGame extends GameBase {
             console.timeEnd("brain");
             //    console.profileEnd();
 
-            console.log("Brain suggested a move: " + chessGame.getPGNMoveNotation(brainMove));
             const move = await this.handleMove(brainPlaysAsWhite, brainMove, "brain");
             if (move.valid) {
                 this.sendMoveToOpponenet(brainPlaysAsWhite, brainMove);
                 this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, brainMove);
             }
             else {
-                console.log("Brain created an invalid move");
             }
 
         } catch (err) {
@@ -117,7 +114,6 @@ class SinglePlayerGame extends GameBase {
             if (BrainTimeoutFallbackError && err instanceof BrainTimeoutFallbackError) {
                 // Use the fallback move
                 const fallbackMove = err.fallbackMove;
-                console.log("Brain timed out, using fallback move: " + chessGame.getPGNMoveNotation(fallbackMove));
 
                 // Send chat message
                 const chatMessage = {
@@ -136,14 +132,12 @@ class SinglePlayerGame extends GameBase {
                     this.sendMoveToOpponenet(brainPlaysAsWhite, fallbackMove);
                     this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, fallbackMove);
                 } else {
-                    console.log("Fallback move validation failed");
                     const message = { type: "info", info: "move validation failed", gameId: this.gameId };
                     this.sendMessage(message, brainPlaysAsWhite);
                 }
             } else {
                 const message = { type: "info", info: "move validation failed", gameId: this.gameId };
                 this.sendMessage(message, brainPlaysAsWhite);
-                console.log("makeBrainMove - " + err);
             }
         }
     };

@@ -71,8 +71,6 @@ class OnlineGame extends GameBase {
     }
 
     sendMoveToWatchers(gameId, isWhite, moveObj) {
-        const n = this.watchers.filter(w => w && w.ws && w.ws.readyState === w.ws.OPEN).length;
-        console.log("[sendMoveToWatchers] OnlineGame gameId=" + gameId + " watchers=" + n);
         for (const watcher of this.watchers) {
             if (!watcher || !watcher.ws) continue;
 
@@ -122,7 +120,6 @@ class OnlineGame extends GameBase {
                 clearInterval(handle);
             }
             if (this.status == "on hold") {
-                console.log("60 seconds pass. closing game");
                 clearInterval(handle);
                 this.status = "game over";
                 this.chessGame.resign(isWhite ? "white" : "black");

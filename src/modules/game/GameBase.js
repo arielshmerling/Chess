@@ -67,7 +67,6 @@ class GameBase {
 
     addWatcher(ws, userName) {
         this.watchers.push({ ws, userName });
-        console.log("[addWatcher] gameId=" + this.gameId + " user=" + userName + " totalWatchers=" + this.watchers.length);
         const message = { type: "info", info: "new watcher", gameId: this.gameId, data: userName };
         this.sendMessage(message, true);
         this.sendMessage(message, false);
@@ -77,8 +76,6 @@ class GameBase {
     stopWatching(player) {
         const index = this.watchers.findIndex(w => w === player);
         if (index !== -1) {
-            const watcher = this.watchers[index];
-            console.log(`Watcher removed: ${watcher.userName || 'unknown'} from game ${this.gameId}`);
             this.watchers.splice(index, 1);
         }
     }
@@ -145,10 +142,6 @@ class GameBase {
                     }
                     return actual;
                 }
-                else {
-                    console.log("validation failed on:");
-                    console.log(moveObj);
-                }
             }
         }
 
@@ -182,8 +175,6 @@ class GameBase {
 
     sendMoveToWatchers(gameId, isWhite, moveObj) {
         if (!moveObj || moveObj.source == null || moveObj.target == null) return;
-        const n = this.watchers.filter(w => w && w.ws && w.ws.readyState === w.ws.OPEN).length;
-        console.log("[sendMoveToWatchers] gameId=" + gameId + " watchers=" + n);
         for (const watcher of this.watchers) {
             if (!watcher || !watcher.ws) continue;
             const ws = watcher.ws;

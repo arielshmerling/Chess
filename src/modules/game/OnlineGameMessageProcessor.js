@@ -85,8 +85,6 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         else {
             const message = { type: "info", info: "move validation failed", gameId: msg.gameId };
             game.sendMessage(message, msg.isWhite);
-            console.log("move validation failed");
-
         }
     }
 }

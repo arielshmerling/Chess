@@ -74,7 +74,6 @@ app.setWebSocketService = (service) => {
 app.broadcastToLobby = (data) => {
     const payload = JSON.stringify(data);
     const ready = lobbyClients.filter((c) => c.readyState === 1);
-    console.log("[broadcastToLobby]", data.type, "->", ready.length, "clients");
     ready.forEach((clientWs) => {
         try {
             clientWs.send(payload);
@@ -85,7 +84,6 @@ app.broadcastToLobby = (data) => {
 };
 
 app.ws("/ws", async (ws, req) => {
-    console.log("ws connection request arrived");
 
     if (!gameManagerService) {
         console.error("gameManagerService not initialized");
@@ -99,7 +97,6 @@ app.ws("/ws", async (ws, req) => {
 
             if (msg.type === "subscribeLobby") {
                 lobbyClients.push(ws);
-                console.log("[ws] subscribeLobby – lobby clients:", lobbyClients.length);
                 return;
             }
 
@@ -114,12 +111,10 @@ app.ws("/ws", async (ws, req) => {
 
             if (msg.type == "watch") {
                 const gameId = msg.data && msg.data.gameId;
-                console.log("[watch] received gameId=" + gameId + " username=" + (msg.data && msg.data.username));
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
                     game.addWatcher(ws, msg.data.username);
                 } else {
-                    console.log("[watch] game not found for gameId=" + gameId);
                 }
             }
         } catch (error) {
@@ -130,14 +125,11 @@ app.ws("/ws", async (ws, req) => {
     ws.on("close", async (data) => {
         const idx = lobbyClients.indexOf(ws);
         if (idx !== -1) lobbyClients.splice(idx, 1);
-        console.log("ws close connection: " + data);
     });
 
     ws.on("error", (error) => {
-        console.log("ws error:", error);
     });
 
-    console.log("ws connection established");
 });
 
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {

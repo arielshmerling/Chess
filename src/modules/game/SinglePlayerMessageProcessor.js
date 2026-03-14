@@ -65,7 +65,6 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
             case "outOfTime":
                 break;
             default:
-                console.log("Unknown info omessage");
                 break;
         }
     }
@@ -101,8 +100,6 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
         else {
             const message = { type: "info", info: "move validation failed", gameId: msg.gameId };
             game.sendMessage(message, msg.isWhite);
-            console.log("onMoveReceived::move validation failed");
-
         }
 
 
