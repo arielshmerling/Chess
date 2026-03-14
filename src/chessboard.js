@@ -528,6 +528,7 @@ function applyMousePreference(preference) {
     if (!innerBoard) { return; }
     innerBoard.removeEventListener("click", onBoardClickToMove);
     if (preference === "double") {
+        innerBoard.classList.add("move-mode-double");
         const pieces = document.querySelectorAll("#innerBoard .square img");
         pieces.forEach(function (img) {
             const isOurPiece = currentPlayerIsWhite && img.src.indexOf("white") !== -1 ||
@@ -537,6 +538,8 @@ function applyMousePreference(preference) {
             }
         });
         innerBoard.addEventListener("click", onBoardClickToMove);
+    } else {
+        innerBoard.classList.remove("move-mode-double");
     }
 }
 
@@ -558,7 +561,7 @@ function onBoardClickToMove(e) {
         if (isOurPiece && game.Turn === (currentPlayerIsWhite ? "white" : "black")) {
             clickToMoveSelected = pos;
             resetSqaureColor();
-            square.classList.add("optionSquare");
+            square.classList.add("optionSource");
             if (gameInfo.showAvailableMoves !== false) {
                 const options = game.possibleMoves(pos);
                 for (const option of options) {
@@ -576,7 +579,7 @@ function onBoardClickToMove(e) {
     if (isOurPiece) {
         clickToMoveSelected = pos;
         resetSqaureColor();
-        square.classList.add("optionSquare");
+        square.classList.add("optionSource");
         if (gameInfo.showAvailableMoves !== false) {
             const options = game.possibleMoves(pos);
             for (const option of options) {

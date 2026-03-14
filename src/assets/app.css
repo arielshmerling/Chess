@@ -569,11 +569,22 @@ body.hide-topbar #main {
     background-color: var(--darkSquare);
 }
 
-/* Available-move square: corner brackets (top-left + bottom-right) so adjacent squares never share a line */
+/* Available-move square: drag mode = full green; double-click mode = corner brackets only */
 .square.option {
     position: relative;
 }
 
+/* Drag mode: target squares fully covered in green (no brackets) */
+#innerBoard:not(.move-mode-double) .square.option {
+    background-color: var(--optionSquare) !important;
+}
+
+#innerBoard:not(.move-mode-double) .square.option::before,
+#innerBoard:not(.move-mode-double) .square.option::after {
+    display: none;
+}
+
+/* Double-click mode: target squares show brackets only */
 .square.option::before,
 .square.option::after {
     content: "";
@@ -598,6 +609,12 @@ body.hide-topbar #main {
     right: 2px;
     border-bottom-width: 2px;
     border-right-width: 2px;
+}
+
+/* Double-click mode: highlight the source square (selected piece) */
+.square.optionSource {
+    background-color: var(--optionSquare) !important;
+    opacity: 0.85;
 }
 
 
