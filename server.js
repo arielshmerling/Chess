@@ -2,8 +2,9 @@ const app = require("./src/app.js"); // Import the configured Express app
 const { Database } = require("./src/db/database.js");
 const gameManagerService = require("./src/modules/gamesManager/service.js");
 
-// Initialize WebSocket service in the app
+// Initialize WebSocket service and lobby broadcast in the app
 app.setWebSocketService(gameManagerService);
+gameManagerService.setLobbyBroadcast(app.broadcastToLobby);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {

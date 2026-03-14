@@ -6,6 +6,13 @@ const catchAsync = require("../../utils/catchAsync");
 
 const games = [];
 let pgnGames = [];
+let lobbyBroadcast = null;
+
+exports.setLobbyBroadcast = (fn) => {
+    lobbyBroadcast = fn;
+};
+
+exports.getLobbyBroadcast = () => lobbyBroadcast;
 
 exports.GameTypes = {
     AI: 1,
@@ -91,18 +98,35 @@ exports.getRecentFinishedGamesByUsername = catchAsync(async (username, amount) =
 /**
  * Retrieves ongoing online games for the home page. Reads from the database so the list
  * stays in sync when games are added/removed in the DB (e.g. after clearing all games).
+ * Includes: in-progress games, and "new" games where black has already joined (DB not yet
+ * updated to "in progress" until second player's WebSocket connects).
  *
  * @param {number} amount - Maximum number of games to return.
  * @returns {Promise<Object[]>} Array of game objects with gameId, whitePlayer, blackPlayer, startedOn, moves.
  */
 exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
-    const gameDocs = await Game.find({
-        state: "in progress",
-        gameType: "OnlineGame",
-    })
+    const recentAny = await Game.find({}).sort({ created: -1 }).limit(5).select("state gameType whitePlayer blackPlayer").lean();
+    console.log("[getOnGoingOnlineGames] last 5 games in DB (any state):", recentAny.map((d) => ({
+        state: d.state,
+        gameType: d.gameType,
+        white: d.whitePlayer,
+        black: d.blackPlayer,
+    })));
+    const query = { state: "in progress" };
+    const gameDocs = await Game.find(query)
         .sort({ created: -1 })
         .limit(amount)
         .lean();
+    console.log("[getOnGoingOnlineGames] query returned", gameDocs.length, "docs");
+    if (gameDocs.length > 0) {
+        console.log("[getOnGoingOnlineGames] first doc:", JSON.stringify({
+            _id: gameDocs[0]._id,
+            state: gameDocs[0].state,
+            gameType: gameDocs[0].gameType,
+            whitePlayer: gameDocs[0].whitePlayer,
+            blackPlayer: gameDocs[0].blackPlayer,
+        }));
+    }
     return gameDocs.map((doc) => ({
         gameId: doc._id.toString(),
         whitePlayer: { userName: doc.whitePlayer || "" },

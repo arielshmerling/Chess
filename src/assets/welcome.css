@@ -843,6 +843,20 @@ main {
     transform: translateX(5px);
 }
 
+/* Online games panel: show table when has games, else show no-games message */
+.online-games-body .table-scroll {
+    display: none;
+}
+.online-games-body .no-games-message {
+    display: block;
+}
+.online-games-body.has-online-games .table-scroll {
+    display: block;
+}
+.online-games-body.has-online-games .no-games-message {
+    display: none;
+}
+
 /* No Games Message */
 .no-games-message {
     padding: 60px 30px;

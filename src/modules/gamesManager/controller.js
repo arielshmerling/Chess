@@ -5,6 +5,7 @@ const { User } = require("../user/model");
 exports.showHomePage = async (req, res) => {
 
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
+    console.log("[showHomePage] onGoing.length =", onGoing.length, "allGames will have", onGoing.length, "items");
     const allGames = onGoing.map((g) => {
         return {
             Id: g.gameId,
@@ -38,6 +39,19 @@ exports.showHomePage = async (req, res) => {
         }
     }
     res.render("welcome", { allGames, lastGameOptions });
+};
+
+exports.getActiveGamesJson = async (req, res) => {
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
+    const allGames = onGoing.map((g) => ({
+        Id: g.gameId,
+        Game: (g.whitePlayer?.userName || "") + " Vs. " + (g.blackPlayer?.userName || ""),
+        Started: g.startedOn
+            ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago"
+            : "Not started",
+        Moves: Math.ceil((g.moves || []).length / 2),
+    }));
+    res.json(allGames);
 };
 
 exports.showList = async (req, res) => {

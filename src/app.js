@@ -66,8 +66,22 @@ app.use(express.static("./client/build"));
 // WebSocket route handler (must be before catch-all route)
 // Note: gameManagerService will be set up in server.js after app is created
 let gameManagerService = null;
+const lobbyClients = [];
 app.setWebSocketService = (service) => {
     gameManagerService = service;
+};
+
+app.broadcastToLobby = (data) => {
+    const payload = JSON.stringify(data);
+    const ready = lobbyClients.filter((c) => c.readyState === 1);
+    console.log("[broadcastToLobby]", data.type, "->", ready.length, "clients");
+    ready.forEach((clientWs) => {
+        try {
+            clientWs.send(payload);
+        } catch (err) {
+            console.error("broadcastToLobby send error:", err);
+        }
+    });
 };
 
 app.ws("/ws", async (ws, req) => {
@@ -82,6 +96,12 @@ app.ws("/ws", async (ws, req) => {
     ws.on("message", async (recivedData) => {
         try {
             const msg = JSON.parse(recivedData);
+
+            if (msg.type === "subscribeLobby") {
+                lobbyClients.push(ws);
+                console.log("[ws] subscribeLobby – lobby clients:", lobbyClients.length);
+                return;
+            }
 
             if (msg.type == "connection") {
                 const gameId = msg.data.gameId;
@@ -106,6 +126,8 @@ app.ws("/ws", async (ws, req) => {
     });
 
     ws.on("close", async (data) => {
+        const idx = lobbyClients.indexOf(ws);
+        if (idx !== -1) lobbyClients.splice(idx, 1);
         console.log("ws close connection: " + data);
     });
 

@@ -270,8 +270,21 @@ exports.startGame = catchAsync(async (req, res) => {
         const blackPlayer = new Player(userId, username, false);
         gameDoc = await gamesManagerService.findGameInDB(game);
         gameDoc.blackPlayer = username;
+        gameDoc.state = "in progress";
         await gameDoc.save();
         game.joinGame(blackPlayer);
+        if (game.constructor.name === "OnlineGame") {
+            const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
+            const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
+            const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
+            broadcastActiveGameToLobby("onlineGameInProgress", game, {
+                gameId: String(game.gameId),
+                Game: (game.whitePlayer?.userName || "") + " Vs. " + (game.blackPlayer?.userName || ""),
+                Started: startedText,
+                Moves: Math.ceil((game.moves || []).length / 2),
+                status: "in progress",
+            });
+        }
         req.session.gameId = game.gameId;
         registerEvents(game);
         setGamePageNoCache(res);
@@ -334,6 +347,16 @@ function registerEvents(game) {
 
 }
 
+function broadcastActiveGameToLobby(type, game, extra = {}) {
+    const broadcast = gamesManagerService.getLobbyBroadcast();
+    if (!broadcast) return;
+    const name = game.constructor.name;
+    if (name !== "OnlineGame" && name !== "SinglePlayerGame") return;
+    const gameIdStr = String(game.gameId);
+    const payload = { type, data: { gameId: gameIdStr, ...extra } };
+    broadcast(payload);
+}
+
 const onMoveConfirmed = async (e) => {
     const { game, move } = e;
     try {
@@ -342,6 +365,8 @@ const onMoveConfirmed = async (e) => {
             gameDoc.moves.push(JSON.stringify(move));
             await gameDoc.save();
         }
+        const movesCount = game.moves ? Math.ceil(game.moves.length / 2) : 0;
+        broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount, status: game.status });
     } catch (error) {
         console.error(error);
     }
@@ -384,6 +409,19 @@ const onGameStateChanged = async (e) => {
             gameDoc.state = newState;
             await gameDoc.save();
         }
+        if ((game.constructor.name === "OnlineGame" || game.constructor.name === "SinglePlayerGame") && newState === "in progress") {
+            const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
+            const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
+            const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
+            const blackName = game.blackPlayer?.userName ?? "";
+            const whiteName = game.whitePlayer?.userName ?? "";
+            broadcastActiveGameToLobby("onlineGameInProgress", game, {
+                Game: whiteName + " Vs. " + blackName,
+                Started: startedText,
+                Moves: Math.ceil((game.moves || []).length / 2),
+                status: game.status,
+            });
+        }
     } catch (error) {
         console.error(error);
     }
@@ -405,6 +443,8 @@ const onGameOver = async (e) => {
             }
             await gameDoc.save();
         }
+        const movesCount = game.moves ? Math.ceil(game.moves.length / 2) : 0;
+        broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount, status: game.status });
     } catch (error) {
         console.error(error);
     }
