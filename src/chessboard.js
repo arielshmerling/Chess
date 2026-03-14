@@ -295,8 +295,12 @@ async function tryMove(sourcePos, targetPos) {
                 applyMousePreference("double");
             }
         }
-        gameMoves = await getGameMoves();
+        gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
+        moveIndex = gameMoves.moves ? gameMoves.moves.length : 0;
+        const turnStr = "td_move" + moveIndex;
+        const td = document.getElementById(turnStr);
+        if (td) { scrollMoveCellIntoView(td); }
         return true;
     }
     return false;
@@ -369,7 +373,7 @@ async function startGame(isRematch) {
 
         game.loadGame(JSON.stringify(gameState));
         game.WhitePlayerView = currentPlayerIsWhite;
-        gameMoves = await getGameMoves();
+        gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
         updateTimers(gameInfo);
         switchClocks();
@@ -377,7 +381,7 @@ async function startGame(isRematch) {
     }
     else {
         game.startNewGame(currentPlayerIsWhite);
-        gameMoves = await getGameMoves();
+        gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
         resetClocks();
     }
@@ -1020,11 +1024,14 @@ async function promotionEventHandler(turn) {
         showPromotionDialog((selectedPiece) => {
             lastMove.selectedPiece = selectedPiece;
             game.completePromotion(lastMove);
-            if (gameType == "OnlineGame" || gameType == "SinglePlayerGame" || gameType == "PracticeGame") {
+            if (gameType === "OnlineGame" || gameType === "SinglePlayerGame") {
                 sendMove(lastMove);
             }
+            if (gameType === "PracticeGame") {
+                gameMoves = { moves: game.Moves || [] };
+                updateMovesTable(gameMoves.moves);
+            }
             console.log("promotion completed:");
-            // console.log(lastMove);
             promotingMode = false;
             resolve();
         });
@@ -1201,9 +1208,7 @@ async function onUpdateReceivedEventHandler(gameState) {
     updateCaptureLists(capturedPiecesList);
 
     if (gameInfo.mode != "review") {
-        if (gameInfo.gameType != "PracticeGame") {
-            gameMoves = await getGameMoves();
-        }
+        gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
         moveIndex = gameMoves.moves.length;
         const turnStr = "td_move" + moveIndex;
@@ -1233,7 +1238,7 @@ async function onUpdateReceivedEventHandler(gameState) {
     if (game.GameOver) {
         //document.getElementById("rematchBtn").classList.remove("btnDisabled");
         enableButtons(["rematchBtn"]);
-        gameMoves = await getGameMoves();
+        gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
     }
 
@@ -1273,9 +1278,7 @@ async function checkmateEventHandler(turn) {
     disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
     //document.getElementById("rematchBtn").classList.remove("btnDisabled");
     enableButtons(["rematchBtn"]);
-    if (gameInfo.gameType != "PracticeGame") {
-        gameMoves = await getGameMoves();
-    }
+    gameMoves = await getMovesForTable();
     updateMovesTable(gameMoves.moves);
 }
 
@@ -1290,7 +1293,7 @@ async function drawEventHandler(reason) {
     disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
     //document.getElementById("rematchBtn").classList.remove("btnDisabled");
     enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
-    gameMoves = await getGameMoves();
+    gameMoves = await getMovesForTable();
     updateMovesTable(gameMoves.moves);
 }
 
@@ -1671,7 +1674,7 @@ function startWebSockets(username, isWhite, isWatcher) {
         const message = JSON.parse(event.data);
         if (message.type == "move") {
             if (game.GameOver) {
-                gameMoves = await getGameMoves();
+                gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
                 return;
             }
@@ -1697,6 +1700,14 @@ function startWebSockets(username, isWhite, isWatcher) {
             lastMove = moveObj;
             moveAccepted(move);
             switchClocks();
+            gameMoves = await getMovesForTable();
+            updateMovesTable(gameMoves.moves);
+            moveIndex = gameMoves.moves ? gameMoves.moves.length : 0;
+            const turnStr = "td_move" + moveIndex;
+            const td = document.getElementById(turnStr);
+            if (td) {
+                scrollMoveCellIntoView(td);
+            }
         };
 
         if (message.type == "info") {
@@ -1706,7 +1717,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 log("System", "Game Over");
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
-                gameMoves = await getGameMoves();
+                gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
             }
 
@@ -1753,9 +1764,20 @@ function startWebSockets(username, isWhite, isWatcher) {
                 game.resign(player);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
-                gameMoves = await getGameMoves();
+                gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
 
+            }
+
+            if (info == "move validated successfully") {
+                gameMoves = await getMovesForTable();
+                updateMovesTable(gameMoves.moves);
+                moveIndex = gameMoves.moves ? gameMoves.moves.length : 0;
+                const turnStr = "td_move" + moveIndex;
+                const td = document.getElementById(turnStr);
+                if (td) {
+                    scrollMoveCellIntoView(td);
+                }
             }
 
             if (info == "move validation failed") {
@@ -1766,7 +1788,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 game.resign(player);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
-                gameMoves = await getGameMoves();
+                gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
             }
 
@@ -2201,7 +2223,7 @@ async function menuResignEventHandler() {
             moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
         };
         await sendMessage(message);
-        gameMoves = await getGameMoves();
+        gameMoves = await getMovesForTable();
         if (humanHasMoved && gameMoves.moves && game.ResultMove) {
             const last = gameMoves.moves[gameMoves.moves.length - 1];
             if (!last || last.moveStr !== game.ResultMove.moveStr) {
@@ -2317,14 +2339,18 @@ async function getGameMoves() {
     return moves;
 }
 
-async function sendMove(moveObj) {
-    // PracticeGame: one human plays both sides; currentPlayerIsWhite is fixed at load.
-    // Server handleMove uses msg.isWhite to flip the move and match this.turn — must be the side that moved.
-    // After client makeMove, game.Turn is already the next player, so the mover is the opposite color.
-    let isWhite = currentPlayerIsWhite;
+/** For practice game, moves stay local; for other games, fetch from server. */
+async function getMovesForTable() {
     if (gameType === "PracticeGame") {
-        isWhite = game.Turn === "black"; // black to move => white just moved; white to move => black just moved
+        return { moves: game.Moves || [] };
     }
+    return await getGameMoves();
+}
+
+async function sendMove(moveObj) {
+    // Practice: no server interaction; all moves are local only
+    if (gameType === "PracticeGame") { return; }
+    let isWhite = currentPlayerIsWhite;
     moveObj.moveTime = isWhite ? whiteTimer : blackTimer;
 
     const message = {

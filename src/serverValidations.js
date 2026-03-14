@@ -46,11 +46,17 @@ const credentialsSchema = Joi.object({
 
 const searchScheme = Joi.string().escapeHTML();
 
+// gameId: ObjectId (24 hex) for stored games, or UUID for practice (no DB)
+const wsGameId = Joi.alternatives().try(
+    Joi.string().hex().length(24).required().escapeHTML(),
+    Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML()
+);
+
 const webSocketMessageSchema =
     Joi.alternatives().try(
         Joi.object({
             username: Joi.string().required().escapeHTML(),
-            gameId: Joi.string().hex().length(24).required().escapeHTML(),
+            gameId: wsGameId,
             type: Joi.string().valid("move", "info", "cmd").required(),
             isWhite: Joi.bool().required(),
             data: Joi.object({
@@ -86,7 +92,7 @@ const webSocketMessageSchema =
             }).optional(),
         }),
         Joi.object({
-            gameId: Joi.string().hex().length(24).required(),
+            gameId: wsGameId,
             info: Joi.string().valid("offer rematch", "rematch", "resign", "offer draw", "move accepted", "draw accepted", "draw declined", "draw declined", "rematch declined", "rematch accepted", "outOfTime", "Opponent resigned", "chat").required(),
             isWhite: Joi.bool().required(),
             moveTime: Joi.number().optional(),
@@ -100,7 +106,7 @@ const webSocketMessageSchema =
             type: Joi.string().valid("cmd").required(),
             info: Joi.string().valid("setState", "undo", "redo").required(),
             data: Joi.object().required(),
-            gameId: Joi.string().hex().length(24).required(),
+            gameId: wsGameId,
             userId: Joi.string().hex().length(24).required().escapeHTML(),
             username: Joi.string().required(),
             isWhite: Joi.bool().required(),

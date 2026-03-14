@@ -120,6 +120,14 @@ app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
     res.status(404).end();
 });
 
+// Optional source maps and similar assets: 404 without error page or logging
+app.get("*", (req, res, next) => {
+    if (req.path.toLowerCase().endsWith(".map")) {
+        return res.status(404).end();
+    }
+    next();
+});
+
 app.all("*", (req, res, next) => {
     next(new ExpressError("Page not found: " + req.path, 404));
 });

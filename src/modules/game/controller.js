@@ -283,10 +283,13 @@ exports.startGame = catchAsync(async (req, res) => {
     const options = req.session.newGameOptions || {};
     game = gameService.newGame(gameTypeInt, username, userId, options);
     gamesManagerService.AddGame(game);
-    gameDoc = await gamesManagerService.storeGameInDB(game);
-    game.gameId = gameDoc.id;
+    // Practice (gameType 3): no DB storage or status tracking; client runs locally
+    if (gameTypeInt !== 3) {
+        gameDoc = await gamesManagerService.storeGameInDB(game);
+        game.gameId = gameDoc.id;
+        registerEvents(game);
+    }
     req.session.gameId = game.gameId;
-    registerEvents(game);
     // Save last game options for single-player so they become defaults next time
     if (gameTypeInt === 1 && options.engine != null) {
         await User.findByIdAndUpdate(userId, {
