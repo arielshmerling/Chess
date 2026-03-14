@@ -106,7 +106,7 @@ class SinglePlayerGame extends GameBase {
             const move = await this.handleMove(brainPlaysAsWhite, brainMove, "brain");
             if (move.valid) {
                 this.sendMoveToOpponenet(brainPlaysAsWhite, brainMove);
-
+                this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, brainMove);
             }
             else {
                 console.log("Brain created an invalid move");
@@ -134,6 +134,7 @@ class SinglePlayerGame extends GameBase {
                 const move = await this.handleMove(brainPlaysAsWhite, fallbackMove, "brain");
                 if (move.valid) {
                     this.sendMoveToOpponenet(brainPlaysAsWhite, fallbackMove);
+                    this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, fallbackMove);
                 } else {
                     console.log("Fallback move validation failed");
                     const message = { type: "info", info: "move validation failed", gameId: this.gameId };
@@ -196,6 +197,7 @@ class SinglePlayerGame extends GameBase {
             gameId: this.gameId,
         };
         this.sendMessage(message, resignedPlayer);
+        this.sendMoveToWatchers(this.gameId, resignedPlayer === "white", this.chessGame.ResultMove);
     }
 }
 

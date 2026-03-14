@@ -68,9 +68,8 @@ class OnlineGame extends GameBase {
     }
 
     sendMoveToWatchers(gameId, isWhite, moveObj) {
-
-        const playerMove = isWhite ? this.chessGame.flipMove(moveObj) : moveObj;
-
+        const n = this.watchers.filter(w => w && w.ws && w.ws.readyState === w.ws.OPEN).length;
+        console.log("[sendMoveToWatchers] OnlineGame gameId=" + gameId + " watchers=" + n);
         for (const watcher of this.watchers) {
             if (!watcher || !watcher.ws) continue;
 

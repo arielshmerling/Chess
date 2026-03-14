@@ -178,7 +178,9 @@ exports.getPGNGames = catchAsync(async () => {
  * @returns {Object|null} A single game object if found, or null if no matching record is found.
  */
 exports.getGameById = (id) => {
-    return games.filter(g => g.gameId == id)[0];
+    if (id == null) return undefined;
+    const idStr = String(id);
+    return games.filter(g => String(g.gameId) === idStr)[0];
 };
 
 

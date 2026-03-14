@@ -75,6 +75,7 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
         if (move.valid) {
             const message = { type: "info", info: "move validated successfully", gameId: msg.gameId };
             game.sendMessage(message, msg.isWhite);
+            game.sendMoveToWatchers(msg.gameId, msg.isWhite, move);
             if (!game.chessGame.GameOver) {
                 game.makeBrainMove(!msg.isWhite);
             }

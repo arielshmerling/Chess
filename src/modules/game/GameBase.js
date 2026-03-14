@@ -67,7 +67,7 @@ class GameBase {
 
     addWatcher(ws, userName) {
         this.watchers.push({ ws, userName });
-        console.log(`Watcher added: ${userName} to game ${this.gameId}`);
+        console.log("[addWatcher] gameId=" + this.gameId + " user=" + userName + " totalWatchers=" + this.watchers.length);
         const message = { type: "info", info: "new watcher", gameId: this.gameId, data: userName };
         this.sendMessage(message, true);
         this.sendMessage(message, false);
@@ -179,6 +179,19 @@ class GameBase {
         if (channel) { channel.send(JSON.stringify(message)); }
 
     };
+
+    sendMoveToWatchers(gameId, isWhite, moveObj) {
+        if (!moveObj || moveObj.source == null || moveObj.target == null) return;
+        const n = this.watchers.filter(w => w && w.ws && w.ws.readyState === w.ws.OPEN).length;
+        console.log("[sendMoveToWatchers] gameId=" + gameId + " watchers=" + n);
+        for (const watcher of this.watchers) {
+            if (!watcher || !watcher.ws) continue;
+            const ws = watcher.ws;
+            if (ws.readyState !== ws.OPEN) continue;
+            const message = { type: "move", data: moveObj, gameId, isWhite };
+            ws.send(JSON.stringify(message));
+        }
+    }
 
     getChannel(isWhite) {
         if (isWhite) {

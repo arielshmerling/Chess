@@ -113,11 +113,13 @@ app.ws("/ws", async (ws, req) => {
             }
 
             if (msg.type == "watch") {
-                const gameId = msg.data.gameId;
-
+                const gameId = msg.data && msg.data.gameId;
+                console.log("[watch] received gameId=" + gameId + " username=" + (msg.data && msg.data.username));
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
                     game.addWatcher(ws, msg.data.username);
+                } else {
+                    console.log("[watch] game not found for gameId=" + gameId);
                 }
             }
         } catch (error) {

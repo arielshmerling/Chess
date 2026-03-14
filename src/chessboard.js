@@ -419,7 +419,7 @@ async function startGame(isRematch) {
                 initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, gameInfo.watcher);
                 break;
             case "SinglePlayerGame":
-                initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch);
+                initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, gameInfo.watcher);
                 break;
 
             default:
@@ -490,9 +490,9 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
     // }
 }
 
-function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch) {
+function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatcher) {
     if (!isRematch && gameInfo.mode != "review") {
-        startWebSockets(gameInfo.username, currentPlayerIsWhite);
+        startWebSockets(gameInfo.username, currentPlayerIsWhite, isWatcher);
     }
 
 
