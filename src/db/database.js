@@ -22,7 +22,7 @@ class Database {
     if (!process.env.DATABASE_URL) {
       console.error("DATABASE_URL environment variable is not set");
       console.error("For local MongoDB, use: mongodb://127.0.0.1:27017/chess");
-      return;
+      return Promise.resolve();
     }
 
     // Detect if this is a local MongoDB connection
@@ -60,16 +60,6 @@ class Database {
       console.log("Detected local MongoDB connection - TLS disabled");
     }
 
-    Database.#mongoose.connect(process.env.DATABASE_URL, connectionOptions)
-      .then(() => {
-        console.log("db connected successfully");
-      })
-      .catch((error) => {
-        console.error("MongoDB initial connection error:", error.message);
-        console.error("Full error details:", error);
-        // Don't exit - Mongoose will retry automatically
-      });
-
     const db = Database.#mongoose.connection;
 
     db.on("error", (error) => {
@@ -98,6 +88,16 @@ class Database {
     db.on("connected", () => {
       console.log("MongoDB connected");
     });
+
+    return Database.#mongoose.connect(process.env.DATABASE_URL, connectionOptions)
+      .then(() => {
+        console.log("db connected successfully");
+      })
+      .catch((error) => {
+        console.error("MongoDB initial connection error:", error.message);
+        console.error("Full error details:", error);
+        // Don't exit - Mongoose will retry automatically
+      });
   }
 
   //   connect() {

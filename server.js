@@ -11,7 +11,12 @@ app.listen(PORT, async () => {
     console.log("listening on server. port:" + PORT);
 
     const db = Database.getInstance();
-    db.connect();
+    await db.connect();
+    try {
+        await gameManagerService.deleteStaleNonTerminalGames();
+    } catch (err) {
+        console.error("Database cleanup failed:", err.message);
+    }
     console.log("finish loading games");
     console.log("loading games completed");
 });

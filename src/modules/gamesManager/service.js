@@ -228,6 +228,44 @@ exports.deleteGame = catchAsync(async (id) => {
     await Game.findByIdAndDelete(id);
 });
 
+const STALE_NON_TERMINAL_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
+
+/**
+ * Cleans up games created more than 24 hours ago that are still in non-terminal states.
+ * - Games that already have moves: set state to "cancelled" (preserve history).
+ * - Games with no moves: delete (never really started).
+ * Runs at server startup.
+ */
+exports.deleteStaleNonTerminalGames = catchAsync(async () => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const staleFilter = {
+        state: { $in: STALE_NON_TERMINAL_STATES },
+        created: { $lt: twentyFourHoursAgo },
+    };
+
+    const updateResult = await Game.updateMany(
+        {
+            ...staleFilter,
+            $expr: { $gt: [{ $size: { $ifNull: ["$moves", []] } }, 0] },
+        },
+        { $set: { state: "cancelled" } }
+    );
+    const deleteResult = await Game.deleteMany({
+        ...staleFilter,
+        $or: [
+            { moves: { $exists: false } },
+            { moves: { $size: 0 } },
+        ],
+    });
+
+    if (updateResult.modifiedCount > 0 || deleteResult.deletedCount > 0) {
+        console.log(
+            "Database cleanup: cancelled " + updateResult.modifiedCount + " game(s) with moves, deleted " +
+            deleteResult.deletedCount + " game(s) without moves."
+        );
+    }
+});
+
 exports.AddGame = (serverGame) => {
     if (serverGame) {
         games.push(serverGame);
