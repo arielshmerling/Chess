@@ -198,7 +198,9 @@ function startDrag(e) {
 
     if (gameInfo.mode == "review") { return; }
 
-    if (window.location.pathname != "/game") { return; }
+    const allowDrag = window.location.pathname === "/game" ||
+        (window.location.pathname === "/research" && researchMode && researchSelected === "select");
+    if (!allowDrag) { return; }
 
     if (e.target.type != "textarea" && e.target.type != "text") {
         if (e.preventDefault) { e.preventDefault(); }
@@ -207,9 +209,9 @@ function startDrag(e) {
     draggedImage = e.target;
     if (draggedImage.className != "draggable") { return; };
 
-    if (gameType != "PracticeGame" &&
-        currentPlayerIsWhite && draggedImage.src.indexOf("black") != -1 ||
-        !currentPlayerIsWhite && draggedImage.src.indexOf("white") != -1) {
+    if (!researchMode && gameType != "PracticeGame" &&
+        (currentPlayerIsWhite && draggedImage.src.indexOf("black") != -1 ||
+        !currentPlayerIsWhite && draggedImage.src.indexOf("white") != -1)) {
         return;
     }
 
@@ -241,7 +243,7 @@ function startDrag(e) {
 
     targetPosition = findPosition();
 
-    if (gameInfo.showAvailableMoves !== false) {
+    if (!researchMode && gameInfo.showAvailableMoves !== false) {
         const options = game.possibleMoves(sourcePosition);
         for (const option of options) {
             guiBoard[option.target.row][option.target.col].classList.add("option");
@@ -268,7 +270,14 @@ function onDragging(e) {
 async function stopDrag() {
     if (!drag) {
         return;
-    };
+    }
+
+    if (researchMode && researchSelected === "select") {
+        drag = false;
+        document.onmousemove = null;
+        resetSqaureColor();
+        return;
+    }
 
     draggedImage.style.cursor = "grab";
     drag = false;
@@ -503,7 +512,27 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
 }
 
 let researchMode = false;
-let researchSelected = null; // { color, pieceType } or "eraser"
+let researchSelected = null; // { color, pieceType } or "eraser" or "select"
+let researchDraggingFrom = null; // { row, col } when dragging in select mode
+
+function updateResearchCursor() {
+    if (!researchMode) return;
+    const innerBoard = document.getElementById("innerBoard");
+    if (!innerBoard) return;
+    if (researchSelected === "eraser") {
+        innerBoard.setAttribute("data-research-cursor", "eraser");
+    } else if (researchSelected === "select") {
+        innerBoard.setAttribute("data-research-cursor", "select");
+    } else if (researchSelected && typeof researchSelected === "object") {
+        innerBoard.setAttribute("data-research-cursor", "place");
+    } else {
+        innerBoard.removeAttribute("data-research-cursor");
+    }
+}
+
+function researchToolSelector() {
+    return ".research-toolbox-piece, .research-toolbox-eraser, .research-toolbox-select";
+}
 
 function initResearchMode() {
     researchMode = true;
@@ -516,6 +545,8 @@ function initResearchMode() {
     const state = JSON.parse(JSON.stringify(game.GameState));
     state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
     game.loadGame(JSON.stringify(state));
+    const innerBoardEl = document.getElementById("innerBoard");
+    if (innerBoardEl) innerBoardEl.classList.add("research-no-animate");
     createResearchToolbox();
     registerResearchBoardClick();
     addOptionsButtons();
@@ -546,7 +577,7 @@ function createResearchToolbox() {
         img.src = whitePiecesURL[pieceType];
         img.alt = "White piece";
         btn.appendChild(img);
-        btn.onclick = function () { researchSelected = { color: "white", pieceType: pieceType }; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); };
+        btn.onclick = function () { researchSelected = { color: "white", pieceType: pieceType }; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); updateResearchCursor(); };
         whiteCol.appendChild(btn);
     });
     const blackCol = document.createElement("div");
@@ -561,7 +592,7 @@ function createResearchToolbox() {
         img.src = blackPiecesURL[pieceType];
         img.alt = "Black piece";
         btn.appendChild(img);
-        btn.onclick = function () { researchSelected = { color: "black", pieceType: pieceType }; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); };
+        btn.onclick = function () { researchSelected = { color: "black", pieceType: pieceType }; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); updateResearchCursor(); };
         blackCol.appendChild(btn);
     });
     const columnsWrap = document.createElement("div");
@@ -569,22 +600,57 @@ function createResearchToolbox() {
     columnsWrap.appendChild(whiteCol);
     columnsWrap.appendChild(blackCol);
     panel.appendChild(columnsWrap);
+    const toolsRow = document.createElement("div");
+    toolsRow.className = "research-toolbox-tools";
     const eraserBtn = document.createElement("button");
     eraserBtn.type = "button";
     eraserBtn.className = "research-toolbox-eraser";
-    eraserBtn.textContent = "Eraser";
-    eraserBtn.onclick = function () { researchSelected = "eraser"; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); eraserBtn.classList.add("selected"); };
-    panel.appendChild(eraserBtn);
+    eraserBtn.setAttribute("title", "Eraser");
+    eraserBtn.setAttribute("aria-label", "Eraser – remove piece from square");
+    eraserBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21\"/><path d=\"M22 21H7\"/><path d=\"m5 11 9 9\"/></svg>";
+    eraserBtn.onclick = function () { researchSelected = "eraser"; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); eraserBtn.classList.add("selected"); updateResearchCursor(); };
+    toolsRow.appendChild(eraserBtn);
+    const selectBtn = document.createElement("button");
+    selectBtn.type = "button";
+    selectBtn.className = "research-toolbox-select";
+    selectBtn.setAttribute("title", "Select");
+    selectBtn.setAttribute("aria-label", "Select – drag pieces to move them");
+    selectBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0\"/><path d=\"M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2\"/><path d=\"M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8\"/><path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/></svg>";
+    selectBtn.onclick = function () { researchSelected = "select"; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); selectBtn.classList.add("selected"); updateResearchCursor(); };
+    toolsRow.appendChild(selectBtn);
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className = "research-toolbox-reset";
-    resetBtn.textContent = "Reset";
+    resetBtn.setAttribute("title", "Reset");
+    resetBtn.setAttribute("aria-label", "Reset – clear all pieces");
+    resetBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg>";
     resetBtn.onclick = function () {
         const state = JSON.parse(JSON.stringify(game.GameState));
         state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
         game.loadGame(JSON.stringify(state));
+        researchSelected = { color: "white", pieceType: game.PAWN };
+        panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
+        const whitePawnBtn = panel.querySelector(".research-toolbox-piece[data-color=\"white\"][data-piece=\"" + game.PAWN + "\"]");
+        if (whitePawnBtn) whitePawnBtn.classList.add("selected");
+        updateResearchCursor();
     };
-    panel.appendChild(resetBtn);
+    toolsRow.appendChild(resetBtn);
+    const defaultPosBtn = document.createElement("button");
+    defaultPosBtn.type = "button";
+    defaultPosBtn.className = "research-toolbox-default";
+    defaultPosBtn.setAttribute("title", "Default position");
+    defaultPosBtn.setAttribute("aria-label", "Default position – set up standard starting position");
+    defaultPosBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>";
+    defaultPosBtn.onclick = function () {
+        const whitePlayerView = game.GameState && game.GameState.whitePlayerView !== false;
+        game.startNewGame(whitePlayerView);
+        researchSelected = "eraser";
+        panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
+        eraserBtn.classList.add("selected");
+        updateResearchCursor();
+    };
+    toolsRow.appendChild(defaultPosBtn);
+    panel.appendChild(toolsRow);
     const main = document.getElementById("main");
     if (main) main.insertBefore(panel, main.firstChild);
 }
@@ -592,8 +658,10 @@ function createResearchToolbox() {
 function registerResearchBoardClick() {
     const innerBoard = document.getElementById("innerBoard");
     if (!innerBoard) return;
+
     innerBoard.addEventListener("click", function researchBoardClick(ev) {
         if (!researchMode) return;
+        if (researchSelected === "select") return;
         const square = ev.target.closest(".square");
         if (!square) return;
         const row = parseInt(square.getAttribute("data-row"), 10);
@@ -606,6 +674,47 @@ function registerResearchBoardClick() {
             state.board[row][col] = { color: researchSelected.color, pieceType: researchSelected.pieceType };
         } else return;
         game.loadGame(JSON.stringify(state));
+    });
+
+    innerBoard.addEventListener("mousedown", function researchBoardMouseDown(ev) {
+        if (!researchMode || researchSelected !== "select") return;
+        const square = ev.target.closest(".square");
+        if (!square) return;
+        const row = parseInt(square.getAttribute("data-row"), 10);
+        const col = parseInt(square.getAttribute("data-col"), 10);
+        if (isNaN(row) || isNaN(col)) return;
+        const state = game.GameState;
+        if (!state.board[row][col]) return;
+        researchDraggingFrom = { row: row, col: col };
+        document.body.classList.add("research-dragging");
+    });
+
+    document.addEventListener("mouseup", function researchBoardMouseUp(ev) {
+        if (!researchDraggingFrom) return;
+        const inner = document.getElementById("innerBoard");
+        if (!inner) { researchDraggingFrom = null; document.body.classList.remove("research-dragging"); return; }
+        if (typeof draggedImage !== "undefined" && draggedImage) {
+            draggedImage.style.pointerEvents = "none";
+        }
+        const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (typeof draggedImage !== "undefined" && draggedImage) {
+            draggedImage.style.pointerEvents = "";
+        }
+        const targetSquare = targetEl && targetEl.closest ? targetEl.closest(".square") : null;
+        if (targetSquare && inner.contains(targetSquare)) {
+            const targetRow = parseInt(targetSquare.getAttribute("data-row"), 10);
+            const targetCol = parseInt(targetSquare.getAttribute("data-col"), 10);
+            const sr = researchDraggingFrom.row;
+            const sc = researchDraggingFrom.col;
+            if (!isNaN(targetRow) && !isNaN(targetCol) && (targetRow !== sr || targetCol !== sc)) {
+                const state = JSON.parse(JSON.stringify(game.GameState));
+                state.board[targetRow][targetCol] = state.board[sr][sc];
+                state.board[sr][sc] = null;
+                game.loadGame(JSON.stringify(state));
+            }
+        }
+        researchDraggingFrom = null;
+        document.body.classList.remove("research-dragging");
     });
 }
 
@@ -963,13 +1072,13 @@ function createPiece(url) {
     // img.setAttribute("width", 100) // default size.
     img.setAttribute("class", "draggable");
 
-    if (gameType != "PracticeGame") {
+    if (!researchMode && gameType != "PracticeGame") {
         if (currentPlayerIsWhite && img.src.indexOf("black") != -1 ||
             !currentPlayerIsWhite && img.src.indexOf("white") != -1) {
             img.setAttribute("class", "nondraggable");
         }
     }
-    if (gameInfo.mode == "review") { img.setAttribute("class", "nondraggable"); }
+    if (!researchMode && gameInfo.mode == "review") { img.setAttribute("class", "nondraggable"); }
 
     return img;
 }
