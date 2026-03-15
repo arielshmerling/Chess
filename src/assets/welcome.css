@@ -192,23 +192,13 @@ main {
     }
 }
 
-/* Play now - breathing glow + slow background angle */
-@keyframes play-now-breathe {
-    0%, 100% {
-        box-shadow:
-            0 0 50px rgba(64, 145, 108, 0.25),
-            0 4px 0 #0d2818,
-            0 6px 24px rgba(0, 0, 0, 0.45),
-            inset 0 1px 0 rgba(255, 255, 255, 0.35),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+/* Play now - pulse 1.5s, rest 2s, repeat (3.5s total cycle); scale to 1.2 */
+@keyframes play-now-text-pulse {
+    0%, 42.86%, 100% {
+        transform: scale(1);
     }
-    50% {
-        box-shadow:
-            0 0 50px rgba(64, 145, 108, 0.55),
-            0 4px 0 #0d2818,
-            0 6px 24px rgba(0, 0, 0, 0.45),
-            inset 0 1px 0 rgba(255, 255, 255, 0.35),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    21.43% {
+        transform: scale(1.2);
     }
 }
 
@@ -238,7 +228,6 @@ main {
     border-radius: 20px;
     cursor: pointer;
     transition: background 0.25s ease, box-shadow 0.25s ease;
-    animation: play-now-breathe 3s ease-in-out infinite;
     box-shadow:
         0 0 50px rgba(64, 145, 108, 0.25),
         0 4px 0 #0d2818,
@@ -247,9 +236,19 @@ main {
         inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
+.play-now-btn-text {
+    display: inline-block;
+    transform-origin: center center;
+    animation: play-now-text-pulse 3.5s ease-in-out infinite;
+}
+
+.play-now-btn:hover .play-now-btn-text {
+    animation: none;
+    transform: scale(1);
+}
+
 .play-now-btn:hover {
     background: linear-gradient(165deg, #74c69d 0%, #40916c 35%, #2d6a4f 100%);
-    animation: none;
     box-shadow:
         0 0 50px rgba(64, 145, 108, 0.5),
         0 4px 0 #0d2818,
@@ -258,8 +257,12 @@ main {
         inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
-.play-now-btn:active {
+.play-now-btn:active .play-now-btn-text {
     animation: none;
+    transform: scale(1);
+}
+
+.play-now-btn:active {
     box-shadow:
         0 0 30px rgba(64, 145, 108, 0.35),
         0 2px 0 #0d2818,
