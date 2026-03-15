@@ -74,7 +74,7 @@ const Labels = {
     UNDO: "Undo",
     REDO: "Redo",
     LAST_MOVE: "Last Move",
-    HOME: "Quit",
+    HOME: "Exit",
     FLIP: "Flip",
     BOOKMARKS: "Bookmarks",
 };
