@@ -21,6 +21,9 @@
   <% } %>
 
   <div id="logout">
+    <% if (username) { %>
+    <span class="topbar-username"><%= username %></span>
+    <% } %>
     <label class="switch">
       <input type="checkbox" id="themeSwitch">
       <span class="slider round"></span>
