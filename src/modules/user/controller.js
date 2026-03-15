@@ -60,11 +60,10 @@ exports.setBookmark = catchAsync(async (req, res) => {
 
 exports.updateBookmark = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    //const { id } = req.params;
-    const { id, name, gameType, date } = req.body;
+    const { id, name, gameType, date, gameState, moves } = req.body;
 
     if (id) {
-        await userService.updateBookmark(userId, id, date, name, gameType);
+        await userService.updateBookmark(userId, id, date, name, gameType, gameState, moves);
         res.send("{ \"status\": \"OK\" }");
     }
     else {

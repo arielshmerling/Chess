@@ -55,16 +55,23 @@ exports.addBookmark = async (userId, gameState, name, gameType, moves) => {
     }
 };
 
-exports.updateBookmark = async (userId, id, date, name, gameType) => {
+exports.updateBookmark = async (userId, id, date, name, gameType, gameState, moves) => {
     try {
-        //const obj = await User.findOne({ bookmarks: { $elemMatch: { _id: id } } });
         const user = await User.findOne({ _id: userId });
         const userBookmark = user.bookmarks.find((o) => o._id == id);
         const bookmarkDoc = await Bookmark.findOne({ _id: id });
         if (bookmarkDoc && userBookmark) {
-            bookmarkDoc.name = name;
-            bookmarkDoc.date = new Date(date);
-            bookmarkDoc.gameType = gameType;
+            if (name !== undefined) bookmarkDoc.name = name;
+            if (date !== undefined) bookmarkDoc.date = new Date(date);
+            if (gameType !== undefined) bookmarkDoc.gameType = gameType;
+            if (gameState !== undefined) {
+                bookmarkDoc.state = typeof gameState === "string" ? gameState : JSON.stringify(gameState);
+                bookmarkDoc.markModified("state");
+            }
+            if (moves !== undefined) {
+                bookmarkDoc.moves = moves;
+                bookmarkDoc.markModified("moves");
+            }
             await bookmarkDoc.save();
         }
     } catch (error) {

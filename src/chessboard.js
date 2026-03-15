@@ -125,7 +125,7 @@ function registerWindowEvents() {
         if (lastMoveBtn && !lastMoveBtn.contains(event.target)) {
             removeArrow();
         }
-        if ((bookmarkBtn && !bookmarkBtn.contains(event.target))
+        if (!researchMode && (bookmarkBtn && !bookmarkBtn.contains(event.target))
             && bookmarksPanel && !bookmarksPanel.contains(event.target)) {
 
             closeBookmarkPanel();
@@ -514,6 +514,7 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
 let researchMode = false;
 let researchSelected = null; // { color, pieceType } or "eraser" or "select"
 let researchDraggingFrom = null; // { row, col } when dragging in select mode
+let researchEditingBookmarkId = null; // bookmark id when editing position (Edit → Save flow)
 
 function updateResearchCursor() {
     if (!researchMode) return;
@@ -534,8 +535,20 @@ function researchToolSelector() {
     return ".research-toolbox-piece, .research-toolbox-eraser, .research-toolbox-select";
 }
 
+function researchSelectTool() {
+    researchSelected = "select";
+    const panel = document.getElementById("researchToolbox");
+    if (panel) {
+        panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
+        const selectBtn = panel.querySelector(".research-toolbox-select");
+        if (selectBtn) selectBtn.classList.add("selected");
+    }
+    updateResearchCursor();
+}
+
 function initResearchMode() {
     researchMode = true;
+    document.body.classList.add("research-mode");
     gameInfo = { gameType: "Research", username: "", id: null };
     currentPlayerIsWhite = true;
     gameType = "Research";
@@ -558,6 +571,11 @@ function initResearchMode() {
     getBookmarks().then(function (list) { bookmarks = list; updateBookmarks(bookmarks); });
     const controlPanel = document.querySelector(".controlPanel");
     if (controlPanel) controlPanel.classList.add("research-simplified");
+    const bookmarksPanel = document.getElementById("bookmarksPanel");
+    if (bookmarksPanel) {
+        bookmarksPanel.style.opacity = "1";
+        bookmarksPanel.style.width = "260px";
+    }
 }
 
 function createResearchToolbox() {
@@ -3179,7 +3197,7 @@ function showBookmarks() {
     }
     else {
         bookmarksPanel.style.opacity = "1";
-        bookmarksPanel.style.width = "350px";
+        bookmarksPanel.style.width = "260px";
     }
 }
 
@@ -3212,83 +3230,216 @@ function createNewBookmarkDiv() {
     div.classList.add("selected");
     div.setAttribute("id", "newBookmark");
 
-    const header = document.createElement("div");
-    header.classList.add("bookmarkHeader");
-
-
-    const dateDiv = document.createElement("div");
-    dateDiv.innerText = formatDate(new Date());
-    header.appendChild(dateDiv);
-
-    const gameType = document.createElement("div");
-    gameType.innerText = gameInfo.gameType;
-    header.appendChild(gameType);
-
-    div.appendChild(header);
-
+    const row = document.createElement("div");
+    row.classList.add("bookmark-row");
     const gameNameInput = document.createElement("input");
     gameNameInput.setAttribute("placeholder", "Insert bookmark name");
-    gameNameInput.setAttribute("style", "margin: 10px;");
     gameNameInput.setAttribute("id", "newBookmarkName");
     gameNameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             onBookmarkAdded(bookmarks.length + 1, gameNameInput.value, new Date(), gameInfo.gameType);
         }
     });
-
-    div.appendChild(gameNameInput);
-    const operationPanel = document.createElement("div");
-    operationPanel.classList.add("operationPanel");
-    div.appendChild(operationPanel);
+    row.appendChild(gameNameInput);
+    div.appendChild(row);
     return div;
+}
+
+function toggleBookmarkAccordion(e) {
+    if (researchEditingBookmarkId != null) return;
+    const row = e.target.closest(".bookmark-row");
+    if (!row) return;
+    const bookmarkEl = row.closest(".bookmark");
+    if (!bookmarkEl) return;
+    if (e.target.closest(".bookmark-actions") || e.target.closest("input")) return;
+    const list = document.getElementById("bookmarksList");
+    if (list) {
+        list.querySelectorAll(".bookmark.expanded").forEach(function (el) {
+            if (el !== bookmarkEl) el.classList.remove("expanded");
+        });
+    }
+    const wasExpanded = bookmarkEl.classList.contains("expanded");
+    bookmarkEl.classList.toggle("expanded");
+    if (!wasExpanded) {
+        const bookmarkId = parseInt(bookmarkEl.id.replace("bookmark", ""), 10);
+        if (!isNaN(bookmarkId)) applyBookmarkAction(bookmarkId);
+    }
 }
 
 function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     const div = document.createElement("div");
     div.classList.add("bookmark");
     div.setAttribute("id", "bookmark" + bookmarkId);
-    div.addEventListener("click", loadBookmark);
 
-    const header = document.createElement("div");
-    header.classList.add("bookmarkHeader");
+    const row = document.createElement("div");
+    row.classList.add("bookmark-row");
+    row.addEventListener("click", toggleBookmarkAccordion);
 
-
-    const dateDiv = document.createElement("div");
-    dateDiv.innerText = formatDate(new Date(bookmarkDate));
-    header.appendChild(dateDiv);
-
-    const gameTypeDiv = document.createElement("div");
-    gameTypeDiv.innerText = gameType;
-    header.appendChild(gameTypeDiv);
-
-    div.appendChild(header);
-
-    const bookmarkNameDiv = document.createElement("div");
     const bookmarkNameWrapper = document.createElement("div");
     bookmarkNameWrapper.setAttribute("class", "bookmarkNameWrapper");
-    const bookmarkNameLink = document.createElement("a");
-    bookmarkNameLink.classList.add("bookmarkNameLink");
-    bookmarkNameLink.addEventListener("click", enterEditBookmarkMode);
-    bookmarkNameDiv.setAttribute("class", "bookmarkName");
-    bookmarkNameDiv.setAttribute("id", "bookmarkName");
-    bookmarkNameDiv.innerText = bookmarkName;
-    bookmarkNameWrapper.appendChild(bookmarkNameLink);
-    bookmarkNameLink.appendChild(bookmarkNameDiv);
-    div.appendChild(bookmarkNameWrapper);
-    const operationPanel = document.createElement("div");
-    operationPanel.classList.add("operationPanel");
-    const deletelLink = document.createElement("a");
-    deletelLink.classList.add("bookmarkFunc");
-    const deleteButton = document.createElement("img");
-    deleteButton.setAttribute("src", "images/icons8-delete-50.png");
-    deleteButton.setAttribute("alt", "save bopokmark");
-    deleteButton.addEventListener("click", deleteBookmark);
-    deletelLink.appendChild(deleteButton);
-    operationPanel.appendChild(deletelLink);
-    div.appendChild(operationPanel);
+    const nameSpan = document.createElement("span");
+    nameSpan.classList.add("bookmarkName");
+    nameSpan.setAttribute("id", "bookmarkName");
+    nameSpan.innerText = bookmarkName;
+    bookmarkNameWrapper.appendChild(nameSpan);
+    const nameOuter = document.createElement("span");
+    nameOuter.classList.add("bookmark-name");
+    nameOuter.appendChild(bookmarkNameWrapper);
+    row.appendChild(nameOuter);
+    const editModeLabel = document.createElement("span");
+    editModeLabel.classList.add("bookmark-edit-mode-label");
+    editModeLabel.textContent = "edit mode";
+    row.appendChild(editModeLabel);
+    div.appendChild(row);
 
+    const details = document.createElement("div");
+    details.classList.add("bookmark-details");
+
+    const meta = document.createElement("div");
+    meta.classList.add("bookmark-meta");
+    meta.innerText = formatDate(new Date(bookmarkDate));
+    details.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.classList.add("bookmark-actions");
+
+    const actionsLeft = document.createElement("div");
+    actionsLeft.classList.add("bookmark-actions-left");
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "button bookmark-action-btn bookmark-icon-btn";
+    deleteBtn.setAttribute("title", "Delete bookmark");
+    deleteBtn.setAttribute("aria-label", "Delete bookmark");
+    deleteBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><polyline points=\"3 6 5 6 21 6\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/><line x1=\"10\" y1=\"11\" x2=\"10\" y2=\"17\"/><line x1=\"14\" y1=\"11\" x2=\"14\" y2=\"17\"/></svg>";
+    deleteBtn.addEventListener("click", function (ev) { ev.stopPropagation(); deleteBookmark(ev); });
+    actionsLeft.appendChild(deleteBtn);
+
+    const renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.className = "button bookmark-action-btn bookmark-icon-btn";
+    renameBtn.setAttribute("title", "Rename bookmark");
+    renameBtn.setAttribute("aria-label", "Rename bookmark");
+    renameBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z\"/></svg>";
+    renameBtn.addEventListener("click", function (ev) { ev.stopPropagation(); enterEditBookmarkMode({ srcElement: nameSpan }); });
+    actionsLeft.appendChild(renameBtn);
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-edit-save-btn";
+    editBtn.setAttribute("data-mode", "edit");
+    editBtn.setAttribute("title", "Edit – enter edit mode to change position on board");
+    editBtn.setAttribute("aria-label", "Edit – enter edit mode to change position on board");
+    editBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7\"/><path d=\"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z\"/></svg>";
+    editBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        if (editBtn.disabled) return;
+        if (researchMode) {
+            exitBookmarkPositionEditMode();
+            researchEditingBookmarkId = bookmarkId;
+            div.classList.add("bookmark-editing");
+            editBtn.disabled = true;
+            disableButtons(["addBookmarkBtn"]);
+            researchSelectTool();
+        }
+    });
+    actionsLeft.appendChild(editBtn);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-save-position-btn";
+    saveBtn.setAttribute("title", "Save – save current position to this bookmark");
+    saveBtn.setAttribute("aria-label", "Save – save current position to this bookmark");
+    saveBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"/><polyline points=\"17 21 17 13 7 13 7 21\"/><polyline points=\"7 3 7 8 15 8\"/></svg>";
+    saveBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        if (div.classList.contains("bookmark-editing")) {
+            saveBookmarkPosition(bookmarkId, null, div);
+        }
+    });
+    actionsLeft.appendChild(saveBtn);
+
+    const discardBtn = document.createElement("button");
+    discardBtn.type = "button";
+    discardBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-discard-btn";
+    discardBtn.setAttribute("title", "Discard – exit edit without saving");
+    discardBtn.setAttribute("aria-label", "Discard – exit edit without saving");
+    discardBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/></svg>";
+    discardBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        exitBookmarkPositionEditMode();
+    });
+    actionsLeft.appendChild(discardBtn);
+
+    actions.appendChild(actionsLeft);
+
+    const actionsRight = document.createElement("div");
+    actionsRight.classList.add("bookmark-actions-right");
+
+    const executeBtn = document.createElement("button");
+    executeBtn.type = "button";
+    executeBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-execute-btn";
+    executeBtn.setAttribute("title", "Execute – load bookmark onto board");
+    executeBtn.setAttribute("aria-label", "Execute – load bookmark onto board");
+    executeBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>";
+    executeBtn.addEventListener("click", function (ev) { ev.stopPropagation(); applyBookmarkAction(bookmarkId); });
+    actionsRight.appendChild(executeBtn);
+
+    actions.appendChild(actionsRight);
+
+    details.appendChild(actions);
+    div.appendChild(details);
 
     return div;
+}
+
+function exitBookmarkPositionEditMode() {
+    if (researchEditingBookmarkId == null) return;
+    const list = document.getElementById("bookmarksList");
+    if (list) {
+        list.querySelectorAll(".bookmark-editing").forEach(function (el) {
+            const editBtnEl = el.querySelector(".bookmark-edit-save-btn");
+            if (editBtnEl) editBtnEl.disabled = false;
+            el.classList.remove("bookmark-editing");
+        });
+    }
+    researchEditingBookmarkId = null;
+    enableButtons(["addBookmarkBtn"]);
+}
+
+async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
+    const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
+    if (!bookmarkObj) return;
+    const stateRaw = game.GameState;
+    const state = JSON.parse(JSON.stringify(stateRaw));
+    const moves = researchMode ? [] : (gameMoves && gameMoves.moves ? gameMoves.moves.map(m => JSON.stringify(m)) : []);
+    await postServerInfo("/updateBookmark", {
+        id: bookmarkObj._id,
+        name: bookmarkObj.name,
+        gameType: bookmarkObj.gameType || gameInfo.gameType,
+        date: new Date(),
+        gameState: state,
+        moves: moves
+    });
+    bookmarkObj.state = state;
+    exitBookmarkPositionEditMode();
+    bookmarkDiv.classList.remove("bookmark-editing");
+}
+
+async function applyBookmarkAction(bookmarkId) {
+    const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
+    if (!bookmarkObj) return;
+    const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
+    if (researchMode) {
+        game.loadGame(stateStr);
+        return;
+    }
+    if (gameInfo.gameType === "SinglePlayerGame" && gameInfo.id) {
+        await postServerInfo("/applyBookmark", { gameId: gameInfo.id, bookarkId: bookmarkObj._id });
+    }
+    game.loadGame(stateStr);
+    const state = game.GameState;
+    if (state && state.board) { drawBoard(state.board); }
 }
 
 async function onBookmarkAdded(bookmarkId, name, date, gameType) {
@@ -3308,47 +3459,47 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
 }
 
 function exitEditBookmarkMode() {
-
-    const bookmarkNameWrapper = currentEditingBookmark.parentElement.parentElement;
-    const link = bookmarkNameWrapper.querySelector(".bookmarkNameLink");
+    const bookmarkNameWrapper = currentEditingBookmark.parentElement;
     const editBookmarkInput = bookmarkNameWrapper.querySelector("#editBookmarkInput");
-    link.classList.remove("hide");
-    bookmarkNameWrapper.removeChild(editBookmarkInput);
+    if (editBookmarkInput) bookmarkNameWrapper.removeChild(editBookmarkInput);
+    const nameEl = bookmarkNameWrapper.querySelector(".bookmarkName");
+    const renameBtnEl = bookmarkNameWrapper.querySelector(".bookmark-rename-btn");
+    if (nameEl) nameEl.classList.remove("hide");
+    if (renameBtnEl) renameBtnEl.classList.remove("hide");
     currentEditingBookmark = null;
 }
 
 function enterEditBookmarkMode(e) {
     if (currentEditingBookmark) { return; }
     currentEditingBookmark = e.srcElement;
-    const bookmarkNameLink = currentEditingBookmark.parentElement;
-    const bookmarkNameWrapper = bookmarkNameLink.parentElement;
+    const bookmarkNameWrapper = currentEditingBookmark.parentElement;
     const gameNameInput = document.createElement("input");
     gameNameInput.setAttribute("placeholder", "Insert bookmark name");
     gameNameInput.setAttribute("id", "editBookmarkInput");
     gameNameInput.setAttribute("value", currentEditingBookmark.innerText);
-    gameNameInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
+    gameNameInput.addEventListener("keypress", (ev) => {
+        if (ev.key === "Enter") {
             renameBookmark(gameNameInput);
         }
     });
-    gameNameInput.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
+    gameNameInput.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") {
             exitEditBookmarkMode();
         }
     });
 
-    const link = bookmarkNameWrapper.querySelector(".bookmarkNameLink");
-    link.classList.add("hide");
+    currentEditingBookmark.classList.add("hide");
+    const renameBtnEl = bookmarkNameWrapper.querySelector(".bookmark-rename-btn");
+    if (renameBtnEl) renameBtnEl.classList.add("hide");
     bookmarkNameWrapper.appendChild(gameNameInput);
     gameNameInput.focus();
     gameNameInput.select();
 }
 
 function renameBookmark(renameInputElement) {
-
-    const bookmarkDiv = renameInputElement;
-    const bookmarkName = bookmarkDiv.value;
-    const id = parseInt(bookmarkDiv.parentElement.parentElement.id.replace("bookmark", ""));
+    const bookmarkEl = renameInputElement.closest ? renameInputElement.closest(".bookmark") : renameInputElement.parentElement.parentElement.parentElement;
+    const bookmarkName = renameInputElement.value;
+    const id = parseInt((bookmarkEl ? bookmarkEl.id : "").replace("bookmark", "") || "0", 10);
     // console.log(id);
     //console.log(bookmarkName);
     const bookmark = bookmarks.find((o) => o.id == id);
@@ -3359,27 +3510,23 @@ function renameBookmark(renameInputElement) {
 }
 
 async function deleteBookmark(e) {
-
     if (currentEditingBookmark) {
         return;
     }
-
-    const deleteButton = e.srcElement;
-    const deleteLink = deleteButton.parentElement;
-    const bookmarkElement = deleteLink.parentElement.parentElement;
-    const id = parseInt(bookmarkElement.id.replace("bookmark", ""));
+    const bookmarkElement = (e.target && e.target.closest ? e.target.closest(".bookmark") : null) || (e.srcElement && e.srcElement.parentElement && e.srcElement.parentElement.parentElement ? e.srcElement.parentElement.parentElement.parentElement : null);
+    if (!bookmarkElement || !bookmarkElement.id) return;
+    const id = parseInt(bookmarkElement.id.replace("bookmark", ""), 10);
     const bookmark = bookmarks.find((o) => o.id == id);
     bookmarks = bookmarks.filter(item => item.id !== id);
     e.stopPropagation();
     const result = await postServerInfo("/deleteBookmark", { id: bookmark._id });
-    if (result == "OK") {
-
+    const success = result && (result === "OK" || result.status === "OK");
+    if (success) {
         bookmarkElement.innerHTML = "";
         bookmarkElement.classList.add("bookmarkRemoving");
         bookmarkElement.addEventListener("transitionend", () => {
             bookmarkElement.remove();
         });
-
     }
 }
 
@@ -3419,10 +3566,13 @@ function updateBookmarks(bookmarks) {
 }
 
 function closeBookmarkPanel() {
+    if (researchMode) return;
     const bookmarksPanel = document.getElementById("bookmarksPanel");
     if (bookmarksPanel.style.opacity == "1") {
         bookmarksPanel.style.opacity = "0";
         bookmarksPanel.style.width = "0px";
+        const list = document.getElementById("bookmarksList");
+        if (list) list.querySelectorAll(".bookmark.expanded").forEach(function (el) { el.classList.remove("expanded"); });
     }
 }
 
