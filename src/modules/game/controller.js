@@ -47,6 +47,20 @@ exports.review = catchAsync(async (req, res) => {
     res.render("game", { gameId: game && game.gameId != null ? game.gameId : undefined, hideTopbar: true });
 });
 
+/**
+ * Research mode: renders the game page for analysis/research (no active game yet).
+ */
+exports.showResearch = (req, res) => {
+    req.session.gameId = null;
+    setGamePageNoCache(res);
+    res.render("game", {
+        username: req.session.user_name,
+        gameId: undefined,
+        hideTopbar: true,
+        researchMode: true,
+    });
+};
+
 exports.watchGame = catchAsync(async (req, res) => {
     //validate(req.query, "review");
     const { id } = req.query;

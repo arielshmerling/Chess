@@ -19,6 +19,7 @@ exports.GameTypes = {
     ONLINE: 2,
     PRACTICE: 3,
     REVIEW: 4,
+    RESEARCH: 5,
 };
 
 /**

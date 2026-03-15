@@ -5,6 +5,7 @@ const router = express.Router();
 router.get("/review", requireLogin, gameController.review);
 router.get("/watch", requireLogin, gameController.watchGame);
 router.get("/game", requireLogin, gameController.startGame);
+router.get("/research", requireLogin, gameController.showResearch);
 router.get("/gameInfo", requireLogin, gameController.getGameInfo);
 router.get("/gameMoves", requireLogin, gameController.getGameMoves);
 router.post("/rematch", requireLogin, gameController.rematch);
