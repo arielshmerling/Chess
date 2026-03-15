@@ -2,21 +2,20 @@
 <div id="header">
   <div id="logoArea" class="flexRow">
     <div class="site-title">
-      <img src="/images/shmerling.png" alt="Shmerling" class="site-logo-img">
+      <a href="/home" aria-label="Home"><img src="/images/shmerling.png" alt="Shmerling" class="site-logo-img"></a>
     </div>
   </div>
 
   <% if (!minimalTopbar) { %>
   <div class="topBarMenu">
-    <div class="menuBarMenuItem"><a href="/home">Home</a></div>
+    <div class="menuBarMenuItem topBarMenu-home"><a href="/home">Home</a></div>
     <div class="menuBarMenuItem"><a href="/search">Search</a></div>
     <div class="menuBarMenuItem"><a href="#">Friends</a></div>
-    <div class="menuBarMenuItem"><a href="#">Group</a></div>
+    <div class="menuBarMenuItem topBarMenu-groups"><a href="#">Groups</a></div>
     <div class="menuBarMenuItem"><a href="/game?gameType=2">Multiplayer</a></div>
     <% if (admin) { %>
     <div class="menuBarMenuItem"><a href="/game?gameType=3">Debug</a></div>
     <% } %>
-    <div class="menuBarMenuItem"><a href="#">Preferences</a></div>
   </div>
   <% } %>
 
