@@ -11,6 +11,7 @@ exports.showHomePage = async (req, res) => {
             Game: g.whitePlayer.userName + " Vs. " + g.blackPlayer.userName,
             Started: g.startedOn ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago" : "Not started",
             Moves: Math.ceil(g.moves.length / 2),
+            Status: g.state === "on hold" ? "On hold" : "In progress",
         };
     });
     //console.log(allGames);
@@ -49,6 +50,7 @@ exports.getActiveGamesJson = async (req, res) => {
             ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago"
             : "Not started",
         Moves: Math.ceil((g.moves || []).length / 2),
+        Status: g.state === "on hold" ? "On hold" : "In progress",
     }));
     res.json(allGames);
 };

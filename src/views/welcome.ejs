@@ -113,6 +113,7 @@
                 <th>Game</th>
                 <th>Started</th>
                 <th>Moves</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody id="online-games-tbody">
@@ -123,6 +124,7 @@
                 <td class="Game"><%= obj.Game %></td>
                 <td class="Started"><%= obj.Started %></td>
                 <td class="Moves"><%= obj.Moves %></td>
+                <td class="Status"><%= obj.Status || 'In progress' %></td>
               </tr>
               <% } %>
               <% } %>
@@ -161,15 +163,18 @@
       var gCell = tr.querySelector("td.Game");
       var sCell = tr.querySelector("td.Started");
       var mCell = tr.querySelector("td.Moves");
+      var statusCell = tr.querySelector("td.Status");
       if (gCell) gCell.textContent = data.Game || "";
       if (sCell) sCell.textContent = data.Started || "";
       if (mCell) mCell.textContent = data.Moves != null ? data.Moves : "0";
+      if (statusCell) statusCell.textContent = data.Status || "In progress";
       return;
     }
     tr = document.createElement("tr");
     tr.setAttribute("data-game-id", id);
     tr.onclick = function() { window.location = "/watch?id=" + id; };
-    tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + (data.Game || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Started\">" + (data.Started || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td>";
+    var statusText = (data.Status || "In progress").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + (data.Game || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Started\">" + (data.Started || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\">" + statusText + "</td>";
     tbody.appendChild(tr);
     renumberRows();
     setVisibility();
@@ -197,7 +202,7 @@
         if (!tbody || !Array.isArray(games)) return;
         var ids = games.map(function(g) { return String(g.Id); });
         games.forEach(function(g) {
-          addOrUpdateGameRow({ gameId: g.Id, Game: g.Game, Started: g.Started, Moves: g.Moves });
+          addOrUpdateGameRow({ gameId: g.Id, Game: g.Game, Started: g.Started, Moves: g.Moves, Status: g.Status });
         });
         tbody.querySelectorAll("tr[data-game-id]").forEach(function(tr) {
           if (ids.indexOf(tr.getAttribute("data-game-id")) === -1) tr.remove();
