@@ -22,13 +22,18 @@ main {
 }
 
 /* Hero Banner - colors from theme (--hero-* set in themes.js) */
+/* Break out of .welcome-container so banner spans full viewport width on large screens */
 .hero-banner {
     position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
     background: linear-gradient(135deg, var(--hero-bg-start) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-end) 100%);
     padding: 30px 60px;
     margin-bottom: 40px;
     overflow: hidden;
     border-bottom: 3px solid var(--hero-border);
+    box-sizing: border-box;
 }
 
 .hero-banner::before {
@@ -61,9 +66,11 @@ main {
     justify-content: space-between;
     align-items: center;
     gap: 30px;
-    max-width: 100%;
+    max-width: 1600px;
+    width: 100%;
     margin: 0 auto;
     padding: 0 20px;
+    box-sizing: border-box;
 }
 
 .hero-logo {
