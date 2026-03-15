@@ -85,14 +85,20 @@ window.onload = function () {
     // overrideFormValidity();
     if (window.location.pathname == "/game" ||
         window.location.pathname == "/watch" ||
-        window.location.pathname == "/review") {
-        // setDefaultTheme(themes.darkTheme);
+        window.location.pathname == "/review" ||
+        window.location.pathname == "/research") {
         game = new ChessGame();
         createGUIBoard();
-        addOptionsButtons();
-        generateMoveButtons();
-        registerWindowEvents();
-        startGame();
+        const mainEl = document.getElementById("main");
+        const isResearchMode = mainEl && mainEl.getAttribute("data-research-mode") === "true";
+        if (isResearchMode) {
+            initResearchMode();
+        } else {
+            addOptionsButtons();
+            generateMoveButtons();
+            registerWindowEvents();
+            startGame();
+        }
     }
 };
 
@@ -494,6 +500,113 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
     //     const blackClock = document.getElementById("blackClockTimeText");
     //     blackClock.innerText = timerToText(blackTimer);
     // }
+}
+
+let researchMode = false;
+let researchSelected = null; // { color, pieceType } or "eraser"
+
+function initResearchMode() {
+    researchMode = true;
+    gameInfo = { gameType: "Research", username: "", id: null };
+    currentPlayerIsWhite = true;
+    gameType = "Research";
+    registerGameEvents();
+    resetSqaureColor();
+    game.startNewGame(true);
+    const state = JSON.parse(JSON.stringify(game.GameState));
+    state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
+    game.loadGame(JSON.stringify(state));
+    createResearchToolbox();
+    registerResearchBoardClick();
+    addOptionsButtons();
+    generateMoveButtons();
+    registerWindowEvents();
+    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "undoBtn", "redoBtn", "lastMoveBtn"]);
+    hideButtons(["undoBtn", "redoBtn", "lastMoveBtn"]);
+    enableButtons(["homeBtn", "bookmarkBtn"]);
+    getBookmarks().then(function (list) { bookmarks = list; updateBookmarks(bookmarks); });
+    const controlPanel = document.querySelector(".controlPanel");
+    if (controlPanel) controlPanel.classList.add("research-simplified");
+}
+
+function createResearchToolbox() {
+    const panel = document.createElement("div");
+    panel.id = "researchToolbox";
+    panel.className = "research-toolbox";
+    const pieceOrder = [game.KING, game.QUEEN, game.ROOK, game.BISHOP, game.KNIGHT, game.PAWN];
+    const whiteCol = document.createElement("div");
+    whiteCol.className = "research-toolbox-column";
+    pieceOrder.forEach(function (pieceType) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "research-toolbox-piece";
+        btn.setAttribute("data-color", "white");
+        btn.setAttribute("data-piece", String(pieceType));
+        const img = document.createElement("img");
+        img.src = whitePiecesURL[pieceType];
+        img.alt = "White piece";
+        btn.appendChild(img);
+        btn.onclick = function () { researchSelected = { color: "white", pieceType: pieceType }; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); };
+        whiteCol.appendChild(btn);
+    });
+    const blackCol = document.createElement("div");
+    blackCol.className = "research-toolbox-column";
+    pieceOrder.forEach(function (pieceType) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "research-toolbox-piece";
+        btn.setAttribute("data-color", "black");
+        btn.setAttribute("data-piece", String(pieceType));
+        const img = document.createElement("img");
+        img.src = blackPiecesURL[pieceType];
+        img.alt = "Black piece";
+        btn.appendChild(img);
+        btn.onclick = function () { researchSelected = { color: "black", pieceType: pieceType }; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); };
+        blackCol.appendChild(btn);
+    });
+    const columnsWrap = document.createElement("div");
+    columnsWrap.className = "research-toolbox-columns";
+    columnsWrap.appendChild(whiteCol);
+    columnsWrap.appendChild(blackCol);
+    panel.appendChild(columnsWrap);
+    const eraserBtn = document.createElement("button");
+    eraserBtn.type = "button";
+    eraserBtn.className = "research-toolbox-eraser";
+    eraserBtn.textContent = "Eraser";
+    eraserBtn.onclick = function () { researchSelected = "eraser"; panel.querySelectorAll(".research-toolbox-piece, .research-toolbox-eraser").forEach(function (el) { el.classList.remove("selected"); }); eraserBtn.classList.add("selected"); };
+    panel.appendChild(eraserBtn);
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "research-toolbox-reset";
+    resetBtn.textContent = "Reset";
+    resetBtn.onclick = function () {
+        const state = JSON.parse(JSON.stringify(game.GameState));
+        state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
+        game.loadGame(JSON.stringify(state));
+    };
+    panel.appendChild(resetBtn);
+    const main = document.getElementById("main");
+    if (main) main.insertBefore(panel, main.firstChild);
+}
+
+function registerResearchBoardClick() {
+    const innerBoard = document.getElementById("innerBoard");
+    if (!innerBoard) return;
+    innerBoard.addEventListener("click", function researchBoardClick(ev) {
+        if (!researchMode) return;
+        const square = ev.target.closest(".square");
+        if (!square) return;
+        const row = parseInt(square.getAttribute("data-row"), 10);
+        const col = parseInt(square.getAttribute("data-col"), 10);
+        if (isNaN(row) || isNaN(col)) return;
+        const state = JSON.parse(JSON.stringify(game.GameState));
+        if (researchSelected === "eraser") {
+            state.board[row][col] = null;
+        } else if (researchSelected && typeof researchSelected === "object") {
+            state.board[row][col] = { color: researchSelected.color, pieceType: researchSelected.pieceType };
+        } else return;
+        game.loadGame(JSON.stringify(state));
+    });
 }
 
 function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatcher) {
@@ -3077,8 +3190,8 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
     bookmarksList.prepend(bookmark);
 
     const state = game.GameState;
-    const strMoves = gameMoves.moves.map(m => JSON.stringify(m));
-    const response = await postServerInfo("/bookmark", { gameState: state, name, gameType: gameInfo.gameType, moves: strMoves });
+    const strMoves = researchMode ? [] : (gameMoves && gameMoves.moves ? gameMoves.moves.map(m => JSON.stringify(m)) : []);
+    const response = await postServerInfo("/bookmark", { gameState: state, name, gameType: gameInfo.gameType || gameType, moves: strMoves });
     //console.log(response);
     bookmarks = await getBookmarks();
     updateBookmarks(bookmarks);

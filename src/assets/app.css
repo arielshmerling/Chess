@@ -174,10 +174,92 @@ main {
     align-items: flex-start;
     justify-content: center;
     margin-top: 50px;
+    position: relative;
 }
 
 body.hide-topbar #main {
     margin-top: 16px;
+}
+
+/* Research mode toolbox (left floating panel) */
+
+.research-toolbox {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: var(--panel-background, rgba(30, 30, 30, 0.95));
+    border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.research-toolbox-columns {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.research-toolbox-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.research-toolbox-piece,
+.research-toolbox-eraser,
+.research-toolbox-reset {
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.research-toolbox-piece img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.research-toolbox-piece:hover,
+.research-toolbox-eraser:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.research-toolbox-piece.selected,
+.research-toolbox-eraser.selected {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--semiLight, #98c1d9);
+}
+
+.research-toolbox-eraser,
+.research-toolbox-reset {
+    width: 100%;
+    font-size: 12px;
+    color: var(--semiLight, #98c1d9);
+    margin-top: 4px;
+}
+
+.research-toolbox-reset {
+    margin-top: 0;
+}
+
+.research-toolbox-reset:hover {
+    background: rgba(200, 80, 80, 0.3);
+}
+
+.controlPanel.research-simplified .sideBlock:first-of-type {
+    display: none;
 }
 
 /* Debug: show game ID on game page (below buttons, centered) */
@@ -200,6 +282,10 @@ body.hide-topbar #main {
 .controlPanel {
     background-color: transparent;
     color: rgb(233, 231, 231);
+}
+
+.controlPanel.research-simplified {
+    min-width: 120px;
 }
 
 .sideBlock {
