@@ -19,42 +19,149 @@
 <main id="PGNGameList">
   <%if(pgn.length>0) { %>
   <div class="gamesTableContainer">
-    <table class="gamesTable">
-      <tr>
-        <th class="col-num">#</th>
-
-        <%obj=pgn[0];%>
-        <% for(const key in obj) { %>
-
-        <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" ) { %>
-        <th class="col-<%= key.toLowerCase().replace(/\s+/g, '-') %>">
-          <%=key %>
-        </th>
-        <%}%>
-      <%}%>
-      </tr>
+    <table class="gamesTable sortable">
+      <thead>
+        <tr>
+          <th class="sortable-th col-num" data-sort-key="rowIndex" title="Sort by row number">
+            <span class="th-label">#</span>
+            <span class="sort-icon" aria-hidden="true"></span>
+          </th>
+          <% obj=pgn[0]; %>
+          <% for(const key in obj) { %>
+            <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" ) { %>
+          <th class="sortable-th col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="Sort by <%= key.trim() %>">
+            <span class="th-label"><%= key %></span>
+            <span class="sort-icon" aria-hidden="true"></span>
+          </th>
+            <% } %>
+          <% } %>
+        </tr>
+      </thead>
+      <tbody>
       <% for(let i=((page-1)*recordsPerPage);i<=(page)*recordsPerPage; i++){ obj=pgn[i];  %>
       <% if(obj) { %>
       <tr onclick=<%-`"window.location='/review?type=pgn&id=${obj.Id}'"`%>>
-
-        <td class="col-num">
+        <td class="sortable-td col-num" data-sort-key="rowIndex" data-sort-value="<%= i + 1 %>">
           <a href=<%=`/review?&type=pgn&id=${obj.Id} %`%>>
-            <%=i+1 %>
+            <%= i + 1 %>
           </a>
         </td>
         <% for(const key in obj) { %>
         <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` ) { %>
-        <td class="col-<%= key.toLowerCase().replace(/\s+/g, '-') %>">
+        <% sortVal = (key === 'date' || key === 'Date') ? (obj[key] || '') : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : ''); %>
+        <td class="sortable-td col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>">
           <%= obj[key] %>
-
         </td>
-        <% } %>
         <% } %>
         <% } %>
       </tr>
       <% } %>
+      <% } %>
+      </tbody>
     </table>
   </div>
+  <script>
+(function() {
+    var table = document.querySelector('#PGNGameList table.sortable');
+    if (!table) return;
+    var thead = table.querySelector('thead tr');
+    var tbody = table.querySelector('tbody');
+    var sortState = { key: null, asc: true };
+
+    function parseSortFromUrl() {
+        var params = new URLSearchParams(window.location.search);
+        var key = params.get('sort');
+        var order = params.get('order');
+        if (key) sortState.key = key;
+        if (order === 'asc' || order === 'desc') sortState.asc = order === 'asc';
+    }
+
+    function updateUrlSort() {
+        if (!sortState.key) return;
+        var params = new URLSearchParams(window.location.search);
+        params.set('sort', sortState.key);
+        params.set('order', sortState.asc ? 'asc' : 'desc');
+        var url = window.location.pathname + '?' + params.toString();
+        history.replaceState(null, '', url);
+        updatePaginationLinks();
+    }
+
+    function updatePaginationLinks() {
+        if (!sortState.key) return;
+        document.querySelectorAll('.pagesNav a[href*="search"]').forEach(function(a) {
+            var href = a.getAttribute('href');
+            if (!href || href.indexOf('?') === -1) return;
+            var params = new URLSearchParams(href.split('?')[1]);
+            params.set('sort', sortState.key);
+            params.set('order', sortState.asc ? 'asc' : 'desc');
+            a.setAttribute('href', 'search?' + params.toString());
+        });
+    }
+
+    function getSortValue(cell) {
+        var key = cell.getAttribute('data-sort-key');
+        var raw = cell.getAttribute('data-sort-value');
+        if (key === 'rowIndex') return Number(raw) || 0;
+        if (key === 'date' || key === 'Date') return raw || '';
+        return raw;
+    }
+
+    function compare(a, b) {
+        var na = typeof a === 'number', nb = typeof b === 'number';
+        if (na && nb) return a - b;
+        if (na) return -1;
+        if (nb) return 1;
+        return String(a).localeCompare(String(b));
+    }
+
+    function applySort(key) {
+        if (!key) return;
+        var th = thead.querySelector('th.sortable-th[data-sort-key="' + key + '"]');
+        if (!th) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function(ra, rb) {
+            var ca = ra.querySelector('td[data-sort-key="' + key + '"]');
+            var cb = rb.querySelector('td[data-sort-key="' + key + '"]');
+            if (!ca || !cb) return 0;
+            var va = getSortValue(ca), vb = getSortValue(cb);
+            var cmp = compare(va, vb);
+            return sortState.asc ? cmp : -cmp;
+        });
+        rows.forEach(function(r) { tbody.appendChild(r); });
+        rows.forEach(function(r, i) {
+            var numCell = r.querySelector('td[data-sort-key="rowIndex"]');
+            if (numCell) {
+                var link = numCell.querySelector('a');
+                numCell.setAttribute('data-sort-value', i + 1);
+                if (link) link.textContent = i + 1;
+            }
+        });
+        thead.querySelectorAll('.sort-icon').forEach(function(icon) { icon.textContent = ''; icon.classList.remove('asc', 'desc'); });
+        var activeIcon = th.querySelector('.sort-icon');
+        if (activeIcon) {
+            activeIcon.textContent = sortState.asc ? '\u25B2' : '\u25BC';
+            activeIcon.classList.add(sortState.asc ? 'asc' : 'desc');
+        }
+        updateUrlSort();
+    }
+
+    parseSortFromUrl();
+    if (sortState.key) {
+        applySort(sortState.key);
+        updatePaginationLinks();
+    }
+
+    thead.addEventListener('click', function(ev) {
+        var th = ev.target.closest('th.sortable-th');
+        if (!th) return;
+        ev.preventDefault();
+        var key = th.getAttribute('data-sort-key');
+        if (sortState.key === key) sortState.asc = !sortState.asc;
+        else { sortState.key = key; sortState.asc = true; }
+        applySort(key);
+    });
+})();
+  </script>
   <%} %>
 
   <%if(pgn.length>0) { %>
@@ -69,28 +176,29 @@
     const endPage5 = Math.min(startPage5 + smallWindowSize - 1, totalPages);
     const prev5Page = Math.max(1, startPage5 - smallWindowSize);
     const next5Page = Math.min(totalPages, startPage5 + smallWindowSize);
+    const searchSortParams = (sortKey && sortOrder) ? ('&sort=' + encodeURIComponent(sortKey) + '&order=' + encodeURIComponent(sortOrder)) : '';
   %>
   <nav class="pagesNav">
-    <a href="search?q=<%=q%>&page=1">First</a>
+    <a href="search?q=<%=q%>&page=1<%= searchSortParams %>">First</a>
     <% if (startPage > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev10Page%>" title="Previous 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="Previous"></a>
+    <a href="search?q=<%=q%>&page=<%=prev10Page%><%= searchSortParams %>" title="Previous 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="Previous"></a>
     <% } %>
     <% if (startPage5 > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev5Page%>" title="Previous 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="Previous"></a>
+    <a href="search?q=<%=q%>&page=<%=prev5Page%><%= searchSortParams %>" title="Previous 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="Previous"></a>
     <% } %>
     <% for(let i=startPage5;i<=endPage5;i++) { %>
-    <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
+    <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
     <% } %>
     <% for(let i=startPage;i<=endPage;i++) { %>
-    <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%>"><%=i %></a>
+    <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
     <% } %>
     <% if (endPage5 < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next5Page%>" title="Next 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="Next"></a>
+    <a href="search?q=<%=q%>&page=<%=next5Page%><%= searchSortParams %>" title="Next 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="Next"></a>
     <% } %>
     <% if (endPage < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next10Page%>" title="Next 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="Next"></a>
+    <a href="search?q=<%=q%>&page=<%=next10Page%><%= searchSortParams %>" title="Next 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="Next"></a>
     <% } %>
-    <a href="search?q=<%=q%>&page=<%=totalPages%>">Last</a>
+    <a href="search?q=<%=q%>&page=<%=totalPages%><%= searchSortParams %>">Last</a>
   </nav>
 
   <%  } %>

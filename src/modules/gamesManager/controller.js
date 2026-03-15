@@ -78,7 +78,7 @@ exports.showList = async (req, res) => {
 };
 
 exports.search = async (req, res) => {
-    let { page, q } = req.query;
+    let { page, q, sort: sortKey, order: sortOrder } = req.query;
     if (!page) {
         page = 1; // default
     }
@@ -104,7 +104,7 @@ exports.search = async (req, res) => {
     res.locals.username = username;
     const recordsPerPage = 20;
     const totalPages = Math.ceil(pgnGames.length / recordsPerPage);
-    res.render("search", { pgn, recordsPerPage, totalPages, page, q });
+    res.render("search", { pgn, recordsPerPage, totalPages, page, q, sortKey: sortKey || null, sortOrder: sortOrder || null });
 };
 
 // exports.filter = async (req, res) => {
