@@ -4,20 +4,24 @@ const { User } = require("../user/model");
 
 exports.showHomePage = async (req, res) => {
 
+    const username = req.session.user_name;
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
     const allGames = onGoing.map((g) => {
+        const whiteName = g.whitePlayer?.userName || "";
+        const blackName = g.blackPlayer?.userName || "";
+        const isParticipant = whiteName === username || blackName === username;
         return {
             Id: g.gameId,
-            Game: g.whitePlayer.userName + " Vs. " + g.blackPlayer.userName,
+            Game: whiteName + " Vs. " + blackName,
             Started: g.startedOn ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago" : "Not started",
-            Moves: Math.ceil(g.moves.length / 2),
+            Moves: Math.ceil((g.moves || []).length / 2),
             Status: g.state === "on hold" ? "On hold" : "In progress",
+            IsParticipant: isParticipant,
         };
     });
     //console.log(allGames);
     //req.session.gameId = null; // why? this causes a crash on back button
 
-    const username = req.session.user_name;
     res.locals.username = username;
     let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
     // Home page: only these columns (exclude Reason, Type, Status)
@@ -42,16 +46,25 @@ exports.showHomePage = async (req, res) => {
 };
 
 exports.getActiveGamesJson = async (req, res) => {
+    const username = req.session.user_name;
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
-    const allGames = onGoing.map((g) => ({
-        Id: g.gameId,
-        Game: (g.whitePlayer?.userName || "") + " Vs. " + (g.blackPlayer?.userName || ""),
-        Started: g.startedOn
-            ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago"
-            : "Not started",
-        Moves: Math.ceil((g.moves || []).length / 2),
-        Status: g.state === "on hold" ? "On hold" : "In progress",
-    }));
+    const allGames = onGoing.map((g) => {
+        const whiteName = g.whitePlayer?.userName || "";
+        const blackName = g.blackPlayer?.userName || "";
+        const isParticipant = whiteName === username || blackName === username;
+        return {
+            Id: g.gameId,
+            Game: whiteName + " Vs. " + blackName,
+            Started: g.startedOn
+                ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago"
+                : "Not started",
+            Moves: Math.ceil((g.moves || []).length / 2),
+            Status: g.state === "on hold" ? "On hold" : "In progress",
+            IsParticipant: isParticipant,
+            whitePlayerName: whiteName,
+            blackPlayerName: blackName,
+        };
+    });
     res.json(allGames);
 };
 

@@ -67,6 +67,13 @@ class SinglePlayerGame extends GameBase {
     }
 
     init(ws, userId) {
+        const isRejoin = this.moves.length > 0 || this.status === "reJoining";
+        if (isRejoin) {
+            super.init(ws, userId);
+            this.status = "in progress";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            return;
+        }
         super.init(ws, userId);
         //this.brain = new Brain();
         this.chessGame.startNewGame(true); // for now, online game are always white view. might be changed in the future

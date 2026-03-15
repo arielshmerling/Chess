@@ -12,7 +12,6 @@ const { Player } = require("./Player");
 const { User } = require("../user/model");
 //const ExpressError = require("../../utils/ExpressError");
 const catchAsync = require("../../utils/catchAsync");
-const { response } = require("express");
 
 function setGamePageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -81,7 +80,7 @@ exports.getGameInfo = catchAsync(async (req, res) => {
         res.send(clientDate);
     }
     else {
-        response.redirect("home");
+        res.redirect("/home");
     }
 });
 
@@ -199,7 +198,40 @@ exports.rematch = async (req, res) => {
     res.send("{ \"status\": \"OK\" }");
 };
 
+function isUserInGame(game, userId) {
+    if (!game) return false;
+    if (game.whitePlayer && game.whitePlayer.userId && String(game.whitePlayer.userId) === String(userId)) return true;
+    if (game.blackPlayer && game.blackPlayer.userId && String(game.blackPlayer.userId) === String(userId)) return true;
+    return false;
+}
+
 exports.startGame = catchAsync(async (req, res) => {
+
+    const username = req.session.user_name;
+    const userId = req.session.user_id;
+
+    // Open specific game by id (e.g. from active games list)
+    if (req.query.id) {
+        const game = gamesManagerService.getGameById(req.query.id);
+        if (!game) {
+            return res.redirect("/home");
+        }
+        if (!isUserInGame(game, userId)) {
+            return res.redirect("/watch?id=" + encodeURIComponent(req.query.id));
+        }
+        const state = game.status || game.lastStatus;
+        if (state !== "in progress" && state !== "on hold") {
+            return res.redirect("/watch?id=" + encodeURIComponent(req.query.id));
+        }
+        req.session.gameId = game.gameId;
+        if (game.status === "on hold") {
+            game.status = "reJoining";
+            registerEvents(game);
+        }
+        setGamePageNoCache(res);
+        res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+        return;
+    }
 
     validate({ gameType: req.query.gameType }, "gameType");
     const gameTypeInt = parseInt(req.query.gameType);
@@ -214,9 +246,6 @@ exports.startGame = catchAsync(async (req, res) => {
     const mouse = (req.query.mouse === "double" || req.query.mouse === "drag") ? req.query.mouse : "drag";
     const showAvailableMoves = req.query.showMoves !== "0";
     req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves };
-
-    const username = req.session.user_name;
-    const userId = req.session.user_id;
 
     // When user picks options from Play Now modal (engine in query), they want a NEW game; don't reuse existing
     const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.engine !== undefined;
@@ -283,6 +312,8 @@ exports.startGame = catchAsync(async (req, res) => {
                 Started: startedText,
                 Moves: Math.ceil((game.moves || []).length / 2),
                 status: "in progress",
+                whitePlayerName: game.whitePlayer?.userName || "",
+                blackPlayerName: game.blackPlayer?.userName || "",
             });
         }
         req.session.gameId = game.gameId;
@@ -420,6 +451,8 @@ const onGameStateChanged = async (e) => {
                 Started: startedText,
                 Moves: Math.ceil((game.moves || []).length / 2),
                 status: game.status,
+                whitePlayerName: whiteName,
+                blackPlayerName: blackName,
             });
         }
     } catch (error) {

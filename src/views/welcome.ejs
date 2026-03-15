@@ -119,7 +119,8 @@
             <tbody id="online-games-tbody">
               <% if(allGames && allGames.length > 0) { %>
               <% var rowNum = 1; for(var idx = 0; idx < allGames.length; idx++) { var obj = allGames[idx]; %>
-              <tr data-game-id="<%= obj.Id %>" onclick="window.location='/watch?id=<%= obj.Id %>'">
+              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold')) ? '/game?id=' + obj.Id : '/watch?id=' + obj.Id; %>
+              <tr data-game-id="<%= obj.Id %>" onclick="window.location='<%= gameUrl %>'">
                 <td class="row-number"><%= rowNum++ %></td>
                 <td class="Game"><%= obj.Game %></td>
                 <td class="Started"><%= obj.Started %></td>
@@ -137,6 +138,7 @@
       </div>
       <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
+  window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
   var container = document.getElementById("online-games-container");
   var tbody = document.getElementById("online-games-tbody");
   var tableWrap = document.getElementById("online-games-table-wrap");
@@ -155,9 +157,16 @@
       if (numCell) numCell.textContent = i + 1;
     }
   }
+  function getGameRowUrl(id, data) {
+    var isParticipant = data.isParticipant === true || (window.__WELCOME_USERNAME__ && data.whitePlayerName !== undefined && (data.whitePlayerName === window.__WELCOME_USERNAME__ || data.blackPlayerName === window.__WELCOME_USERNAME__));
+    var status = data.Status || data.status || "In progress";
+    if (isParticipant && (status === "In progress" || status === "On hold")) return "/game?id=" + encodeURIComponent(id);
+    return "/watch?id=" + encodeURIComponent(id);
+  }
   function addOrUpdateGameRow(data) {
     if (!tbody || !data.gameId) return;
     var id = String(data.gameId);
+    var url = getGameRowUrl(id, data);
     var tr = tbody.querySelector("tr[data-game-id=\"" + id + "\"]");
     if (tr) {
       var gCell = tr.querySelector("td.Game");
@@ -168,11 +177,12 @@
       if (sCell) sCell.textContent = data.Started || "";
       if (mCell) mCell.textContent = data.Moves != null ? data.Moves : "0";
       if (statusCell) statusCell.textContent = data.Status || "In progress";
+      tr.onclick = function() { window.location = url; };
       return;
     }
     tr = document.createElement("tr");
     tr.setAttribute("data-game-id", id);
-    tr.onclick = function() { window.location = "/watch?id=" + id; };
+    tr.onclick = function() { window.location = url; };
     var statusText = (data.Status || "In progress").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + (data.Game || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Started\">" + (data.Started || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\">" + statusText + "</td>";
     tbody.appendChild(tr);
@@ -202,7 +212,7 @@
         if (!tbody || !Array.isArray(games)) return;
         var ids = games.map(function(g) { return String(g.Id); });
         games.forEach(function(g) {
-          addOrUpdateGameRow({ gameId: g.Id, Game: g.Game, Started: g.Started, Moves: g.Moves, Status: g.Status });
+          addOrUpdateGameRow({ gameId: g.Id, Game: g.Game, Started: g.Started, Moves: g.Moves, Status: g.Status, isParticipant: g.IsParticipant, whitePlayerName: g.whitePlayerName, blackPlayerName: g.blackPlayerName });
         });
         tbody.querySelectorAll("tr[data-game-id]").forEach(function(tr) {
           if (ids.indexOf(tr.getAttribute("data-game-id")) === -1) tr.remove();
