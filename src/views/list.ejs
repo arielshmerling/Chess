@@ -42,7 +42,9 @@
                             <% } %>
                         <% } %>
                         <td class="no-sort">
-                            <form action="/list/<%= obj.Id %>?_method=delete" method="POST">
+                            <form action="/list/<%= obj.Id %>?_method=delete" method="POST" class="list-delete-form">
+                                <input type="hidden" name="sortKey" value="">
+                                <input type="hidden" name="sortOrder" value="">
                                 <a href="javascript:{}" onclick="this.closest('form').submit();return false;">Delete</a>
                             </form>
                         </td>
@@ -59,6 +61,32 @@
     var tbody = table.querySelector('tbody');
     var sortState = { key: null, asc: true };
 
+    function parseSortFromUrl() {
+        var params = new URLSearchParams(window.location.search);
+        var key = params.get('sort');
+        var order = params.get('order');
+        if (key) sortState.key = key;
+        if (order === 'asc' || order === 'desc') sortState.asc = order === 'asc';
+    }
+
+    function updateUrlSort() {
+        if (!sortState.key) return;
+        var params = new URLSearchParams(window.location.search);
+        params.set('sort', sortState.key);
+        params.set('order', sortState.asc ? 'asc' : 'desc');
+        var url = window.location.pathname + '?' + params.toString();
+        history.replaceState(null, '', url);
+    }
+
+    function updateFormsSortInputs() {
+        document.querySelectorAll('.list-delete-form').forEach(function(form) {
+            var keyInput = form.querySelector('input[name="sortKey"]');
+            var orderInput = form.querySelector('input[name="sortOrder"]');
+            if (keyInput) keyInput.value = sortState.key || '';
+            if (orderInput) orderInput.value = sortState.key ? (sortState.asc ? 'asc' : 'desc') : '';
+        });
+    }
+
     function getSortValue(cell) {
         var key = cell.getAttribute('data-sort-key');
         var raw = cell.getAttribute('data-sort-value');
@@ -74,14 +102,10 @@
         return String(a).localeCompare(String(b));
     }
 
-    thead.addEventListener('click', function(ev) {
-        var th = ev.target.closest('th.sortable-th');
+    function applySort(key) {
+        if (!key) return;
+        var th = thead.querySelector('th.sortable-th[data-sort-key="' + key + '"]');
         if (!th) return;
-        ev.preventDefault();
-        var key = th.getAttribute('data-sort-key');
-        if (sortState.key === key) sortState.asc = !sortState.asc;
-        else { sortState.key = key; sortState.asc = true; }
-
         var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
         rows.sort(function(ra, rb) {
             var ca = ra.querySelector('td[data-sort-key="' + key + '"]');
@@ -96,13 +120,28 @@
             var numCell = r.querySelector('td[data-sort-key="rowIndex"]');
             if (numCell) { numCell.setAttribute('data-sort-value', i); numCell.textContent = i + 1; }
         });
-
         thead.querySelectorAll('.sort-icon').forEach(function(icon) { icon.textContent = ''; icon.classList.remove('asc', 'desc'); });
         var activeIcon = th.querySelector('.sort-icon');
         if (activeIcon) {
             activeIcon.textContent = sortState.asc ? '\u25B2' : '\u25BC';
             activeIcon.classList.add(sortState.asc ? 'asc' : 'desc');
         }
+        updateUrlSort();
+        updateFormsSortInputs();
+    }
+
+    parseSortFromUrl();
+    if (sortState.key) applySort(sortState.key);
+    else updateFormsSortInputs();
+
+    thead.addEventListener('click', function(ev) {
+        var th = ev.target.closest('th.sortable-th');
+        if (!th) return;
+        ev.preventDefault();
+        var key = th.getAttribute('data-sort-key');
+        if (sortState.key === key) sortState.asc = !sortState.asc;
+        else { sortState.key = key; sortState.asc = true; }
+        applySort(key);
     });
 })();
         </script>

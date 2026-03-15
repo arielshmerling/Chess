@@ -130,7 +130,13 @@ exports.search = async (req, res) => {
 exports.delete = async (req, res) => {
     const { id } = req.params;
     await gamesManagerService.deleteGame(id);
-    res.redirect("/list");
+    const sortKey = req.body.sortKey;
+    const sortOrder = req.body.sortOrder;
+    const query = [];
+    if (sortKey) query.push("sort=" + encodeURIComponent(sortKey));
+    if (sortOrder) query.push("order=" + encodeURIComponent(sortOrder));
+    const qs = query.length ? "?" + query.join("&") : "";
+    res.redirect("/list" + qs);
 };
 
 
