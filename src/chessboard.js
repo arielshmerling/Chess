@@ -441,6 +441,27 @@ async function startGame(isRematch) {
                 break;
         }
     }
+    await applyBookmarkFromUrlIfPresent();
+}
+
+async function applyBookmarkFromUrlIfPresent() {
+    const params = new URLSearchParams(window.location.search);
+    const bookmarkIdParam = params.get("bookmarkId");
+    if (!bookmarkIdParam || gameType !== "SinglePlayerGame" || !gameInfo || !gameInfo.id) return;
+    const list = await getBookmarks();
+    const bookmarkObj = list.find(function (b) { return b._id === bookmarkIdParam; });
+    if (!bookmarkObj) return;
+    const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
+    await postServerInfo("/applyBookmark", { gameId: gameInfo.id, bookarkId: bookmarkObj._id });
+    game.loadGame(stateStr);
+    const state = game.GameState;
+    if (state && state.board) { drawBoard(state.board); }
+    gameMoves = await getMovesForTable();
+    updateMovesTable(gameMoves.moves);
+    params.delete("bookmarkId");
+    const newSearch = params.toString();
+    const newUrl = window.location.pathname + (newSearch ? "?" + newSearch : "") + window.location.hash;
+    window.history.replaceState({}, "", newUrl);
 }
 
 function initPracticeGame(gameInfo, currentPlayerIsWhite) {
@@ -568,7 +589,11 @@ function initResearchMode() {
     disableButtons(["rematchBtn", "resignBtn", "drawBtn", "undoBtn", "redoBtn", "lastMoveBtn"]);
     hideButtons(["undoBtn", "redoBtn", "lastMoveBtn"]);
     enableButtons(["homeBtn", "bookmarkBtn"]);
-    getBookmarks().then(function (list) { bookmarks = list; updateBookmarks(bookmarks); });
+    getBookmarks().then(function (list) {
+        bookmarks = list;
+        updateBookmarks(bookmarks);
+        applyResearchBookmarkFromUrlIfPresent();
+    });
     const controlPanel = document.querySelector(".controlPanel");
     if (controlPanel) controlPanel.classList.add("research-simplified");
     const bookmarksPanel = document.getElementById("bookmarksPanel");
@@ -576,6 +601,34 @@ function initResearchMode() {
         bookmarksPanel.style.opacity = "1";
         bookmarksPanel.style.width = "260px";
     }
+}
+
+function applyResearchBookmarkFromUrlIfPresent() {
+    const params = new URLSearchParams(window.location.search);
+    const bookmarkIdParam = params.get("bookmarkId");
+    if (!bookmarkIdParam) return;
+    const bookmarkObj = bookmarks.find(function (b) { return b._id === bookmarkIdParam; });
+    if (!bookmarkObj) return;
+    const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
+    game.loadGame(stateStr);
+    const state = game.GameState;
+    if (state && state.board) { drawBoard(state.board); }
+    const div = document.getElementById("bookmark" + bookmarkObj.id);
+    if (div) {
+        exitBookmarkPositionEditMode();
+        researchEditingBookmarkId = bookmarkObj.id;
+        div.classList.add("bookmark-editing");
+        const editBtnEl = div.querySelector(".bookmark-edit-save-btn");
+        if (editBtnEl) {
+            editBtnEl.disabled = true;
+        }
+        disableButtons(["addBookmarkBtn"]);
+        researchSelectTool();
+    }
+    params.delete("bookmarkId");
+    const newSearch = params.toString();
+    const newUrl = window.location.pathname + (newSearch ? "?" + newSearch : "") + window.location.hash;
+    window.history.replaceState({}, "", newUrl);
 }
 
 function createResearchToolbox() {
@@ -3246,12 +3299,15 @@ function createNewBookmarkDiv() {
 }
 
 function toggleBookmarkAccordion(e) {
-    if (researchEditingBookmarkId != null) return;
     const row = e.target.closest(".bookmark-row");
     if (!row) return;
     const bookmarkEl = row.closest(".bookmark");
     if (!bookmarkEl) return;
     if (e.target.closest(".bookmark-actions") || e.target.closest("input")) return;
+    if (researchEditingBookmarkId != null) {
+        const clickedId = parseInt(bookmarkEl.id.replace("bookmark", ""), 10);
+        if (clickedId !== researchEditingBookmarkId) return;
+    }
     const list = document.getElementById("bookmarksList");
     if (list) {
         list.querySelectorAll(".bookmark.expanded").forEach(function (el) {
@@ -3262,7 +3318,9 @@ function toggleBookmarkAccordion(e) {
     bookmarkEl.classList.toggle("expanded");
     if (!wasExpanded) {
         const bookmarkId = parseInt(bookmarkEl.id.replace("bookmark", ""), 10);
-        if (!isNaN(bookmarkId)) applyBookmarkAction(bookmarkId);
+        if (!isNaN(bookmarkId) && (researchEditingBookmarkId == null || researchEditingBookmarkId !== bookmarkId)) {
+            applyBookmarkAction(bookmarkId);
+        }
     }
 }
 
@@ -3341,6 +3399,11 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
             editBtn.disabled = true;
             disableButtons(["addBookmarkBtn"]);
             researchSelectTool();
+        } else {
+            const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
+            if (bookmarkObj) {
+                window.location.href = "/research?bookmarkId=" + encodeURIComponent(bookmarkObj._id);
+            }
         }
     });
     actionsLeft.appendChild(editBtn);
@@ -3431,7 +3494,7 @@ async function applyBookmarkAction(bookmarkId) {
     if (!bookmarkObj) return;
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     if (researchMode) {
-        game.loadGame(stateStr);
+        window.location.href = "/game?gameType=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id);
         return;
     }
     if (gameInfo.gameType === "SinglePlayerGame" && gameInfo.id) {
