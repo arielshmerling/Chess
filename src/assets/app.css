@@ -23,7 +23,8 @@
     --error-color: radial-gradient(closest-side, rgb(161 20 0), rgb(147 20 3), rgb(114, 15, 3));
 
     --panel-background: #2D3134;
-    --panel-border: #3b3b3b;
+    /* Light mode panel border */
+    --panel-border: #618ea8;
     --textbox-background: #4C4C4C;
     --textbox-forecolor: #A5A5A5;
     --textbox-highlight: #e5e5e5;
@@ -53,6 +54,10 @@
 
 }
 
+/* Dark mode: override panel border color for elements inside body.dark-mode */
+body.dark-mode {
+    --panel-border: #3b3b3b;
+}
 
 body {
     display: flex;

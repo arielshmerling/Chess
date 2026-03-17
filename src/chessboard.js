@@ -604,6 +604,14 @@ function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPositi
     }
     placeDefault();
     requestAnimationFrame(function () { placeDefault(); });
+    dragHandleEl.addEventListener("dblclick", function (e) {
+        e.preventDefault();
+        try {
+            localStorage.removeItem(storageKey);
+        } catch (err) { /* ignore */ }
+        const d = getDefaultPosition();
+        applySavedPanelPosition(panelEl, storageKey, d.left, d.top);
+    });
     dragHandleEl.addEventListener("mousedown", function (e) {
         if (e.button !== 0) return;
         if (e.target.closest("a")) return;
