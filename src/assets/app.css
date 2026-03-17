@@ -210,7 +210,7 @@ body.research-dragging #innerBoard {
     transition: none;
 }
 
-/* Research mode toolbox (left floating panel) */
+/* Research mode toolbox (floating; position set by JS + saved layout) */
 
 .research-toolbox {
     position: absolute;
@@ -220,19 +220,41 @@ body.research-dragging #innerBoard {
     z-index: 50;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
     background: var(--panel-background, rgba(30, 30, 30, 0.95));
     border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    user-select: none;
+    font-size: 1.2em;
+}
+
+.research-toolbox-titlebar {
+    cursor: grab;
+    padding: 8px 10px;
+    margin: 0;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--semiLight, #98c1d9);
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.1));
+    flex-shrink: 0;
 }
 
 .research-toolbox-columns {
     display: flex;
     flex-direction: row;
     gap: 8px;
+    padding: 8px 10px 4px;
+}
+
+.research-toolbox .research-toolbox-tools {
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 
 .research-toolbox-column {
@@ -2313,11 +2335,20 @@ input:checked+.slider:before {
 
 /* Bookmarks panel – harmonized with app (panel-background, panel-border, etc.) */
 /* Top-aligned to board; fixed height; list scrolls internally when long */
+.bookmarksPanel-dragHandle,
+.bookmarksPanel.bookmarksPanel-draggable .panelHeader {
+    cursor: grab;
+}
+
+.bookmarksPanel-dragHandle a {
+    cursor: pointer;
+}
+
 .bookmarksPanel {
     width: 0;
     border-radius: 8px;
-    background-color: var(--panel-background);
-    border: 1px solid var(--panel-border);
+    background-color: var(--panel-background, rgba(30, 30, 30, 0.95));
+    border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
     position: absolute;
     right: 12px;
     top: 0;
@@ -2325,50 +2356,50 @@ input:checked+.slider:before {
     max-height: min(520px, calc(100vh - 120px));
     opacity: 0;
     z-index: 50;
-    padding: 12px;
+    padding: 0;
     transition: opacity 0.3s ease-in-out, width 0.3s ease-in-out;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     color: var(--light);
-    font-size: 0.9em;
+    font-size: 1.2em;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    user-select: none;
 }
 
-.bookmarksPanel .panelHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--panel-border);
-}
-
-.bookmarksPanel .panelHeader h1 {
+/* Same header style as .research-toolbox-titlebar */
+.bookmarksPanel .panelHeader.bookmarksPanel-header {
+    padding: 8px 10px;
     margin: 0;
-    font-size: 1.1em;
-    font-weight: 400;
-    color: var(--semiLight);
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--semiLight, #98c1d9);
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.1));
+    flex-shrink: 0;
 }
 
-.bookmarksPanel .xButton {
-    opacity: 0.7;
-    width: 10px;
-    height: 10px;
-    min-width: 10px;
-    min-height: 10px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
+/* Content area: same horizontal padding as toolbox body (8px 10px) */
+.bookmarksPanel > #addBookmarkBtn,
+.bookmarksPanel > .bookmarksSeperator,
+.bookmarksPanel > .bookmarksList,
+.bookmarksPanel > .bookmarksFooter {
+    margin-left: 10px;
+    margin-right: 10px;
 }
 
-.bookmarksPanel .xButton:hover {
-    opacity: 1;
+.bookmarksPanel > #addBookmarkBtn {
+    margin-top: 8px;
+    margin-bottom: 10px;
+    width: auto;
+    align-self: flex-start;
+    padding-left: 14px;
+    padding-right: 14px;
 }
 
 .bookmarksPanel .button {
     width: 100%;
-    margin: 0 0 10px 0;
+    margin: 0;
 }
 
 .bookmarksSeperator {
@@ -2381,6 +2412,7 @@ input:checked+.slider:before {
 
 .bookmarksList {
     padding: 2px 0;
+    margin-bottom: 8px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-color: var(--textbox-background) var(--panel-background);

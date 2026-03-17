@@ -567,6 +567,100 @@ function researchSelectTool() {
     updateResearchCursor();
 }
 
+const RESEARCH_LAYOUT_KEYS = {
+    toolbox: "researchLayoutToolbox",
+    bookmarks: "researchLayoutBookmarks",
+};
+
+function applySavedPanelPosition(panelEl, storageKey, defaultLeft, defaultTop) {
+    try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+            const p = JSON.parse(raw);
+            if (typeof p.left === "number" && typeof p.top === "number") {
+                panelEl.style.left = p.left + "px";
+                panelEl.style.top = p.top + "px";
+                panelEl.style.right = "auto";
+                panelEl.style.bottom = "auto";
+                panelEl.style.transform = "none";
+                return true;
+            }
+        }
+    } catch (e) { /* ignore */ }
+    panelEl.style.left = defaultLeft + "px";
+    panelEl.style.top = defaultTop + "px";
+    panelEl.style.right = "auto";
+    panelEl.style.bottom = "auto";
+    panelEl.style.transform = "none";
+    return false;
+}
+
+function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPosition) {
+    const main = document.getElementById("main");
+    if (!main || !panelEl || !dragHandleEl) return;
+    function placeDefault() {
+        const d = getDefaultPosition();
+        applySavedPanelPosition(panelEl, storageKey, d.left, d.top);
+    }
+    placeDefault();
+    requestAnimationFrame(function () { placeDefault(); });
+    dragHandleEl.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        if (e.target.closest("a")) return;
+        e.preventDefault();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startLeft = panelEl.offsetLeft;
+        const startTop = panelEl.offsetTop;
+        function onMove(ev) {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            let nl = startLeft + dx;
+            let nt = startTop + dy;
+            const maxL = Math.max(0, main.offsetWidth - panelEl.offsetWidth);
+            const maxT = Math.max(0, main.offsetHeight - panelEl.offsetHeight);
+            nl = Math.max(0, Math.min(maxL, nl));
+            nt = Math.max(0, Math.min(maxT, nt));
+            panelEl.style.left = nl + "px";
+            panelEl.style.top = nt + "px";
+            panelEl.style.right = "auto";
+            panelEl.style.bottom = "auto";
+            panelEl.style.transform = "none";
+        }
+        function onUp() {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            try {
+                localStorage.setItem(storageKey, JSON.stringify({
+                    left: panelEl.offsetLeft,
+                    top: panelEl.offsetTop,
+                }));
+            } catch (err) { /* ignore */ }
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+    });
+}
+
+function initBookmarksPanelDraggable() {
+    const bookmarksPanel = document.getElementById("bookmarksPanel");
+    if (!bookmarksPanel) return;
+    const header = bookmarksPanel.querySelector(".panelHeader");
+    if (!header || header.dataset.dragSetup) return;
+    header.dataset.dragSetup = "1";
+    header.classList.add("bookmarksPanel-dragHandle");
+    bookmarksPanel.classList.add("bookmarksPanel-draggable");
+    setupDraggablePanel(bookmarksPanel, header, RESEARCH_LAYOUT_KEYS.bookmarks, function () {
+        const m = document.getElementById("main");
+        const board = document.getElementById("chessboard");
+        const w = bookmarksPanel.offsetWidth || 260;
+        const gap = 20;
+        const boardRight = board && m ? (board.offsetLeft || 0) + (board.offsetWidth || 0) : m.offsetWidth;
+        const left = m ? Math.min(m.offsetWidth - w - gap, boardRight + gap) : 400;
+        return { left: left, top: gap };
+    });
+}
+
 function initResearchMode() {
     researchMode = true;
     document.body.classList.add("research-mode");
@@ -600,6 +694,7 @@ function initResearchMode() {
     if (bookmarksPanel) {
         bookmarksPanel.style.opacity = "1";
         bookmarksPanel.style.width = "260px";
+        requestAnimationFrame(function () { initBookmarksPanelDraggable(); });
     }
 }
 
@@ -635,6 +730,10 @@ function createResearchToolbox() {
     const panel = document.createElement("div");
     panel.id = "researchToolbox";
     panel.className = "research-toolbox";
+    const titleBar = document.createElement("div");
+    titleBar.className = "research-toolbox-titlebar";
+    titleBar.textContent = "Toolbox";
+    panel.appendChild(titleBar);
     const pieceOrder = [game.KING, game.QUEEN, game.ROOK, game.BISHOP, game.KNIGHT, game.PAWN];
     const whiteCol = document.createElement("div");
     whiteCol.className = "research-toolbox-column";
@@ -724,6 +823,16 @@ function createResearchToolbox() {
     panel.appendChild(toolsRow);
     const main = document.getElementById("main");
     if (main) main.insertBefore(panel, main.firstChild);
+    setupDraggablePanel(panel, titleBar, RESEARCH_LAYOUT_KEYS.toolbox, function () {
+        const m = document.getElementById("main");
+        const board = document.getElementById("chessboard");
+        const w = panel.offsetWidth || 120;
+        const h = panel.offsetHeight || 200;
+        const gap = 20;
+        const left = board && m ? Math.max(gap, (board.offsetLeft || 0) - w - gap) : gap;
+        const top = m ? Math.max(gap, (m.offsetHeight - h) / 2) : 80;
+        return { left: left, top: top };
+    });
 }
 
 function registerResearchBoardClick() {
@@ -3251,6 +3360,7 @@ function showBookmarks() {
     else {
         bookmarksPanel.style.opacity = "1";
         bookmarksPanel.style.width = "260px";
+        requestAnimationFrame(function () { initBookmarksPanelDraggable(); });
     }
 }
 
@@ -3442,10 +3552,20 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     const executeBtn = document.createElement("button");
     executeBtn.type = "button";
     executeBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-execute-btn";
-    executeBtn.setAttribute("title", "Execute – load bookmark onto board");
-    executeBtn.setAttribute("aria-label", "Execute – load bookmark onto board");
+    executeBtn.setAttribute("title", "Execute – go to game and load this bookmark");
+    executeBtn.setAttribute("aria-label", "Execute – go to game and load this bookmark");
     executeBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>";
-    executeBtn.addEventListener("click", function (ev) { ev.stopPropagation(); applyBookmarkAction(bookmarkId); });
+    executeBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        if (researchMode) {
+            const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
+            if (bookmarkObj) {
+                window.location.href = "/game?gameType=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id);
+            }
+        } else {
+            applyBookmarkAction(bookmarkId);
+        }
+    });
     actionsRight.appendChild(executeBtn);
 
     actions.appendChild(actionsRight);
@@ -3489,12 +3609,23 @@ async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
     bookmarkDiv.classList.remove("bookmark-editing");
 }
 
+/** Load bookmark state onto the board only (no redirect). Used when clicking the bookmark name/row in research. */
+function loadBookmarkOnBoard(bookmarkId) {
+    const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
+    if (!bookmarkObj) return;
+    const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
+    game.loadGame(stateStr);
+    const state = game.GameState;
+    if (state && state.board) { drawBoard(state.board); }
+}
+
+/** Apply bookmark: in research, load on board only; in game, apply to server and load. Execute button in research redirects to game instead of calling this. */
 async function applyBookmarkAction(bookmarkId) {
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
     if (!bookmarkObj) return;
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     if (researchMode) {
-        window.location.href = "/game?gameType=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id);
+        loadBookmarkOnBoard(bookmarkId);
         return;
     }
     if (gameInfo.gameType === "SinglePlayerGame" && gameInfo.id) {

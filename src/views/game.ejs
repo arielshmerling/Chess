@@ -13,15 +13,7 @@
 
 <div id="main" data-initial-game-id="<%= typeof gameId !== 'undefined' && gameId != null ? gameId : '' %>" data-research-mode="<%= typeof researchMode !== 'undefined' && researchMode ? 'true' : '' %>">
   <div id="bookmarksPanel" class="bookmarksPanel">
-    <div class="panelHeader">
-      <div>
-        <h1>Bookmarks</h1>
-      </div>
-      <div>
-        <a href="#"><img src="images/x.png" onclick="closeBookmarkPanel()" class="xButton"></a>
-      </div>
-
-    </div>
+    <div class="panelHeader bookmarksPanel-header">Bookmarks</div>
     <button id="addBookmarkBtn" class="button" onclick="addBookmark()">Bookmark</button>
     <div class="bookmarksSeperator"></div>
     <div id="bookmarksList" class="bookmarksList">
