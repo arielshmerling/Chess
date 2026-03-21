@@ -1711,6 +1711,7 @@ async function drawEventHandler(reason) {
     alertMode = true;
     displayMessage(`Draw! ${reason}`);
     log("System", "Draw");
+    log("System", reason);
     const frame = document.getElementsByClassName("frame");
     for (const el of frame) { el.classList.add("drawAlert"); }
     disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
@@ -2166,7 +2167,7 @@ function startWebSockets(username, isWhite, isWatcher) {
         if (message.type == "info") {
             const info = message.info;
             if (info == "game over") {
-                displayMessage("Game Over");
+                //displayMessage("Game Over");
                 log("System", "Game Over");
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
