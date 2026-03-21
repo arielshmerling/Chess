@@ -6,6 +6,8 @@ const gamesManagerService = require("../gamesManager/service");
 
 const EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+const PLAYER_LEVELS = ["Rookie", "Skilled", "Elite", "Grand Master"];
+
 
 exports.listUsersForAdmin = async () => {
     const [users, activeGamesByUser] = await Promise.all([
@@ -34,10 +36,12 @@ exports.updateUserByAdmin = async (userId, body) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw new ExpressError("Invalid user id", 400);
     }
-    const { username: rawUsername, email: rawEmail } = body || {};
-    const hasUsername = rawUsername !== undefined && rawUsername !== null;
-    const hasEmail = rawEmail !== undefined && rawEmail !== null;
-    if (!hasUsername && !hasEmail) {
+    const payload = body || {};
+    const hasUsername = payload.username !== undefined && payload.username !== null;
+    const hasEmail = payload.email !== undefined && payload.email !== null;
+    const hasAdmin = Object.prototype.hasOwnProperty.call(payload, "admin");
+    const hasLevel = Object.prototype.hasOwnProperty.call(payload, "level");
+    if (!hasUsername && !hasEmail && !hasAdmin && !hasLevel) {
         throw new ExpressError("Nothing to update", 400);
     }
 
@@ -49,7 +53,7 @@ exports.updateUserByAdmin = async (userId, body) => {
     const oldUsername = user.username;
 
     if (hasUsername) {
-        const username = String(rawUsername).trim();
+        const username = String(payload.username).trim();
         if (!username) {
             throw new ExpressError("Username cannot be empty", 400);
         }
@@ -67,7 +71,7 @@ exports.updateUserByAdmin = async (userId, body) => {
     }
 
     if (hasEmail) {
-        const email = String(rawEmail).trim();
+        const email = String(payload.email).trim();
         if (!email) {
             throw new ExpressError("Email cannot be empty", 400);
         }
@@ -77,11 +81,35 @@ exports.updateUserByAdmin = async (userId, body) => {
         user.email = email;
     }
 
+    if (hasAdmin) {
+        const nextAdmin = Boolean(payload.admin);
+        if (user.admin && !nextAdmin) {
+            const adminCount = await User.countDocuments({ admin: true });
+            if (adminCount <= 1) {
+                throw new ExpressError(
+                    "There must always be at least one admin. Promote another user to admin before removing this one.",
+                    403
+                );
+            }
+        }
+        user.admin = nextAdmin;
+    }
+
+    if (hasLevel) {
+        const level = String(payload.level).trim();
+        if (!PLAYER_LEVELS.includes(level)) {
+            throw new ExpressError("Invalid level", 400);
+        }
+        user.level = level;
+    }
+
     await user.save();
     return {
         id: String(user._id),
         username: user.username,
         email: user.email,
+        admin: !!user.admin,
+        level: user.level,
     };
 };
 

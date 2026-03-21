@@ -1893,6 +1893,103 @@ li {
     box-shadow: 0 0 0 2px rgba(152, 193, 217, 0.2);
 }
 
+.admin-page .admin-editable-select {
+    max-width: 200px;
+    min-width: 120px;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 14px;
+    color: var(--light);
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(152, 193, 217, 0.45);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+}
+
+.admin-page .admin-editable-select:focus {
+    outline: none;
+    border-color: rgba(152, 193, 217, 0.85);
+    box-shadow: 0 0 0 2px rgba(152, 193, 217, 0.2);
+}
+
+/* Admin: custom confirm dialog (replaces window.confirm for role changes) */
+.admin-confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+}
+
+.admin-confirm-overlay.admin-confirm-overlay--open {
+    display: flex;
+}
+
+.admin-confirm-dialog {
+    width: 100%;
+    max-width: 440px;
+    padding: 28px 28px 22px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.82) 0%, rgba(33, 51, 79, 0.88) 100%);
+    border: 2px solid rgba(152, 193, 217, 0.35);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.admin-confirm-title {
+    margin: 0 0 12px;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--light);
+    letter-spacing: 0.5px;
+}
+
+.admin-confirm-message {
+    margin: 0 0 24px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--semiLight);
+    font-weight: 400;
+}
+
+.admin-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.admin-confirm-actions .button {
+    margin: 0;
+    min-width: 100px;
+}
+
+.admin-confirm-cancel {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(152, 193, 217, 0.35) !important;
+}
+
+.admin-confirm-cancel:hover {
+    background: rgba(152, 193, 217, 0.15) !important;
+}
+
+.admin-confirm-ok {
+    background: linear-gradient(165deg, #52b788 0%, #2d6a4f 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    filter: none;
+}
+
+.admin-confirm-ok:hover {
+    filter: brightness(1.08);
+    color: #fff !important;
+}
+
 .admin-page .admin-table-empty {
     text-align: center;
     padding: 20px 12px;
