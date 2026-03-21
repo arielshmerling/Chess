@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const { User, Bookmark } = require("./model");
 const bcrypt = require("bcryptjs");
 const ExpressError = require("../../utils/ExpressError");
+const { notifyAdminPrivilegeChange } = require("../../utils/adminPrivilegeNotify");
 const gamesManagerService = require("../gamesManager/service");
 
 const EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -32,7 +33,7 @@ exports.listUsersForAdmin = async () => {
     }));
 };
 
-exports.updateUserByAdmin = async (userId, body) => {
+exports.updateUserByAdmin = async (userId, body, options = {}) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw new ExpressError("Invalid user id", 400);
     }
@@ -50,6 +51,7 @@ exports.updateUserByAdmin = async (userId, body) => {
         throw new ExpressError("User not found", 404);
     }
 
+    const oldAdmin = !!user.admin;
     const oldUsername = user.username;
 
     if (hasUsername) {
@@ -104,6 +106,17 @@ exports.updateUserByAdmin = async (userId, body) => {
     }
 
     await user.save();
+
+    if (hasAdmin && oldAdmin !== !!user.admin) {
+        await notifyAdminPrivilegeChange({
+            actorUsername: options.actorUsername != null ? String(options.actorUsername) : "unknown",
+            targetUsername: user.username,
+            targetUserId: String(user._id),
+            wasAdmin: oldAdmin,
+            isAdmin: !!user.admin,
+        });
+    }
+
     return {
         id: String(user._id),
         username: user.username,

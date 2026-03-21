@@ -129,7 +129,9 @@ exports.showAdminPage = catchAsync(async (req, res) => {
 
 exports.updateUserAdmin = async (req, res, next) => {
     try {
-        const result = await userService.updateUserByAdmin(req.params.id, req.body);
+        const result = await userService.updateUserByAdmin(req.params.id, req.body, {
+            actorUsername: req.session.user_name || "unknown",
+        });
         if (req.session.user_id && String(req.session.user_id) === String(req.params.id)) {
             if (result.username !== undefined) req.session.user_name = result.username;
             if (result.admin !== undefined) req.session.admin = result.admin;
