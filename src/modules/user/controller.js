@@ -121,6 +121,10 @@ exports.login = catchAsync(async (req, res) => {
     }
 });
 
+exports.showAdminPage = (req, res) => {
+    res.render("admin");
+};
+
 exports.showRegistrationPage = async (req, res) => {
     res.render("register");
 };

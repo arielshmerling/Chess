@@ -13,6 +13,8 @@ router.get("/logout", userController.logout);
 router.get("/validateUsername", userController.validateUsername);
 
 
+router.get("/admin", requiresAdmin, userController.showAdminPage);
+
 router.route("/register")
     .get(requiresAdmin, userController.showRegistrationPage)
     .post(requiresAdmin, userController.register);
