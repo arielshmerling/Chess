@@ -176,6 +176,18 @@ exports.countActiveGamesPerUsername = async () => {
 };
 
 /**
+ * Updates stored player names when an account username changes (games reference usernames as strings).
+ */
+exports.renameUsernameInGames = async (oldUsername, newUsername) => {
+    if (!oldUsername || !newUsername || oldUsername === newUsername) return;
+    await Promise.all([
+        Game.updateMany({ whitePlayer: oldUsername }, { $set: { whitePlayer: newUsername } }),
+        Game.updateMany({ blackPlayer: oldUsername }, { $set: { blackPlayer: newUsername } }),
+        Game.updateMany({ createBy: oldUsername }, { $set: { createBy: newUsername } }),
+    ]);
+};
+
+/**
  * Retrieves an array of games in PGN (Portable Game Notation) format.
  *
  * @returns {Promise<Object[]>} A promise resolving to an array of game objects, each containing information about a game played according to PGN notation rules.

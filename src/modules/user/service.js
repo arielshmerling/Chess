@@ -1,6 +1,10 @@
+const mongoose = require("mongoose");
 const { User, Bookmark } = require("./model");
 const bcrypt = require("bcryptjs");
+const ExpressError = require("../../utils/ExpressError");
 const gamesManagerService = require("../gamesManager/service");
+
+const EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 
 exports.listUsersForAdmin = async () => {
@@ -24,6 +28,61 @@ exports.listUsersForAdmin = async () => {
         friendsCount: Array.isArray(u.friends) ? u.friends.length : 0,
         bookmarksCount: Array.isArray(u.bookmarks) ? u.bookmarks.length : 0,
     }));
+};
+
+exports.updateUserByAdmin = async (userId, body) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    const { username: rawUsername, email: rawEmail } = body || {};
+    const hasUsername = rawUsername !== undefined && rawUsername !== null;
+    const hasEmail = rawEmail !== undefined && rawEmail !== null;
+    if (!hasUsername && !hasEmail) {
+        throw new ExpressError("Nothing to update", 400);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ExpressError("User not found", 404);
+    }
+
+    const oldUsername = user.username;
+
+    if (hasUsername) {
+        const username = String(rawUsername).trim();
+        if (!username) {
+            throw new ExpressError("Username cannot be empty", 400);
+        }
+        if (username.length > 64) {
+            throw new ExpressError("Username is too long", 400);
+        }
+        const taken = await User.findOne({ username, _id: { $ne: user._id } });
+        if (taken) {
+            throw new ExpressError("That username is already taken", 409);
+        }
+        if (username !== oldUsername) {
+            user.username = username;
+            await gamesManagerService.renameUsernameInGames(oldUsername, username);
+        }
+    }
+
+    if (hasEmail) {
+        const email = String(rawEmail).trim();
+        if (!email) {
+            throw new ExpressError("Email cannot be empty", 400);
+        }
+        if (!EMAIL_RE.test(email)) {
+            throw new ExpressError("Invalid email address", 400);
+        }
+        user.email = email;
+    }
+
+    await user.save();
+    return {
+        id: String(user._id),
+        username: user.username,
+        email: user.email,
+    };
 };
 
 exports.userExist = async (username) => {

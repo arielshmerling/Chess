@@ -1,5 +1,6 @@
 
 const catchAsync = require("../../utils/catchAsync");
+const ExpressError = require("../../utils/ExpressError");
 const userService = require("./service");
 
 exports.showLoginPage = (req, res) => {
@@ -125,6 +126,24 @@ exports.showAdminPage = catchAsync(async (req, res) => {
     const adminUsers = await userService.listUsersForAdmin();
     res.render("admin", { adminUsers });
 });
+
+exports.updateUserAdmin = async (req, res, next) => {
+    try {
+        const result = await userService.updateUserByAdmin(req.params.id, req.body);
+        if (req.session.user_id && String(req.session.user_id) === String(req.params.id) && result.username) {
+            req.session.user_name = result.username;
+        }
+        res.json({ ok: true, user: result });
+    } catch (err) {
+        if (err instanceof ExpressError) {
+            return res.status(err.statusCode).json({ ok: false, message: err.message });
+        }
+        if (err.name === "CastError") {
+            return res.status(400).json({ ok: false, message: "Invalid user id" });
+        }
+        next(err);
+    }
+};
 
 exports.showRegistrationPage = async (req, res) => {
     res.render("register");

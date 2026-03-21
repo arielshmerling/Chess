@@ -76,6 +76,116 @@
       }
     }
 
+    function updateUserInCache(userId, field, value) {
+      var list = window.__ADMIN_USERS__;
+      if (!list) return;
+      for (var j = 0; j < list.length; j++) {
+        if (list[j].id === userId) {
+          list[j][field] = value;
+          return;
+        }
+      }
+    }
+
+    function patchUserField(userId, payload) {
+      return axios.patch("/admin/users/" + encodeURIComponent(userId), payload);
+    }
+
+    function attachEditableCell(td, userId, field, initialValue) {
+      var state = { value: initialValue != null ? String(initialValue) : "" };
+      td.classList.add("admin-cell-editable");
+      if (field === "email") td.classList.add("admin-cell-email");
+
+      var label = document.createElement("span");
+      label.className = "admin-editable-label";
+      label.setAttribute("title", "Click to edit");
+      label.setAttribute("tabindex", "0");
+
+      function renderLabel() {
+        label.textContent = state.value !== "" ? state.value : "\u2014";
+      }
+      renderLabel();
+
+      var skipBlur = false;
+
+      function commitEdit() {
+        var input = td.querySelector("input.admin-editable-input");
+        if (!input) return;
+        var newVal = input.value.trim();
+        input.remove();
+        label.style.display = "";
+        if (newVal === state.value) {
+          renderLabel();
+          return;
+        }
+        var payload = {};
+        payload[field] = newVal;
+        patchUserField(userId, payload)
+          .then(function (res) {
+            var data = res.data;
+            if (data && data.ok && data.user) {
+              if (field === "username") state.value = data.user.username || "";
+              else state.value = data.user.email != null ? String(data.user.email) : "";
+              updateUserInCache(userId, field === "username" ? "username" : "email", state.value);
+            }
+            renderLabel();
+          })
+          .catch(function (err) {
+            var msg = "Update failed";
+            if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
+            alert(msg);
+            renderLabel();
+          });
+      }
+
+      function startEdit() {
+        if (td.querySelector("input.admin-editable-input")) return;
+        var inp = document.createElement("input");
+        inp.type = field === "email" ? "email" : "text";
+        inp.className = "admin-editable-input";
+        inp.value = state.value;
+        inp.autocomplete = "off";
+        label.style.display = "none";
+        td.appendChild(inp);
+        inp.focus();
+        inp.select();
+
+        inp.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            inp.blur();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            skipBlur = true;
+            inp.remove();
+            label.style.display = "";
+            renderLabel();
+          }
+        });
+        inp.addEventListener("blur", function onBlur() {
+          if (skipBlur) {
+            skipBlur = false;
+            return;
+          }
+          commitEdit();
+        });
+      }
+
+      label.addEventListener("click", function (e) {
+        e.stopPropagation();
+        startEdit();
+      });
+      label.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          startEdit();
+        }
+      });
+
+      td.appendChild(label);
+    }
+
     function renderUsersRows(users) {
       var colCount = ADMIN_TAB_CONFIG[0].headers.length;
       tbody.innerHTML = "";
@@ -97,12 +207,11 @@
         tdNum.className = "row-number";
         tdNum.textContent = String(i + 1);
         var tdName = document.createElement("td");
-        tdName.textContent = u.username != null ? String(u.username) : "";
+        attachEditableCell(tdName, u.id, "username", u.username);
         var tdRole = document.createElement("td");
         tdRole.textContent = u.admin ? "Admin" : "User";
         var tdEmail = document.createElement("td");
-        tdEmail.className = "admin-cell-email";
-        tdEmail.textContent = u.email != null ? String(u.email) : "";
+        attachEditableCell(tdEmail, u.id, "email", u.email);
         var tdLevel = document.createElement("td");
         tdLevel.textContent = u.level != null ? String(u.level) : "";
         var tdElo = document.createElement("td");

@@ -1852,6 +1852,47 @@ li {
     white-space: normal;
 }
 
+.admin-page .admin-cell-editable {
+    vertical-align: middle;
+}
+
+.admin-page .admin-editable-label {
+    display: inline-block;
+    min-width: 2em;
+    min-height: 1.2em;
+    cursor: text;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    outline: none;
+}
+
+.admin-page .admin-editable-label:hover,
+.admin-page .admin-editable-label:focus {
+    background: rgba(152, 193, 217, 0.15);
+    box-shadow: 0 0 0 1px rgba(152, 193, 217, 0.35);
+}
+
+.admin-page .admin-editable-input {
+    width: 100%;
+    max-width: 280px;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 14px;
+    color: var(--light);
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(152, 193, 217, 0.45);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin: 0;
+}
+
+.admin-page .admin-editable-input:focus {
+    outline: none;
+    border-color: rgba(152, 193, 217, 0.85);
+    box-shadow: 0 0 0 2px rgba(152, 193, 217, 0.2);
+}
+
 .admin-page .admin-table-empty {
     text-align: center;
     padding: 20px 12px;

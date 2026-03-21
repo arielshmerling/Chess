@@ -14,6 +14,7 @@ router.get("/validateUsername", userController.validateUsername);
 
 
 router.get("/admin", requiresAdmin, userController.showAdminPage);
+router.patch("/admin/users/:id", requiresAdmin, userController.updateUserAdmin);
 
 router.route("/register")
     .get(requiresAdmin, userController.showRegistrationPage)
