@@ -1,12 +1,113 @@
 <% layout("../views/layouts/boilerplate") %>
+<link rel="stylesheet" href="/assets/welcome.css">
 
 <div class="home admin-page">
-  <div class="flexRow">
-    <div class="header">
-      Admin
+  <div class="games-section admin-games-section">
+    <div class="games-panel admin-tabbed-panel">
+      <div class="panel-header admin-panel-header">
+        <div class="panel-title-group admin-panel-title-row">
+          <h2 class="panel-title">Admin</h2>
+        </div>
+        <div class="admin-tab-strip" role="tablist" aria-label="Admin sections">
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0">Users</button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-games" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Games</button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-engines" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Engines</button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-log" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Log</button>
+        </div>
+      </div>
+      <div class="panel-body admin-panel-body">
+        <div class="admin-tab-toolbar" id="admin-users-toolbar">
+          <a href="/register" class="button">Add user</a>
+        </div>
+        <div class="table-scroll compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
+          <table class="games-table" id="admin-main-table">
+            <thead>
+              <tr id="admin-table-head-row">
+                <th>#</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Last login</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+              <tr class="admin-table-empty-row">
+                <td colspan="4" class="admin-table-empty mute">No data yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="flexRow">
-    <a href="/register" class="button">Add user</a>
-  </div>
 </div>
+
+<script>
+  (function () {
+    var ADMIN_TAB_CONFIG = [
+      { toolbar: true, headers: ["#", "Username", "Role", "Last login"], emptyMsg: "No data yet." },
+      { toolbar: false, headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
+      { toolbar: false, headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
+      { toolbar: false, headers: ["Time", "Level", "Message"], emptyMsg: "No log entries yet." }
+    ];
+
+    var tabs = document.querySelectorAll(".admin-tab-btn");
+    var headRow = document.getElementById("admin-table-head-row");
+    var tbody = document.getElementById("admin-table-body");
+    var toolbar = document.getElementById("admin-users-toolbar");
+    var panelMain = document.getElementById("admin-panel-main");
+
+    function renderTableForTab(index) {
+      var cfg = ADMIN_TAB_CONFIG[index];
+      if (!cfg || !headRow || !tbody) return;
+
+      headRow.innerHTML = "";
+      cfg.headers.forEach(function (label) {
+        var th = document.createElement("th");
+        th.textContent = label;
+        headRow.appendChild(th);
+      });
+
+      var n = cfg.headers.length;
+      tbody.innerHTML = "";
+      var tr = document.createElement("tr");
+      tr.className = "admin-table-empty-row";
+      var td = document.createElement("td");
+      td.colSpan = n;
+      td.className = "admin-table-empty mute";
+      td.textContent = cfg.emptyMsg;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+
+      if (toolbar) toolbar.hidden = !cfg.toolbar;
+    }
+
+    function selectTab(index) {
+      tabs.forEach(function (tab, i) {
+        var on = i === index;
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+        tab.tabIndex = on ? 0 : -1;
+        if (on) tab.classList.add("admin-tab-btn--active");
+        else tab.classList.remove("admin-tab-btn--active");
+      });
+      renderTableForTab(index);
+      if (panelMain && tabs[index]) panelMain.setAttribute("aria-labelledby", tabs[index].id);
+    }
+
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener("click", function () { selectTab(i); });
+      tab.addEventListener("keydown", function (e) {
+        var next = null;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % tabs.length;
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (i - 1 + tabs.length) % tabs.length;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = tabs.length - 1;
+        if (next !== null) {
+          e.preventDefault();
+          selectTab(next);
+          tabs[next].focus();
+        }
+      });
+    });
+    selectTab(0);
+  })();
+</script>
