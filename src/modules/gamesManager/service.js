@@ -4,6 +4,9 @@ const { ChessGame } = require("../../ChessGame");
 const { Game, State } = require("../game/model");
 const catchAsync = require("../../utils/catchAsync");
 
+/** Not yet finished (same set used for stale cleanup and “active” counts). */
+const NON_TERMINAL_GAME_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
+
 const games = [];
 let pgnGames = [];
 let lobbyBroadcast = null;
@@ -148,6 +151,31 @@ exports.getFinishedGames = catchAsync(async (amount) => {
 });
 
 /**
+ * Counts persisted games per username where the game is still non-terminal (in progress, on hold, etc.).
+ * @returns {Promise<Map<string, number>>} Map of username → number of active games
+ */
+exports.countActiveGamesPerUsername = async () => {
+    const [byWhite, byBlack] = await Promise.all([
+        Game.aggregate([
+            { $match: { state: { $in: NON_TERMINAL_GAME_STATES }, whitePlayer: { $nin: [null, ""] } } },
+            { $group: { _id: "$whitePlayer", n: { $sum: 1 } } },
+        ]),
+        Game.aggregate([
+            { $match: { state: { $in: NON_TERMINAL_GAME_STATES }, blackPlayer: { $nin: [null, ""] } } },
+            { $group: { _id: "$blackPlayer", n: { $sum: 1 } } },
+        ]),
+    ]);
+    const counts = new Map();
+    for (const row of byWhite) {
+        counts.set(row._id, (counts.get(row._id) || 0) + row.n);
+    }
+    for (const row of byBlack) {
+        counts.set(row._id, (counts.get(row._id) || 0) + row.n);
+    }
+    return counts;
+};
+
+/**
  * Retrieves an array of games in PGN (Portable Game Notation) format.
  *
  * @returns {Promise<Object[]>} A promise resolving to an array of game objects, each containing information about a game played according to PGN notation rules.
@@ -229,8 +257,6 @@ exports.deleteGame = catchAsync(async (id) => {
     await Game.findByIdAndDelete(id);
 });
 
-const STALE_NON_TERMINAL_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
-
 /**
  * Cleans up games created more than 24 hours ago that are still in non-terminal states.
  * - Games that already have moves: set state to "cancelled" (preserve history).
@@ -240,7 +266,7 @@ const STALE_NON_TERMINAL_STATES = ["new", "pending", "establishing", "on hold", 
 exports.deleteStaleNonTerminalGames = catchAsync(async () => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const staleFilter = {
-        state: { $in: STALE_NON_TERMINAL_STATES },
+        state: { $in: NON_TERMINAL_GAME_STATES },
         created: { $lt: twentyFourHoursAgo },
     };
 

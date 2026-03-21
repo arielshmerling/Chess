@@ -1821,6 +1821,7 @@ li {
     flex: 1;
     min-height: 0;
     max-height: none;
+    overflow-x: auto;
 }
 
 .admin-page #admin-panel-main.table-scroll.compact {
@@ -1834,6 +1835,21 @@ li {
 .admin-page .games-table tbody tr.admin-table-empty-row:hover {
     background: rgba(255, 255, 255, 0.05);
     box-shadow: none;
+}
+
+.admin-page .games-table tbody tr.admin-user-row {
+    cursor: default;
+}
+
+.admin-page .games-table tbody tr.admin-user-row:hover {
+    background: linear-gradient(90deg, rgba(152, 193, 217, 0.18) 0%, rgba(152, 193, 217, 0.1) 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.admin-page .games-table .admin-cell-email {
+    max-width: 220px;
+    word-break: break-word;
+    white-space: normal;
 }
 
 .admin-page .admin-table-empty {

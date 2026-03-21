@@ -26,14 +26,17 @@
                 <th>#</th>
                 <th>Username</th>
                 <th>Role</th>
+                <th>Email</th>
+                <th>Level</th>
+                <th>Elo</th>
+                <th>Joined</th>
                 <th>Last login</th>
+                <th>Active games</th>
+                <th>Friends</th>
+                <th>Bookmarks</th>
               </tr>
             </thead>
-            <tbody id="admin-table-body">
-              <tr class="admin-table-empty-row">
-                <td colspan="4" class="admin-table-empty mute">No data yet.</td>
-              </tr>
-            </tbody>
+            <tbody id="admin-table-body"></tbody>
           </table>
         </div>
       </div>
@@ -41,10 +44,16 @@
   </div>
 </div>
 
-<script>
+<% var adminUsersJson = JSON.stringify(typeof adminUsers !== "undefined" && adminUsers ? adminUsers : []).replace(/</g, "\\u003c"); %>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+  window.__ADMIN_USERS__ = <%- adminUsersJson %>;
   (function () {
     var ADMIN_TAB_CONFIG = [
-      { toolbar: true, headers: ["#", "Username", "Role", "Last login"], emptyMsg: "No data yet." },
+      {
+        toolbar: true,
+        headers: ["#", "Username", "Role", "Email", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
+        emptyMsg: "No users yet."
+      },
       { toolbar: false, headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
       { toolbar: false, headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
       { toolbar: false, headers: ["Time", "Level", "Message"], emptyMsg: "No log entries yet." }
@@ -55,6 +64,73 @@
     var tbody = document.getElementById("admin-table-body");
     var toolbar = document.getElementById("admin-users-toolbar");
     var panelMain = document.getElementById("admin-panel-main");
+
+    function formatDateTime(iso) {
+      if (!iso) return "—";
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+      } catch (e) {
+        return "—";
+      }
+    }
+
+    function renderUsersRows(users) {
+      var colCount = ADMIN_TAB_CONFIG[0].headers.length;
+      tbody.innerHTML = "";
+      if (!users || users.length === 0) {
+        var trEmpty = document.createElement("tr");
+        trEmpty.className = "admin-table-empty-row";
+        var tdEmpty = document.createElement("td");
+        tdEmpty.colSpan = colCount;
+        tdEmpty.className = "admin-table-empty mute";
+        tdEmpty.textContent = ADMIN_TAB_CONFIG[0].emptyMsg;
+        trEmpty.appendChild(tdEmpty);
+        tbody.appendChild(trEmpty);
+        return;
+      }
+      users.forEach(function (u, i) {
+        var tr = document.createElement("tr");
+        tr.className = "admin-user-row";
+        var tdNum = document.createElement("td");
+        tdNum.className = "row-number";
+        tdNum.textContent = String(i + 1);
+        var tdName = document.createElement("td");
+        tdName.textContent = u.username != null ? String(u.username) : "";
+        var tdRole = document.createElement("td");
+        tdRole.textContent = u.admin ? "Admin" : "User";
+        var tdEmail = document.createElement("td");
+        tdEmail.className = "admin-cell-email";
+        tdEmail.textContent = u.email != null ? String(u.email) : "";
+        var tdLevel = document.createElement("td");
+        tdLevel.textContent = u.level != null ? String(u.level) : "";
+        var tdElo = document.createElement("td");
+        tdElo.textContent = u.elo != null && u.elo !== "" ? String(u.elo) : "—";
+        var tdJoined = document.createElement("td");
+        tdJoined.textContent = formatDateTime(u.joinedDate);
+        var tdLogin = document.createElement("td");
+        tdLogin.textContent = formatDateTime(u.lastLogin);
+        var tdActive = document.createElement("td");
+        tdActive.textContent = u.activeGamesCount != null ? String(u.activeGamesCount) : "0";
+        var tdFriends = document.createElement("td");
+        tdFriends.textContent = u.friendsCount != null ? String(u.friendsCount) : "0";
+        var tdBm = document.createElement("td");
+        tdBm.textContent = u.bookmarksCount != null ? String(u.bookmarksCount) : "0";
+        tr.appendChild(tdNum);
+        tr.appendChild(tdName);
+        tr.appendChild(tdRole);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdLevel);
+        tr.appendChild(tdElo);
+        tr.appendChild(tdJoined);
+        tr.appendChild(tdLogin);
+        tr.appendChild(tdActive);
+        tr.appendChild(tdFriends);
+        tr.appendChild(tdBm);
+        tbody.appendChild(tr);
+      });
+    }
 
     function renderTableForTab(index) {
       var cfg = ADMIN_TAB_CONFIG[index];
@@ -67,16 +143,20 @@
         headRow.appendChild(th);
       });
 
-      var n = cfg.headers.length;
-      tbody.innerHTML = "";
-      var tr = document.createElement("tr");
-      tr.className = "admin-table-empty-row";
-      var td = document.createElement("td");
-      td.colSpan = n;
-      td.className = "admin-table-empty mute";
-      td.textContent = cfg.emptyMsg;
-      tr.appendChild(td);
-      tbody.appendChild(tr);
+      if (index === 0) {
+        renderUsersRows(window.__ADMIN_USERS__ || []);
+      } else {
+        var n = cfg.headers.length;
+        tbody.innerHTML = "";
+        var tr = document.createElement("tr");
+        tr.className = "admin-table-empty-row";
+        var td = document.createElement("td");
+        td.colSpan = n;
+        td.className = "admin-table-empty mute";
+        td.textContent = cfg.emptyMsg;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
 
       if (toolbar) toolbar.hidden = !cfg.toolbar;
     }

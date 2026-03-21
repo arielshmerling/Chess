@@ -3,6 +3,29 @@ const bcrypt = require("bcryptjs");
 const gamesManagerService = require("../gamesManager/service");
 
 
+exports.listUsersForAdmin = async () => {
+    const [users, activeGamesByUser] = await Promise.all([
+        User.find({})
+            .select("username admin lastLogin email level elo joinedDate friends bookmarks")
+            .sort({ username: 1 })
+            .lean(),
+        gamesManagerService.countActiveGamesPerUsername(),
+    ]);
+    return users.map((u) => ({
+        id: String(u._id),
+        username: u.username,
+        admin: !!u.admin,
+        email: u.email != null ? String(u.email) : "",
+        level: u.level != null ? String(u.level) : "",
+        elo: u.elo != null ? Number(u.elo) : null,
+        joinedDate: u.joinedDate ? u.joinedDate.toISOString() : null,
+        lastLogin: u.lastLogin ? u.lastLogin.toISOString() : null,
+        activeGamesCount: activeGamesByUser.get(u.username) || 0,
+        friendsCount: Array.isArray(u.friends) ? u.friends.length : 0,
+        bookmarksCount: Array.isArray(u.bookmarks) ? u.bookmarks.length : 0,
+    }));
+};
+
 exports.userExist = async (username) => {
     const foundUser = await User.findOne({ username });
     return foundUser != null;
