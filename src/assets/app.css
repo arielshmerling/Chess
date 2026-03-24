@@ -1950,6 +1950,16 @@ li {
     box-shadow: 0 0 0 2px rgba(152, 193, 217, 0.2);
 }
 
+.admin-page .admin-password-label {
+    color: var(--semiLight);
+    font-size: 14px;
+}
+
+.admin-page .admin-password-input {
+    min-width: 160px;
+    max-width: 240px;
+}
+
 .admin-page .admin-editable-select {
     max-width: 200px;
     min-width: 120px;

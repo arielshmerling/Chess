@@ -42,7 +42,8 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
     const hasEmail = payload.email !== undefined && payload.email !== null;
     const hasAdmin = Object.prototype.hasOwnProperty.call(payload, "admin");
     const hasLevel = Object.prototype.hasOwnProperty.call(payload, "level");
-    if (!hasUsername && !hasEmail && !hasAdmin && !hasLevel) {
+    const hasPassword = Object.prototype.hasOwnProperty.call(payload, "password");
+    if (!hasUsername && !hasEmail && !hasAdmin && !hasLevel && !hasPassword) {
         throw new ExpressError("Nothing to update", 400);
     }
 
@@ -103,6 +104,14 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
             throw new ExpressError("Invalid level", 400);
         }
         user.level = level;
+    }
+
+    if (hasPassword) {
+        const plain = String(payload.password);
+        if (plain.length < 4 || plain.length > 30) {
+            throw new ExpressError("Password must be between 4 and 30 characters", 400);
+        }
+        user.password = await bcrypt.hash(plain, 12);
     }
 
     await user.save();

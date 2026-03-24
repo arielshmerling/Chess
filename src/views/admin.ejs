@@ -30,6 +30,7 @@
                 <th>Username</th>
                 <th>Role</th>
                 <th>Email</th>
+                <th>Password</th>
                 <th>Level</th>
                 <th>Elo</th>
                 <th>Joined</th>
@@ -65,7 +66,7 @@
     var ADMIN_TAB_CONFIG = [
       {
         toolbar: true,
-        headers: ["#", "Username", "Role", "Email", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
+        headers: ["#", "Username", "Role", "Email", "Password", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
         emptyMsg: "No users yet."
       },
       { toolbar: false, headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
@@ -237,6 +238,102 @@
             return;
           }
           commitEdit();
+        });
+      }
+
+      label.addEventListener("click", function (e) {
+        e.stopPropagation();
+        startEdit();
+      });
+      label.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          startEdit();
+        }
+      });
+
+      td.appendChild(label);
+    }
+
+    function attachPasswordCell(td, userId) {
+      td.classList.add("admin-cell-editable");
+      var label = document.createElement("span");
+      label.className = "admin-editable-label admin-password-label";
+      label.setAttribute("title", "Click to set a new password (4–30 characters)");
+      label.setAttribute("tabindex", "0");
+
+      function setLabelDefault() {
+        label.textContent = "Set password";
+      }
+      setLabelDefault();
+
+      var skipBlur = false;
+
+      function trySave(inp) {
+        if (!inp || !inp.parentNode) return;
+        var v = inp.value;
+        inp.remove();
+        label.style.display = "";
+        var trimmed = v.trim();
+        if (!trimmed) {
+          setLabelDefault();
+          return;
+        }
+        if (trimmed.length < 4 || trimmed.length > 30) {
+          alert("Password must be between 4 and 30 characters.");
+          setLabelDefault();
+          return;
+        }
+        patchUserField(userId, { password: trimmed })
+          .then(function (res) {
+            if (res.data && res.data.ok) {
+              label.textContent = "Saved";
+              setTimeout(setLabelDefault, 2000);
+            } else {
+              setLabelDefault();
+            }
+          })
+          .catch(function (err) {
+            var msg = "Update failed";
+            if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
+            alert(msg);
+            setLabelDefault();
+          });
+      }
+
+      function startEdit() {
+        if (td.querySelector("input.admin-password-input")) return;
+        var inp = document.createElement("input");
+        inp.type = "password";
+        inp.className = "admin-editable-input admin-password-input";
+        inp.autocomplete = "new-password";
+        inp.maxLength = 30;
+        inp.placeholder = "New password";
+        label.style.display = "none";
+        td.appendChild(inp);
+        inp.focus();
+
+        inp.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            skipBlur = true;
+            trySave(inp);
+            setTimeout(function () { skipBlur = false; }, 0);
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            skipBlur = true;
+            inp.remove();
+            label.style.display = "";
+            setLabelDefault();
+            setTimeout(function () { skipBlur = false; }, 0);
+          }
+        });
+        inp.addEventListener("blur", function () {
+          setTimeout(function () {
+            if (skipBlur) return;
+            if (inp.parentNode) trySave(inp);
+          }, 120);
         });
       }
 
@@ -481,6 +578,8 @@
         attachRoleDropdown(tdRole, u.id, u.admin);
         var tdEmail = document.createElement("td");
         attachEditableCell(tdEmail, u.id, "email", u.email);
+        var tdPwd = document.createElement("td");
+        attachPasswordCell(tdPwd, u.id);
         var tdLevel = document.createElement("td");
         attachLevelDropdown(tdLevel, u.id, u.level);
         var tdElo = document.createElement("td");
@@ -499,6 +598,7 @@
         tr.appendChild(tdName);
         tr.appendChild(tdRole);
         tr.appendChild(tdEmail);
+        tr.appendChild(tdPwd);
         tr.appendChild(tdLevel);
         tr.appendChild(tdElo);
         tr.appendChild(tdJoined);
