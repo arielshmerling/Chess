@@ -23,25 +23,31 @@
           </a>
         </div>
         <div class="table-scroll compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
-          <table class="games-table" id="admin-main-table">
-            <thead>
-              <tr id="admin-table-head-row">
-                <th>#</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Password</th>
-                <th>Level</th>
-                <th>Elo</th>
-                <th>Joined</th>
-                <th>Last login</th>
-                <th>Active games</th>
-                <th>Friends</th>
-                <th>Bookmarks</th>
-              </tr>
-            </thead>
-            <tbody id="admin-table-body"></tbody>
-          </table>
+          <div id="admin-games-empty" class="no-games-message admin-games-empty" hidden>
+            <p>No games in the database yet.</p>
+          </div>
+          <div id="admin-table-shell" class="admin-table-shell">
+            <table class="games-table" id="admin-main-table">
+              <thead>
+                <tr id="admin-table-head-row">
+                  <th>#</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Email</th>
+                  <th>Password</th>
+                  <th>Level</th>
+                  <th>Elo</th>
+                  <th>Joined</th>
+                  <th>Last login</th>
+                  <th>Active games</th>
+                  <th>Friends</th>
+                  <th>Bookmarks</th>
+                </tr>
+              </thead>
+              <tbody id="admin-table-body"></tbody>
+            </table>
+          </div>
+          <nav id="admin-games-pages-nav" class="pagesNav admin-games-pages-nav" hidden aria-label="Games pagination"></nav>
         </div>
       </div>
     </div>
@@ -60,25 +66,33 @@
 </div>
 
 <% var adminUsersJson = JSON.stringify(typeof adminUsers !== "undefined" && adminUsers ? adminUsers : []).replace(/</g, "\\u003c"); %>
+<% var adminGamesJson = JSON.stringify(typeof adminGames !== "undefined" && adminGames ? adminGames : []).replace(/</g, "\\u003c"); %>
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
   window.__ADMIN_USERS__ = <%- adminUsersJson %>;
+  window.__ADMIN_GAMES__ = <%- adminGamesJson %>;
   (function () {
     var ADMIN_TAB_CONFIG = [
       {
-        toolbar: true,
         headers: ["#", "Username", "Role", "Email", "Password", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
         emptyMsg: "No users yet."
       },
-      { toolbar: false, headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
-      { toolbar: false, headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
-      { toolbar: false, headers: ["Time", "Level", "Message"], emptyMsg: "No log entries yet." }
+      { headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
+      { headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
+      { headers: ["Time", "Level", "Message"], emptyMsg: "No log entries yet." }
     ];
 
     var tabs = document.querySelectorAll(".admin-tab-btn");
+    var table = document.getElementById("admin-main-table");
     var headRow = document.getElementById("admin-table-head-row");
     var tbody = document.getElementById("admin-table-body");
     var toolbar = document.getElementById("admin-users-toolbar");
     var panelMain = document.getElementById("admin-panel-main");
+    var gamesEmptyEl = document.getElementById("admin-games-empty");
+    var tableShell = document.getElementById("admin-table-shell");
+    var gamesPagesNav = document.getElementById("admin-games-pages-nav");
+    var ADMIN_GAMES_PAGE_SIZE = 20;
+    var adminGamesWorking = null;
+    var adminGamesPage = 1;
 
     function formatDateTime(iso) {
       if (!iso) return "—";
@@ -610,9 +624,339 @@
       });
     }
 
+    var adminGamesSortState = { key: null, asc: true };
+
+    function initAdminGamesWorking() {
+      try {
+        var raw = window.__ADMIN_GAMES__ || [];
+        adminGamesWorking = JSON.parse(JSON.stringify(raw));
+      } catch (e) {
+        adminGamesWorking = [];
+      }
+      adminGamesPage = 1;
+      adminGamesSortState = { key: null, asc: true };
+    }
+
+    function valueForSort(game, key) {
+      if (key === "rowIndex") return game._sortIdx != null ? game._sortIdx : 0;
+      if (key === "Date") return game._sortableDate != null ? game._sortableDate : 0;
+      if (key === "Moves") return game.Moves != null ? Number(game.Moves) : 0;
+      var v = game[key];
+      return v != null ? String(v) : "";
+    }
+
+    function compareSortValues(va, vb) {
+      var na = typeof va === "number" && !isNaN(va);
+      var nb = typeof vb === "number" && !isNaN(vb);
+      if (na && nb) return va - vb;
+      if (na) return -1;
+      if (nb) return 1;
+      return String(va).localeCompare(String(vb));
+    }
+
+    function sortGamesWorking(key, asc) {
+      if (!adminGamesWorking || !adminGamesWorking.length) return;
+      adminGamesWorking.forEach(function (g, i) {
+        g._sortIdx = i;
+      });
+      adminGamesWorking.sort(function (a, b) {
+        var va = valueForSort(a, key);
+        var vb = valueForSort(b, key);
+        var cmp = compareSortValues(va, vb);
+        return asc ? cmp : -cmp;
+      });
+    }
+
+    function syncAdminGamesSortIcons() {
+      if (!adminGamesSortState.key || !headRow) return;
+      var key = adminGamesSortState.key;
+      var th = headRow.querySelector("th.sortable-th[data-sort-key=\"" + key.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + "\"]");
+      if (!th) return;
+      headRow.querySelectorAll(".sort-icon").forEach(function (icon) {
+        icon.textContent = "";
+        icon.classList.remove("asc", "desc");
+      });
+      var activeIcon = th.querySelector(".sort-icon");
+      if (activeIcon) {
+        activeIcon.textContent = adminGamesSortState.asc ? "\u25B2" : "\u25BC";
+        activeIcon.classList.add(adminGamesSortState.asc ? "asc" : "desc");
+      }
+    }
+
+    function renderAdminGamesPagination() {
+      if (!gamesPagesNav) return;
+      var total = (adminGamesWorking && adminGamesWorking.length) || 0;
+      if (total === 0) {
+        gamesPagesNav.hidden = true;
+        gamesPagesNav.innerHTML = "";
+        return;
+      }
+      var totalPages = Math.max(1, Math.ceil(total / ADMIN_GAMES_PAGE_SIZE));
+      if (adminGamesPage > totalPages) adminGamesPage = totalPages;
+      if (adminGamesPage < 1) adminGamesPage = 1;
+      var page = adminGamesPage;
+      var windowSize = 10;
+      var startPage = Math.floor((page - 1) / windowSize) * windowSize + 1;
+      var endPage = Math.min(startPage + windowSize - 1, totalPages);
+      var prev10Page = Math.max(1, startPage - windowSize);
+      var next10Page = Math.min(totalPages, startPage + windowSize);
+      var smallWindowSize = 5;
+      var startPage5 = Math.floor((page - 1) / smallWindowSize) * smallWindowSize + 1;
+      var endPage5 = Math.min(startPage5 + smallWindowSize - 1, totalPages);
+      var prev5Page = Math.max(1, startPage5 - smallWindowSize);
+      var next5Page = Math.min(totalPages, startPage5 + smallWindowSize);
+
+      var parts = [];
+      function link(dataPage, inner, className, title) {
+        var cls = className ? " class=\"" + className + "\"" : "";
+        var tit = title ? " title=\"" + String(title).replace(/"/g, "&quot;") + "\"" : "";
+        parts.push("<a href=\"#\"" + cls + tit + " data-admin-page=\"" + dataPage + "\">" + inner + "</a>");
+      }
+      link(1, "First");
+      if (startPage > 1) {
+        link(prev10Page, "<img src=\"/images/prev.png\" alt=\"Previous\">", "pageNavIcon pageNavStep10", "Previous 10 pages");
+      }
+      if (startPage5 > 1) {
+        link(prev5Page, "<img src=\"/images/prev.png\" alt=\"Previous\">", "pageNavIcon pageNavStep5", "Previous 5 pages");
+      }
+      var i;
+      for (i = startPage5; i <= endPage5; i++) {
+        var cls5 = "pageNavItem pageNavWindow5" + (i === page ? " selectedPage" : "");
+        link(i, String(i), cls5);
+      }
+      for (i = startPage; i <= endPage; i++) {
+        var cls10 = "pageNavItem pageNavWindow10" + (i === page ? " selectedPage" : "");
+        link(i, String(i), cls10);
+      }
+      if (endPage5 < totalPages) {
+        link(next5Page, "<img src=\"/images/next.png\" alt=\"Next\">", "pageNavIcon pageNavStep5", "Next 5 pages");
+      }
+      if (endPage < totalPages) {
+        link(next10Page, "<img src=\"/images/next.png\" alt=\"Next\">", "pageNavIcon pageNavStep10", "Next 10 pages");
+      }
+      link(totalPages, "Last");
+      gamesPagesNav.innerHTML = parts.join("");
+      gamesPagesNav.hidden = false;
+    }
+
+    function attachAdminGamesPaginationOnce() {
+      if (attachAdminGamesPaginationOnce.done) return;
+      attachAdminGamesPaginationOnce.done = true;
+      if (!gamesPagesNav) return;
+      gamesPagesNav.addEventListener("click", function (ev) {
+        var t = ev.target.closest("a[data-admin-page]");
+        if (!t || !gamesPagesNav.contains(t)) return;
+        ev.preventDefault();
+        var p = parseInt(t.getAttribute("data-admin-page"), 10);
+        if (isNaN(p) || p < 1) return;
+        var total = (adminGamesWorking && adminGamesWorking.length) || 0;
+        var totalPages = Math.max(1, Math.ceil(total / ADMIN_GAMES_PAGE_SIZE));
+        if (p > totalPages) p = totalPages;
+        adminGamesPage = p;
+        renderGamesListTable();
+      });
+    }
+
+    function gameRowKeys(obj) {
+      var keys = [];
+      for (var k in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, k) && k !== "Id" && k.charAt(0) !== "_") keys.push(k);
+      }
+      return keys;
+    }
+
+    function gameIdStr(obj) {
+      var id = obj.Id;
+      if (id == null) return "";
+      return typeof id === "object" && id.toString ? id.toString() : String(id);
+    }
+
+    function updateFormsSortInputs() {
+      document.querySelectorAll("#admin-panel-main .list-delete-form").forEach(function (form) {
+        var keyInput = form.querySelector("input[name=\"sortKey\"]");
+        var orderInput = form.querySelector("input[name=\"sortOrder\"]");
+        if (keyInput) keyInput.value = adminGamesSortState.key || "";
+        if (orderInput) orderInput.value = adminGamesSortState.key ? (adminGamesSortState.asc ? "asc" : "desc") : "";
+      });
+    }
+
+    function renderGamesListTable() {
+      if (!table || !headRow || !tbody) return;
+      headRow.innerHTML = "";
+      tbody.innerHTML = "";
+      if (gamesEmptyEl) {
+        gamesEmptyEl.hidden = true;
+        gamesEmptyEl.style.display = "none";
+      }
+      if (tableShell) tableShell.style.display = "";
+      table.style.display = "";
+      if (gamesPagesNav) {
+        gamesPagesNav.hidden = true;
+        gamesPagesNav.innerHTML = "";
+      }
+
+      var games = adminGamesWorking || [];
+      if (!games.length) {
+        adminGamesSortState = { key: null, asc: true };
+        table.style.display = "none";
+        if (tableShell) tableShell.style.display = "none";
+        if (gamesEmptyEl) {
+          gamesEmptyEl.hidden = false;
+          gamesEmptyEl.style.display = "";
+        }
+        return;
+      }
+
+      var keys = gameRowKeys(games[0]);
+
+      var thNum = document.createElement("th");
+      thNum.className = "sortable-th";
+      thNum.setAttribute("data-sort-key", "rowIndex");
+      thNum.title = "Sort by row number";
+      thNum.innerHTML = "<span class=\"th-label\">#</span><span class=\"sort-icon\" aria-hidden=\"true\"></span>";
+      headRow.appendChild(thNum);
+
+      keys.forEach(function (key) {
+        var th = document.createElement("th");
+        th.className = "sortable-th";
+        var trimKey = key.replace(/^\s+/, "").replace(/\s+$/, "");
+        th.setAttribute("data-sort-key", trimKey);
+        th.title = "Sort by " + trimKey;
+        var spanL = document.createElement("span");
+        spanL.className = "th-label";
+        spanL.textContent = key;
+        var spanI = document.createElement("span");
+        spanI.className = "sort-icon";
+        spanI.setAttribute("aria-hidden", "true");
+        th.appendChild(spanL);
+        th.appendChild(spanI);
+        headRow.appendChild(th);
+      });
+
+      var thAct = document.createElement("th");
+      thAct.textContent = "Action";
+      headRow.appendChild(thAct);
+
+      var total = games.length;
+      var start = (adminGamesPage - 1) * ADMIN_GAMES_PAGE_SIZE;
+      var slice = games.slice(start, start + ADMIN_GAMES_PAGE_SIZE);
+
+      slice.forEach(function (obj, i) {
+        var idStr = gameIdStr(obj);
+        var globalIdx = start + i;
+        var tr = document.createElement("tr");
+        tr.setAttribute("data-row-index", String(globalIdx));
+
+        var tdNum = document.createElement("td");
+        tdNum.className = "sortable-td";
+        tdNum.setAttribute("data-sort-key", "rowIndex");
+        tdNum.setAttribute("data-sort-value", String(globalIdx));
+        tdNum.textContent = String(globalIdx + 1);
+        tdNum.onclick = function () { window.location = "/review?type=history&id=" + encodeURIComponent(idStr); };
+        tr.appendChild(tdNum);
+
+        keys.forEach(function (key) {
+          var sortVal;
+          if (key === "Date") sortVal = obj._sortableDate != null ? obj._sortableDate : 0;
+          else if (key === "Moves") sortVal = obj.Moves != null ? obj.Moves : 0;
+          else sortVal = obj[key] != null ? String(obj[key]) : "";
+
+          var td = document.createElement("td");
+          var trimKey = key.replace(/^\s+/, "").replace(/\s+$/, "");
+          td.setAttribute("data-sort-key", trimKey);
+          td.setAttribute("data-sort-value", String(sortVal));
+          if (trimKey === "Reason") td.className = "align-left sortable-td";
+          else td.className = "sortable-td";
+          td.onclick = function () { window.location = "/review?type=history&id=" + encodeURIComponent(idStr); };
+          td.textContent = obj[key] != null ? String(obj[key]) : "";
+          tr.appendChild(td);
+        });
+
+        var tdAct = document.createElement("td");
+        tdAct.className = "no-sort";
+        var form = document.createElement("form");
+        form.action = "/list/" + encodeURIComponent(idStr) + "?_method=delete";
+        form.method = "POST";
+        form.className = "list-delete-form";
+        var hi = document.createElement("input");
+        hi.type = "hidden";
+        hi.name = "sortKey";
+        hi.value = "";
+        form.appendChild(hi);
+        var ho = document.createElement("input");
+        ho.type = "hidden";
+        ho.name = "sortOrder";
+        ho.value = "";
+        form.appendChild(ho);
+        var a = document.createElement("a");
+        a.href = "#";
+        a.textContent = "Delete";
+        a.onclick = function () { form.submit(); return false; };
+        form.appendChild(a);
+        tdAct.appendChild(form);
+        tr.appendChild(tdAct);
+
+        tbody.appendChild(tr);
+      });
+
+      syncAdminGamesSortIcons();
+      updateFormsSortInputs();
+      renderAdminGamesPagination();
+    }
+
+    function attachAdminGamesSortOnce() {
+      if (attachAdminGamesSortOnce.done) return;
+      attachAdminGamesSortOnce.done = true;
+
+      panelMain.addEventListener("click", function (ev) {
+        if (!panelMain.classList.contains("admin-games-list-mode")) return;
+        var tbl = document.getElementById("admin-main-table");
+        if (!tbl || !tbl.classList.contains("sortable")) return;
+        var th = ev.target.closest("th.sortable-th");
+        if (!th || !tbl.contains(th)) return;
+        ev.preventDefault();
+        var key = th.getAttribute("data-sort-key");
+        if (adminGamesSortState.key === key) adminGamesSortState.asc = !adminGamesSortState.asc;
+        else {
+          adminGamesSortState.key = key;
+          adminGamesSortState.asc = true;
+        }
+        sortGamesWorking(key, adminGamesSortState.asc);
+        adminGamesPage = 1;
+        renderGamesListTable();
+      });
+    }
+
     function renderTableForTab(index) {
       var cfg = ADMIN_TAB_CONFIG[index];
-      if (!cfg || !headRow || !tbody) return;
+      if (!cfg || !headRow || !tbody || !table) return;
+
+      if (toolbar) toolbar.hidden = index !== 0;
+
+      if (index === 1) {
+        panelMain.classList.add("admin-games-list-mode");
+        table.className = "games-table sortable";
+        initAdminGamesWorking();
+        renderGamesListTable();
+        attachAdminGamesSortOnce();
+        attachAdminGamesPaginationOnce();
+        return;
+      }
+
+      panelMain.classList.remove("admin-games-list-mode");
+      if (tableShell) {
+        tableShell.style.display = "";
+      }
+      if (gamesPagesNav) {
+        gamesPagesNav.hidden = true;
+        gamesPagesNav.innerHTML = "";
+      }
+      table.className = "games-table";
+      table.style.display = "";
+      if (gamesEmptyEl) {
+        gamesEmptyEl.hidden = true;
+        gamesEmptyEl.style.display = "none";
+      }
 
       headRow.innerHTML = "";
       cfg.headers.forEach(function (label) {
@@ -635,8 +979,6 @@
         tr.appendChild(td);
         tbody.appendChild(tr);
       }
-
-      if (toolbar) toolbar.hidden = !cfg.toolbar;
     }
 
     function selectTab(index) {

@@ -82,6 +82,18 @@ exports.getRecentGamesByUsername = catchAsync(async (username, amount) => {
 });
 
 /**
+ * All persisted games (admin). Same shape as list page via parseGames.
+ * @param {number} amount - max rows (capped at 2000)
+ */
+exports.getAllGamesForAdmin = catchAsync(async (amount) => {
+    const limit = Math.min(Math.max(Number(amount) || 1000, 1), 2000);
+    const gameDocs = await Game.find({})
+        .sort({ _id: -1 })
+        .limit(limit);
+    return exports.parseGames(gameDocs);
+});
+
+/**
  * Retrieves recent games by username that finished with state "game over" only.
  * Used for "My Games" on home page; for all statuses use getRecentGamesByUsername (e.g. list page).
  */

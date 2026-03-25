@@ -2,6 +2,7 @@
 const catchAsync = require("../../utils/catchAsync");
 const ExpressError = require("../../utils/ExpressError");
 const userService = require("./service");
+const gamesManagerService = require("../gamesManager/service");
 
 exports.showLoginPage = (req, res) => {
 
@@ -123,8 +124,11 @@ exports.login = catchAsync(async (req, res) => {
 });
 
 exports.showAdminPage = catchAsync(async (req, res) => {
-    const adminUsers = await userService.listUsersForAdmin();
-    res.render("admin", { adminUsers });
+    const [adminUsers, adminGames] = await Promise.all([
+        userService.listUsersForAdmin(),
+        gamesManagerService.getAllGamesForAdmin(2000),
+    ]);
+    res.render("admin", { adminUsers, adminGames });
 });
 
 exports.updateUserAdmin = async (req, res, next) => {

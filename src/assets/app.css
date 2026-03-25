@@ -306,11 +306,12 @@ body.research-dragging #innerBoard {
 }
 
 .research-toolbox-tools {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 4px;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 6px 8px;
+    justify-items: stretch;
+    align-items: stretch;
     margin-top: 6px;
     padding-top: 6px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -320,10 +321,11 @@ body.research-dragging #innerBoard {
 .research-toolbox-select,
 .research-toolbox-reset,
 .research-toolbox-default {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    box-sizing: border-box;
 }
 
 .research-toolbox-eraser svg,
@@ -1408,6 +1410,53 @@ table.gamesTable th::first-letter {
     opacity: 1;
 }
 
+.admin-page #admin-games-empty.no-games-message {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--semiLight);
+    opacity: 0.85;
+}
+
+.admin-page #admin-games-empty.no-games-message p {
+    font-size: 17px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Admin Games tab: list-style table wrapper + search-like pagination inside panel */
+.admin-page #admin-panel-main.admin-games-list-mode {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.admin-page #admin-table-shell {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Games tab: action column is not for row navigation */
+.admin-page #admin-panel-main.admin-games-list-mode .games-table td.no-sort {
+    cursor: default;
+}
+
+.admin-page #admin-games-pages-nav.admin-games-pages-nav {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 12px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 1200px) {
+    .admin-page #admin-games-pages-nav.admin-games-pages-nav {
+        width: 100%;
+    }
+}
+
 
 table.gamesTable td {
     padding: 4px;
@@ -1733,7 +1782,7 @@ li {
 
 .admin-page .admin-tabbed-panel {
     width: 100%;
-    height: clamp(420px, 70vh, 920px);
+    height: clamp(420px, 85vh, 920px);
     box-sizing: border-box;
 }
 
@@ -1811,6 +1860,11 @@ li {
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
+}
+
+/* [hidden] must win over display:flex (otherwise toolbar stays visible on non-Users tabs) */
+.admin-page .admin-tab-toolbar[hidden] {
+    display: none !important;
 }
 
 .admin-page .admin-add-user-btn {
