@@ -1449,6 +1449,12 @@ table.gamesTable th::first-letter {
     margin-right: auto;
     margin-top: 12px;
     flex-shrink: 0;
+    background: transparent;
+    border-radius: 0px
+     ;
+}
+.admin-page #admin-games-pages-nav.admin-games-pages-nav a {
+    color:rgb(107, 107, 107);
 }
 
 @media (max-width: 1200px) {
