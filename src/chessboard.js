@@ -3647,9 +3647,13 @@ function createNewBookmarkDiv() {
     const gameNameInput = document.createElement("input");
     gameNameInput.setAttribute("placeholder", "Insert bookmark name");
     gameNameInput.setAttribute("id", "newBookmarkName");
-    gameNameInput.addEventListener("keypress", (e) => {
+    gameNameInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
+            e.preventDefault();
             onBookmarkAdded(bookmarks.length + 1, gameNameInput.value, new Date(), gameInfo.gameType);
+        } else if (e.key === "Escape") {
+            e.preventDefault();
+            div.remove();
         }
     });
     row.appendChild(gameNameInput);
