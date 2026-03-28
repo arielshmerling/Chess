@@ -1548,12 +1548,12 @@ function displayMessage(message) {
 /// MessageBox
 
 /**
- * Validate research bookmark position (kings + adjacency + piece counts per color).
+ * Validate research bookmark position (kings + adjacency + insufficient material + piece counts per color).
  * Returns one user-facing error (header + detail) or null if valid.
  * Checks run in order; only the first failure is returned so the user can fix and retry.
  * @param {"add"|"save"} [purpose] "add" when creating a bookmark; "save" when saving position in edit mode.
  */
-function getResearchBookmarkKingValidationMessage(purpose) {
+function getResearchBookmarkPositionValidationMessage(purpose) {
     const header = purpose === "save"
         ? "Cannot save this bookmark:\n\n"
         : "Cannot add this bookmark:\n\n";
@@ -1615,6 +1615,8 @@ function getResearchBookmarkKingValidationMessage(purpose) {
     const byColor = { white: fresh(), black: fresh() };
     let whiteKingPos = null;
     let blackKingPos = null;
+    let whiteBishopSquare = null;
+    let blackBishopSquare = null;
 
     for (let r = 0; r < rows; r++) {
         const row = board[r];
@@ -1639,8 +1641,14 @@ function getResearchBookmarkKingValidationMessage(purpose) {
             if (t === PT_PAWN) bucket.pawn++;
             else if (t === PT_ROOK) bucket.rook++;
             else if (t === PT_KNIGHT) bucket.knight++;
-            else if (t === PT_BISHOP) bucket.bishop++;
-            else if (t === PT_QUEEN) bucket.queen++;
+            else if (t === PT_BISHOP) {
+                bucket.bishop++;
+                if (col === "white") {
+                    whiteBishopSquare = { row: r, col: c };
+                } else {
+                    blackBishopSquare = { row: r, col: c };
+                }
+            } else if (t === PT_QUEEN) bucket.queen++;
             else if (t === PT_KING) {
                 bucket.king++;
                 if (col === "white") {
@@ -1668,6 +1676,31 @@ function getResearchBookmarkKingValidationMessage(purpose) {
         const dc = Math.abs(whiteKingPos.col - blackKingPos.col);
         if (dr <= 1 && dc <= 1) {
             return header + "The two kings cannot be on adjacent squares (including diagonally).";
+        }
+    }
+
+    const W = byColor.white;
+    const B = byColor.black;
+    const nonKingWhite = W.pawn + W.rook + W.knight + W.bishop + W.queen;
+    const nonKingBlack = B.pawn + B.rook + B.knight + B.bishop + B.queen;
+    const totalPieces = 2 + nonKingWhite + nonKingBlack;
+    const minorsTotal = W.bishop + W.knight + B.bishop + B.knight;
+    const heavyOrPawnTotal = W.pawn + W.rook + W.queen + B.pawn + B.rook + B.queen;
+
+    /* Automatic insufficient material (common FIDE-style cases), from piece counts only (+ bishop squares for KB vs KB). */
+    if (nonKingWhite === 0 && nonKingBlack === 0) {
+        return header + "This position is a draw by insufficient material (king versus king). Add pieces so checkmate remains possible.";
+    }
+    if (totalPieces === 3 && heavyOrPawnTotal === 0 && minorsTotal === 1) {
+        return header + "This position is a draw by insufficient material (king and bishop or knight versus lone king). Add pieces so checkmate remains possible.";
+    }
+    if (totalPieces === 4 && W.bishop === 1 && B.bishop === 1 && W.knight + W.queen + W.rook + W.pawn === 0 && B.knight + B.queen + B.rook + B.pawn === 0) {
+        if (whiteBishopSquare && blackBishopSquare) {
+            const wSum = whiteBishopSquare.row + whiteBishopSquare.col;
+            const bSum = blackBishopSquare.row + blackBishopSquare.col;
+            if (wSum % 2 === bSum % 2) {
+                return header + "This position is a draw by insufficient material (bishop versus bishop on the same square color). Add pieces so checkmate remains possible.";
+            }
         }
     }
 
@@ -3609,9 +3642,9 @@ function showBookmarks() {
 /* eslint-disable-next-line no-unused-vars */
 async function addBookmark() {
     if (researchMode) {
-        const kingErr = getResearchBookmarkKingValidationMessage();
-        if (kingErr) {
-            alertMessageBox(kingErr);
+        const positionErr = getResearchBookmarkPositionValidationMessage();
+        if (positionErr) {
+            alertMessageBox(positionErr);
             return;
         }
     }
@@ -3845,9 +3878,9 @@ function exitBookmarkPositionEditMode() {
 
 async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
     if (researchMode) {
-        const kingErr = getResearchBookmarkKingValidationMessage("save");
-        if (kingErr) {
-            alertMessageBox(kingErr);
+        const positionErr = getResearchBookmarkPositionValidationMessage("save");
+        if (positionErr) {
+            alertMessageBox(positionErr);
             return;
         }
     }
@@ -3898,9 +3931,9 @@ async function applyBookmarkAction(bookmarkId) {
 
 async function onBookmarkAdded(bookmarkId, name, date, gameType) {
     if (researchMode) {
-        const kingErr = getResearchBookmarkKingValidationMessage("add");
-        if (kingErr) {
-            alertMessageBox(kingErr);
+        const positionErr = getResearchBookmarkPositionValidationMessage("add");
+        if (positionErr) {
+            alertMessageBox(positionErr);
             return;
         }
     }
