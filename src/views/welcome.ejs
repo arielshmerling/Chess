@@ -226,23 +226,12 @@
   setInterval(refreshActiveGamesFromServer, 8000);
   refreshActiveGamesFromServer();
 
-  var wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  var wsUrl = wsProtocol + "//" + window.location.host + "/ws";
-  try {
-    var lobbyWs = new WebSocket(wsUrl, "protocolOne");
-    lobbyWs.onopen = function() {
-      lobbyWs.send(JSON.stringify({ type: "subscribeLobby" }));
-    };
-    lobbyWs.onmessage = function(ev) {
-      try {
-        var msg = JSON.parse(ev.data);
-        if (msg.type === "onlineGameInProgress" && msg.data) addOrUpdateGameRow(msg.data);
-        if (msg.type === "onlineGameUpdated" && msg.data) updateGameRow(msg.data.gameId, msg.data);
-      } catch (e) { console.warn("Lobby message parse error", e); }
-    };
-    lobbyWs.onclose = function() { };
-    lobbyWs.onerror = function() { };
-  } catch (e) { console.warn("Lobby WebSocket error", e); }
+  window.addEventListener("site-ws-message", function (ev) {
+    var msg = ev.detail;
+    if (!msg) return;
+    if (msg.type === "onlineGameInProgress" && msg.data) addOrUpdateGameRow(msg.data);
+    if (msg.type === "onlineGameUpdated" && msg.data) updateGameRow(msg.data.gameId, msg.data);
+  });
 })();
       </script>
     </div>

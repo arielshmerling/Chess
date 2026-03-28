@@ -1795,7 +1795,7 @@ function alertMessageBox(text) {
     cloakDiv.appendChild(createAlertMessageBox(text));
     registerButtonEvents();
     saveButtonsState();
-    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn", "bookmarkBtn"]);
+    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn", "bookmarkBtn", "addBookmarkBtn"]);
 }
 
 function createMessageBox(text, yesCallback, noCallback) {
@@ -1864,7 +1864,7 @@ function messageBox(text, yesCallback, noCallback) {
     chessboardDiv.appendChild(createMessageBox(text, yesCallback, noCallback));
     registerButtonEvents();
     saveButtonsState();
-    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn", "bookmarkBtn"]);
+    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn", "bookmarkBtn", "addBookmarkBtn"]);
 }
 
 // Game Event Handlers
@@ -3402,9 +3402,8 @@ async function movePrev() {
     if (gameInfo.mode != "review") { return; }
     if (animating) { return; }
     if (moveIndex > 0) {
-        //moveIndex < gameMoves.moves.length 
-        const move = gameMoves.moves[moveIndex];
-        if (move && !game.isResultMove(move)) {
+        const lastApplied = gameMoves.moves[moveIndex - 1];
+        if (lastApplied && !game.isResultMove(lastApplied)) {
             game.undo();
         }
         moveIndex--;
@@ -3641,6 +3640,7 @@ function showBookmarks() {
 
 /* eslint-disable-next-line no-unused-vars */
 async function addBookmark() {
+    if (dialogOn) return;
     if (researchMode) {
         const positionErr = getResearchBookmarkPositionValidationMessage();
         if (positionErr) {

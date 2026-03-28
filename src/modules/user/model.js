@@ -69,6 +69,18 @@ const userSchema = new mongoose.Schema({
         ref: "User",
     }],
 
+    /** Pending incoming friend requests (sender user ids). */
+    friendInvitesReceived: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    }],
+
+    /** Pending outgoing friend requests (recipient user ids). */
+    friendInvitesSent: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    }],
+
     bookmarks: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Bookmark",

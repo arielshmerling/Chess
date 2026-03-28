@@ -16,6 +16,10 @@
   <script src="/chessboard.js"></script>
   <script src="/lobby.js"></script>
   <script src="/customValidation.js"></script>
+  <script src="/siteDialogs.js"></script>
+  <% if (typeof username !== 'undefined' && username) { %>
+  <script src="/lobbyPresence.js"></script>
+  <% } %>
 </head>
 
 <body<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> class="hide-topbar"<% } %>>
@@ -33,6 +37,20 @@
   </div>
 
   <%- include('../partials/footer') %>
+
+  <%- include('../partials/site-dialogs') %>
+
+  <% if (typeof username !== 'undefined' && username) { %>
+  <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+    (function () {
+      function ping() {
+        fetch("/api/presence/ping", { method: "POST", credentials: "same-origin" }).catch(function () {});
+      }
+      ping();
+      setInterval(ping, 45000);
+    })();
+  </script>
+  <% } %>
 
 </body>
 

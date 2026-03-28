@@ -658,10 +658,15 @@ class ChessGame {
 
     cloneMove(move) {
         const clone = { ...move };
-
-        clone.source = this.square(move.row, move.col);
-        clone.source = this.square(move.row, move.col);
-        clone.piece = { ...move.piece };
+        if (move.source) {
+            clone.source = { ...move.source };
+        }
+        if (move.target) {
+            clone.target = { ...move.target };
+        }
+        if (move.piece) {
+            clone.piece = { ...move.piece };
+        }
         return clone;
     }
 
@@ -2181,7 +2186,11 @@ class ChessGame {
         //let sourceCol, sourceRow;
 
         if (pgnMove.source) {
-            if (pgnMove.source.row && pgnMove.source.col) { return pgnMove.source; }
+            const sr = pgnMove.source.row;
+            const sc = pgnMove.source.col;
+            if (Number.isInteger(sr) && Number.isInteger(sc)) {
+                return pgnMove.source;
+            }
         }
 
 

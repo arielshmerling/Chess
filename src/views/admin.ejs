@@ -54,17 +54,6 @@
   </div>
 </div>
 
-<div id="admin-confirm-overlay" class="admin-confirm-overlay" aria-hidden="true">
-  <div class="admin-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title">
-    <h3 id="admin-confirm-title" class="admin-confirm-title">Confirm</h3>
-    <p id="admin-confirm-message" class="admin-confirm-message"></p>
-    <div class="admin-confirm-actions">
-      <button type="button" class="button admin-confirm-cancel">Cancel</button>
-      <button type="button" class="button admin-confirm-ok">Confirm</button>
-    </div>
-  </div>
-</div>
-
 <% var adminUsersJson = JSON.stringify(typeof adminUsers !== "undefined" && adminUsers ? adminUsers : []).replace(/</g, "\\u003c"); %>
 <% var adminGamesJson = JSON.stringify(typeof adminGames !== "undefined" && adminGames ? adminGames : []).replace(/</g, "\\u003c"); %>
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
@@ -120,60 +109,6 @@
       return axios.patch("/admin/users/" + encodeURIComponent(userId), payload);
     }
 
-    function showAdminConfirm(message, title) {
-      return new Promise(function (resolve) {
-        var overlay = document.getElementById("admin-confirm-overlay");
-        var titleEl = document.getElementById("admin-confirm-title");
-        var msgEl = document.getElementById("admin-confirm-message");
-        var btnOk = overlay && overlay.querySelector(".admin-confirm-ok");
-        var btnCancel = overlay && overlay.querySelector(".admin-confirm-cancel");
-        if (!overlay || !titleEl || !msgEl || !btnOk || !btnCancel) {
-          resolve(window.confirm(message));
-          return;
-        }
-        titleEl.textContent = title || "Confirm";
-        msgEl.textContent = message;
-        var prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-        overlay.classList.add("admin-confirm-overlay--open");
-        overlay.setAttribute("aria-hidden", "false");
-
-        function cleanup() {
-          document.body.style.overflow = prevOverflow;
-          overlay.classList.remove("admin-confirm-overlay--open");
-          overlay.setAttribute("aria-hidden", "true");
-          document.removeEventListener("keydown", onKey);
-          overlay.removeEventListener("click", onOverlayClick);
-          btnOk.removeEventListener("click", onOk);
-          btnCancel.removeEventListener("click", onCancel);
-        }
-
-        function onOk() {
-          cleanup();
-          resolve(true);
-        }
-        function onCancel() {
-          cleanup();
-          resolve(false);
-        }
-        function onKey(e) {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            onCancel();
-          }
-        }
-        function onOverlayClick(e) {
-          if (e.target === overlay) onCancel();
-        }
-
-        btnOk.addEventListener("click", onOk);
-        btnCancel.addEventListener("click", onCancel);
-        document.addEventListener("keydown", onKey);
-        overlay.addEventListener("click", onOverlayClick);
-        btnOk.focus();
-      });
-    }
-
     function attachEditableCell(td, userId, field, initialValue) {
       var state = { value: initialValue != null ? String(initialValue) : "" };
       td.classList.add("admin-cell-editable");
@@ -216,8 +151,9 @@
           .catch(function (err) {
             var msg = "Update failed";
             if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-            alert(msg);
-            renderLabel();
+            showSiteAlert(msg, "Could not save").then(function () {
+              renderLabel();
+            });
           });
       }
 
@@ -294,8 +230,9 @@
           return;
         }
         if (trimmed.length < 4 || trimmed.length > 30) {
-          alert("Password must be between 4 and 30 characters.");
-          setLabelDefault();
+          showSiteAlert("Password must be between 4 and 30 characters.", "Invalid password").then(function () {
+            setLabelDefault();
+          });
           return;
         }
         patchUserField(userId, { password: trimmed })
@@ -310,8 +247,9 @@
           .catch(function (err) {
             var msg = "Update failed";
             if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-            alert(msg);
-            setLabelDefault();
+            showSiteAlert(msg, "Could not save").then(function () {
+              setLabelDefault();
+            });
           });
       }
 
@@ -410,7 +348,7 @@
           var msg = newAdmin
             ? "Grant admin privileges to this user? They will be able to access admin tools and manage accounts."
             : "Remove admin privileges from this user? They will lose access to the admin area.";
-          showAdminConfirm(msg, "Change role").then(function (ok) {
+          showSiteConfirm(msg, { title: "Change role" }).then(function (ok) {
             if (!ok) {
               sel.value = state.admin ? "1" : "0";
               return;
@@ -428,8 +366,9 @@
               .catch(function (err) {
                 var errMsg = "Update failed";
                 if (err.response && err.response.data && err.response.data.message) errMsg = err.response.data.message;
-                alert(errMsg);
-                sel.value = state.admin ? "1" : "0";
+                showSiteAlert(errMsg, "Could not save").then(function () {
+                  sel.value = state.admin ? "1" : "0";
+                });
               })
               .finally(function () {
                 patching = false;
@@ -529,8 +468,9 @@
             .catch(function (err) {
               var msg = "Update failed";
               if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-              alert(msg);
-              sel.value = state.level && PLAYER_LEVELS.indexOf(state.level) !== -1 ? state.level : PLAYER_LEVELS[0];
+              showSiteAlert(msg, "Could not save").then(function () {
+                sel.value = state.level && PLAYER_LEVELS.indexOf(state.level) !== -1 ? state.level : PLAYER_LEVELS[0];
+              });
             })
             .finally(function () {
               patching = false;

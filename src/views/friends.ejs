@@ -1,0 +1,510 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/friends.css">
+
+<div class="friends-page welcome-container">
+  <div class="hero-banner friends-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-greeting">Friends</h1>
+        <p class="hero-tagline">Your friends, incoming offers, and discover players</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="games-section friends-section">
+    <div class="friends-two-columns">
+      <div class="games-panel friends-list-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2 class="panel-title">Your friends</h2>
+          </div>
+          <div class="panel-subtitle">Friends and pending invites — incoming offers show a yellow marker; accept or decline there</div>
+        </div>
+        <div class="panel-body">
+          <div id="friendsEmpty" class="no-games-message">
+            <p>No friends yet</p>
+          </div>
+          <ul id="friendsList" class="friends-user-list" aria-live="polite"></ul>
+        </div>
+      </div>
+
+      <div class="games-panel friends-search-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2 class="panel-title">Find players</h2>
+          </div>
+          <div class="panel-subtitle">Search by username (letters and numbers only)</div>
+        </div>
+        <div class="panel-body">
+          <div class="friends-search-row">
+            <label class="friends-search-label" for="friendSearchInput">Username</label>
+            <input type="text" id="friendSearchInput" class="friends-search-input" autocomplete="off" maxlength="48" placeholder="Type to search…" aria-describedby="friendSearchHint">
+            <p id="friendSearchHint" class="friends-search-hint">Only English letters (A–Z) and digits (0–9) are used for the search.</p>
+          </div>
+          <ul id="searchResults" class="friends-user-list friends-search-results" aria-live="polite"></ul>
+          <div id="searchPlaceholder" class="friends-search-placeholder">Enter at least one character to search</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+(function () {
+  var friendsList = document.getElementById("friendsList");
+  var friendsEmpty = document.getElementById("friendsEmpty");
+  var searchInput = document.getElementById("friendSearchInput");
+  var searchResults = document.getElementById("searchResults");
+  var searchPlaceholder = document.getElementById("searchPlaceholder");
+  var searchTimer = null;
+
+  /** Live WS presence; reconciled from API on each /api/friends/data fetch so it cannot stay wrong after reconnects. */
+  var liveOnlineByUserId = {};
+  var wsResyncTimer = null;
+  /** Usernames currently in an active online game (lobby WS). */
+  var playingUsernames = {};
+  /** gameId -> { w, b } for clearing playing when a game ends. */
+  var gamePlayersById = {};
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body || {}),
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok) throw new Error((data && data.message) || r.statusText || "Request failed");
+        return data;
+      });
+    });
+  }
+
+  function statusTitle(st) {
+    if (st === "playing") return "Playing";
+    if (st === "online") return "Online";
+    if (st === "pending") return "Pending friendship offer";
+    return "Offline";
+  }
+
+  function computeEffectiveStatus(f) {
+    if (f.rowType === "pendingOut") return "pending";
+    if (f.username && playingUsernames[f.username]) return "playing";
+    if (Object.prototype.hasOwnProperty.call(liveOnlineByUserId, f.id)) {
+      return liveOnlineByUserId[f.id] ? "online" : "offline";
+    }
+    return f.status || "offline";
+  }
+
+  function syncPlayingFromApi(friends) {
+    if (!friends) return;
+    friends.forEach(function (f) {
+      if (f.rowType === "pendingOut") return;
+      if (f.status === "playing") playingUsernames[f.username] = 1;
+      else delete playingUsernames[f.username];
+    });
+  }
+
+  /**
+   * Server is source of truth for online/offline on each poll; WS only refines between polls.
+   * Drops stale keys so old friendPresence values cannot paint everyone grey forever.
+   */
+  function mergePresenceFromApiFriends(friends) {
+    if (!friends) return;
+    var friendIds = {};
+    friends.forEach(function (f) {
+      if (f.rowType === "pendingOut") return;
+      friendIds[f.id] = true;
+      if (f.status === "playing") {
+        delete liveOnlineByUserId[f.id];
+        return;
+      }
+      liveOnlineByUserId[f.id] = f.status === "online";
+    });
+    Object.keys(liveOnlineByUserId).forEach(function (k) {
+      if (!friendIds[k]) delete liveOnlineByUserId[k];
+    });
+  }
+
+  function updateFriendRowVisual(userId, username, status) {
+    if (!friendsList) return;
+    var li = friendsList.querySelector('li[data-friend-id="' + userId + '"]');
+    if (!li) return;
+    if (li.getAttribute("data-friend-offer-in") === "true") return;
+    if (li.getAttribute("data-friend-pending-out") === "true") return;
+    var dot = li.querySelector(".friends-status-dot");
+    var inviteBtn = li.querySelector(".friends-btn-invite");
+    if (dot) {
+      dot.className = "friends-status-dot friends-status-" + status;
+      dot.title = statusTitle(status);
+      dot.setAttribute("aria-label", statusTitle(status));
+    }
+    if (inviteBtn) {
+      inviteBtn.disabled = status !== "online";
+    }
+  }
+
+  function applyPresenceToAllVisibleFriends() {
+    if (!friendsList) return;
+    var rows = friendsList.querySelectorAll("li[data-friend-id]");
+    for (var i = 0; i < rows.length; i++) {
+      var li = rows[i];
+      if (li.getAttribute("data-friend-offer-in") === "true") continue;
+      if (li.getAttribute("data-friend-pending-out") === "true") continue;
+      var id = li.getAttribute("data-friend-id");
+      var un = li.getAttribute("data-friend-username") || "";
+      updateFriendRowVisual(id, un, computeEffectiveStatus({ id: id, username: un, status: "offline", rowType: "friend" }));
+    }
+  }
+
+  function renderFriendsAndOffers(offersIn, friends) {
+    if (!friendsList || !friendsEmpty) return;
+    friendsList.innerHTML = "";
+    var offers = (offersIn || []).slice().sort(function (a, b) {
+      return String(a.username || "").localeCompare(String(b.username || ""), undefined, { sensitivity: "base" });
+    });
+    var friendRows = friends || [];
+    if (offers.length === 0 && friendRows.length === 0) {
+      friendsEmpty.style.display = "block";
+      return;
+    }
+    friendsEmpty.style.display = "none";
+    var offerLabel = "Friend request";
+    offers.forEach(function (o) {
+      var li = document.createElement("li");
+      li.className = "friends-friend-row friends-row-offer-in";
+      li.setAttribute("data-friend-id", o.id);
+      li.setAttribute("data-friend-offer-in", "true");
+      li.innerHTML =
+        '<span class="friends-offer-icon" role="img" title="' +
+        esc(offerLabel) +
+        '" aria-label="' +
+        esc(offerLabel) +
+        '"></span>' +
+        '<span class="friends-username">' +
+        esc(o.username) +
+        ' <span class="friends-pending-suffix">(wants to be friends)</span></span>' +
+        '<div class="friends-row-actions">' +
+        '<button type="button" class="friends-btn friends-btn-primary" data-action="accept" data-id="' +
+        esc(o.id) +
+        '">Accept</button>' +
+        '<button type="button" class="friends-btn friends-btn-muted" data-action="decline" data-id="' +
+        esc(o.id) +
+        '">Decline</button>' +
+        "</div>";
+      friendsList.appendChild(li);
+    });
+    friendRows.forEach(function (f) {
+      var li = document.createElement("li");
+      li.className = "friends-friend-row";
+      li.setAttribute("data-friend-id", f.id);
+      li.setAttribute("data-friend-username", f.username);
+      if (f.rowType === "pendingOut") {
+        li.setAttribute("data-friend-pending-out", "true");
+        var pendTitle = statusTitle("pending");
+        li.innerHTML =
+          '<span class="friends-status-dot friends-status-pending" title="' +
+          esc(pendTitle) +
+          '" aria-label="' +
+          esc(pendTitle) +
+          '"></span>' +
+          '<span class="friends-username">' +
+          esc(f.username) +
+          ' <span class="friends-pending-suffix">(pending friendship offer)</span></span>' +
+          '<div class="friends-row-actions">' +
+          '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite" disabled data-username="' +
+          esc(f.username) +
+          '">Invite</button>' +
+          '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-invite" data-id="' +
+          esc(f.id) +
+          '">Withdraw</button>' +
+          "</div>";
+      } else {
+        var st = computeEffectiveStatus(f);
+        var dotClass = "friends-status-dot friends-status-" + st;
+        var inviteDisabled = st !== "online";
+        li.innerHTML =
+          '<span class="' +
+          esc(dotClass) +
+          '" title="' +
+          esc(statusTitle(st)) +
+          '" aria-label="' +
+          esc(statusTitle(st)) +
+          '"></span>' +
+          '<span class="friends-username">' +
+          esc(f.username) +
+          "</span>" +
+          '<div class="friends-row-actions">' +
+          '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
+          (inviteDisabled ? " disabled" : "") +
+          ' data-username="' +
+          esc(f.username) +
+          '">Invite</button>' +
+          '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
+          esc(f.id) +
+          '">Remove</button>' +
+          "</div>";
+      }
+      friendsList.appendChild(li);
+    });
+  }
+
+  function renderSearchResults(results) {
+    if (!searchResults || !searchPlaceholder) return;
+    searchResults.innerHTML = "";
+    if (!results || results.length === 0) {
+      searchPlaceholder.textContent = "No matching users";
+      searchPlaceholder.style.display = "block";
+      return;
+    }
+    searchPlaceholder.style.display = "none";
+    results.forEach(function (u) {
+      var li = document.createElement("li");
+      li.className = "friends-search-row-item";
+      var addPart = "";
+      if (u.isFriend) {
+        addPart = '<span class="friends-tag">Friends</span>';
+      } else if (u.requestSent) {
+        addPart = '<span class="friends-tag">Offer sent</span>';
+      } else if (u.requestReceived) {
+        addPart = '<span class="friends-tag">Offer received — see Your friends</span>';
+      } else {
+        addPart =
+          '<button type="button" class="friends-btn friends-btn-primary" data-action="addfriend" data-id="' +
+          esc(u.id) +
+          '">Add friend</button>';
+      }
+      li.innerHTML = '<span class="friends-username">' + esc(u.username) + "</span>" + addPart;
+      searchResults.appendChild(li);
+    });
+  }
+
+  function refreshData() {
+    return fetch("/api/friends/data", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var friends = data.friends || [];
+        syncPlayingFromApi(friends);
+        mergePresenceFromApiFriends(friends);
+        renderFriendsAndOffers(data.offersIn || [], friends);
+      })
+      .catch(function () {});
+  }
+
+  function runSearch(q) {
+    var clean = q.replace(/[^a-zA-Z0-9]/g, "");
+    if (clean.length < 1) {
+      if (searchResults) searchResults.innerHTML = "";
+      if (searchPlaceholder) {
+        searchPlaceholder.textContent = "Enter at least one character to search";
+        searchPlaceholder.style.display = "block";
+      }
+      return;
+    }
+    fetch("/api/friends/search?q=" + encodeURIComponent(clean), { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        renderSearchResults(data.results || []);
+      })
+      .catch(function () {});
+  }
+
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    var action = t.getAttribute("data-action");
+    var id = t.getAttribute("data-id");
+    if (action === "accept" && id) {
+      postJson("/api/friends/accept", { fromUserId: id }).then(refreshData).catch(function (e) {
+        showSiteAlert(e.message || "Could not accept", "Could not accept");
+      });
+    }
+    if (action === "decline" && id) {
+      postJson("/api/friends/decline", { fromUserId: id }).then(refreshData).catch(function (e) {
+        showSiteAlert(e.message || "Could not decline", "Could not decline");
+      });
+    }
+    if (action === "remove" && id) {
+      showSiteConfirm("Remove this friend from your list?", {
+        title: "Remove friend",
+        confirmLabel: "Remove",
+        cancelLabel: "Cancel",
+      }).then(function (ok) {
+        if (!ok) return;
+        postJson("/api/friends/remove", { friendUserId: id }).then(refreshData).catch(function (e) {
+          showSiteAlert(e.message || "Could not remove", "Could not remove");
+        });
+      });
+    }
+    if (action === "withdraw-invite" && id) {
+      showSiteConfirm("Withdraw this friendship offer?", {
+        title: "Withdraw offer",
+        confirmLabel: "Withdraw",
+        cancelLabel: "Cancel",
+      }).then(function (ok) {
+        if (!ok) return;
+        postJson("/api/friends/withdraw", { targetUserId: id }).then(refreshData).catch(function (e) {
+          showSiteAlert(e.message || "Could not withdraw offer", "Could not withdraw");
+        });
+      });
+    }
+    if (action === "addfriend" && id) {
+      postJson("/api/friends/invite", { targetUserId: id })
+        .then(function () {
+          return refreshData();
+        })
+        .then(function () {
+          var v = searchInput ? searchInput.value : "";
+          runSearch(v);
+        })
+        .catch(function (e) {
+          showSiteAlert(e.message || "Could not send invite", "Could not send invite");
+        });
+    }
+    if (t.classList && t.classList.contains("friends-btn-invite") && !t.disabled) {
+      var un = t.getAttribute("data-username");
+      if (un) window.location.href = "/game?gameType=2";
+    }
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      var v = searchInput.value;
+      var filtered = v.replace(/[^a-zA-Z0-9]/g, "");
+      if (v !== filtered) searchInput.value = filtered;
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        runSearch(filtered);
+      }, 280);
+    });
+    searchInput.addEventListener("keydown", function (e) {
+      if (!e.key || e.key.length !== 1) return;
+      if (/^[a-zA-Z0-9]$/.test(e.key)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var blocked = /[^\x00-\x7F]/.test(e.key) || /[^a-zA-Z0-9]/.test(e.key);
+      if (blocked) e.preventDefault();
+    });
+  }
+
+  window.addEventListener("site-ws-message", function (ev) {
+    var msg = ev.detail;
+    if (!msg) return;
+    if (msg.type === "friendPresence" && msg.data) {
+      var d = msg.data;
+      if (!d.userId) return;
+      var liP = friendsList && friendsList.querySelector('li[data-friend-id="' + d.userId + '"]');
+      if (liP && liP.getAttribute("data-friend-offer-in") === "true") return;
+      if (liP && liP.getAttribute("data-friend-pending-out") === "true") return;
+      liveOnlineByUserId[d.userId] = !!d.online;
+      var li = friendsList && friendsList.querySelector('li[data-friend-id="' + d.userId + '"]');
+      var un = (li && li.getAttribute("data-friend-username")) || d.username || "";
+      updateFriendRowVisual(d.userId, un, computeEffectiveStatus({ id: d.userId, username: un, status: "offline", rowType: "friend" }));
+      return;
+    }
+    if (msg.type === "onlineGameInProgress" && msg.data) {
+      var d2 = msg.data;
+      var gid = d2.gameId != null ? String(d2.gameId) : "";
+      if (gid) {
+        gamePlayersById[gid] = {
+          w: d2.whitePlayerName || "",
+          b: d2.blackPlayerName || "",
+        };
+      }
+      if (d2.whitePlayerName) playingUsernames[d2.whitePlayerName] = 1;
+      if (d2.blackPlayerName) playingUsernames[d2.blackPlayerName] = 1;
+      applyPresenceToAllVisibleFriends();
+      return;
+    }
+    if (msg.type === "onlineGameUpdated" && msg.data) {
+      var d3 = msg.data;
+      var stNorm = String(d3.status || "")
+        .toLowerCase()
+        .trim();
+      var terminal = stNorm === "game over" || stNorm === "cancelled";
+      if (terminal && d3.gameId != null) {
+        var gpk = String(d3.gameId);
+        var wN = d3.whitePlayerName || "";
+        var bN = d3.blackPlayerName || "";
+        if (wN) delete playingUsernames[wN];
+        if (bN) delete playingUsernames[bN];
+        var gp = gamePlayersById[gpk];
+        if (gp) {
+          if (gp.w) delete playingUsernames[gp.w];
+          if (gp.b) delete playingUsernames[gp.b];
+          delete gamePlayersById[gpk];
+        }
+        applyPresenceToAllVisibleFriends();
+      }
+    }
+  });
+
+  function refreshPlayingFromServer() {
+    fetch("/api/friends/playing-usernames", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok || !Array.isArray(data.usernames)) return;
+        var set = {};
+        for (var i = 0; i < data.usernames.length; i++) {
+          var u = data.usernames[i];
+          if (u) set[u] = 1;
+        }
+        if (!friendsList) return;
+        var rows = friendsList.querySelectorAll("li[data-friend-id]");
+        for (var j = 0; j < rows.length; j++) {
+          var li = rows[j];
+      if (li.getAttribute("data-friend-offer-in") === "true") continue;
+      if (li.getAttribute("data-friend-pending-out") === "true") continue;
+      var un = li.getAttribute("data-friend-username");
+          if (!un) continue;
+          if (set[un]) playingUsernames[un] = 1;
+          else delete playingUsernames[un];
+        }
+        applyPresenceToAllVisibleFriends();
+      })
+      .catch(function () {});
+  }
+
+  function scheduleResyncAfterWsReconnect() {
+    if (wsResyncTimer) clearTimeout(wsResyncTimer);
+    wsResyncTimer = setTimeout(function () {
+      wsResyncTimer = null;
+      refreshData();
+    }, 500);
+  }
+
+  window.addEventListener("site-ws-reconnected", function () {
+    scheduleResyncAfterWsReconnect();
+  });
+
+  window.addEventListener("pageshow", function (ev) {
+    if (ev.persisted) {
+      refreshData();
+      refreshPlayingFromServer();
+    }
+  });
+
+  refreshData();
+  setInterval(refreshData, 45000);
+  refreshPlayingFromServer();
+  setInterval(refreshPlayingFromServer, 8000);
+})();
+</script>

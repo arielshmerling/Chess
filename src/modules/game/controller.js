@@ -394,11 +394,25 @@ function registerEvents(game) {
 
 function broadcastActiveGameToLobby(type, game, extra = {}) {
     const broadcast = gamesManagerService.getLobbyBroadcast();
-    if (!broadcast) return;
+    if (!broadcast) {
+        return;
+    }
     const name = game.constructor.name;
-    if (name !== "OnlineGame" && name !== "SinglePlayerGame") return;
+    if (name !== "OnlineGame" && name !== "SinglePlayerGame") {
+        return;
+    }
     const gameIdStr = String(game.gameId);
-    const payload = { type, data: { gameId: gameIdStr, ...extra } };
+    const whiteName = game.whitePlayer?.userName ?? "";
+    const blackName = game.blackPlayer?.userName ?? "";
+    const payload = {
+        type,
+        data: {
+            gameId: gameIdStr,
+            whitePlayerName: whiteName,
+            blackPlayerName: blackName,
+            ...extra,
+        },
+    };
     broadcast(payload);
 }
 

@@ -8,6 +8,7 @@ const ejsMate = require("ejs-mate");
 const helmet = require("helmet");
 const crypto = require("crypto");
 const enableWs = require("express-ws");
+const presence = require("./utils/presence");
 
 const app = express();
 require("dotenv").config();
@@ -47,6 +48,7 @@ const scriptSrcUrl = [
 const userRoutes = require("./modules/user"); // Import the user routes
 const gamesManagerRoutes = require("./modules/gamesManager"); // Import the games manager routes
 const gameRoutes = require("./modules/game"); // Import the games manager routes
+const friendsRoutes = require("./modules/friends");
 
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
@@ -59,6 +61,7 @@ app.use((req, res, next) => {
 app.use("/", userRoutes);
 app.use("/", gamesManagerRoutes);
 app.use("/", gameRoutes);
+app.use("/", friendsRoutes);
 
 //production script
 app.use(express.static("./client/build"));
@@ -67,6 +70,24 @@ app.use(express.static("./client/build"));
 // Note: gameManagerService will be set up in server.js after app is created
 let gameManagerService = null;
 const lobbyClients = [];
+/** WebSockets that called presenceSubscribe — receive friendPresence broadcasts. */
+const presenceBroadcastClients = [];
+
+presence.setFriendPresenceBroadcaster((payload) => {
+    const message = JSON.stringify({
+        type: "friendPresence",
+        data: payload,
+    });
+    const ready = presenceBroadcastClients.filter((c) => c.readyState === 1);
+    ready.forEach((clientWs) => {
+        try {
+            clientWs.send(message);
+        } catch (err) {
+            console.error("broadcast friendPresence send error:", err);
+        }
+    });
+});
+
 app.setWebSocketService = (service) => {
     gameManagerService = service;
 };
@@ -96,7 +117,28 @@ app.ws("/ws", async (ws, req) => {
             const msg = JSON.parse(recivedData);
 
             if (msg.type === "subscribeLobby") {
-                lobbyClients.push(ws);
+                if (lobbyClients.indexOf(ws) === -1) {
+                    lobbyClients.push(ws);
+                }
+                return;
+            }
+
+            if (msg.type === "presenceSubscribe") {
+                if (ws._presenceSubscribed) {
+                    return;
+                }
+                const uid = req.session && req.session.user_id;
+                if (!uid) {
+                    return;
+                }
+                const uname = (req.session && req.session.user_name) != null
+                    ? String(req.session.user_name)
+                    : "";
+                ws._presenceSubscribed = true;
+                presence.attachPresenceWebSocket(ws, String(uid), uname);
+                if (presenceBroadcastClients.indexOf(ws) === -1) {
+                    presenceBroadcastClients.push(ws);
+                }
                 return;
             }
 
@@ -122,9 +164,19 @@ app.ws("/ws", async (ws, req) => {
         }
     });
 
-    ws.on("close", async (data) => {
+    ws.on("close", async () => {
         const idx = lobbyClients.indexOf(ws);
-        if (idx !== -1) lobbyClients.splice(idx, 1);
+        if (idx !== -1) {
+            lobbyClients.splice(idx, 1);
+        }
+        const pIdx = presenceBroadcastClients.indexOf(ws);
+        if (pIdx !== -1) {
+            presenceBroadcastClients.splice(pIdx, 1);
+        }
+        if (ws._presenceSubscribed) {
+            presence.detachPresenceWebSocket(ws);
+            ws._presenceSubscribed = false;
+        }
     });
 
     ws.on("error", (error) => {
@@ -150,6 +202,10 @@ app.all("*", (req, res, next) => {
 
 app.use((err, req, res, next) => {
     const { statusCode = 500, message = "Sorry, Something went wrong" } = err;
+    if (req.path && req.path.startsWith("/api/")) {
+        res.status(statusCode).json({ ok: false, message });
+        return next(err);
+    }
     res.status(statusCode).render("error", { statusCode, message });
     next(err);
 });

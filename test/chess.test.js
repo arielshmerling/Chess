@@ -2312,6 +2312,24 @@ describe("PGN Move Tests", () => {
         assert.equal(move.piece, game.KNIGHT);
     });
 
+    it("Queen move with explicit source on a-file (col 0) must resolve correctly", () => {
+        const st = JSON.parse(initalState);
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                st.board[r][c] = null;
+            }
+        }
+        st.board[7][0] = { color: "white", pieceType: game.QUEEN };
+        st.board[7][4] = { color: "white", pieceType: game.KING };
+        st.board[0][4] = { color: "black", pieceType: game.KING };
+        st.turn = "white";
+        game.loadGame(JSON.stringify(st));
+        const move = game.convertPGNMove({ moveStr: "Qa1h8", color: "white" });
+        assert.deepEqual(move.source, { row: 7, col: 0 });
+        assert.deepEqual(move.target, { row: 0, col: 7 });
+        assert.equal(move.valid, true);
+    });
+
 
 });
 
