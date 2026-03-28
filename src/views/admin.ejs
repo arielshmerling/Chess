@@ -888,6 +888,11 @@
         ho.name = "sortOrder";
         ho.value = "";
         form.appendChild(ho);
+        var hret = document.createElement("input");
+        hret.type = "hidden";
+        hret.name = "returnTo";
+        hret.value = "/admin";
+        form.appendChild(hret);
         var a = document.createElement("a");
         a.href = "#";
         a.textContent = "Delete";
@@ -1008,6 +1013,17 @@
         }
       });
     });
-    selectTab(0);
+    var urlParams = new URLSearchParams(window.location.search);
+    var tabQ = urlParams.get("tab");
+    var startTab = 0;
+    if (tabQ === "games") startTab = 1;
+    else if (tabQ === "engines") startTab = 2;
+    else if (tabQ === "log") startTab = 3;
+    selectTab(startTab);
+    if (tabQ) {
+      try {
+        window.history.replaceState({}, "", window.location.pathname);
+      } catch (e) { /* ignore */ }
+    }
   })();
 </script>

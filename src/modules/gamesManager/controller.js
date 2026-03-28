@@ -130,6 +130,12 @@ exports.search = async (req, res) => {
 exports.delete = async (req, res) => {
     const { id } = req.params;
     await gamesManagerService.deleteGame(id);
+    const returnTo = req.body.returnTo;
+    /** Allowlist only — never redirect to arbitrary URLs from POST body */
+    if (returnTo === "/admin") {
+        res.redirect("/admin?tab=games");
+        return;
+    }
     const sortKey = req.body.sortKey;
     const sortOrder = req.body.sortOrder;
     const query = [];
