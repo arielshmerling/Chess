@@ -77,6 +77,8 @@ const Labels = {
     HOME: "Exit",
     FLIP: "Flip",
     BOOKMARKS: "Bookmarks",
+    OK: "OK",
+    BOOKMARK_ALERT_TITLE: "Bookmark position",
 };
 
 window.onload = function () {
@@ -1545,6 +1547,224 @@ function displayMessage(message) {
 
 /// MessageBox
 
+/**
+ * Validate research bookmark position (kings + adjacency + piece counts per color).
+ * Returns one user-facing error (header + detail) or null if valid.
+ * Checks run in order; only the first failure is returned so the user can fix and retry.
+ * @param {"add"|"save"} [purpose] "add" when creating a bookmark; "save" when saving position in edit mode.
+ */
+function getResearchBookmarkKingValidationMessage(purpose) {
+    const header = purpose === "save"
+        ? "Cannot save this bookmark:\n\n"
+        : "Cannot add this bookmark:\n\n";
+
+    const g = game;
+    if (!g || !g.GameState) {
+        return header + "Could not read the board. Try again after the board has loaded.";
+    }
+
+    /* Snapshot like loadGame/save would see; avoids stale refs. Same dimensions as ChessGame. */
+    let board;
+    try {
+        const snap = JSON.parse(JSON.stringify(g.GameState));
+        board = snap && snap.board;
+    } catch {
+        board = g.GameState.board;
+    }
+    if (!board || !Array.isArray(board)) {
+        return header + "Could not read the board. Try again after the board has loaded.";
+    }
+
+    const rows = (typeof g.BOARD_ROWS === "number") ? g.BOARD_ROWS : 8;
+    const cols = (typeof g.BOARD_COLUMNS === "number") ? g.BOARD_COLUMNS : 8;
+
+    /* ChessGame piece codes (fixed); match ChessGame.js — do not read only from instance (PAWN=0 is falsy). */
+    const PT_PAWN = 0;
+    const PT_KING = 1;
+    const PT_KNIGHT = 2;
+    const PT_BISHOP = 3;
+    const PT_ROOK = 4;
+    const PT_QUEEN = 5;
+
+    function normalizeBookmarkPieceColor(raw) {
+        if (raw == null) {
+            return null;
+        }
+        const s = String(raw).trim().toLowerCase();
+        if (s === "white") {
+            return "white";
+        }
+        if (s === "black") {
+            return "black";
+        }
+        return null;
+    }
+
+    function cellPieceType(cell) {
+        let pt = cell.pieceType;
+        if (pt === undefined || pt === null) {
+            pt = cell.PieceType;
+        }
+        const n = Number(pt);
+        return Number.isFinite(n) ? n : NaN;
+    }
+
+    const fresh = function () {
+        return { pawn: 0, rook: 0, knight: 0, bishop: 0, queen: 0, king: 0 };
+    };
+    const byColor = { white: fresh(), black: fresh() };
+    let whiteKingPos = null;
+    let blackKingPos = null;
+
+    for (let r = 0; r < rows; r++) {
+        const row = board[r];
+        if (!row || !Array.isArray(row)) {
+            continue;
+        }
+        const rowLen = Math.min(cols, row.length);
+        for (let c = 0; c < rowLen; c++) {
+            const cell = row[c];
+            if (!cell || typeof cell !== "object") {
+                continue;
+            }
+            const col = normalizeBookmarkPieceColor(cell.color);
+            if (!col) {
+                continue;
+            }
+            const t = cellPieceType(cell);
+            if (!Number.isFinite(t)) {
+                continue;
+            }
+            const bucket = byColor[col];
+            if (t === PT_PAWN) bucket.pawn++;
+            else if (t === PT_ROOK) bucket.rook++;
+            else if (t === PT_KNIGHT) bucket.knight++;
+            else if (t === PT_BISHOP) bucket.bishop++;
+            else if (t === PT_QUEEN) bucket.queen++;
+            else if (t === PT_KING) {
+                bucket.king++;
+                if (col === "white") {
+                    whiteKingPos = { row: r, col: c };
+                } else {
+                    blackKingPos = { row: r, col: c };
+                }
+            }
+        }
+    }
+
+    const wk = byColor.white.king;
+    if (wk !== 1) {
+        if (wk === 0) return header + "There must be exactly one white king on the board. None was found.";
+        return header + "There must be exactly one white king on the board. Found " + wk + " white kings.";
+    }
+    const bk = byColor.black.king;
+    if (bk !== 1) {
+        if (bk === 0) return header + "There must be exactly one black king on the board. None was found.";
+        return header + "There must be exactly one black king on the board. Found " + bk + " black kings.";
+    }
+
+    if (whiteKingPos && blackKingPos) {
+        const dr = Math.abs(whiteKingPos.row - blackKingPos.row);
+        const dc = Math.abs(whiteKingPos.col - blackKingPos.col);
+        if (dr <= 1 && dc <= 1) {
+            return header + "The two kings cannot be on adjacent squares (including diagonally).";
+        }
+    }
+
+    if (byColor.white.queen > 9) {
+        return header + "White has " + byColor.white.queen + " queens; the maximum is 9 per color.";
+    }
+    if (byColor.black.queen > 9) {
+        return header + "Black has " + byColor.black.queen + " queens; the maximum is 9 per color.";
+    }
+    if (byColor.white.rook > 10) {
+        return header + "White has " + byColor.white.rook + " rooks; the maximum is 10 per color.";
+    }
+    if (byColor.black.rook > 10) {
+        return header + "Black has " + byColor.black.rook + " rooks; the maximum is 10 per color.";
+    }
+    if (byColor.white.bishop > 10) {
+        return header + "White has " + byColor.white.bishop + " bishops; the maximum is 10 per color.";
+    }
+    if (byColor.black.bishop > 10) {
+        return header + "Black has " + byColor.black.bishop + " bishops; the maximum is 10 per color.";
+    }
+    if (byColor.white.knight > 10) {
+        return header + "White has " + byColor.white.knight + " knights; the maximum is 10 per color.";
+    }
+    if (byColor.black.knight > 10) {
+        return header + "Black has " + byColor.black.knight + " knights; the maximum is 10 per color.";
+    }
+    if (byColor.white.pawn > 8) {
+        return header + "White has " + byColor.white.pawn + " pawns; the maximum is 8 per color.";
+    }
+    if (byColor.black.pawn > 8) {
+        return header + "Black has " + byColor.black.pawn + " pawns; the maximum is 8 per color.";
+    }
+
+    return null;
+}
+
+function createAlertMessageBox(text) {
+    const raw = String(text);
+    const idx = raw.indexOf("\n\n");
+    let titleText = Labels.BOOKMARK_ALERT_TITLE;
+    let bodyText = raw;
+    if (idx !== -1) {
+        titleText = raw.slice(0, idx).trim().replace(/:\s*$/, "");
+        bodyText = raw.slice(idx + 2).trim();
+    }
+
+    const messageBoxPanel = document.createElement("div");
+    messageBoxPanel.setAttribute("class", "messageBoxPanel messageBoxPanel--alert chessboard-alert-dialog");
+    messageBoxPanel.setAttribute("id", "messageBoxPanel");
+    messageBoxPanel.setAttribute("role", "alertdialog");
+    messageBoxPanel.setAttribute("aria-modal", "true");
+    messageBoxPanel.setAttribute("aria-labelledby", "chessboardAlertTitle");
+
+    const titleEl = document.createElement("h3");
+    titleEl.setAttribute("id", "chessboardAlertTitle");
+    titleEl.className = "chessboard-alert-title";
+    titleEl.textContent = titleText;
+    messageBoxPanel.appendChild(titleEl);
+
+    const messageEl = document.createElement("p");
+    messageEl.className = "chessboard-alert-message";
+    messageEl.setAttribute("id", "messageBoxText");
+    messageEl.textContent = bodyText;
+    messageBoxPanel.appendChild(messageEl);
+
+    const buttonsArea = document.createElement("div");
+    buttonsArea.setAttribute("class", "chessboard-alert-actions loadGameButtons");
+    buttonsArea.setAttribute("id", "loadGameButtons");
+
+    const okButton = document.createElement("button");
+    okButton.type = "button";
+    okButton.setAttribute("class", "button chessboard-alert-ok");
+    okButton.setAttribute("id", "alertOkButton");
+    okButton.innerText = Labels.OK;
+    okButton.addEventListener("click", () => { hideMessageBox(); }, { once: true });
+    buttonsArea.appendChild(okButton);
+    messageBoxPanel.appendChild(buttonsArea);
+    return messageBoxPanel;
+}
+
+function alertMessageBox(text) {
+    dialogOn = true;
+    const chessboardDiv = document.getElementById("chessboard");
+    if (!chessboardDiv) return;
+    const cloakDiv = createCloak();
+    cloakDiv.classList.add("cloak--alert");
+    chessboardDiv.appendChild(cloakDiv);
+    cloakDiv.style.visibility = "visible";
+    cloakDiv.style.opacity = "1";
+    /* Dialog inside cloak so it does not become a second flex item on #chessboard (which broke the board layout). */
+    cloakDiv.appendChild(createAlertMessageBox(text));
+    registerButtonEvents();
+    saveButtonsState();
+    disableButtons(["rematchBtn", "resignBtn", "drawBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn", "bookmarkBtn"]);
+}
+
 function createMessageBox(text, yesCallback, noCallback) {
     const messageBoxPanel = document.createElement("div");
     messageBoxPanel.setAttribute("class", "messageBoxPanel");
@@ -1588,6 +1808,8 @@ function hideMessageBox() {
             cloakDiv.style.visibility = "hidden";
             cloakDiv.style.opacity = "0";
             chessboardDiv.removeChild(cloakDiv);
+        }
+        if (messageBoxPanel.parentNode === chessboardDiv) {
             chessboardDiv.removeChild(messageBoxPanel);
         }
         // enableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
@@ -3386,6 +3608,13 @@ function showBookmarks() {
 
 /* eslint-disable-next-line no-unused-vars */
 async function addBookmark() {
+    if (researchMode) {
+        const kingErr = getResearchBookmarkKingValidationMessage();
+        if (kingErr) {
+            alertMessageBox(kingErr);
+            return;
+        }
+    }
 
     const bookmarksList = document.getElementById("bookmarksList");
     const div = createNewBookmarkDiv();
@@ -3611,6 +3840,13 @@ function exitBookmarkPositionEditMode() {
 }
 
 async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
+    if (researchMode) {
+        const kingErr = getResearchBookmarkKingValidationMessage("save");
+        if (kingErr) {
+            alertMessageBox(kingErr);
+            return;
+        }
+    }
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
     if (!bookmarkObj) return;
     const stateRaw = game.GameState;
@@ -3657,6 +3893,13 @@ async function applyBookmarkAction(bookmarkId) {
 }
 
 async function onBookmarkAdded(bookmarkId, name, date, gameType) {
+    if (researchMode) {
+        const kingErr = getResearchBookmarkKingValidationMessage("add");
+        if (kingErr) {
+            alertMessageBox(kingErr);
+            return;
+        }
+    }
     const bookmarksList = document.getElementById("bookmarksList");
     const newBookmarkCard = document.getElementById("newBookmark");
     const bookmark = createBookmarkDiv(bookmarkId, name, date, gameType);

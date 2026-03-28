@@ -523,6 +523,7 @@ body.research-mode .debug-game-id {
 }
 
 #chessboard {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -552,6 +553,17 @@ body.research-mode .debug-game-id {
     backdrop-filter: blur(4px);
     opacity: 0;
     transition: visibility 0.1s ease-in-out, opacity 0.5s ease-in;
+}
+
+/* Bookmark / validation alert: match admin confirm overlay feel */
+.cloak.cloak--alert {
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    inset: 0;
+    min-width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 0 14px;
 }
 
 .promotionSelectionBox {
@@ -587,6 +599,79 @@ body.research-mode .debug-game-id {
     margin-bottom: 40px;
     margin-left: 10px;
     margin-top: 10px;
+}
+
+/* Research bookmark validation alert — aligned with .admin-confirm-dialog */
+.messageBoxPanel.messageBoxPanel--alert.chessboard-alert-dialog {
+    /* Narrower than #chessboard; centered by .cloak flex; 100% = cloak inner width after padding */
+    width: min(380px, calc(100% - 8px));
+    box-sizing: border-box;
+    min-height: 0;
+    height: auto;
+    max-height: min(72vh, 540px);
+    padding: 24px 22px 18px;
+    margin: 0 auto;
+    flex-shrink: 0;
+    align-self: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    border-radius: 16px;
+    border: 2px solid rgba(152, 193, 217, 0.35);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.82) 0%, rgba(33, 51, 79, 0.88) 100%);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    filter: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    z-index: 2;
+}
+
+.chessboard-alert-title {
+    margin: 0 0 12px;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--light);
+    letter-spacing: 0.5px;
+    line-height: 1.25;
+}
+
+.chessboard-alert-message {
+    margin: 0 0 24px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--semiLight);
+    font-weight: 400;
+    white-space: pre-line;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.chessboard-alert-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+.chessboard-alert-actions .button {
+    margin: 0;
+    min-width: 100px;
+}
+
+.chessboard-alert-ok {
+    background: linear-gradient(165deg, #52b788 0%, #2d6a4f 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    filter: none;
+}
+
+.chessboard-alert-ok:hover {
+    filter: brightness(1.08);
+    color: #fff !important;
 }
 
 
