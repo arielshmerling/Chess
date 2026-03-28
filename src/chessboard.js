@@ -686,11 +686,13 @@ function initResearchMode() {
     createResearchToolbox();
     registerResearchBoardClick();
     addOptionsButtons();
+    const bookmarkBtnEl = document.getElementById("bookmarkBtn");
+    if (bookmarkBtnEl) bookmarkBtnEl.remove();
     generateMoveButtons();
     registerWindowEvents();
     disableButtons(["rematchBtn", "resignBtn", "drawBtn", "undoBtn", "redoBtn", "lastMoveBtn"]);
     hideButtons(["undoBtn", "redoBtn", "lastMoveBtn"]);
-    enableButtons(["homeBtn", "bookmarkBtn"]);
+    enableButtons(["homeBtn"]);
     getBookmarks().then(function (list) {
         bookmarks = list;
         updateBookmarks(bookmarks);
@@ -3260,6 +3262,11 @@ async function backToHome() {
 
     if (isButtonDisabled("homeBtn")) { return; }
 
+    if (researchMode || gameInfo.gameType === "Research") {
+        window.location = "/home";
+        return;
+    }
+
     if (game.GameOver || gameInfo.mode == "review" || gameInfo.watcher) {
         goBackHome();
         return;
@@ -3274,6 +3281,10 @@ async function backToHome() {
 };
 
 async function goBackHome() {
+    if (researchMode || gameInfo.gameType === "Research") {
+        window.location = "/home";
+        return;
+    }
     if (gameInfo.watcher || gameInfo.mode === "review") {
         window.location = "/home";
         return;
