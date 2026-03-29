@@ -3269,34 +3269,20 @@ function showMoveButtons(show) {
 
 }
 
-function moveEnd() {
-    if (gameInfo.mode != "review") { return; }
-    if (animating) {
-        movePause();
-    };
 
-    //wait until animation completes
-    const temp = setInterval(() => {
 
-        if (!animating) {
-            for (let i = 0; i < gameMoves.moves.length; i++) {
-                showMoveForReview(gameMoves.moves[moveIndex], false);
-                moveIndex++;
-                const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
-                movesTDList.forEach(td => td.classList.remove("selectedMove"));
-                const turnStr = "td_move" + (i + 1);
-                const td = document.getElementById(turnStr);
-                if (td) {
-                    td.classList.toggle("selectedMove");
-                    scrollMoveCellIntoView(td);
-                }
-            }
-            clearInterval(temp);
-            moveIndex = gameMoves.moves.length;
-            console.log("moveIndex:" + moveIndex);
-        }
-    }, 100);
-
+/** @param {boolean} isPlay - true: show Play / hide Pause (paused); false: hide Play / show Pause (playing) */
+function togglePlayPause(isPlay) {
+    const playBtn = document.getElementById("movePlay");
+    const pauseBtn = document.getElementById("movePause");
+    if (!playBtn || !pauseBtn) { return; }
+    if (isPlay) {
+        playBtn.classList.remove("hide");
+        pauseBtn.classList.add("hide");
+    } else {
+        playBtn.classList.add("hide");
+        pauseBtn.classList.remove("hide");
+    }
 }
 
 function movePause() {
@@ -3304,10 +3290,7 @@ function movePause() {
     pause = true;
     const temp = setInterval(() => {
         if (!animating) {
-            const movePlay = document.getElementById("movePlay");
-            movePlay.classList.remove("hide");
-            const movePause = document.getElementById("movePause");
-            movePause.classList.add("hide");
+            togglePlayPause(true);
             clearInterval(temp);
             console.log("moveIndex:" + moveIndex);
         }
@@ -3321,13 +3304,10 @@ function movePlay() {
     if (animating) { return; }
     if (dialogOn) { return; }
 
-    const movePlay = document.getElementById("movePlay");
-    movePlay.classList.add("hide");
-    const movePause = document.getElementById("movePause");
-    movePause.classList.remove("hide");
+    togglePlayPause(false);
 
     moveHandle = setInterval(() => {
-
+        
         if (pause) {
             pause = false;
             animating = false;
@@ -3347,7 +3327,11 @@ function movePlay() {
             scrollMoveCellIntoView(td);
         }
 
-        else { clearInterval(moveHandle); console.log("moveIndex:" + moveIndex); }
+        else { 
+            clearInterval(moveHandle); 
+            togglePlayPause(true);
+            //console.log("moveIndex:" + moveIndex); 
+        }
     }, 800);
 }
 
@@ -3360,7 +3344,7 @@ async function moveStart() {
     }
     const temp = setInterval(() => {
 
-        if (!animating) {
+        if (!animating) {   
             resetClocks();
             game.startNewGame(currentPlayerIsWhite);
             moveIndex = 0;
@@ -3370,7 +3354,8 @@ async function moveStart() {
             const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
             movesTDList.forEach(td => td.classList.remove("selectedMove"));
             clearInterval(temp);
-            console.log("moveIndex:" + moveIndex);
+            togglePlayPause(true);
+            //console.log("moveIndex:" + moveIndex);
         }
 
     }, 100);
@@ -3416,6 +3401,37 @@ async function movePrev() {
         scrollMoveCellIntoView(td);
     }
     console.log("moveIndex:" + moveIndex);
+}
+
+function moveEnd() {
+    if (gameInfo.mode != "review") { return; }
+    if (animating) {
+        movePause();
+    };
+
+    //wait until animation completes
+    const temp = setInterval(() => {
+
+        if (!animating) {
+            for (let i = 0; i < gameMoves.moves.length; i++) {
+                showMoveForReview(gameMoves.moves[moveIndex], false);
+                moveIndex++;
+                const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
+                movesTDList.forEach(td => td.classList.remove("selectedMove"));
+                const turnStr = "td_move" + (i + 1);
+                const td = document.getElementById(turnStr);
+                if (td) {
+                    td.classList.toggle("selectedMove");
+                    scrollMoveCellIntoView(td);
+                }
+            }
+            clearInterval(temp);
+            moveIndex = gameMoves.moves.length;
+            togglePlayPause(true);
+            //console.log("moveIndex:" + moveIndex);
+        }
+    }, 100);
+
 }
 
 async function showMoveForReview(move, animnate) {
