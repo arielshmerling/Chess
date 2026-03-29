@@ -14,7 +14,9 @@ let currentPlayerIsWhite;
 let webSocket;
 let whiteTimer, blackTimer;
 let whiteHandle, blackHandle;
-let disconnectionTimer, disconnectionTimerHandle, rejoined;
+let disconnectionTimer, disconnectionTimerHandle;
+/** @type {ReturnType<typeof setTimeout>|null} */
+let opponentDisconnectGraceTimer = null;
 let moveHandle;
 let moveIndex = 0;
 const buttonsState = [];
@@ -28,6 +30,131 @@ let currentEditingBookmark = null;
 let clickToMoveSelected = null;
 /** Suppress duplicate check alerts if OnUpdate still fires twice with the same checked side (backup guard). */
 let lastCheckNotifySide = null;
+
+function clearOpponentDisconnectGrace() {
+    if (opponentDisconnectGraceTimer != null) {
+        clearTimeout(opponentDisconnectGraceTimer);
+        opponentDisconnectGraceTimer = null;
+    }
+}
+
+/**
+ * @param {HTMLElement|null} el
+ * @param {"online"|"disconnected"|"offline"} state
+ */
+function setPlayerStatusDot(el, state) {
+    if (!el) {
+        return;
+    }
+    const map = {
+        online: { title: "Online", mod: "friends-status-online" },
+        disconnected: { title: "Disconnected", mod: "friends-status-disconnected" },
+        offline: { title: "Offline", mod: "friends-status-offline" },
+    };
+    const row = map[state] || map.offline;
+    el.className = "friends-status-dot " + row.mod;
+    el.setAttribute("title", row.title);
+    el.setAttribute("aria-label", row.title);
+}
+
+const DISCONNECT_COUNTDOWN_TOOLTIP = "Waiting for opponent to rejoin";
+
+function formatDisconnectionCountdown(seconds) {
+    const s = Math.max(0, Math.floor(seconds));
+    if (s === 1) {
+        return "Timeout: 1 second";
+    }
+    return "Timeout: " + s + " seconds";
+}
+
+function getOpponentStatusElement() {
+    return currentPlayerIsWhite ?
+        document.getElementById("blackPlayerStatus") :
+        document.getElementById("whitePlayerStatus");
+}
+
+function hideDisconnectionCountdown() {
+    const el = currentPlayerIsWhite ?
+        document.getElementById("blackPlayerDiconnectionTimer") :
+        document.getElementById("whitePlayerDiconnectionTimer");
+    if (el) {
+        el.classList.add("hide");
+        el.removeAttribute("title");
+        el.removeAttribute("aria-label");
+    }
+    if (disconnectionTimerHandle) {
+        clearInterval(disconnectionTimerHandle);
+        disconnectionTimerHandle = null;
+    }
+}
+
+/**
+ * If the reconnect countdown reaches 0 but the WebSocket "Game cancelled" / "Opponent failed to reconnect"
+ * message was missed, align UI from /gameInfo + moves (same wall clock as server after 61s disconnect deadline).
+ */
+async function syncReconnectTimeoutFromServer() {
+    if (!gameInfo || gameInfo.gameType !== "OnlineGame" || gameInfo.watcher) {
+        return;
+    }
+    if (!gameInfo.id || game.GameOver) {
+        return;
+    }
+    try {
+        const data = await getServerInfo("/gameInfo?id=" + encodeURIComponent(gameInfo.id));
+        if (!data || typeof data !== "object" || data.status == null) {
+            return;
+        }
+        const st = data.status;
+        if (st === "cancelled") {
+            clearOpponentDisconnectGrace();
+            hideDisconnectionCountdown();
+            const detail = "Reconnect timed out with no moves played.";
+            const shown = "Game cancelled — " + detail;
+            displayMessage(shown);
+            log("System", shown);
+            hideMessageBox();
+            clearInterval(whiteHandle);
+            clearInterval(blackHandle);
+            setPlayerStatusDot(getOpponentStatusElement(), "offline");
+            disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+            enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
+            return;
+        }
+        if (st !== "game over") {
+            return;
+        }
+        const movesObj = await getMovesForTable();
+        const moves = movesObj.moves || [];
+        const last = moves[moves.length - 1];
+        let loser = null;
+        if (last && last.moveStr === "1-0") {
+            loser = "Black";
+        } else if (last && last.moveStr === "0-1") {
+            loser = "White";
+        }
+        if (!loser || game.GameOver) {
+            return;
+        }
+        const winner = loser === "White" ? "Black" : "White";
+        const winnerName = winner === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+        const summary = "Game over — opponent failed to reconnect. " + winnerName + " wins.";
+        clearOpponentDisconnectGrace();
+        hideDisconnectionCountdown();
+        displayMessage(summary);
+        log("System", summary);
+        game.resign(loser);
+        setPlayerStatusDot(getOpponentStatusElement(), "offline");
+        hideMessageBox();
+        clearInterval(whiteHandle);
+        clearInterval(blackHandle);
+        disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+        enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
+        gameMoves = await getMovesForTable();
+        updateMovesTable(gameMoves.moves);
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 const WhitePawnUrl = "images/3409_white-pawn.png";
 const WhiteRookUrl = "images/3406_white-rook.png";
@@ -488,6 +615,8 @@ function initPracticeGame(gameInfo, currentPlayerIsWhite) {
 function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, isWatcher) {
     const blackNameKnown =
         gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim().length > 0;
+    const whiteDot = document.getElementById("whitePlayerStatus");
+    const blackDot = document.getElementById("blackPlayerStatus");
     if (!isRematch && gameInfo.mode != "review") {
         startWebSockets(gameInfo.username, currentPlayerIsWhite, isWatcher);
         const waitingForAnonymousOpponent = !blackNameKnown;
@@ -503,9 +632,11 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         const blackPlayerInfoDiv = document.getElementById("blackPlayerName");
         blackPlayerInfoDiv.innerText =
             (isRematch || isRejoined || isWatcher || blackNameKnown) ? gameInfo.blackPlayerName : "looking for opponent...";
-        const opponentStatus = document.getElementById("blackPlayerStatus");
-        opponentStatus.style.background =
-            (isRematch || isRejoined || isWatcher || blackNameKnown) ? "var(--online-color)" : "var(--offline-color)";
+        setPlayerStatusDot(whiteDot, "online");
+        setPlayerStatusDot(
+            blackDot,
+            (isRematch || isRejoined || isWatcher || blackNameKnown) ? "online" : "offline"
+        );
 
         disableButtons(["redoBtn", "undoBtn", "rematchBtn", "resignBtn", "drawBtn", "lastMoveBtn"]);
         hideButtons(["undoBtn", "redoBtn"]);
@@ -520,6 +651,8 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         blackPlayerInfoDiv.innerText = gameInfo.username;
         const whitePlayerInfoDiv = document.getElementById("whitePlayerName");
         whitePlayerInfoDiv.innerText = gameInfo.whitePlayerName;
+        setPlayerStatusDot(blackDot, "online");
+        setPlayerStatusDot(whiteDot, "online");
 
         disableButtons(["redoBtn", "undoBtn", "rematchBtn"]);
         hideButtons(["undoBtn", "redoBtn"]);
@@ -933,8 +1066,8 @@ function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatch
     const blackPlayerInfoDiv = document.getElementById("blackPlayerName");
     blackPlayerInfoDiv.innerText = gameInfo.blackPlayerName;
 
-    const opponentStatus = document.getElementById("blackPlayerStatus");
-    opponentStatus.style.background = "var(--online-color)";
+    setPlayerStatusDot(document.getElementById("whitePlayerStatus"), "online");
+    setPlayerStatusDot(document.getElementById("blackPlayerStatus"), "online");
 
     disableButtons(["rematchBtn", "redoBtn", "undoBtn", "drawBtn"]);
     if (isWatcher) {
@@ -2459,6 +2592,7 @@ function startWebSockets(username, isWhite, isWatcher) {
         if (message.type == "info") {
             const info = message.info;
             if (info == "game over") {
+                clearOpponentDisconnectGrace();
                 //displayMessage("Game Over");
                 log("System", "Game Over");
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
@@ -2477,36 +2611,62 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "Game cancelled") {
-                displayMessage(message.data || "Game cancelled");
-                log("System", message.data || "Game cancelled");
-            }
-
-            if (info == "Opponent disconnected") {
-                displayMessage("The opponent disconnected");
-                log("System", "The opponent disconnected");
-                if (!gameInfo.watcher) {
-                    const opponentStatus = currentPlayerIsWhite ?
-                        document.getElementById("blackPlayerStatus") :
-                        document.getElementById("whitePlayerStatus");
-                    opponentStatus.style.background = "var(--error-color)";
+                clearOpponentDisconnectGrace();
+                hideDisconnectionCountdown();
+                const detail = message.data && String(message.data).trim() ? String(message.data).trim() : "";
+                const shown = detail ? "Game cancelled — " + detail : "Game cancelled";
+                displayMessage(shown);
+                log("System", shown);
+                if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
                     hideMessageBox();
                     clearInterval(whiteHandle);
                     clearInterval(blackHandle);
-                    startDisconnectionTimer();
+                    setPlayerStatusDot(getOpponentStatusElement(), "offline");
+                    disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+                    enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
+                }
+            }
+
+            if (info == "Opponent disconnected") {
+                if (!gameInfo.watcher) {
+                    clearOpponentDisconnectGrace();
+                    opponentDisconnectGraceTimer = setTimeout(() => {
+                        opponentDisconnectGraceTimer = null;
+                        displayMessage("The opponent disconnected");
+                        log("System", "The opponent disconnected");
+                        setPlayerStatusDot(getOpponentStatusElement(), "disconnected");
+                        hideMessageBox();
+                        clearInterval(whiteHandle);
+                        clearInterval(blackHandle);
+                        startDisconnectionTimer();
+                    }, 1000);
                 }
             }
 
             if (info == "Opponent failed to reconnect") {
-                displayMessage(UserMessages.OPPONENT_RECONNCETION_FAILED);
-                log("System", UserMessages.OPPONENT_RECONNCETION_FAILED);
-                const player = currentPlayerIsWhite ? "White" : "Black";
-                game.resign(player);
+                clearOpponentDisconnectGrace();
+                hideDisconnectionCountdown();
+                const loser =
+                    message.disconnectedWasWhite === true ? "White" :
+                        message.disconnectedWasWhite === false ? "Black" :
+                            (currentPlayerIsWhite ? "Black" : "White");
+                const winner = loser === "White" ? "Black" : "White";
+                const winnerName = winner === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+                const summary =
+                    "Game over — opponent failed to reconnect. " + winnerName + " wins.";
+                displayMessage(summary);
+                log("System", summary);
+                game.resign(loser);
                 if (!gameInfo.watcher) {
-                    const opponentStatus = currentPlayerIsWhite ?
-                        document.getElementById("blackPlayerStatus") :
-                        document.getElementById("whitePlayerStatus");
-                    opponentStatus.style.background = "var(--offline-color)";
+                    setPlayerStatusDot(getOpponentStatusElement(), "offline");
+                    hideMessageBox();
+                    clearInterval(whiteHandle);
+                    clearInterval(blackHandle);
+                    disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+                    enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 }
+                gameMoves = await getMovesForTable();
+                updateMovesTable(gameMoves.moves);
             }
 
 
@@ -2550,10 +2710,7 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             if (info == "opponent joined") {
                 //displayMessage(`An opponent joined`);
-                const opponentStatus = currentPlayerIsWhite ?
-                    document.getElementById("blackPlayerStatus") :
-                    document.getElementById("whitePlayerStatus");
-                opponentStatus.style.background = "var(--online-color)";
+                setPlayerStatusDot(getOpponentStatusElement(), "online");
 
                 const opponentName = currentPlayerIsWhite ?
                     document.getElementById("blackPlayerName") :
@@ -2566,14 +2723,16 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "opponent rejoined") {
-                displayMessage("The opponent rejoined");
-                log("System", "The opponent rejoined");
-                const opponentStatus = currentPlayerIsWhite ?
-                    document.getElementById("blackPlayerStatus") :
-                    document.getElementById("whitePlayerStatus");
-                opponentStatus.style.background = "var(--online-color)";
-                rejoined = true;
+                /* If reconnect happens before the 1s post-disconnect grace, treat as a flicker (e.g. refresh) — no toast. */
+                const quickRejoin = opponentDisconnectGraceTimer != null;
+                clearOpponentDisconnectGrace();
+                setPlayerStatusDot(getOpponentStatusElement(), "online");
+                hideDisconnectionCountdown();
                 switchClocks();
+                if (!quickRejoin) {
+                    displayMessage("The opponent rejoined");
+                    log("System", "The opponent rejoined");
+                }
             }
 
             if (info == "offer rematch") {
@@ -3160,28 +3319,42 @@ function startDisconnectionTimer() {
     const playerDiconnectionTimer = currentPlayerIsWhite ?
         document.getElementById("blackPlayerDiconnectionTimer") :
         document.getElementById("whitePlayerDiconnectionTimer");
+    if (!playerDiconnectionTimer) {
+        return;
+    }
+    if (disconnectionTimerHandle) {
+        clearInterval(disconnectionTimerHandle);
+        disconnectionTimerHandle = null;
+    }
 
-    disconnectionTimer = 59;
-    playerDiconnectionTimer.classList.toggle("hide");
+    disconnectionTimer = 60;
+    playerDiconnectionTimer.classList.remove("hide");
+    playerDiconnectionTimer.setAttribute("title", DISCONNECT_COUNTDOWN_TOOLTIP);
+    playerDiconnectionTimer.setAttribute("aria-label", DISCONNECT_COUNTDOWN_TOOLTIP);
+    playerDiconnectionTimer.innerText = formatDisconnectionCountdown(disconnectionTimer);
     disconnectionTimerHandle = setInterval(() => {
-        playerDiconnectionTimer.innerText = `(${disconnectionTimer})`;
-        if (rejoined) {
-            rejoined = false; // for next time
-            clearInterval(disconnectionTimerHandle);
-            playerDiconnectionTimer.classList.toggle("hide");
-        }
         if (game.GameOver) {
-            //document.getElementById("rematchBtn").classList.remove("btnDisabled");
             enableButtons(["rematchBtn"]);
-
             clearInterval(disconnectionTimerHandle);
-            playerDiconnectionTimer.classList.toggle("hide");
-        }
-        if (disconnectionTimer <= 0) {
-            clearInterval(disconnectionTimerHandle);
-            playerDiconnectionTimer.classList.toggle("hide");
+            disconnectionTimerHandle = null;
+            playerDiconnectionTimer.classList.add("hide");
+            playerDiconnectionTimer.removeAttribute("title");
+            playerDiconnectionTimer.removeAttribute("aria-label");
+            return;
         }
         disconnectionTimer--;
+        if (disconnectionTimer <= 0) {
+            clearInterval(disconnectionTimerHandle);
+            disconnectionTimerHandle = null;
+            playerDiconnectionTimer.classList.add("hide");
+            playerDiconnectionTimer.removeAttribute("title");
+            playerDiconnectionTimer.removeAttribute("aria-label");
+            if (!game.GameOver) {
+                void syncReconnectTimeoutFromServer();
+            }
+            return;
+        }
+        playerDiconnectionTimer.innerText = formatDisconnectionCountdown(disconnectionTimer);
     }, 1000);
 }
 

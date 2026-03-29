@@ -165,7 +165,7 @@
         setTimeout(function () {
             removeEstablishing();
             window.location.href = nextUrl;
-        }, 2000);
+        }, 100);
     }
 
     function showInviterDeclinedToast(declinedByUsername) {

@@ -114,6 +114,7 @@ function createGameInfo(game, userName, userId) {
         reviewType: game.reviewType,
         whiteTimer: calculateTimer(game, true),
         blackTimer: calculateTimer(game, false),
+        status: game.status,
     };
     if (game.options) {
         clientDate.mousePreference = game.options.mouse || "drag";
@@ -674,6 +675,10 @@ const onGameStateChanged = async (e) => {
         if (gameDoc) {
             gameDoc.state = newState;
             await gameDoc.save();
+        }
+        if (game.constructor.name === "OnlineGame" && newState === "cancelled") {
+            const movesCount = game.moves ? Math.ceil(game.moves.length / 2) : 0;
+            broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount, status: game.status });
         }
         if ((game.constructor.name === "OnlineGame" || game.constructor.name === "SinglePlayerGame") && newState === "in progress") {
             const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();

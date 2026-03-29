@@ -84,15 +84,10 @@ class OnlineGame extends GameBase {
     onConnectionClosed = () => {
 
         if (this.status === "game over") { return; }
-        if (this.moves.length === 0) {
-            this.status = "cancelled";
-            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-            const isWhite = this.whitePlayer.channel.readyState === this.whitePlayer.channel.OPEN;
-            const message = { type: "info", info: "Game cancelled", gameId: this.gameId, data: "Opponent left before first move" };
-            this.sendMessage(message, isWhite);
-            this.sendInfoToWatchers(message);
-            return;
-        }
+        /**
+         * Same flow whether or not any move was played: notify opponent, go on hold, 61s reconnect window.
+         * If no moves yet, waitForRejoin still cancels after the deadline; if at least one move was played, forfeit.
+         */
         const isWhite = this.whitePlayer.channel.readyState == this.whitePlayer.channel.OPEN;
         const message = { type: "info", info: "Opponent disconnected", gameId: this.gameId };
         this.sendMessage(message, isWhite);
@@ -155,36 +150,75 @@ class OnlineGame extends GameBase {
 
     }
 
+    /**
+     * Clears the pending reconnect deadline timer (set in waitForRejoin).
+     * Must run when the disconnected player reconnects so an old timer cannot fire mid-game.
+     */
+    clearRejoinWaitIfAny() {
+        if (this._rejoinWaitHandle != null) {
+            clearTimeout(this._rejoinWaitHandle);
+            this._rejoinWaitHandle = null;
+        }
+    }
+
     // isWhite - whether the player we are waiting for is the white player
     waitForRejoin(isWhite) {
-        const handle = setInterval(async () => {
-
-
-            if (this.status == "in progress" ||
-                this.status == "game over" ||
-                this.status == "pending"
-
-            ) {
-                clearInterval(handle);
-            }
-            if (this.status == "on hold") {
-                clearInterval(handle);
-                this.status = "game over";
-                this.chessGame.resign(isWhite ? "white" : "black");
-                this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
-                const message = { type: "info", info: "Opponent failed to reconnect", gameId: this.gameId };
+        this.clearRejoinWaitIfAny();
+        /**
+         * Align with client: 1s grace after "Opponent disconnected", then 60 × 1s countdown
+         * (timer shows 60 for one second, then 59…1) → ~61s from disconnect to counter at 0.
+         */
+        const RECONNECT_DEADLINE_MS = 61000;
+        this._rejoinWaitHandle = setTimeout(async () => {
+            this._rejoinWaitHandle = null;
+            try {
+                if (
+                    this.status === "in progress" ||
+                    this.status === "game over" ||
+                    this.status === "pending"
+                ) {
+                    return;
+                }
+                if (this.status !== "on hold") {
+                    return;
+                }
+                const moveCount = this.moves ? this.moves.length : 0;
+                /** No moves on the board yet — cancel after reconnect deadline; any move played → forfeit below. */
+                if (moveCount === 0) {
+                    this.status = "cancelled";
+                    await this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+                    const cancelMsg = {
+                        type: "info",
+                        info: "Game cancelled",
+                        gameId: this.gameId,
+                        data: "Reconnect timed out with no moves played.",
+                    };
+                    this.sendMessage(cancelMsg, !isWhite);
+                    this.sendInfoToWatchers(cancelMsg);
+                    this.closeGame();
+                    return;
+                }
+                await this.resign(isWhite ? "white" : "black");
+                const message = {
+                    type: "info",
+                    info: "Opponent failed to reconnect",
+                    gameId: this.gameId,
+                    disconnectedWasWhite: isWhite,
+                };
                 this.sendMessage(message, !isWhite);
                 this.sendInfoToWatchers(message);
                 this.closeGame();
-
+            } catch (err) {
+                console.error("waitForRejoin timeout handler:", err);
             }
-        }, 60000);
+        }, RECONNECT_DEADLINE_MS);
     }
 
     updateChannel = (player, channel) => {
         if (player) {
             if (player.channel) {
                 if (player.channel.readyState != player.channel.OPEN) {
+                    this.clearRejoinWaitIfAny();
                     this.status = this.lastStatus;
                     this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
                     const message = { type: "info", info: "opponent rejoined", gameId: this.gameId };

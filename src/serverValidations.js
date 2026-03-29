@@ -52,73 +52,159 @@ const wsGameId = Joi.alternatives().try(
     Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML()
 );
 
+const wsPieceSchema = Joi.object({
+    color: Joi.string().valid("white", "black").required(),
+    pieceType: Joi.number().integer().min(0).max(5).required(),
+}).strict();
+
+const wsSquareSchema = Joi.object({
+    row: Joi.number().integer().min(0).max(7).required(),
+    col: Joi.number().integer().min(0).max(7).required(),
+}).strict();
+
+/** Move payload: player `move` messages and embedded `lastMove` in game state. */
+const wsMoveDataSchema = Joi.object({
+    capturedPiece: Joi.alternatives().try(wsPieceSchema, Joi.valid(null)).required(),
+    castling: Joi.bool().required(),
+    ennPassant: Joi.bool().required(),
+    hitSquare: Joi.alternatives().try(wsSquareSchema, Joi.valid(null)).required(),
+    moveStr: Joi.string().min(1).max(32).required().escapeHTML(),
+    moveTime: Joi.number().required(),
+    piece: wsPieceSchema.required(),
+    promotion: Joi.bool().required(),
+    selectedPiece: Joi.number().integer().min(2).max(5).optional(),
+    source: wsSquareSchema.required(),
+    target: wsSquareSchema.required(),
+    turn: Joi.string().valid("white", "black").required(),
+    valid: Joi.bool().required(),
+    whitePlayerView: Joi.bool().required(),
+    check: Joi.bool().optional(),
+    checkmate: Joi.bool().optional(),
+    kingsideCastling: Joi.bool().optional(),
+    draw: Joi.bool().optional(),
+}).strict();
+
+const wsGameStateSchema = Joi.object({
+    board: Joi.array().length(8).items(
+        Joi.array().length(8).items(
+            Joi.alternatives().try(Joi.valid(null), wsPieceSchema)
+        )
+    ).required(),
+    turn: Joi.string().valid("white", "black").required(),
+    capturedPiecesList: Joi.array().items(wsPieceSchema).required(),
+    lastMove: Joi.alternatives().try(wsMoveDataSchema, Joi.valid(null)).optional(),
+    check: Joi.bool().required(),
+    checkmate: Joi.bool().required(),
+    draw: Joi.bool().required(),
+    drawReason: Joi.string().allow("").required(),
+    resigned: Joi.string().allow("").required(),
+    outOfTime: Joi.string().allow("").required(),
+    whiteKingMoved: Joi.bool().required(),
+    blackKingMoved: Joi.bool().required(),
+    whitePlayerView: Joi.bool().required(),
+    fiftyMovesCounter: Joi.number().integer().min(0).required(),
+    promoting: Joi.bool().optional(),
+    farWhiteRookMoved: Joi.bool().optional(),
+    farBlackRookMoved: Joi.bool().optional(),
+    nearWhiteRookMoved: Joi.bool().optional(),
+    nearBlackRookMoved: Joi.bool().optional(),
+    queensideWhiteRookMoved: Joi.bool().optional(),
+    queensideBlackRookMoved: Joi.bool().optional(),
+    kingsideWhiteRookMoved: Joi.bool().optional(),
+    kingsideBlackRookMoved: Joi.bool().optional(),
+}).strict();
+
+const wsMoveMessageSchema = Joi.object({
+    username: Joi.string().required().escapeHTML(),
+    gameId: wsGameId,
+    type: Joi.string().valid("move").required(),
+    isWhite: Joi.bool().required(),
+    data: wsMoveDataSchema.required(),
+}).strict();
+
+const wsInfoChatSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid("chat").required(),
+    data: Joi.string().max(2000).required().escapeHTML(),
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+}).strict();
+
+const wsInfoOutOfTimeSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid("outOfTime").required(),
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+    loser: Joi.string().valid("white", "black").required(),
+}).strict();
+
+const wsInfoClockSyncSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid("clockSync").required(),
+    whiteTimer: Joi.number().required(),
+    blackTimer: Joi.number().required(),
+}).strict();
+
+const wsInfoMoveAcceptedSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid("move accepted").required(),
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+    moveTime: Joi.number().required(),
+    moveStr: Joi.alternatives().try(Joi.string().escapeHTML(), Joi.valid(null, "")).required(),
+    whiteTimer: Joi.number().required(),
+    blackTimer: Joi.number().required(),
+}).strict();
+
+const wsInfoGenericSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid(
+        "offer rematch", "rematch accepted", "rematch declined",
+        "resign", "offer draw", "draw accepted", "draw declined"
+    ).required(),
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+    moveTime: Joi.number().optional(),
+}).strict();
+
+const wsCmdUndoRedoSchema = Joi.object({
+    type: Joi.string().valid("cmd").required(),
+    info: Joi.string().valid("undo", "redo").required(),
+    gameId: wsGameId,
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+}).strict();
+
+const wsCmdSetStateSchema = Joi.object({
+    type: Joi.string().valid("cmd").required(),
+    info: Joi.string().valid("setState").required(),
+    data: wsGameStateSchema.required(),
+    gameId: wsGameId,
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+}).strict();
+
 const webSocketMessageSchema =
     Joi.alternatives().try(
-        Joi.object({
-            username: Joi.string().required().escapeHTML(),
-            gameId: wsGameId,
-            type: Joi.string().valid("move", "info", "cmd").required(),
-            isWhite: Joi.bool().required(),
-            data: Joi.object({
-                capturedPiece: Joi.required(),
-                castling: Joi.bool().required(),
-                ennPassant: Joi.bool().required(),
-                hitSquare: Joi.object({
-                    row: Joi.number().min(0).max(7).optional(),
-                    col: Joi.number().min(0).max(7).optional(),
-                }).allow(null),
-                moveStr: Joi.string().min(2).max(10).required().escapeHTML(),
-                moveTime: Joi.number().required(),
-                piece: Joi.object({
-                    color: Joi.string().valid("white", "black").required(),
-                    pieceType: Joi.number().min(0).max(5).required(),
-                }).required(),
-                promotion: Joi.bool().required(),
-                selectedPiece: Joi.number().min(2).max(5).optional(),
-                source: Joi.object({
-                    row: Joi.number().min(0).max(7).required(),
-                    col: Joi.number().min(0).max(7).required(),
-                }).required(),
-                target: Joi.object({
-                    row: Joi.number().min(0).max(7).required(),
-                    col: Joi.number().min(0).max(7).required(),
-                }).required(),
-                turn: Joi.string().valid("white", "black").required(),
-                valid: Joi.bool().required(),
-                whitePlayerView: Joi.bool().required(),
-                check: Joi.bool().optional(),
-                checkmate: Joi.bool().optional(),
-                kingsideCastling: Joi.bool().optional(),
-                draw: Joi.bool().optional(),
-            }).optional(),
-        }),
-        Joi.object({
-            gameId: wsGameId,
-            info: Joi.string().valid(
-                "offer rematch", "rematch", "resign", "offer draw",
-                "move accepted", "draw accepted", "draw declined", "rematch declined", "rematch accepted",
-                "outOfTime", "Opponent resigned", "chat", "clockSync",
-                "game over", "move validated successfully", "move validation failed"
-            ).required(),
-            isWhite: Joi.bool().optional(),
-            moveTime: Joi.number().optional(),
-            moveStr: Joi.alternatives().try(Joi.string().escapeHTML(), Joi.valid(null, "")).optional(),
-            type: Joi.string().valid("info", "command").required(),
-            userId: Joi.string().hex().length(24).optional().escapeHTML(),
-            username: Joi.string().optional(),
-            data: Joi.any().optional(),
-            whiteTimer: Joi.number().optional(),
-            blackTimer: Joi.number().optional(),
-        }),
-        Joi.object({
-            type: Joi.string().valid("cmd").required(),
-            info: Joi.string().valid("setState", "undo", "redo").required(),
-            data: Joi.object().required(),
-            gameId: wsGameId,
-            userId: Joi.string().hex().length(24).required().escapeHTML(),
-            username: Joi.string().required(),
-            isWhite: Joi.bool().required(),
-        }),
+        wsMoveMessageSchema,
+        wsInfoChatSchema,
+        wsInfoOutOfTimeSchema,
+        wsInfoClockSyncSchema,
+        wsInfoMoveAcceptedSchema,
+        wsInfoGenericSchema,
+        wsCmdUndoRedoSchema,
+        wsCmdSetStateSchema,
     );
 
 const schemas = {
@@ -139,5 +225,17 @@ exports.validate = (obj, validator) => {
         const msg = error.details.map(el => el.message).join(",");
         throw new ExpressError(msg, 400);
     }
+};
+
+/**
+ * Validates inbound game WebSocket payloads. Does not throw: returns { ok, value } or { ok, error }.
+ */
+exports.validateWebSocketMessage = (obj) => {
+    const { error, value } = webSocketMessageSchema.validate(obj, { abortEarly: false });
+    if (error) {
+        const message = error.details.map((d) => d.message).join("; ");
+        return { ok: false, error: message };
+    }
+    return { ok: true, value };
 };
 

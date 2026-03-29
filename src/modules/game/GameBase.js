@@ -1,5 +1,5 @@
 
-const { validate } = require("../../serverValidations");
+const { validateWebSocketMessage } = require("../../serverValidations");
 const { ChessGame } = require("../../ChessGame");
 const { Player } = require("./Player");
 const { v4: uuidv4 } = require("uuid");
@@ -292,9 +292,23 @@ class GameBase {
     }
 
     onMessageReceived = async (recivedData) => {
-        const msg = JSON.parse(recivedData);
-        validate(msg, "webSocketsMessage");
-        await this.messageProcessor.process(this, msg);
+        let msg;
+        try {
+            msg = JSON.parse(recivedData);
+        } catch (e) {
+            console.error("WebSocket JSON parse failed:", e.message);
+            return;
+        }
+        const validation = validateWebSocketMessage(msg);
+        if (!validation.ok) {
+            console.error("WebSocket message validation failed:", validation.error);
+            return;
+        }
+        try {
+            await this.messageProcessor.process(this, validation.value);
+        } catch (e) {
+            console.error("WebSocket message processing error:", e && e.message ? e.message : e);
+        }
     };
 
     onConnectionClosed = () => { };
