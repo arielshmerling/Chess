@@ -112,22 +112,42 @@ class GameBase {
             return moveObj;
         }
 
-        if (moveObj.promotion) {
-            if (!moveObj.selectedPiece) {
-                moveObj.valid = false;
-                return moveObj;
-            }
-        }
         if (!isWhite && origin == "player") {
             moveObj = this.chessGame.flipMove(moveObj);
+        }
+
+        const hasSelectedPiece = moveObj.selectedPiece != null && moveObj.selectedPiece !== undefined;
+
+        // Client sends move 1: pawn to promotion square (promotion true, no selectedPiece).
+        // Move 2 (after UI): same squares + selectedPiece. Server chess is already in promoting state.
+        if (this.chessGame.GameState.promoting && hasSelectedPiece && moveObj.promotion) {
+            const pending = this.chessGame.LastMove;
+            if (pending && pending.promotion
+                && pending.source.row === moveObj.source.row && pending.source.col === moveObj.source.col
+                && pending.target.row === moveObj.target.row && pending.target.col === moveObj.target.col) {
+                pending.selectedPiece = moveObj.selectedPiece;
+                this.chessGame.completePromotion(pending);
+                pending.moveTime = moveObj.moveTime;
+                await this.raiseEvent(this.OnMove, { game: this, move: pending });
+                if (this.chessGame.GameOver) {
+                    await this.gameOverHandler(moveObj);
+                }
+                else {
+                    this.turn = this.chessGame.Turn;
+                }
+                pending.valid = true;
+                return pending;
+            }
+            moveObj.valid = false;
+            return moveObj;
         }
 
         if (this.turn == moveObj.piece.color) {
             if (this.chessGame) {
                 if (this.chessGame.validateMove(moveObj.source, moveObj.target, this.chessGame.Turn).valid) {
                     const actual = this.chessGame.makeMove(moveObj.source, moveObj.target);
-                    if (actual.promoting || actual.promotion) {
-                        actual.selectedPiece = (moveObj.selectedPiece);
+                    if (actual.promotion && hasSelectedPiece) {
+                        actual.selectedPiece = moveObj.selectedPiece;
                         this.chessGame.completePromotion(actual);
                     }
                     actual.moveTime = moveObj.moveTime;
