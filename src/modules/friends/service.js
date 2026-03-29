@@ -67,17 +67,24 @@ exports.getFriendsPagePayload = async (currentUserId) => {
 
     const friendIds = new Set((me.friends || []).map((f) => String(f._id)));
 
-    const friendsOnly = (me.friends || []).map((f) => {
+    const meUsername = me.username != null ? String(me.username) : "";
+
+    const friendsOnly = [];
+    for (const f of me.friends || []) {
         const id = String(f._id);
         const username = f.username != null ? String(f.username) : "";
         let status = "offline";
+        let sharedGameWithMeId = null;
         if (playing.has(username)) {
             status = "playing";
+            sharedGameWithMeId =
+                gamesManagerService.findSharedOnlineGameIdBetweenUsers(currentUserId, id) ||
+                (await gamesManagerService.findSharedOnlineGameIdByUsernames(meUsername, username));
         } else if (presence.isOnline(id)) {
             status = "online";
         }
-        return { id, username, status, rowType: "friend" };
-    });
+        friendsOnly.push({ id, username, status, rowType: "friend", sharedGameWithMeId });
+    }
 
     const pendingOutgoing = (me.friendInvitesSent || [])
         .filter((u) => u && u._id && !friendIds.has(String(u._id)))
@@ -96,7 +103,31 @@ exports.getFriendsPagePayload = async (currentUserId) => {
         username: u.username != null ? String(u.username) : "",
     }));
 
-    return { friends, offersIn };
+    let pendingGameInvite = null;
+    const pendingGame = gamesManagerService.findPendingGameCreatedByMe(
+        gamesManagerService.GameTypes.ONLINE,
+        currentUserId
+    );
+    if (pendingGame && pendingGame.invitedUserId) {
+        const inviteeOid = pendingGame.invitedUserId;
+        const inviteeDoc = await User.findById(inviteeOid).select("username").lean();
+        pendingGameInvite = {
+            gameId: String(pendingGame.gameId),
+            inviteeUserId: String(inviteeOid),
+            inviteeUsername:
+                inviteeDoc && inviteeDoc.username != null ? String(inviteeDoc.username) : "",
+        };
+    }
+
+    const incomingGames = gamesManagerService.findPendingIncomingFriendGameInvites(currentUserId);
+    const incomingGameInvites = incomingGames.map((g) => ({
+        gameId: String(g.gameId),
+        fromUserId: g.createdBy && g.createdBy.userId ? String(g.createdBy.userId) : "",
+        fromUsername:
+            g.whitePlayer && g.whitePlayer.userName != null ? String(g.whitePlayer.userName) : "",
+    }));
+
+    return { friends, offersIn, pendingGameInvite, incomingGameInvites };
 };
 
 /**

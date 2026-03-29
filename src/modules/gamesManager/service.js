@@ -191,7 +191,7 @@ exports.countActiveGamesPerUsername = async () => {
  * Updates stored player names when an account username changes (games reference usernames as strings).
  */
 exports.renameUsernameInGames = async (oldUsername, newUsername) => {
-    if (!oldUsername || !newUsername || oldUsername === newUsername) return;
+    if (!oldUsername || !newUsername || oldUsername === newUsername) {return;}
     await Promise.all([
         Game.updateMany({ whitePlayer: oldUsername }, { $set: { whitePlayer: newUsername } }),
         Game.updateMany({ blackPlayer: oldUsername }, { $set: { blackPlayer: newUsername } }),
@@ -220,10 +220,63 @@ exports.getPGNGames = catchAsync(async () => {
  * @returns {Object|null} A single game object if found, or null if no matching record is found.
  */
 exports.getGameById = (id) => {
-    if (id == null) return undefined;
+    if (id == null) {return undefined;}
     const idStr = String(id);
     return games.filter(g => String(g.gameId) === idStr)[0];
 };
+
+/**
+ * In-memory online game where both players are seated (white + black), non-terminal.
+ * @param {string} userIdA
+ * @param {string} userIdB
+ * @returns {string|null} gameId
+ */
+exports.findSharedOnlineGameIdBetweenUsers = (userIdA, userIdB) => {
+    const a = String(userIdA);
+    const b = String(userIdB);
+    for (const g of games) {
+        if (!g || g.constructor.name !== "OnlineGame" || g.mode === "review") {
+            continue;
+        }
+        const st = g.status;
+        if (st === "game over" || st === "cancelled") {
+            continue;
+        }
+        const wid = g.whitePlayer && g.whitePlayer.userId != null ? String(g.whitePlayer.userId) : "";
+        const bid = g.blackPlayer && g.blackPlayer.userId != null ? String(g.blackPlayer.userId) : "";
+        if (!wid || !bid) {
+            continue;
+        }
+        if ((wid === a && bid === b) || (wid === b && bid === a)) {
+            return String(g.gameId);
+        }
+    }
+    return null;
+};
+
+/**
+ * DB fallback when in-memory list is empty (e.g. after restart): ongoing OnlineGame with both usernames.
+ */
+exports.findSharedOnlineGameIdByUsernames = catchAsync(async (usernameA, usernameB) => {
+    const ua = String(usernameA || "").trim();
+    const ub = String(usernameB || "").trim();
+    if (!ua || !ub) {
+        return null;
+    }
+    const doc = await Game.findOne({
+        state: { $in: NON_TERMINAL_GAME_STATES },
+        gameType: "OnlineGame",
+        whitePlayer: { $nin: [null, ""] },
+        blackPlayer: { $nin: [null, ""] },
+        $or: [
+            { whitePlayer: ua, blackPlayer: ub },
+            { whitePlayer: ub, blackPlayer: ua },
+        ],
+    })
+        .select("_id")
+        .lean();
+    return doc && doc._id ? doc._id.toString() : null;
+});
 
 
 /**
@@ -341,7 +394,8 @@ exports.findPendingGame = (gameTypeInt, userId) => {
     return games.filter(
         g => g.createdBy.userId != userId &&
             g.constructor.name == this.gameTypeToText(gameTypeInt) &&
-            g.status == "pending")[0];
+            g.status == "pending" &&
+            (g.invitedUserId == null || String(g.invitedUserId) === String(userId)))[0];
 };
 
 exports.findPendingGameCreatedByMe = (gameTypeInt, userId) => {
@@ -349,7 +403,29 @@ exports.findPendingGameCreatedByMe = (gameTypeInt, userId) => {
         g => g.createdBy.userId == userId &&
             g.constructor.name == this.gameTypeToText(gameTypeInt) &&
             g.mode != "review" &&
-            g.status == "pending")[0];
+            (g.status == "pending" || (g.status == "new" && g.invitedUserId)))[0];
+};
+
+/**
+ * Friend game invites sent to this user (pending OnlineGame with invitedUserId set).
+ * @param {string} userId
+ * @returns {object[]}
+ */
+exports.findPendingIncomingFriendGameInvites = (userId) => {
+    if (userId == null || userId === "") {
+        return [];
+    }
+    const uid = String(userId);
+    return games.filter((g) => {
+        if (g.constructor.name !== "OnlineGame" || !g.invitedUserId) {
+            return false;
+        }
+        if (String(g.invitedUserId) !== uid) {
+            return false;
+        }
+        const st = g.status;
+        return st === "pending" || st === "new";
+    });
 };
 
 exports.findGameByStatus = (gameTypeInt, userId, status) => {

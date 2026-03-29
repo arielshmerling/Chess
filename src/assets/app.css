@@ -2517,6 +2517,223 @@ input:-webkit-autofill:focus {
     animation: fadeInOut 5s forwards;
 }
 
+/* Friend game invite — dock below #header; multiple cards side by side */
+.friend-game-invite-dock {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 10px 12px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.friend-game-invite-dock > * {
+    pointer-events: auto;
+}
+
+.friend-game-invite-banner {
+    position: relative;
+    flex: 0 1 auto;
+    width: min(300px, calc(50vw - 20px));
+    min-width: min(260px, 100%);
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-primary, #f0f0f0);
+    animation: friendGameInviteEnter 0.35s ease-out;
+}
+
+@media (max-width: 560px) {
+    .friend-game-invite-banner {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+@keyframes friendGameInviteEnter {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.friend-game-invite-banner--leave {
+    animation: friendGameInviteLeave 0.38s ease-in forwards;
+}
+
+@keyframes friendGameInviteLeave {
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+}
+
+.friend-game-invite-card {
+    background: linear-gradient(145deg, rgba(32, 42, 58, 0.97), rgba(18, 22, 30, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.friend-game-invite-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0 8px;
+}
+
+.friend-game-invite-line {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.friend-game-invite-line strong {
+    color: #e8f4ff;
+}
+
+.friend-game-invite-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.friend-game-invite-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    min-width: 88px;
+}
+
+.friend-game-invite-accept {
+    background: linear-gradient(180deg, #3d8f5a, #2d6b44);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.friend-game-invite-accept:hover {
+    filter: brightness(1.08);
+}
+
+.friend-game-invite-decline {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.friend-game-invite-decline:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* Inviter: short wait before opening the board */
+.friend-game-establishing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 250;
+    background: rgba(8, 10, 14, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: friendGameEstablishFade 0.25s ease-out;
+}
+
+@keyframes friendGameEstablishFade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.friend-game-establishing-card {
+    text-align: center;
+    padding: 28px 32px;
+    border-radius: 12px;
+    background: rgba(22, 28, 38, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    max-width: 320px;
+}
+
+.friend-game-establishing-spinner {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 14px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #6ab0ff;
+    border-radius: 50%;
+    animation: friendGameSpin 0.75s linear infinite;
+}
+
+@keyframes friendGameSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.friend-game-establishing-text {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #f2f6fc;
+}
+
+.friend-game-establishing-hint {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* Inviter: decline toast (5s) */
+.friend-game-invite-toast {
+    position: fixed;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    max-width: min(400px, calc(100vw - 24px));
+    padding: 12px 18px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #f5f5f5;
+    background: rgba(55, 35, 40, 0.95);
+    border: 1px solid rgba(255, 120, 120, 0.35);
+    border-radius: 10px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.friend-game-invite-toast--fade {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+}
+
+.friend-game-invite-toast-text {
+    margin: 0;
+}
+
 @keyframes fadeInOut {
     0% {
         opacity: 0;

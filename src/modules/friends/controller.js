@@ -2,10 +2,12 @@ const catchAsync = require("../../utils/catchAsync");
 const ExpressError = require("../../utils/ExpressError");
 const presence = require("../../utils/presence");
 const friendsService = require("./service");
+const gameController = require("../game/controller");
 
 exports.showFriendsPage = catchAsync(async (req, res) => {
     const sessionUserId = req.session.user_id ? String(req.session.user_id) : "";
-    res.render("friends", { sessionUserId });
+    const sessionUsername = req.session.user_name != null ? String(req.session.user_name) : "";
+    res.render("friends", { sessionUserId, sessionUsername });
 });
 
 exports.pingPresence = catchAsync(async (req, res) => {
@@ -74,5 +76,36 @@ exports.withdrawInvite = catchAsync(async (req, res) => {
         throw new ExpressError("targetUserId is required", 400);
     }
     await friendsService.withdrawFriendInvite(String(req.session.user_id), String(targetUserId).trim());
+    res.json({ ok: true });
+});
+
+exports.sendGameInvite = catchAsync(async (req, res) => {
+    const targetUserId = req.body && req.body.targetUserId;
+    if (targetUserId == null || String(targetUserId).trim() === "") {
+        throw new ExpressError("targetUserId is required", 400);
+    }
+    const { gameId } = await gameController.createFriendInviteGameForUser(
+        String(req.session.user_id),
+        String(req.session.user_name || ""),
+        String(targetUserId).trim()
+    );
+    res.json({ ok: true, gameId });
+});
+
+exports.declineGameInvite = catchAsync(async (req, res) => {
+    const gameId = req.body && req.body.gameId;
+    if (gameId == null || String(gameId).trim() === "") {
+        throw new ExpressError("gameId is required", 400);
+    }
+    await gameController.declineFriendInviteGame(String(gameId).trim(), String(req.session.user_id));
+    res.json({ ok: true });
+});
+
+exports.withdrawGameInvite = catchAsync(async (req, res) => {
+    const gameId = req.body && req.body.gameId;
+    if (gameId == null || String(gameId).trim() === "") {
+        throw new ExpressError("gameId is required", 400);
+    }
+    await gameController.withdrawFriendInviteGame(String(gameId).trim(), String(req.session.user_id));
     res.json({ ok: true });
 });

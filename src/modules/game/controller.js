@@ -10,7 +10,9 @@ const gamesManagerService = require("../gamesManager/service");
 const { Game } = require("./model");
 const { Player } = require("./Player");
 const { User } = require("../user/model");
-//const ExpressError = require("../../utils/ExpressError");
+const ExpressError = require("../../utils/ExpressError");
+const mongoose = require("mongoose");
+const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 
 function setGamePageNoCache(res) {
@@ -124,7 +126,14 @@ function createGameInfo(game, userName, userId) {
         watcher = true;
     }
 
-    if (game.lastStatus == "in progress" || watcher) {
+    const stateForBoard =
+        game.lastStatus === "in progress" ||
+        game.status === "in progress" ||
+        game.status === "pending" ||
+        game.status === "establishing" ||
+        game.status === "on hold" ||
+        game.status === "reJoining";
+    if (stateForBoard || watcher) {
         const gameState = game.chessGame.GameState;
         clientDate.gameState = gameState;
         clientDate.watcher = watcher;
@@ -213,9 +222,9 @@ exports.rematch = async (req, res) => {
 };
 
 function isUserInGame(game, userId) {
-    if (!game) return false;
-    if (game.whitePlayer && game.whitePlayer.userId && String(game.whitePlayer.userId) === String(userId)) return true;
-    if (game.blackPlayer && game.blackPlayer.userId && String(game.blackPlayer.userId) === String(userId)) return true;
+    if (!game) {return false;}
+    if (game.whitePlayer && game.whitePlayer.userId && String(game.whitePlayer.userId) === String(userId)) {return true;}
+    if (game.blackPlayer && game.blackPlayer.userId && String(game.blackPlayer.userId) === String(userId)) {return true;}
     return false;
 }
 
@@ -234,7 +243,17 @@ exports.startGame = catchAsync(async (req, res) => {
             return res.redirect("/watch?id=" + encodeURIComponent(req.query.id));
         }
         const state = game.status || game.lastStatus;
-        if (state !== "in progress" && state !== "on hold") {
+        if (state === "cancelled" || state === "game over") {
+            return res.redirect("/friends");
+        }
+        const playableAsParticipant = [
+            "pending",
+            "establishing",
+            "in progress",
+            "on hold",
+            "reJoining",
+        ].includes(state);
+        if (!playableAsParticipant) {
             return res.redirect("/watch?id=" + encodeURIComponent(req.query.id));
         }
         req.session.gameId = game.gameId;
@@ -266,6 +285,31 @@ exports.startGame = catchAsync(async (req, res) => {
 
     let gameDoc;
     let game;
+
+    const joinFriendGameId = req.query.joinGame != null && String(req.query.joinGame).trim() !== ""
+        ? String(req.query.joinGame).trim()
+        : "";
+    if (joinFriendGameId && !wantsNewGameWithOptions) {
+        if (gameTypeInt !== 2) {
+            return res.redirect("/home");
+        }
+        if (!mongoose.Types.ObjectId.isValid(joinFriendGameId)) {
+            return res.redirect("/home");
+        }
+        const friendJoinGame = gamesManagerService.getGameById(joinFriendGameId);
+        if (
+            friendJoinGame &&
+            friendJoinGame.constructor.name === "OnlineGame" &&
+            friendJoinGame.status === "pending" &&
+            friendJoinGame.invitedUserId &&
+            String(friendJoinGame.invitedUserId) === String(userId) &&
+            String(friendJoinGame.createdBy.userId) !== String(userId)
+        ) {
+            await joinPendingOnlineGameAsBlack(friendJoinGame, username, userId, req, res);
+            return;
+        }
+        return res.redirect("/home");
+    }
 
     // Game is in progress - for example, user refresh the game page (skip if they asked for new game with options)
     if (!wantsNewGameWithOptions) {
@@ -308,33 +352,13 @@ exports.startGame = catchAsync(async (req, res) => {
     // Game is pending - a game was created. waiting for opponent to join the game
     game = gamesManagerService.findPendingGame(gameTypeInt, userId);
     if (game) {
-        // join a game
-        game.status = "establishing";
-        const blackPlayer = new Player(userId, username, false);
-        gameDoc = await gamesManagerService.findGameInDB(game);
-        gameDoc.blackPlayer = username;
-        gameDoc.state = "in progress";
-        await gameDoc.save();
-        game.joinGame(blackPlayer);
-        if (game.constructor.name === "OnlineGame") {
-            const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
-            const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
-            const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
-            broadcastActiveGameToLobby("onlineGameInProgress", game, {
-                gameId: String(game.gameId),
-                Game: (game.whitePlayer?.userName || "") + " Vs. " + (game.blackPlayer?.userName || ""),
-                Started: startedText,
-                Moves: Math.ceil((game.moves || []).length / 2),
-                status: "in progress",
-                whitePlayerName: game.whitePlayer?.userName || "",
-                blackPlayerName: game.blackPlayer?.userName || "",
-            });
-        }
-        req.session.gameId = game.gameId;
-        registerEvents(game);
-        setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+        await joinPendingOnlineGameAsBlack(game, username, userId, req, res);
         return;
+    }
+
+    // Online multiplayer: games are started via friend invite only (no random open queue).
+    if (gameTypeInt === 2) {
+        return res.redirect("/friends");
     }
 
     // create a new game (pass options for single-player: color, engine, difficulty, mouse)
@@ -414,6 +438,189 @@ function broadcastActiveGameToLobby(type, game, extra = {}) {
         },
     };
     broadcast(payload);
+}
+
+/**
+ * Second player joins an open online multiplayer game (inviter is White; joiner is Black).
+ */
+async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
+    game.status = "establishing";
+    const blackPlayer = new Player(userId, username, false);
+    const gameDoc = await gamesManagerService.findGameInDB(game);
+    gameDoc.blackPlayer = username;
+    gameDoc.state = "in progress";
+    await gameDoc.save();
+    game.joinGame(blackPlayer);
+    if (game.constructor.name === "OnlineGame") {
+        const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
+        const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
+        const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
+        broadcastActiveGameToLobby("onlineGameInProgress", game, {
+            gameId: String(game.gameId),
+            Game: (game.whitePlayer?.userName || "") + " Vs. " + (game.blackPlayer?.userName || ""),
+            Started: startedText,
+            Moves: Math.ceil((game.moves || []).length / 2),
+            status: "in progress",
+            whitePlayerName: game.whitePlayer?.userName || "",
+            blackPlayerName: game.blackPlayer?.userName || "",
+        });
+    }
+    req.session.gameId = game.gameId;
+    registerEvents(game);
+    setGamePageNoCache(res);
+    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+
+    const inviterId = game.createdBy && game.createdBy.userId ? String(game.createdBy.userId) : "";
+    if (inviterId && game.invitedUserId) {
+        presence.sendToUser(inviterId, {
+            type: "friendGameInviteAccepted",
+            data: { gameId: String(game.gameId) },
+        });
+    }
+}
+
+/**
+ * @param {string} inviterId
+ * @param {string} inviterName
+ * @param {string} targetUserId
+ */
+async function createFriendInviteGameForUser(inviterId, inviterName, targetUserId) {
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    if (String(inviterId) === String(targetUserId)) {
+        throw new ExpressError("Cannot invite yourself", 400);
+    }
+
+    const me = await User.findById(inviterId).select("friends");
+    if (!me) {
+        throw new ExpressError("User not found", 404);
+    }
+    const targetOid = new mongoose.Types.ObjectId(targetUserId);
+    const isFriend = (me.friends || []).some((id) => id.equals(targetOid));
+    if (!isFriend) {
+        throw new ExpressError("You can only invite friends to a game", 403);
+    }
+
+    const pendingMine = gamesManagerService.findPendingGameCreatedByMe(gamesManagerService.GameTypes.ONLINE, inviterId);
+    if (pendingMine) {
+        if (pendingMine.invitedUserId && String(pendingMine.invitedUserId) === String(targetUserId)) {
+            return { gameId: String(pendingMine.gameId) };
+        }
+        throw new ExpressError("You already have a multiplayer game waiting. Finish or cancel it first.", 409);
+    }
+
+    const game = gameService.newGame(2, inviterName, inviterId, { invitedUserId: targetUserId });
+    /** Must be pending before WS connects so incoming/outgoing invite lists and DB state match. */
+    game.status = "pending";
+    /** So HTTP /gameInfo and any client that loads before WS see a real position, not an empty board. */
+    game.chessGame.startNewGame();
+    gamesManagerService.AddGame(game);
+    const gameDoc = await gamesManagerService.storeGameInDB(game);
+    game.gameId = gameDoc.id;
+    registerEvents(game);
+
+    presence.sendToUser(targetUserId, {
+        type: "friendGameInvite",
+        data: {
+            gameId: String(game.gameId),
+            fromUserId: String(inviterId),
+            fromUsername: inviterName,
+        },
+    });
+
+    return { gameId: String(game.gameId) };
+}
+
+/**
+ * Invitee declines a pending friend game; notifies inviter over WebSocket.
+ * @param {string} gameId
+ * @param {string} userId Session user (must be the invited player).
+ */
+async function declineFriendInviteGame(gameId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        throw new ExpressError("Invalid game id", 400);
+    }
+    const game = gamesManagerService.getGameById(gameId);
+    if (!game || game.constructor.name !== "OnlineGame") {
+        throw new ExpressError("Game not found", 404);
+    }
+    if (game.status !== "pending") {
+        throw new ExpressError("This game is no longer available", 409);
+    }
+    if (!game.invitedUserId || String(game.invitedUserId) !== String(userId)) {
+        throw new ExpressError("Not allowed", 403);
+    }
+
+    const inviterId = game.createdBy && game.createdBy.userId ? String(game.createdBy.userId) : "";
+    game.status = "cancelled";
+
+    const gameDoc = await Game.findOne({ _id: game.gameId });
+    if (gameDoc) {
+        gameDoc.state = "cancelled";
+        await gameDoc.save();
+    }
+
+    broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount: 0, status: "cancelled" });
+
+    if (inviterId) {
+        let declinedByUsername = "";
+        try {
+            const decl = await User.findById(userId).select("username").lean();
+            if (decl && decl.username != null) {
+                declinedByUsername = String(decl.username);
+            }
+        } catch {
+            /* ignore */
+        }
+        presence.sendToUser(inviterId, {
+            type: "friendGameInviteDeclined",
+            data: {
+                gameId: String(game.gameId),
+                declinedByUsername,
+            },
+        });
+    }
+}
+
+/**
+ * Inviter cancels a pending friend game before the invitee accepts.
+ * @param {string} gameId
+ * @param {string} userId Session user (must be the game creator / White).
+ */
+async function withdrawFriendInviteGame(gameId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        throw new ExpressError("Invalid game id", 400);
+    }
+    const game = gamesManagerService.getGameById(gameId);
+    if (!game || game.constructor.name !== "OnlineGame") {
+        throw new ExpressError("Game not found", 404);
+    }
+    if (game.status !== "pending") {
+        throw new ExpressError("This game is no longer pending", 409);
+    }
+    if (!game.invitedUserId) {
+        throw new ExpressError("Not allowed", 403);
+    }
+    if (String(game.createdBy.userId) !== String(userId)) {
+        throw new ExpressError("Not allowed", 403);
+    }
+
+    const inviteeId = String(game.invitedUserId);
+    game.status = "cancelled";
+
+    const gameDoc = await Game.findOne({ _id: game.gameId });
+    if (gameDoc) {
+        gameDoc.state = "cancelled";
+        await gameDoc.save();
+    }
+
+    broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount: 0, status: "cancelled" });
+
+    presence.sendToUser(inviteeId, {
+        type: "friendGameInviteWithdrawn",
+        data: { gameId: String(game.gameId) },
+    });
 }
 
 const onMoveConfirmed = async (e) => {
@@ -550,3 +757,7 @@ const onRematch = async (e) => {
     await gameDoc.save();
     cb(newGame);
 };
+
+exports.createFriendInviteGameForUser = createFriendInviteGameForUser;
+exports.declineFriendInviteGame = declineFriendInviteGame;
+exports.withdrawFriendInviteGame = withdrawFriendInviteGame;

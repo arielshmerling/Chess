@@ -21,7 +21,7 @@
           <div class="panel-title-group">
             <h2 class="panel-title">Your friends</h2>
           </div>
-          <div class="panel-subtitle">Friends and pending invites — incoming offers show a yellow marker; accept or decline there</div>
+          <div class="panel-subtitle">Invite an online friend to play — you play White, they play Black. While an invite is pending, use <strong>Cancel invite</strong> on that friend’s row to cancel it.</div>
         </div>
         <div class="panel-body">
           <div id="friendsEmpty" class="no-games-message">
@@ -52,6 +52,9 @@
   </div>
 </div>
 
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !== "undefined" && sessionUsername != null ? sessionUsername : "") %>;
+</script>
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function () {
   var friendsList = document.getElementById("friendsList");
@@ -137,22 +140,47 @@
     });
   }
 
+  function setPrimaryActionButton(li, status) {
+    var primary = li.querySelector(".friends-row-actions .friends-btn-primary");
+    if (!primary) return;
+    var sharedGid = li.getAttribute("data-shared-game-id");
+    var fid = li.getAttribute("data-friend-id");
+    var fun = li.getAttribute("data-friend-username") || "";
+    if (status === "playing" && sharedGid) {
+      primary.disabled = false;
+      primary.textContent = "Rejoin";
+      primary.setAttribute("data-action", "rejoin-game");
+      primary.setAttribute("data-game-id", sharedGid);
+      primary.removeAttribute("data-friend-id");
+      primary.removeAttribute("data-username");
+      primary.classList.remove("friends-btn-invite");
+      primary.classList.add("friends-btn-rejoin");
+      return;
+    }
+    primary.textContent = "Invite";
+    primary.removeAttribute("data-action");
+    primary.removeAttribute("data-game-id");
+    if (fid) primary.setAttribute("data-friend-id", fid);
+    if (fun) primary.setAttribute("data-username", fun);
+    primary.classList.add("friends-btn-invite");
+    primary.classList.remove("friends-btn-rejoin");
+    primary.disabled = status !== "online";
+  }
+
   function updateFriendRowVisual(userId, username, status) {
     if (!friendsList) return;
     var li = friendsList.querySelector('li[data-friend-id="' + userId + '"]');
     if (!li) return;
     if (li.getAttribute("data-friend-offer-in") === "true") return;
     if (li.getAttribute("data-friend-pending-out") === "true") return;
+    if (li.getAttribute("data-friend-game-invite-pending") === "true") return;
     var dot = li.querySelector(".friends-status-dot");
-    var inviteBtn = li.querySelector(".friends-btn-invite");
     if (dot) {
       dot.className = "friends-status-dot friends-status-" + status;
       dot.title = statusTitle(status);
       dot.setAttribute("aria-label", statusTitle(status));
     }
-    if (inviteBtn) {
-      inviteBtn.disabled = status !== "online";
-    }
+    setPrimaryActionButton(li, status);
   }
 
   function applyPresenceToAllVisibleFriends() {
@@ -162,13 +190,14 @@
       var li = rows[i];
       if (li.getAttribute("data-friend-offer-in") === "true") continue;
       if (li.getAttribute("data-friend-pending-out") === "true") continue;
+      if (li.getAttribute("data-friend-game-invite-pending") === "true") continue;
       var id = li.getAttribute("data-friend-id");
       var un = li.getAttribute("data-friend-username") || "";
       updateFriendRowVisual(id, un, computeEffectiveStatus({ id: id, username: un, status: "offline", rowType: "friend" }));
     }
   }
 
-  function renderFriendsAndOffers(offersIn, friends) {
+  function renderFriendsAndOffers(offersIn, friends, pendingGameInvite) {
     if (!friendsList || !friendsEmpty) return;
     friendsList.innerHTML = "";
     var offers = (offersIn || []).slice().sort(function (a, b) {
@@ -223,7 +252,9 @@
           esc(f.username) +
           ' <span class="friends-pending-suffix">(pending friendship offer)</span></span>' +
           '<div class="friends-row-actions">' +
-          '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite" disabled data-username="' +
+          '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite" disabled data-friend-id="' +
+          esc(f.id) +
+          '" data-username="' +
           esc(f.username) +
           '">Invite</button>' +
           '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-invite" data-id="' +
@@ -231,30 +262,73 @@
           '">Withdraw</button>' +
           "</div>";
       } else {
-        var st = computeEffectiveStatus(f);
-        var dotClass = "friends-status-dot friends-status-" + st;
-        var inviteDisabled = st !== "online";
-        li.innerHTML =
-          '<span class="' +
-          esc(dotClass) +
-          '" title="' +
-          esc(statusTitle(st)) +
-          '" aria-label="' +
-          esc(statusTitle(st)) +
-          '"></span>' +
-          '<span class="friends-username">' +
-          esc(f.username) +
-          "</span>" +
-          '<div class="friends-row-actions">' +
-          '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
-          (inviteDisabled ? " disabled" : "") +
-          ' data-username="' +
-          esc(f.username) +
-          '">Invite</button>' +
-          '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
-          esc(f.id) +
-          '">Remove</button>' +
-          "</div>";
+        var pg =
+          pendingGameInvite &&
+          pendingGameInvite.inviteeUserId === f.id &&
+          f.rowType === "friend";
+        if (pg) {
+          var pendTitle = "Waiting for your friend to respond";
+          li.setAttribute("data-friend-game-invite-pending", "true");
+          li.innerHTML =
+            '<span class="friends-status-dot friends-status-online" title="' +
+            esc(pendTitle) +
+            '" aria-label="' +
+            esc(pendTitle) +
+            '"></span>' +
+            '<span class="friends-username">' +
+            esc(f.username) +
+            "</span>" +
+            '<div class="friends-row-actions">' +
+            '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-game-invite" data-game-id="' +
+            esc(pendingGameInvite.gameId) +
+            '">Cancel invite</button>' +
+            '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
+            esc(f.id) +
+            '" disabled title="Cancel the game invite before removing this friend">Remove</button>' +
+            "</div>";
+        } else {
+          var st = computeEffectiveStatus(f);
+          var dotClass = "friends-status-dot friends-status-" + st;
+          var sharedId = f.sharedGameWithMeId || null;
+          if (sharedId) {
+            li.setAttribute("data-shared-game-id", sharedId);
+          }
+          var showRejoin = st === "playing" && sharedId;
+          var inviteDisabled = st !== "online";
+          var primaryBtn;
+          if (showRejoin) {
+            primaryBtn =
+              '<button type="button" class="friends-btn friends-btn-primary friends-btn-rejoin" data-action="rejoin-game" data-game-id="' +
+              esc(sharedId) +
+              '">Rejoin</button>';
+          } else {
+            primaryBtn =
+              '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
+              (inviteDisabled ? " disabled" : "") +
+              ' data-friend-id="' +
+              esc(f.id) +
+              '" data-username="' +
+              esc(f.username) +
+              '">Invite</button>';
+          }
+          li.innerHTML =
+            '<span class="' +
+            esc(dotClass) +
+            '" title="' +
+            esc(statusTitle(st)) +
+            '" aria-label="' +
+            esc(statusTitle(st)) +
+            '"></span>' +
+            '<span class="friends-username">' +
+            esc(f.username) +
+            "</span>" +
+            '<div class="friends-row-actions">' +
+            primaryBtn +
+            '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
+            esc(f.id) +
+            '">Remove</button>' +
+            "</div>";
+        }
       }
       friendsList.appendChild(li);
     });
@@ -300,7 +374,7 @@
         var friends = data.friends || [];
         syncPlayingFromApi(friends);
         mergePresenceFromApiFriends(friends);
-        renderFriendsAndOffers(data.offersIn || [], friends);
+        renderFriendsAndOffers(data.offersIn || [], friends, data.pendingGameInvite || null);
       })
       .catch(function () {});
   }
@@ -353,6 +427,15 @@
         });
       });
     }
+    if (action === "withdraw-game-invite") {
+      var gid = t.getAttribute("data-game-id");
+      if (!gid) return;
+      postJson("/api/friends/game-invite-withdraw", { gameId: gid })
+        .then(refreshData)
+        .catch(function (e) {
+          showSiteAlert(e.message || "Could not cancel invite", "Game invite");
+        });
+    }
     if (action === "withdraw-invite" && id) {
       showSiteConfirm("Withdraw this friendship offer?", {
         title: "Withdraw offer",
@@ -378,9 +461,22 @@
           showSiteAlert(e.message || "Could not send invite", "Could not send invite");
         });
     }
+    if (action === "rejoin-game") {
+      var gid = t.getAttribute("data-game-id");
+      if (!gid) return;
+      window.location.href = "/game?id=" + encodeURIComponent(gid);
+      return;
+    }
     if (t.classList && t.classList.contains("friends-btn-invite") && !t.disabled) {
-      var un = t.getAttribute("data-username");
-      if (un) window.location.href = "/game?gameType=2";
+      var fid = t.getAttribute("data-friend-id");
+      if (!fid) return;
+      postJson("/api/friends/game-invite", { targetUserId: fid })
+        .then(function () {
+          return refreshData();
+        })
+        .catch(function (e) {
+          showSiteAlert(e.message || "Could not send game invite", "Game invite");
+        });
     }
   });
 
@@ -412,6 +508,7 @@
       var liP = friendsList && friendsList.querySelector('li[data-friend-id="' + d.userId + '"]');
       if (liP && liP.getAttribute("data-friend-offer-in") === "true") return;
       if (liP && liP.getAttribute("data-friend-pending-out") === "true") return;
+      if (liP && liP.getAttribute("data-friend-game-invite-pending") === "true") return;
       liveOnlineByUserId[d.userId] = !!d.online;
       var li = friendsList && friendsList.querySelector('li[data-friend-id="' + d.userId + '"]');
       var un = (li && li.getAttribute("data-friend-username")) || d.username || "";
@@ -421,6 +518,7 @@
     if (msg.type === "onlineGameInProgress" && msg.data) {
       var d2 = msg.data;
       var gid = d2.gameId != null ? String(d2.gameId) : "";
+      var myName = typeof window.__FRIENDS_PAGE_USERNAME__ === "string" ? window.__FRIENDS_PAGE_USERNAME__ : "";
       if (gid) {
         gamePlayersById[gid] = {
           w: d2.whitePlayerName || "",
@@ -429,6 +527,27 @@
       }
       if (d2.whitePlayerName) playingUsernames[d2.whitePlayerName] = 1;
       if (d2.blackPlayerName) playingUsernames[d2.blackPlayerName] = 1;
+      if (myName && gid && d2.whitePlayerName && d2.blackPlayerName) {
+        var wN = d2.whitePlayerName;
+        var bN = d2.blackPlayerName;
+        var imInGame = wN === myName || bN === myName;
+        var otherName = wN === myName ? bN : bN === myName ? wN : "";
+        if (imInGame && otherName && otherName !== myName) {
+          var rowList = friendsList ? friendsList.querySelectorAll("li[data-friend-username]") : [];
+          for (var ri = 0; ri < rowList.length; ri++) {
+            var rowLi = rowList[ri];
+            if (rowLi.getAttribute("data-friend-offer-in") === "true") continue;
+            if (rowLi.getAttribute("data-friend-pending-out") === "true") continue;
+            if (rowLi.getAttribute("data-friend-game-invite-pending") === "true") continue;
+            if (rowLi.getAttribute("data-friend-username") === otherName) {
+              rowLi.setAttribute("data-shared-game-id", gid);
+              var fid = rowLi.getAttribute("data-friend-id");
+              var un = rowLi.getAttribute("data-friend-username") || "";
+              updateFriendRowVisual(fid, un, computeEffectiveStatus({ id: fid, username: un, status: "offline", rowType: "friend" }));
+            }
+          }
+        }
+      }
       applyPresenceToAllVisibleFriends();
       return;
     }
@@ -450,8 +569,26 @@
           if (gp.b) delete playingUsernames[gp.b];
           delete gamePlayersById[gpk];
         }
+        if (friendsList) {
+          var endedRows = friendsList.querySelectorAll("li[data-shared-game-id]");
+          for (var ei = 0; ei < endedRows.length; ei++) {
+            var rowLi = endedRows[ei];
+            if (rowLi.getAttribute("data-shared-game-id") !== gpk) continue;
+            rowLi.removeAttribute("data-shared-game-id");
+            var fid2 = rowLi.getAttribute("data-friend-id");
+            var un2 = rowLi.getAttribute("data-friend-username") || "";
+            updateFriendRowVisual(fid2, un2, computeEffectiveStatus({ id: fid2, username: un2, status: "offline", rowType: "friend" }));
+          }
+        }
         applyPresenceToAllVisibleFriends();
       }
+    }
+    if (
+      msg.type === "friendGameInviteDeclined" ||
+      msg.type === "friendGameInviteWithdrawn" ||
+      msg.type === "friendGameInviteAccepted"
+    ) {
+      refreshData();
     }
   });
 
@@ -473,6 +610,7 @@
           var li = rows[j];
       if (li.getAttribute("data-friend-offer-in") === "true") continue;
       if (li.getAttribute("data-friend-pending-out") === "true") continue;
+      if (li.getAttribute("data-friend-game-invite-pending") === "true") continue;
       var un = li.getAttribute("data-friend-username");
           if (!un) continue;
           if (set[un]) playingUsernames[un] = 1;

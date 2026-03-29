@@ -12,6 +12,7 @@ exports.newGame = (gameType, username, userId, options = {}) => {
     const gameInfo = {
         gameType,
         playAsBlack: options.color === "black",
+        invitedUserId: options.invitedUserId != null ? String(options.invitedUserId) : undefined,
         options: {
             engine: options.engine || "brain4",
             difficulty: options.difficulty || 3,

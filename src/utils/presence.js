@@ -121,6 +121,36 @@ function attachPresenceWebSocket(ws, userId, username) {
 /**
  * @param {any} ws
  */
+/**
+ * Send a JSON payload to all presence WebSocket connections for a given user (same tabs).
+ * @param {string|import("mongoose").Types.ObjectId} userId
+ * @param {object} payload Object serialized with JSON.stringify (not a raw string).
+ */
+function sendToUser(userId, payload) {
+    if (userId == null || userId === "") {
+        return;
+    }
+    const set = wsSocketsByUserId.get(String(userId));
+    if (!set || set.size === 0) {
+        return;
+    }
+    let message;
+    try {
+        message = JSON.stringify(payload);
+    } catch {
+        return;
+    }
+    for (const s of set) {
+        if (s && s.readyState === 1) {
+            try {
+                s.send(message);
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+}
+
 function detachPresenceWebSocket(ws) {
     const uid = ws._presenceUserId;
     if (uid == null) {
@@ -148,4 +178,5 @@ module.exports = {
     setFriendPresenceBroadcaster,
     attachPresenceWebSocket,
     detachPresenceWebSocket,
+    sendToUser,
 };

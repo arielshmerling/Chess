@@ -13,7 +13,7 @@ function menuSettings() {
 
 /* eslint-disable-next-line no-unused-vars */
 function startSearchingForOpponenet() {
-    window.location = "./game?gameType=2"; // OnlineGame
+    window.location = "./friends";
 }
 
 /* eslint-disable-next-line no-unused-vars */

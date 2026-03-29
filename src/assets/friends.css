@@ -53,6 +53,12 @@
     font-size: 16px;
 }
 
+.friends-game-invite-pending-suffix {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 210, 140, 0.95);
+}
+
 .friends-row-actions {
     display: flex;
     gap: 10px;

@@ -404,6 +404,9 @@ async function startGame(isRematch) {
         updateMovesTable(gameMoves.moves);
         resetClocks();
     }
+    if (gameInfo.mode !== "review" && game.GameState && game.GameState.board) {
+        syncBoardFromGameStateOnly();
+    }
     updateRowOrder();
     updateLegend();
     bookmarks = await getBookmarks();
@@ -483,9 +486,14 @@ function initPracticeGame(gameInfo, currentPlayerIsWhite) {
 }
 
 function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, isWatcher) {
+    const blackNameKnown =
+        gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim().length > 0;
     if (!isRematch && gameInfo.mode != "review") {
         startWebSockets(gameInfo.username, currentPlayerIsWhite, isWatcher);
-        if (currentPlayerIsWhite && !isRejoined && !isRematch && !isWatcher) { putCloak(); }
+        const waitingForAnonymousOpponent = !blackNameKnown;
+        if (currentPlayerIsWhite && !isRejoined && !isRematch && !isWatcher && waitingForAnonymousOpponent) {
+            putCloak();
+        }
     }
 
     if (currentPlayerIsWhite) {
@@ -493,9 +501,11 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         whitePlayerInfoDiv.innerText = gameInfo.whitePlayerName;
 
         const blackPlayerInfoDiv = document.getElementById("blackPlayerName");
-        blackPlayerInfoDiv.innerText = (isRematch || isRejoined || isWatcher) ? gameInfo.blackPlayerName : "looking for opponent...";
+        blackPlayerInfoDiv.innerText =
+            (isRematch || isRejoined || isWatcher || blackNameKnown) ? gameInfo.blackPlayerName : "looking for opponent...";
         const opponentStatus = document.getElementById("blackPlayerStatus");
-        opponentStatus.style.background = (isRematch || isRejoined || isWatcher) ? "var(--online-color)" : "var(--offline-color)";
+        opponentStatus.style.background =
+            (isRematch || isRejoined || isWatcher || blackNameKnown) ? "var(--online-color)" : "var(--offline-color)";
 
         disableButtons(["redoBtn", "undoBtn", "rematchBtn", "resignBtn", "drawBtn", "lastMoveBtn"]);
         hideButtons(["undoBtn", "redoBtn"]);
@@ -3073,11 +3083,33 @@ async function getGameInfo(isRematch) {
     if (isRematch) {
         return await getServerInfo("/gameInfo?id=" + gameInfo.id);
     }
+    let idFromUrl = null;
+    try {
+        const p = new URLSearchParams(window.location.search);
+        const qId = p.get("id");
+        const qJoin = p.get("joinGame");
+        if (qId && String(qId).trim()) {
+            idFromUrl = String(qId).trim();
+        } else if (qJoin && String(qJoin).trim()) {
+            idFromUrl = String(qJoin).trim();
+        }
+    } catch {
+        idFromUrl = null;
+    }
+
     const initialIdEl = document.querySelector("[data-initial-game-id]");
-    const initialId = initialIdEl ? initialIdEl.getAttribute("data-initial-game-id") : null;
-    if (initialId) {
+    const fromDom = initialIdEl ? initialIdEl.getAttribute("data-initial-game-id") : null;
+    const trimmedDom = fromDom && String(fromDom).trim();
+
+    if (idFromUrl) {
+        if (initialIdEl) {
+            initialIdEl.removeAttribute("data-initial-game-id");
+        }
+        return await getServerInfo("/gameInfo?id=" + encodeURIComponent(idFromUrl));
+    }
+    if (trimmedDom) {
         initialIdEl.removeAttribute("data-initial-game-id");
-        return await getServerInfo("/gameInfo?id=" + initialId);
+        return await getServerInfo("/gameInfo?id=" + encodeURIComponent(trimmedDom));
     }
     return await getServerInfo("/gameInfo");
 }

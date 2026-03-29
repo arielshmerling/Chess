@@ -14,5 +14,8 @@ router.post("/api/friends/accept", requireLogin, friendsController.acceptInvite)
 router.post("/api/friends/decline", requireLogin, friendsController.declineInvite);
 router.post("/api/friends/remove", requireLogin, friendsController.removeFriend);
 router.post("/api/friends/withdraw", requireLogin, friendsController.withdrawInvite);
+router.post("/api/friends/game-invite", requireLogin, friendsController.sendGameInvite);
+router.post("/api/friends/game-invite-decline", requireLogin, friendsController.declineGameInvite);
+router.post("/api/friends/game-invite-withdraw", requireLogin, friendsController.withdrawGameInvite);
 
 module.exports = router;
