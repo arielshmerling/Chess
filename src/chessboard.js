@@ -26,6 +26,8 @@ let pause = false;
 let draggedImage, offsetX, offsetY, chessboard, coordX, coordY, sourcePosition, targetPosition;
 let currentEditingBookmark = null;
 let clickToMoveSelected = null;
+/** Suppress duplicate check alerts if OnUpdate still fires twice with the same checked side (backup guard). */
+let lastCheckNotifySide = null;
 
 const WhitePawnUrl = "images/3409_white-pawn.png";
 const WhiteRookUrl = "images/3406_white-rook.png";
@@ -1081,6 +1083,22 @@ function drawBoard(board) {
 }
 
 /**
+ * Syncs the board/captured pieces from the current game state without running OnUpdate side effects
+ * (check alerts, moves table refresh, etc.). Used after animateMove so forceUpdate does not re-fire
+ * check UI for the same position before the incoming makeMove is applied.
+ */
+function syncBoardFromGameStateOnly() {
+    const state = game.GameState;
+    if (state && state.board) {
+        drawBoard(state.board);
+        updateCaptureLists(state.capturedPiecesList || []);
+    }
+    if (typeof gameInfo !== "undefined" && gameInfo && gameInfo.mousePreference === "double") {
+        applyMousePreference("double");
+    }
+}
+
+/**
  *  Creates the HTML DOM Elements that assemblies the Chess board's side including the row numbers.
  *
  * @param {boolean} isRight - determines if the side is the right side. default is left
@@ -1901,9 +1919,15 @@ async function onUpdateReceivedEventHandler(gameState) {
     // displayAlgebricNotation(algebricNotation)
 
     if (gameState.checkmate) {
+        lastCheckNotifySide = null;
         await checkmateEventHandler(game.Turn);
-    } else if (gameState.check) {
-        await checkEventHandler(game.Turn);
+    } else if (gameState.check === true) {
+        if (lastCheckNotifySide !== game.Turn) {
+            await checkEventHandler(game.Turn);
+            lastCheckNotifySide = game.Turn;
+        }
+    } else {
+        lastCheckNotifySide = null;
     }
 
     // Draw is handled via game.OnDraw (drawEventHandler), including draw-offer accepted.
@@ -1912,6 +1936,7 @@ async function onUpdateReceivedEventHandler(gameState) {
     if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
 
         alertMode = false;
+        lastCheckNotifySide = null;
         resetAlerts();
         displayMessage("");
     }
@@ -1937,7 +1962,7 @@ function checkEventHandler(turn) {
     alertMode = true;
     console.log(`Check! ${game.colorName(turn)} under attack`);
     displayMessage("Check");
-    const playerName = game.colorName(turn) == "Black" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+    const playerName = turn === "black" ? gameInfo.blackPlayerName : gameInfo.whitePlayerName;
     log(playerName, "Check!");
     const frame = document.getElementsByClassName("frame");
     for (const el of frame) { el.classList.add("checkAlert"); }
@@ -2093,7 +2118,7 @@ async function animateMove(move) {
             const divMoveTarget = findSquareDivElement(move.source.row, move.source.col);
             const img = divMoveTarget.childNodes[0];
             if (!img) {
-                game.forceUpdate();
+                syncBoardFromGameStateOnly();
                 animating = false;
                 reject();
                 return;
@@ -2124,7 +2149,7 @@ async function animateMove(move) {
                     img.style.position = "relative";
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
-                    game.forceUpdate();
+                    syncBoardFromGameStateOnly();
                     animating = false;
                     resolve();
                 }
