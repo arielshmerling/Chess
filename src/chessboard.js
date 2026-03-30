@@ -95,6 +95,36 @@ function onlinePlayerLabelForSide(isWhitePlayer) {
  * Online (non-spectator): enable Draw only after this player has moved, and only while waiting for the opponent
  * (not on your own turn).
  */
+/**
+ * Opponent moves arrive in coordinates for the default board orientation (white player: WhitePlayerView true;
+ * black player: false). After the user flips the board, the engine state is mirrored — flip incoming moves to match.
+ * Watchers load as white view (true); their incoming data is server‑canonical, same adjustment when flipped.
+ */
+function adjustIncomingNetworkMoveForBoardView(move) {
+    if (!move || !game) {
+        return move;
+    }
+    const defaultView = gameInfo && gameInfo.watcher ? true : currentPlayerIsWhite;
+    if (game.WhitePlayerView === defaultView) {
+        return move;
+    }
+    return game.flipMove(move);
+}
+
+/** Local engine move is in flipped view when the board is flipped; server/opponent expect default-view coordinates. */
+function adjustOutgoingNetworkMoveForBoardView(move) {
+    if (!move || !game) {
+        return move;
+    }
+    if (gameInfo && gameInfo.watcher) {
+        return move;
+    }
+    if (game.WhitePlayerView === currentPlayerIsWhite) {
+        return move;
+    }
+    return game.flipMove(move);
+}
+
 function syncOnlineGameDrawButton() {
     if (!gameInfo || gameInfo.gameType !== "OnlineGame" || gameInfo.watcher || !game || game.GameOver || gameInfo.mode === "review") {
         return;
@@ -2589,7 +2619,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 updateMovesTable(gameMoves.moves);
                 return;
             }
-            const move = message.data;
+            const move = adjustIncomingNetworkMoveForBoardView(message.data);
             let moveObj;
 
 
@@ -3505,9 +3535,14 @@ async function sendMove(moveObj) {
     let isWhite = currentPlayerIsWhite;
     moveObj.moveTime = isWhite ? whiteTimer : blackTimer;
 
+    let data = moveObj;
+    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+        data = adjustOutgoingNetworkMoveForBoardView(moveObj);
+    }
+
     const message = {
         type: "move",
-        data: moveObj,
+        data: data,
         gameId: gameInfo.id,
         username: gameInfo.username,
         isWhite: isWhite,
