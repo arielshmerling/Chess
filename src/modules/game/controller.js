@@ -298,6 +298,21 @@ exports.startGame = catchAsync(async (req, res) => {
             return res.redirect("/home");
         }
         const friendJoinGame = gamesManagerService.getGameById(joinFriendGameId);
+        const isInvitedBlackJoiner =
+            friendJoinGame &&
+            friendJoinGame.constructor.name === "OnlineGame" &&
+            friendJoinGame.blackPlayer &&
+            String(friendJoinGame.blackPlayer.userId) === String(userId) &&
+            friendJoinGame.createdBy &&
+            String(friendJoinGame.createdBy.userId) !== String(userId);
+        const alreadyJoinedOpenStates = new Set(["establishing", "in progress", "on hold", "reJoining"]);
+        if (isInvitedBlackJoiner && alreadyJoinedOpenStates.has(friendJoinGame.status)) {
+            req.session.gameId = friendJoinGame.gameId;
+            registerEvents(friendJoinGame);
+            setGamePageNoCache(res);
+            res.render("game", { username, gameId: friendJoinGame.gameId, hideTopbar: true });
+            return;
+        }
         if (
             friendJoinGame &&
             friendJoinGame.constructor.name === "OnlineGame" &&
@@ -442,9 +457,9 @@ function broadcastActiveGameToLobby(type, game, extra = {}) {
 }
 
 /**
- * Second player joins an open online multiplayer game (inviter is White; joiner is Black).
+ * Second player joins (inviter is White; joiner is Black). Persists, registers, notifies inviter — no HTML response.
  */
-async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
+async function joinPendingOnlineGameAsBlackCore(game, username, userId, req) {
     game.status = "establishing";
     const blackPlayer = new Player(userId, username, false);
     const gameDoc = await gamesManagerService.findGameInDB(game);
@@ -468,8 +483,6 @@ async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
     }
     req.session.gameId = game.gameId;
     registerEvents(game);
-    setGamePageNoCache(res);
-    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
 
     const inviterId = game.createdBy && game.createdBy.userId ? String(game.createdBy.userId) : "";
     if (inviterId && game.invitedUserId) {
@@ -478,6 +491,15 @@ async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
             data: { gameId: String(game.gameId) },
         });
     }
+}
+
+/**
+ * Second player joins an open online multiplayer game (inviter is White; joiner is Black).
+ */
+async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
+    await joinPendingOnlineGameAsBlackCore(game, username, userId, req);
+    setGamePageNoCache(res);
+    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
 }
 
 /**
@@ -766,3 +788,35 @@ const onRematch = async (e) => {
 exports.createFriendInviteGameForUser = createFriendInviteGameForUser;
 exports.declineFriendInviteGame = declineFriendInviteGame;
 exports.withdrawFriendInviteGame = withdrawFriendInviteGame;
+
+/**
+ * Invitee accepts from the banner immediately (before navigating to /game). Notifies inviter right away.
+ */
+exports.acceptFriendGameInvite = catchAsync(async (req, res) => {
+    const userId = req.session.user_id != null ? String(req.session.user_id) : "";
+    const username = req.session.user_name != null ? String(req.session.user_name) : "";
+    const gameIdRaw = req.body && req.body.gameId;
+    if (gameIdRaw == null || String(gameIdRaw).trim() === "") {
+        throw new ExpressError("gameId is required", 400);
+    }
+    const gid = String(gameIdRaw).trim();
+    if (!mongoose.Types.ObjectId.isValid(gid)) {
+        throw new ExpressError("Invalid game id", 400);
+    }
+    const game = gamesManagerService.getGameById(gid);
+    if (
+        !game ||
+        game.constructor.name !== "OnlineGame" ||
+        game.status !== "pending" ||
+        !game.invitedUserId ||
+        String(game.invitedUserId) !== userId ||
+        String(game.createdBy.userId) === userId
+    ) {
+        throw new ExpressError("Cannot accept this invite", 400);
+    }
+    if (game.blackPlayer) {
+        throw new ExpressError("Game already joined", 409);
+    }
+    await joinPendingOnlineGameAsBlackCore(game, username, userId, req);
+    res.json({ ok: true, gameId: gid });
+});

@@ -71,6 +71,24 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
   var playingUsernames = {};
   /** gameId -> { w, b } for clearing playing when a game ends. */
   var gamePlayersById = {};
+  /** After a friend accepts, show “Joining…” on the inviter’s row until timeout or navigation (not “Rejoin” immediately). */
+  var pendingInviterJoiningGameId = null;
+  var pendingInviterJoiningUntil = 0;
+  var JOINING_LABEL_MS = 15000;
+  var joiningLabelRevertTimer = null;
+
+  function markInviterJoiningGame(gameId) {
+    if (!gameId) return;
+    pendingInviterJoiningGameId = String(gameId);
+    pendingInviterJoiningUntil = Date.now() + JOINING_LABEL_MS;
+    if (joiningLabelRevertTimer) clearTimeout(joiningLabelRevertTimer);
+    joiningLabelRevertTimer = setTimeout(function () {
+      joiningLabelRevertTimer = null;
+      pendingInviterJoiningGameId = null;
+      pendingInviterJoiningUntil = 0;
+      if (friendsList) applyPresenceToAllVisibleFriends();
+    }, JOINING_LABEL_MS);
+  }
 
   function esc(s) {
     return String(s == null ? "" : s)
@@ -140,6 +158,19 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     });
   }
 
+  function sharedGamePrimaryButtonLabel(sharedGid) {
+    var gid = sharedGid != null ? String(sharedGid) : "";
+    if (
+      gid &&
+      pendingInviterJoiningGameId &&
+      gid === pendingInviterJoiningGameId &&
+      Date.now() < pendingInviterJoiningUntil
+    ) {
+      return "Joining";
+    }
+    return "Rejoin";
+  }
+
   function setPrimaryActionButton(li, status) {
     var primary = li.querySelector(".friends-row-actions .friends-btn-primary");
     if (!primary) return;
@@ -148,7 +179,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     var fun = li.getAttribute("data-friend-username") || "";
     if (status === "playing" && sharedGid) {
       primary.disabled = false;
-      primary.textContent = "Rejoin";
+      primary.textContent = sharedGamePrimaryButtonLabel(sharedGid);
       primary.setAttribute("data-action", "rejoin-game");
       primary.setAttribute("data-game-id", sharedGid);
       primary.removeAttribute("data-friend-id");
@@ -297,10 +328,13 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
           var inviteDisabled = st !== "online";
           var primaryBtn;
           if (showRejoin) {
+            var rejoinLabel = sharedGamePrimaryButtonLabel(sharedId);
             primaryBtn =
               '<button type="button" class="friends-btn friends-btn-primary friends-btn-rejoin" data-action="rejoin-game" data-game-id="' +
               esc(sharedId) +
-              '">Rejoin</button>';
+              '">' +
+              esc(rejoinLabel) +
+              "</button>";
           } else {
             primaryBtn =
               '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
@@ -464,6 +498,14 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     if (action === "rejoin-game") {
       var gid = t.getAttribute("data-game-id");
       if (!gid) return;
+      if (pendingInviterJoiningGameId && String(gid) === String(pendingInviterJoiningGameId)) {
+        if (joiningLabelRevertTimer) {
+          clearTimeout(joiningLabelRevertTimer);
+          joiningLabelRevertTimer = null;
+        }
+        pendingInviterJoiningGameId = null;
+        pendingInviterJoiningUntil = 0;
+      }
       window.location.href = "/game?id=" + encodeURIComponent(gid);
       return;
     }
@@ -533,6 +575,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         var imInGame = wN === myName || bN === myName;
         var otherName = wN === myName ? bN : bN === myName ? wN : "";
         if (imInGame && otherName && otherName !== myName) {
+          if (myName && wN === myName && gid) {
+            markInviterJoiningGame(gid);
+          }
           var rowList = friendsList ? friendsList.querySelectorAll("li[data-friend-username]") : [];
           for (var ri = 0; ri < rowList.length; ri++) {
             var rowLi = rowList[ri];
@@ -559,6 +604,14 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       var terminal = stNorm === "game over" || stNorm === "cancelled";
       if (terminal && d3.gameId != null) {
         var gpk = String(d3.gameId);
+        if (pendingInviterJoiningGameId && gpk === String(pendingInviterJoiningGameId)) {
+          if (joiningLabelRevertTimer) {
+            clearTimeout(joiningLabelRevertTimer);
+            joiningLabelRevertTimer = null;
+          }
+          pendingInviterJoiningGameId = null;
+          pendingInviterJoiningUntil = 0;
+        }
         var wN = d3.whitePlayerName || "";
         var bN = d3.blackPlayerName || "";
         if (wN) delete playingUsernames[wN];
@@ -582,6 +635,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         }
         applyPresenceToAllVisibleFriends();
       }
+    }
+    if (msg.type === "friendGameInviteAccepted" && msg.data && msg.data.gameId) {
+      markInviterJoiningGame(msg.data.gameId);
     }
     if (
       msg.type === "friendGameInviteDeclined" ||

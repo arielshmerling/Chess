@@ -101,6 +101,8 @@ exports.declineGameInvite = catchAsync(async (req, res) => {
     res.json({ ok: true });
 });
 
+exports.acceptGameInvite = gameController.acceptFriendGameInvite;
+
 exports.withdrawGameInvite = catchAsync(async (req, res) => {
     const gameId = req.body && req.body.gameId;
     if (gameId == null || String(gameId).trim() === "") {

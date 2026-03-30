@@ -100,11 +100,27 @@
         var declineBtn = card.querySelector(".friend-game-invite-decline");
         if (acceptBtn) {
             acceptBtn.addEventListener("click", function () {
-                removeInviteCardImmediate(gid);
-                showEstablishingOverlayThenNavigate(
-                    "You play as Black",
-                    "/game?gameType=2&joinGame=" + encodeURIComponent(gid)
-                );
+                if (acceptBtn.disabled) {
+                    return;
+                }
+                acceptBtn.disabled = true;
+                postJson("/api/friends/game-invite-accept", { gameId: gid })
+                    .then(function () {
+                        removeInviteCardImmediate(gid);
+                        showEstablishingOverlayThenNavigate(
+                            "You play as Black",
+                            "/game?gameType=2&joinGame=" + encodeURIComponent(gid)
+                        );
+                    })
+                    .catch(function (e) {
+                        acceptBtn.disabled = false;
+                        var msg = (e && e.message) ? e.message : "Could not accept invite";
+                        if (typeof window.showSiteAlert === "function") {
+                            window.showSiteAlert(msg, "Game invite");
+                        } else {
+                            window.alert(msg);
+                        }
+                    });
             });
         }
         if (declineBtn) {
@@ -165,7 +181,7 @@
         setTimeout(function () {
             removeEstablishing();
             window.location.href = nextUrl;
-        }, 100);
+        }, 2000);
     }
 
     function showInviterDeclinedToast(declinedByUsername) {
