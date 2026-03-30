@@ -91,6 +91,25 @@ function onlinePlayerLabelForSide(isWhitePlayer) {
     return "A player";
 }
 
+/**
+ * Online (non-spectator): enable Draw only after this player has moved, and only while waiting for the opponent
+ * (not on your own turn).
+ */
+function syncOnlineGameDrawButton() {
+    if (!gameInfo || gameInfo.gameType !== "OnlineGame" || gameInfo.watcher || !game || game.GameOver || gameInfo.mode === "review") {
+        return;
+    }
+    const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+    const myTurn =
+        (game.Turn === "white" && currentPlayerIsWhite) ||
+        (game.Turn === "black" && !currentPlayerIsWhite);
+    if (humanHasMoved && !myTurn) {
+        enableButtons(["drawBtn"]);
+    } else {
+        disableButtons(["drawBtn"]);
+    }
+}
+
 function hideDisconnectionCountdown() {
     const el = currentPlayerIsWhite ?
         document.getElementById("blackPlayerDiconnectionTimer") :
@@ -668,7 +687,8 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
             enableButtons(["lastMoveBtn", "homeBtn"]);
         } else if (isRematch || blackNameKnown) {
             /* Rematch or reload with opponent already in the game — same controls as after "opponent joined". */
-            enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+            enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+            syncOnlineGameDrawButton();
         }
     }
     else {
@@ -684,7 +704,8 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         if (isWatcher) {
             enableButtons(["lastMoveBtn", "homeBtn"]);
         } else {
-            enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+            enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+            syncOnlineGameDrawButton();
         }
     }
 
@@ -1549,6 +1570,9 @@ function resetButtons() {
     //     button.classList.remove("btnDisabled");
     // }
     disableButtons(["rematchBtn"]);
+    if (gameInfo?.watcher) {
+        disableButtons(["resignBtn"]);
+    }
     //document.getElementById("rematchBtn").classList.add("btnDisabled");
 }
 
@@ -2124,6 +2148,9 @@ async function onUpdateReceivedEventHandler(gameState) {
             disableButtons(["drawBtn"]);
         }
     }
+    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
+        syncOnlineGameDrawButton();
+    }
 }
 
 function checkEventHandler(turn) {
@@ -2608,6 +2635,9 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (gameInfo.gameType === "SinglePlayerGame" && !gameInfo.watcher) {
                 sendMessage({ type: "info", info: "clockSync", gameId: gameInfo.id, whiteTimer: whiteTimer, blackTimer: blackTimer });
             }
+            if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
+                syncOnlineGameDrawButton();
+            }
         };
 
         if (message.type == "clockSync") {
@@ -2752,6 +2782,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                 if (td) {
                     scrollMoveCellIntoView(td);
                 }
+                if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
+                    syncOnlineGameDrawButton();
+                }
             }
 
             if (info == "move validation failed") {
@@ -2776,7 +2809,8 @@ function startWebSockets(username, isWhite, isWatcher) {
                 opponentName.innerText = message.data;
 
                 removeCloak();
-                enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+                enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+                syncOnlineGameDrawButton();
 
             }
 
@@ -2811,6 +2845,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                     if (!quickRejoin) {
                         displayMessage("The opponent rejoined");
                         log("System", "The opponent rejoined");
+                    }
+                    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
+                        syncOnlineGameDrawButton();
                     }
                 }
             }
@@ -2860,8 +2897,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                 if (gameInfo.gameType == "OnlineGame") {
                     displayMessage("Rematch offer accepted");
                     log("System", "Rematch offer accepted");
-                    enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+                    enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
                     disableButtons(["rematchBtn"]);
+                    syncOnlineGameDrawButton();
                 }
                 else if (gameInfo.gameType == "SinglePlayerGame") {
                     enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
@@ -2883,6 +2921,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 //document.getElementById("rematchBtn").classList.remove("btnDisabled");                
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
+                if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+                    syncOnlineGameDrawButton();
+                }
             }
 
             if (info == "offer draw") {
@@ -2909,7 +2950,12 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (info == "draw declined") {
                 displayMessage("Draw offer declined");
                 log("System", "Draw offer declined");
-                enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+                if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+                    enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+                    syncOnlineGameDrawButton();
+                } else {
+                    enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+                }
             }
 
             if (info == "new watcher") {
@@ -2926,6 +2972,9 @@ function startWebSockets(username, isWhite, isWatcher) {
             const info = message.data;
             if (info == "undo") {
                 game.undo();
+                if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
+                    syncOnlineGameDrawButton();
+                }
             }
         }
     };
@@ -2948,7 +2997,12 @@ async function declineDraw() {
 
     displayMessage("Draw offer declined");
     log("System", "Draw offer declined");
-    enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+        enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+        syncOnlineGameDrawButton();
+    } else {
+        enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+    }
 
 }
 
@@ -2998,8 +3052,9 @@ async function acceptRematch() {
 
         };
         await sendMessage(message);
-        enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+        enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
         disableButtons(["rematchBtn"]);
+        syncOnlineGameDrawButton();
     }
 }
 
@@ -3025,6 +3080,15 @@ async function acceptDraw() {
 }
 
 async function offerDraw() {
+    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+        const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+        const myTurn =
+            (game.Turn === "white" && currentPlayerIsWhite) ||
+            (game.Turn === "black" && !currentPlayerIsWhite);
+        if (!humanHasMoved || myTurn) {
+            return;
+        }
+    }
     if (gameInfo.gameType == "SinglePlayerGame" || gameInfo.gameType == "OnlineGame") {
         const message = {
             type: "info",
@@ -3045,7 +3109,12 @@ async function offerDraw() {
 
 function offerCanceled() {
     displayMessage("");
-    enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+    if (gameInfo && gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+        enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
+        syncOnlineGameDrawButton();
+    } else {
+        enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
+    }
 }
 
 async function sendCommand(cmd, payload) {
@@ -3126,6 +3195,16 @@ function menuOfferDrawEventHandler() {
 
     if (game.GameOver || dialogOn) { return; }
 
+    if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
+        const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+        const myTurn =
+            (game.Turn === "white" && currentPlayerIsWhite) ||
+            (game.Turn === "black" && !currentPlayerIsWhite);
+        if (!humanHasMoved || myTurn) {
+            return;
+        }
+    }
+
     messageBox("Offer a Draw?", offerDraw, offerCanceled);
 }
 
@@ -3204,6 +3283,7 @@ function enableButtons(btnList) {
 
     for (const btnName of btnList) {
         if (btnName === "rematchBtn" && gameInfo?.watcher) { continue; }
+        if (btnName === "resignBtn" && gameInfo?.watcher) { continue; }
         const button = document.getElementById(btnName);
         if (button) {
             button.disabled = false;
@@ -3213,6 +3293,8 @@ function enableButtons(btnList) {
 }
 
 async function menuResignEventHandler() {
+    if (gameInfo?.watcher) { return; }
+
     if (isButtonDisabled("resignBtn")) { return; }
 
     if (game.GameOver) { return; }
@@ -3300,6 +3382,9 @@ function menuUndo() {
     if (gameInfo.gameType == "OnlineGame") {
         sendCommand("undo");
         game.undo();
+        if (!gameInfo.watcher && !game.GameOver) {
+            syncOnlineGameDrawButton();
+        }
     }
     else if (gameInfo.gameType == "SinglePlayerGame") {
 

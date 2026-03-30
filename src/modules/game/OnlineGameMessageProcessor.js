@@ -7,7 +7,7 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     infoTypeHandlers = {
         "move accepted": null, // related to single game only. when brain plays need to capture the move time
         "resign": this.resign,
-        "offer draw": this.opponentForwardHandler,
+        "offer draw": this.drawOfferForward,
         "draw accepted": this.drawOfferAccepted,
         "draw declined": this.opponentForwardHandler,
         "offer rematch": this.opponentForwardHandler,
@@ -29,6 +29,29 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     }
 
     opponentForwardHandler(game, msg) {
+        game.sendMessageToOpponent(msg, msg.isWhite);
+        game.sendInfoToWatchers(msg);
+    }
+
+    /**
+     * Draw only after the player has moved at least once, and only on the opponent's turn (not while waiting for your move).
+     */
+    drawOfferForward(game, msg) {
+        if (game.status === "game over" || game.status === "cancelled") {
+            return;
+        }
+        const moves = game.moves || [];
+        const isWhite = msg.isWhite === true;
+        const turn = game.chessGame && game.chessGame.Turn;
+        if (isWhite) {
+            if (moves.length < 1 || turn === "white") {
+                return;
+            }
+        } else {
+            if (moves.length < 2 || turn === "black") {
+                return;
+            }
+        }
         game.sendMessageToOpponent(msg, msg.isWhite);
         game.sendInfoToWatchers(msg);
     }
