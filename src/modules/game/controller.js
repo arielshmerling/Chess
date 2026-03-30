@@ -185,8 +185,13 @@ function calculateTimer(game, isWhite) {
 
 async function rejoinGame(game, userName, userId) {
     // 1. notify opponent and watchers
-    const message = { type: "info", info: "opponent rejoined", gameId: game.gameId };
     const isWhite = (game.whitePlayer.userId == userId);
+    const message = {
+        type: "info",
+        info: "opponent rejoined",
+        gameId: game.gameId,
+        rejoinedWasWhite: Boolean(isWhite),
+    };
     if (game.sendMessageToOpponent) {
         game.sendMessageToOpponent(message, isWhite);
     }
@@ -819,4 +824,35 @@ exports.acceptFriendGameInvite = catchAsync(async (req, res) => {
     }
     await joinPendingOnlineGameAsBlackCore(game, username, userId, req);
     res.json({ ok: true, gameId: gid });
+});
+
+/**
+ * Inviter or invitee leaves via Home / UI before any move — cancel (not resign); opponent notified immediately.
+ */
+exports.cancelBeforeMove = catchAsync(async (req, res) => {
+    const userId = String(req.session.user_id);
+    const gameIdRaw = req.body && req.body.gameId;
+    if (gameIdRaw == null || String(gameIdRaw).trim() === "") {
+        throw new ExpressError("gameId is required", 400);
+    }
+    const gameId = String(gameIdRaw).trim();
+    if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        throw new ExpressError("Invalid game id", 400);
+    }
+    const game = gamesManagerService.getGameById(gameId);
+    if (!game || game.constructor.name !== "OnlineGame") {
+        throw new ExpressError("Game not found", 404);
+    }
+    if (!isUserInGame(game, userId)) {
+        throw new ExpressError("Not in this game", 403);
+    }
+    if (game.moves.length !== 0) {
+        throw new ExpressError("Cannot cancel after moves were played", 400);
+    }
+    if (game.status === "cancelled" || game.status === "game over") {
+        return res.json({ ok: true });
+    }
+    const leavingIsWhite = game.whitePlayer && String(game.whitePlayer.userId) === userId;
+    game.applyCancelledNoMoves("Opponent left before the first move.", !leavingIsWhite);
+    res.json({ ok: true });
 });

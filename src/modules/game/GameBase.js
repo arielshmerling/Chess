@@ -225,6 +225,32 @@ class GameBase {
         }
     }
 
+    /**
+     * After an online rematch, spectators stay on the old game id; tell them the new game id and to re-open from Home.
+     * @param {string} newGameId
+     * @param {string} bodyText
+     */
+    sendSpectatorRematchNewGameNotice(newGameId, bodyText) {
+        const data = bodyText && String(bodyText).trim() ? String(bodyText).trim() : "";
+        const message = {
+            type: "info",
+            info: "spectator rematch new game",
+            gameId: newGameId,
+            data,
+        };
+        for (const watcher of this.watchers) {
+            if (!watcher || !watcher.ws) continue;
+            const ws = watcher.ws;
+            if (ws.readyState === ws.OPEN) {
+                try {
+                    ws.send(JSON.stringify(message));
+                } catch (err) {
+                    console.error("sendSpectatorRematchNewGameNotice:", err && err.message ? err.message : err);
+                }
+            }
+        }
+    }
+
     getChannel(isWhite) {
         if (isWhite) {
             if (this.whitePlayer) {

@@ -62,15 +62,33 @@ const DISCONNECT_COUNTDOWN_TOOLTIP = "Waiting for opponent to rejoin";
 function formatDisconnectionCountdown(seconds) {
     const s = Math.max(0, Math.floor(seconds));
     if (s === 1) {
-        return "Timeout: 1 second";
+        return "Timeout: 1 sec";
     }
-    return "Timeout: " + s + " seconds";
+    return "Timeout: " + s + " sec";
 }
 
 function getOpponentStatusElement() {
     return currentPlayerIsWhite ?
         document.getElementById("blackPlayerStatus") :
         document.getElementById("whitePlayerStatus");
+}
+
+/** Status dot for White (true) or Black (false) — for spectators who are not a seated player. */
+function watcherPlayerStatusDot(isWhitePlayer) {
+    return isWhitePlayer ?
+        document.getElementById("whitePlayerStatus") :
+        document.getElementById("blackPlayerStatus");
+}
+
+/** Display name for disconnect/reconnect messages when `disconnectedWasWhite` / `rejoinedWasWhite` is set. */
+function onlinePlayerLabelForSide(isWhitePlayer) {
+    if (isWhitePlayer === true) {
+        return (gameInfo && gameInfo.whitePlayerName) ? String(gameInfo.whitePlayerName) : "White";
+    }
+    if (isWhitePlayer === false) {
+        return (gameInfo && gameInfo.blackPlayerName) ? String(gameInfo.blackPlayerName) : "Black";
+    }
+    return "A player";
 }
 
 function hideDisconnectionCountdown() {
@@ -520,7 +538,13 @@ async function startGame(isRematch) {
         game.loadGame(JSON.stringify(gameState));
         game.WhitePlayerView = currentPlayerIsWhite;
         gameMoves = await getMovesForTable();
-        updateMovesTable(gameMoves.moves);
+        let tableMoves = gameMoves.moves || [];
+        if (tableMoves.length > 0) {
+            tableMoves = tableMoves.map((m) => (typeof m === "string" ? JSON.parse(m) : m));
+            game.loadMoves(tableMoves);
+        }
+        gameMoves.moves = tableMoves;
+        updateMovesTable(tableMoves);
         updateTimers(gameInfo);
         switchClocks();
         console.log("game loaded");
@@ -642,7 +666,8 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
         hideButtons(["undoBtn", "redoBtn"]);
         if (isWatcher) {
             enableButtons(["lastMoveBtn", "homeBtn"]);
-        } else if (isRematch) {
+        } else if (isRematch || blackNameKnown) {
+            /* Rematch or reload with opponent already in the game — same controls as after "opponent joined". */
             enableButtons(["resignBtn", "drawBtn", "lastMoveBtn", "homeBtn"]);
         }
     }
@@ -2329,7 +2354,17 @@ function viewLastMove() {
     if (moves.length == 0) {
         return;
     }
-    const lastMove = moves[moves.length - 1];
+    let lastMove = null;
+    for (let i = moves.length - 1; i >= 0; i--) {
+        const m = moves[i];
+        if (m && m.source && m.target && m.source.row != null && m.target.row != null) {
+            lastMove = m;
+            break;
+        }
+    }
+    if (!lastMove) {
+        return;
+    }
 
     const canvas = document.getElementById("arrowsCanvas");
     if (canvas.style.visibility == "visible") {
@@ -2628,10 +2663,23 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "Opponent disconnected") {
-                if (!gameInfo.watcher) {
-                    clearOpponentDisconnectGrace();
-                    opponentDisconnectGraceTimer = setTimeout(() => {
-                        opponentDisconnectGraceTimer = null;
+                clearOpponentDisconnectGrace();
+                opponentDisconnectGraceTimer = setTimeout(() => {
+                    opponentDisconnectGraceTimer = null;
+                    if (gameInfo.watcher && gameInfo.gameType === "OnlineGame") {
+                        const dw = message.disconnectedWasWhite;
+                        if (dw === true) {
+                            setPlayerStatusDot(watcherPlayerStatusDot(true), "disconnected");
+                            log("System", onlinePlayerLabelForSide(true) + " disconnected");
+                        } else if (dw === false) {
+                            setPlayerStatusDot(watcherPlayerStatusDot(false), "disconnected");
+                            log("System", onlinePlayerLabelForSide(false) + " disconnected");
+                        } else {
+                            log("System", "A player disconnected");
+                        }
+                        return;
+                    }
+                    if (!gameInfo.watcher) {
                         displayMessage("The opponent disconnected");
                         log("System", "The opponent disconnected");
                         setPlayerStatusDot(getOpponentStatusElement(), "disconnected");
@@ -2639,8 +2687,8 @@ function startWebSockets(username, isWhite, isWatcher) {
                         clearInterval(whiteHandle);
                         clearInterval(blackHandle);
                         startDisconnectionTimer();
-                    }, 1000);
-                }
+                    }
+                }, 1000);
             }
 
             if (info == "Opponent failed to reconnect") {
@@ -2657,7 +2705,17 @@ function startWebSockets(username, isWhite, isWatcher) {
                 displayMessage(summary);
                 log("System", summary);
                 game.resign(loser);
-                if (!gameInfo.watcher) {
+                if (gameInfo.watcher && gameInfo.gameType === "OnlineGame") {
+                    const dw = message.disconnectedWasWhite;
+                    if (dw === true) {
+                        setPlayerStatusDot(watcherPlayerStatusDot(true), "offline");
+                    } else if (dw === false) {
+                        setPlayerStatusDot(watcherPlayerStatusDot(false), "offline");
+                    }
+                    hideMessageBox();
+                    clearInterval(whiteHandle);
+                    clearInterval(blackHandle);
+                } else if (!gameInfo.watcher) {
                     setPlayerStatusDot(getOpponentStatusElement(), "offline");
                     hideMessageBox();
                     clearInterval(whiteHandle);
@@ -2726,32 +2784,72 @@ function startWebSockets(username, isWhite, isWatcher) {
                 /* If reconnect happens before the 1s post-disconnect grace, treat as a flicker (e.g. refresh) — no toast. */
                 const quickRejoin = opponentDisconnectGraceTimer != null;
                 clearOpponentDisconnectGrace();
-                setPlayerStatusDot(getOpponentStatusElement(), "online");
                 hideDisconnectionCountdown();
                 switchClocks();
-                if (!quickRejoin) {
-                    displayMessage("The opponent rejoined");
-                    log("System", "The opponent rejoined");
+                if (gameInfo.watcher && gameInfo.gameType === "OnlineGame") {
+                    const rw = message.rejoinedWasWhite;
+                    if (rw === true) {
+                        setPlayerStatusDot(watcherPlayerStatusDot(true), "online");
+                    } else if (rw === false) {
+                        setPlayerStatusDot(watcherPlayerStatusDot(false), "online");
+                    } else {
+                        setPlayerStatusDot(document.getElementById("whitePlayerStatus"), "online");
+                        setPlayerStatusDot(document.getElementById("blackPlayerStatus"), "online");
+                    }
+                    if (!quickRejoin) {
+                        if (rw === true || rw === false) {
+                            const name = onlinePlayerLabelForSide(rw);
+                            displayMessage(name + " rejoined");
+                            log("System", name + " rejoined");
+                        } else {
+                            displayMessage("A player rejoined");
+                            log("System", "A player rejoined");
+                        }
+                    }
+                } else {
+                    setPlayerStatusDot(getOpponentStatusElement(), "online");
+                    if (!quickRejoin) {
+                        displayMessage("The opponent rejoined");
+                        log("System", "The opponent rejoined");
+                    }
                 }
             }
 
             if (info == "offer rematch") {
-                displayMessage("");
-                if (gameInfo.gameType == "OnlineGame") {
-                    messageBox("Opponenet offer a rematch, agree?", acceptRematch, declineRematch);
-                } else if (gameInfo.gameType == "SinglePlayerGame") {
-                    if (typeof gameInfo !== "undefined" && gameInfo) {
-                        window.__LAST_GAME_OPTIONS__ = {
-                            color: currentPlayerIsWhite ? "white" : "black",
-                            engine: gameInfo.engine || "brain4",
-                            difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
-                            mouse: gameInfo.mousePreference || "drag",
-                            showAvailableMoves: gameInfo.showAvailableMoves !== false
-                        };
+                if (gameInfo.watcher) {
+                    const label = onlinePlayerLabelForSide(
+                        message.isWhite === true ? true : message.isWhite === false ? false : undefined
+                    );
+                    log("System", label + " offered a rematch");
+                } else {
+                    displayMessage("");
+                    if (gameInfo.gameType == "OnlineGame") {
+                        messageBox("Opponenet offer a rematch, agree?", acceptRematch, declineRematch);
+                    } else if (gameInfo.gameType == "SinglePlayerGame") {
+                        if (typeof gameInfo !== "undefined" && gameInfo) {
+                            window.__LAST_GAME_OPTIONS__ = {
+                                color: currentPlayerIsWhite ? "white" : "black",
+                                engine: gameInfo.engine || "brain4",
+                                difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
+                                mouse: gameInfo.mousePreference || "drag",
+                                showAvailableMoves: gameInfo.showAvailableMoves !== false
+                            };
+                        }
+                        if (typeof openPlayNowModal === "function") {
+                            openPlayNowModal();
+                        }
                     }
-                    if (typeof openPlayNowModal === "function") {
-                        openPlayNowModal();
-                    }
+                }
+            }
+
+            if (info == "spectator rematch new game") {
+                if (gameInfo && gameInfo.watcher) {
+                    const text =
+                        message.data && String(message.data).trim()
+                            ? String(message.data).trim()
+                            : "New game started — go to Home to watch.";
+                    displayMessage(text);
+                    log("System", text);
                 }
             }
 
@@ -2788,10 +2886,15 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "offer draw") {
-                if (gameInfo.gameType != "SinglePlayerGame") {
+                if (gameInfo.watcher) {
+                    const label = onlinePlayerLabelForSide(
+                        message.isWhite === true ? true : message.isWhite === false ? false : undefined
+                    );
+                    log("System", label + " offered a draw");
+                } else if (gameInfo.gameType != "SinglePlayerGame") {
                     displayMessage("");
                     messageBox("Opponent sent a draw offer, accept?", acceptDraw, declineDraw);
-                } else if (gameInfo.watcher) {
+                } else if (gameInfo.gameType === "SinglePlayerGame") {
                     const side = message.isWhite ? "White" : "Black";
                     displayMessage(side + " offers draw");
                     log("System", side + " offers draw");
@@ -2984,8 +3087,10 @@ async function sendOutOfTime(loser) {
 /// Buttons
 
 function isButtonDisabled(button) {
-    const drawButton = document.getElementById(button);
-    if (drawButton.classList.contains("btnDisabled")) { return true; }
+    const el = document.getElementById(button);
+    if (!el) { return true; }
+    if (el.disabled) { return true; }
+    if (el.classList.contains("btnDisabled")) { return true; }
     return false;
 }
 
@@ -3133,6 +3238,18 @@ async function menuResignEventHandler() {
         log(playerName, "I resign!");
     }
     else {
+        const anyMovePlayed = game.Moves.length >= 1;
+        if (gameInfo.gameType === "OnlineGame" && !anyMovePlayed) {
+            await postServerInfo("/cancel-before-move", { gameId: gameInfo.id });
+            displayMessage("Game cancelled");
+            log("System", "Game cancelled");
+            hideMessageBox();
+            clearInterval(whiteHandle);
+            clearInterval(blackHandle);
+            disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+            enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
+            return;
+        }
         const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
         game.resign(player);
         const message = {
@@ -3146,15 +3263,21 @@ async function menuResignEventHandler() {
         };
         await sendMessage(message);
         gameMoves = await getMovesForTable();
-        if (humanHasMoved && gameMoves.moves && game.ResultMove) {
+        const showResignResult = gameInfo.gameType === "OnlineGame" ? anyMovePlayed : humanHasMoved;
+        if (showResignResult && gameMoves.moves && game.ResultMove) {
             const last = gameMoves.moves[gameMoves.moves.length - 1];
             if (!last || last.moveStr !== game.ResultMove.moveStr) {
                 gameMoves.moves = [...gameMoves.moves, game.ResultMove];
             }
         }
         updateMovesTable(gameMoves.moves);
-        displayMessage(humanHasMoved ? `You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins ` : "Game cancelled");
-        log(humanHasMoved ? currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName : "System", humanHasMoved ? "I resign!" : "Game cancelled");
+        if (gameInfo.gameType === "OnlineGame") {
+            displayMessage(`You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins `);
+            log(currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName, "I resign!");
+        } else {
+            displayMessage(humanHasMoved ? `You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins ` : "Game cancelled");
+            log(humanHasMoved ? currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName : "System", humanHasMoved ? "I resign!" : "Game cancelled");
+        }
     }
 }
 
@@ -3771,7 +3894,12 @@ async function backToHome() {
         goBackHome();
         return;
     }
-    const humanHasMoved = currentPlayerIsWhite ? game.Moves.length >= 1 : game.Moves.length >= 2;
+    const humanHasMoved =
+        gameInfo.gameType === "OnlineGame"
+            ? game.Moves.length >= 1
+            : currentPlayerIsWhite
+                ? game.Moves.length >= 1
+                : game.Moves.length >= 2;
     if (!humanHasMoved) {
         goBackHome();
         return;
@@ -3786,6 +3914,11 @@ async function goBackHome() {
         return;
     }
     if (gameInfo.watcher || gameInfo.mode === "review") {
+        window.location = "/home";
+        return;
+    }
+    if (gameInfo.gameType === "OnlineGame" && game.Moves.length === 0) {
+        await postServerInfo("/cancel-before-move", { gameId: gameInfo.id });
         window.location = "/home";
         return;
     }

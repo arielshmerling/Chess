@@ -9,4 +9,5 @@ router.get("/research", requireLogin, gameController.showResearch);
 router.get("/gameInfo", requireLogin, gameController.getGameInfo);
 router.get("/gameMoves", requireLogin, gameController.getGameMoves);
 router.post("/rematch", requireLogin, gameController.rematch);
+router.post("/cancel-before-move", requireLogin, gameController.cancelBeforeMove);
 module.exports = router;

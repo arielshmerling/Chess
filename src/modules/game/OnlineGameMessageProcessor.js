@@ -35,6 +35,8 @@ class OnlineGameMessageProcessor extends MessageProcessor {
 
     rematchOfferAccepted(game, msg) {
         game.createRemtach(msg.isWhite, (newGame) => {
+            const spectatorText = "New game started — go to Home to watch.";
+            game.sendSpectatorRematchNewGameNotice(newGame.gameId, spectatorText);
             game.closeGame();
             msg.gameId = newGame.gameId;
             newGame.sendMessage(msg, msg.isWhite);

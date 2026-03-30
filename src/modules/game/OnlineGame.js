@@ -80,22 +80,77 @@ class OnlineGame extends GameBase {
         this.sendInfoToWatchers(message);
     }
 
+    /**
+     * Cancel an online game with no moves yet; notify the other player (if any).
+     * @param {string} detail Client-facing reason (shown after "Game cancelled — ")
+     * @param {boolean} notifyPlayerIsWhite If true, send to White's channel; if false, to Black's.
+     */
+    applyCancelledNoMoves(detail, notifyPlayerIsWhite) {
+        if (this.status === "game over" || this.status === "cancelled") {
+            return;
+        }
+        if (this.moves && this.moves.length !== 0) {
+            return;
+        }
+        this.clearRejoinWaitIfAny();
+        const cancelMsg = {
+            type: "info",
+            info: "Game cancelled",
+            gameId: this.gameId,
+            data: detail,
+        };
+        this.sendMessage(cancelMsg, notifyPlayerIsWhite);
+        this.sendInfoToWatchers(cancelMsg);
+        this.lastStatus = this.status;
+        this.status = "cancelled";
+        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        this.closeGame();
+    }
 
     onConnectionClosed = () => {
 
         if (this.status === "game over") { return; }
+        if (this.status === "cancelled") { return; }
+
+        const moveCount = this.moves ? this.moves.length : 0;
+        const wpCh = this.whitePlayer && this.whitePlayer.channel;
+        const isWhiteStillConnected = wpCh != null && wpCh.readyState == wpCh.OPEN;
+
         /**
-         * Same flow whether or not any move was played: notify opponent, go on hold, 61s reconnect window.
-         * If no moves yet, waitForRejoin still cancels after the deadline; if at least one move was played, forfeit.
+         * No moves yet: short on-hold window so a tab refresh can reconnect without cancelling.
+         * Intentional leave uses POST /cancel-before-move (immediate cancel for the opponent).
          */
-        const isWhite = this.whitePlayer.channel.readyState == this.whitePlayer.channel.OPEN;
-        const message = { type: "info", info: "Opponent disconnected", gameId: this.gameId };
-        this.sendMessage(message, isWhite);
+        if (moveCount === 0) {
+            const disconnectedWasWhite = !isWhiteStillConnected;
+            const message = {
+                type: "info",
+                info: "Opponent disconnected",
+                gameId: this.gameId,
+                disconnectedWasWhite,
+            };
+            this.sendMessage(message, isWhiteStillConnected);
+            this.sendInfoToWatchers(message);
+            this.lastStatus = this.status;
+            this.status = "on hold";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            const PRE_MOVE_REFRESH_GRACE_MS = 12000;
+            this.waitForRejoin(!isWhiteStillConnected, PRE_MOVE_REFRESH_GRACE_MS);
+            return;
+        }
+
+        const disconnectedWasWhite = !isWhiteStillConnected;
+        const message = {
+            type: "info",
+            info: "Opponent disconnected",
+            gameId: this.gameId,
+            disconnectedWasWhite,
+        };
+        this.sendMessage(message, isWhiteStillConnected);
         this.sendInfoToWatchers(message);
         this.lastStatus = this.status;
         this.status = "on hold";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-        this.waitForRejoin(!isWhite);
+        this.waitForRejoin(!isWhiteStillConnected);
     };
 
 
@@ -161,14 +216,17 @@ class OnlineGame extends GameBase {
         }
     }
 
-    // isWhite - whether the player we are waiting for is the white player
-    waitForRejoin(isWhite) {
+    /**
+     * @param {boolean} isWhite - whether we are waiting for the white player to reconnect
+     * @param {number} [deadlineMs] - default ~61s; shorter for pre-move refresh grace
+     */
+    waitForRejoin(isWhite, deadlineMs) {
         this.clearRejoinWaitIfAny();
         /**
          * Align with client: 1s grace after "Opponent disconnected", then 60 × 1s countdown
          * (timer shows 60 for one second, then 59…1) → ~61s from disconnect to counter at 0.
          */
-        const RECONNECT_DEADLINE_MS = 61000;
+        const RECONNECT_DEADLINE_MS = deadlineMs != null ? deadlineMs : 61000;
         this._rejoinWaitHandle = setTimeout(async () => {
             this._rejoinWaitHandle = null;
             try {
@@ -185,17 +243,7 @@ class OnlineGame extends GameBase {
                 const moveCount = this.moves ? this.moves.length : 0;
                 /** No moves on the board yet — cancel after reconnect deadline; any move played → forfeit below. */
                 if (moveCount === 0) {
-                    this.status = "cancelled";
-                    await this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-                    const cancelMsg = {
-                        type: "info",
-                        info: "Game cancelled",
-                        gameId: this.gameId,
-                        data: "Reconnect timed out with no moves played.",
-                    };
-                    this.sendMessage(cancelMsg, !isWhite);
-                    this.sendInfoToWatchers(cancelMsg);
-                    this.closeGame();
+                    this.applyCancelledNoMoves("Reconnect timed out with no moves played.", !isWhite);
                     return;
                 }
                 await this.resign(isWhite ? "white" : "black");
@@ -221,8 +269,13 @@ class OnlineGame extends GameBase {
                     this.clearRejoinWaitIfAny();
                     this.status = this.lastStatus;
                     this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-                    const message = { type: "info", info: "opponent rejoined", gameId: this.gameId };
                     const isWhite = (this.whitePlayer.userId == player.userId);
+                    const message = {
+                        type: "info",
+                        info: "opponent rejoined",
+                        gameId: this.gameId,
+                        rejoinedWasWhite: Boolean(isWhite),
+                    };
                     this.sendMessageToOpponent(message, isWhite);
                     this.sendInfoToWatchers(message);
                 }
