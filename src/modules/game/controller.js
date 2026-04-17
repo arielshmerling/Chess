@@ -184,22 +184,9 @@ function calculateTimer(game, isWhite) {
 }
 
 async function rejoinGame(game, userName, userId) {
-    // 1. notify opponent and watchers
-    const isWhite = (game.whitePlayer.userId == userId);
-    const message = {
-        type: "info",
-        info: "opponent rejoined",
-        gameId: game.gameId,
-        rejoinedWasWhite: Boolean(isWhite),
-    };
-    if (game.sendMessageToOpponent) {
-        game.sendMessageToOpponent(message, isWhite);
-    }
-    if (game.sendInfoToWatchers) {
-        game.sendInfoToWatchers(message);
-    }
+    /* Rejoin fanout ("opponent rejoined", etc.) is sent when the player's WebSocket attaches (e.g. OnlineGame.updateChannel), not from HTTP. */
 
-    // 2. update game status
+    // update game status
     const gameDoc = await gamesManagerService.findGameInDB(game);
     game.status = "in progress";
     gameDoc.state = game.status;

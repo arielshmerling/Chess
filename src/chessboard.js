@@ -3622,13 +3622,22 @@ function switchClocks() {
 
     if (gameInfo.mode == "review") { return; }
 
+    /** Always stop both tickers first — otherwise a second call (reconnect, clockSync, …) stacks intervals and time runs at 2×. */
+    if (whiteHandle) {
+        clearInterval(whiteHandle);
+        whiteHandle = null;
+    }
+    if (blackHandle) {
+        clearInterval(blackHandle);
+        blackHandle = null;
+    }
+
     if (game.Turn == "black") {
 
         const whiteTurnClock = document.getElementById("whiteTurnClock");
         whiteTurnClock.classList.add("unvisible");
         const blackTurnClock = document.getElementById("blackTurnClock");
         blackTurnClock.classList.remove("unvisible");
-        if (whiteTimer) { clearInterval(whiteHandle); }
 
         blackHandle = setInterval(() => {
             blackTimer--;
@@ -3655,7 +3664,6 @@ function switchClocks() {
         whiteTurnClock.classList.remove("unvisible");
         const blackTurnClock = document.getElementById("blackTurnClock");
         blackTurnClock.classList.add("unvisible");
-        if (blackTimer) { clearInterval(blackHandle); }
 
         whiteHandle = setInterval(() => {
             whiteTimer--;
