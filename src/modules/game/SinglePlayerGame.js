@@ -178,20 +178,30 @@ class SinglePlayerGame extends GameBase {
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
     };
 
-    updateLastMoveTime = (gameTime) => {
-
+    updateLastMoveTime = (gameTime, whiteT, blackT) => {
         const lastMove = this.moves[this.moves.length - 1];
-        lastMove.moveTime = gameTime;
+        if (!lastMove) {
+            return;
+        }
+        if (typeof gameTime === "number" && Number.isFinite(gameTime)) {
+            lastMove.moveTime = gameTime;
+        }
+        if (typeof whiteT === "number" && Number.isFinite(whiteT)) {
+            lastMove.whiteTimer = Math.round(whiteT);
+        }
+        if (typeof blackT === "number" && Number.isFinite(blackT)) {
+            lastMove.blackTimer = Math.round(blackT);
+        }
         this.raiseEvent(this.OnMoveChanged, { game: this, lastMove });
     };
 
-    async resign(resignedPlayer) {
+    async resign(resignedPlayer, options = {}) {
         if (!this.humanHasMadeAnyMove()) {
             this.status = "cancelled";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             return;
         }
-        await super.resign(resignedPlayer);
+        await super.resign(resignedPlayer, options);
         const message = {
             type: "move",
             data: this.chessGame.ResultMove,

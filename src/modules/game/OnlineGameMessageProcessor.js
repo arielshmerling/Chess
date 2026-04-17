@@ -21,7 +21,15 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     resign(game, msg) {
         const resignedPlayer = msg.isWhite ? "White" : "Black";
         msg.info = "Opponent resigned";
-        return game.resign(resignedPlayer).then(() => {
+        const snap =
+            typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number"
+                ? {
+                    moveTime: typeof msg.moveTime === "number" ? msg.moveTime : undefined,
+                    whiteTimer: msg.whiteTimer,
+                    blackTimer: msg.blackTimer,
+                }
+                : undefined;
+        return game.resign(resignedPlayer, snap ? { resignClockSnapshot: snap } : {}).then(() => {
             game.sendMessageToOpponent(msg, msg.isWhite);
             game.sendInfoToWatchers(msg);
             game.sendMoveToWatchers(game.gameId, resignedPlayer === "White", game.chessGame.ResultMove);

@@ -4,6 +4,19 @@ const { ChessGame } = require("../../ChessGame");
 const { Player } = require("./Player");
 const { v4: uuidv4 } = require("uuid");
 
+/** Copy clock snapshot from an inbound move onto a stored move object (seconds). */
+function copyClocksFromTo(source, target) {
+    if (!source || !target) {
+        return;
+    }
+    if (typeof source.whiteTimer === "number" && Number.isFinite(source.whiteTimer)) {
+        target.whiteTimer = Math.round(source.whiteTimer);
+    }
+    if (typeof source.blackTimer === "number" && Number.isFinite(source.blackTimer)) {
+        target.blackTimer = Math.round(source.blackTimer);
+    }
+}
+
 class GameBase {
     gameId;
     status;
@@ -85,7 +98,7 @@ class GameBase {
 
     /**
      * @param {string} resignedPlayer
-     * @param {{ reasonOverride?: string }} [options] If reasonOverride is set, OnGameOver receives it instead of chessGame.GameOverReason (e.g. PracticeGame uses "in progress").
+     * @param {{ reasonOverride?: string, resignClockSnapshot?: { moveTime?: number, whiteTimer: number, blackTimer: number } }} [options] If reasonOverride is set, OnGameOver receives it instead of chessGame.GameOverReason (e.g. PracticeGame uses "in progress"). resignClockSnapshot stores clocks from the client at resign time.
      */
     async resign(resignedPlayer, options = {}) {
 
@@ -100,7 +113,18 @@ class GameBase {
         await this.raiseEvent(this.OnGameOver, { game: this, reason });
 
         const resultMove = this.chessGame.ResultMove;
-        if (this.moves.length > 0) { resultMove.moveTime = this.moves[this.moves.length - 1].moveTime; }
+        const snap = options.resignClockSnapshot;
+        if (snap && typeof snap.whiteTimer === "number" && typeof snap.blackTimer === "number") {
+            if (typeof snap.moveTime === "number" && Number.isFinite(snap.moveTime)) {
+                resultMove.moveTime = Math.round(snap.moveTime);
+            }
+            copyClocksFromTo(snap, resultMove);
+        }
+        else if (this.moves.length > 0) {
+            const lm = this.moves[this.moves.length - 1];
+            resultMove.moveTime = lm.moveTime;
+            copyClocksFromTo(lm, resultMove);
+        }
         else { resultMove.moveTime = this.chessGame.GameTimeLength; }
         this.moves.push(resultMove);
         await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
@@ -130,6 +154,7 @@ class GameBase {
                 pending.selectedPiece = moveObj.selectedPiece;
                 this.chessGame.completePromotion(pending);
                 pending.moveTime = moveObj.moveTime;
+                copyClocksFromTo(moveObj, pending);
                 await this.raiseEvent(this.OnMove, { game: this, move: pending });
                 if (this.chessGame.GameOver) {
                     await this.gameOverHandler(moveObj);
@@ -153,6 +178,7 @@ class GameBase {
                         this.chessGame.completePromotion(actual);
                     }
                     actual.moveTime = moveObj.moveTime;
+                    copyClocksFromTo(moveObj, actual);
                     this.moves.push(actual);
                     await this.raiseEvent(this.OnMove, { game: this, move: actual });
 
@@ -177,6 +203,7 @@ class GameBase {
         await this.raiseEvent(this.OnGameOver, { game: this, reason: this.chessGame.GameOverReason });
         const resultMove = this.chessGame.ResultMove;
         resultMove.moveTime = moveObj.moveTime;
+        copyClocksFromTo(moveObj, resultMove);
         this.moves.push(resultMove);
         await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
     }
@@ -299,7 +326,9 @@ class GameBase {
 
         const resultMove = this.chessGame.ResultMove;
         if (this.moves.length > 0) {
-            resultMove.moveTime = this.moves[this.moves.length - 1].moveTime;
+            const lm = this.moves[this.moves.length - 1];
+            resultMove.moveTime = lm.moveTime;
+            copyClocksFromTo(lm, resultMove);
         }
         this.moves.push(resultMove);
         await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
@@ -318,7 +347,9 @@ class GameBase {
         const resultMove = this.chessGame.ResultMove;
         if (resultMove) {
             if (this.moves.length > 0) {
-                resultMove.moveTime = this.moves[this.moves.length - 1].moveTime;
+                const lm = this.moves[this.moves.length - 1];
+                resultMove.moveTime = lm.moveTime;
+                copyClocksFromTo(lm, resultMove);
             }
             else {
                 resultMove.moveTime = this.chessGame.GameTimeLength;

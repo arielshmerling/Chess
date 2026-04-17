@@ -70,6 +70,8 @@ const wsMoveDataSchema = Joi.object({
     hitSquare: Joi.alternatives().try(wsSquareSchema, Joi.valid(null)).required(),
     moveStr: Joi.string().min(1).max(32).required().escapeHTML(),
     moveTime: Joi.number().required(),
+    whiteTimer: Joi.number().min(0).max(864000).optional(),
+    blackTimer: Joi.number().min(0).max(864000).optional(),
     piece: wsPieceSchema.required(),
     promotion: Joi.bool().required(),
     selectedPiece: Joi.number().integer().min(2).max(5).optional(),
@@ -181,6 +183,8 @@ const wsInfoGenericSchema = Joi.object({
     username: Joi.string().required().escapeHTML(),
     isWhite: Joi.bool().required(),
     moveTime: Joi.number().optional(),
+    whiteTimer: Joi.number().min(0).max(864000).optional(),
+    blackTimer: Joi.number().min(0).max(864000).optional(),
 }).strict();
 
 const wsCmdUndoRedoSchema = Joi.object({

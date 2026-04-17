@@ -3379,6 +3379,9 @@ async function menuResignEventHandler() {
             userId: gameInfo.userId,
             username: gameInfo.username,
             isWhite: currentPlayerIsWhite,
+            moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
+            whiteTimer,
+            blackTimer,
         };
         await sendMessage(message);
         const playerName = currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
@@ -3407,6 +3410,8 @@ async function menuResignEventHandler() {
             username: gameInfo.username,
             isWhite: currentPlayerIsWhite,
             moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
+            whiteTimer,
+            blackTimer,
         };
         await sendMessage(message);
         gameMoves = await getMovesForTable();
@@ -3570,8 +3575,10 @@ async function getMovesForTable() {
 async function sendMove(moveObj) {
     // Practice: no server interaction; all moves are local only
     if (gameType === "PracticeGame") { return; }
-    let isWhite = currentPlayerIsWhite;
+    const isWhite = currentPlayerIsWhite;
     moveObj.moveTime = isWhite ? whiteTimer : blackTimer;
+    moveObj.whiteTimer = whiteTimer;
+    moveObj.blackTimer = blackTimer;
 
     let data = moveObj;
     if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
@@ -3848,7 +3855,7 @@ function movePlay() {
             return;
         }
         if (moveIndex < gameMoves.moves.length) {
-            showMoveForReview(gameMoves.moves[moveIndex], true);
+            showMoveForReview(gameMoves.moves[moveIndex], true, moveIndex);
             moveIndex++;
             const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
             movesTDList.forEach(td => td.classList.remove("selectedMove"));
@@ -3900,7 +3907,7 @@ async function moveNext() {
     if (moveIndex < gameMoves.moves.length) {
         const move = gameMoves.moves[moveIndex];
         if (move && !game.isResultMove(move)) {
-            showMoveForReview(move, true);
+            showMoveForReview(move, true, moveIndex);
             moveIndex++;
             const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
             movesTDList.forEach(td => td.classList.remove("selectedMove"));
@@ -3931,6 +3938,7 @@ async function movePrev() {
         if (!td) { return; }
         td.classList.toggle("selectedMove");
         scrollMoveCellIntoView(td);
+        syncReviewClocksForCurrentPly();
     }
     console.log("moveIndex:" + moveIndex);
 }
@@ -3946,8 +3954,7 @@ function moveEnd() {
 
         if (!animating) {
             for (let i = 0; i < gameMoves.moves.length; i++) {
-                showMoveForReview(gameMoves.moves[moveIndex], false);
-                moveIndex++;
+                showMoveForReview(gameMoves.moves[i], false, i);
                 const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
                 movesTDList.forEach(td => td.classList.remove("selectedMove"));
                 const turnStr = "td_move" + (i + 1);
@@ -3966,7 +3973,51 @@ function moveEnd() {
 
 }
 
-async function showMoveForReview(move, animnate) {
+/** After ply `plyIndexZeroBased`, update both clocks when stored; else legacy single-clock using move.moveTime. */
+function applyReviewClockDisplays(move, plyIndexZeroBased) {
+    const wEl = document.getElementById("whiteClockTimeText");
+    const bEl = document.getElementById("blackClockTimeText");
+    if (!wEl || !bEl) {
+        return;
+    }
+    if (
+        move &&
+        typeof move.whiteTimer === "number" &&
+        Number.isFinite(move.whiteTimer) &&
+        typeof move.blackTimer === "number" &&
+        Number.isFinite(move.blackTimer)
+    ) {
+        wEl.innerText = timerToText(Math.max(0, Math.round(move.whiteTimer)));
+        bEl.innerText = timerToText(Math.max(0, Math.round(move.blackTimer)));
+        return;
+    }
+    if (!move || !Number.isFinite(move.moveTime)) {
+        return;
+    }
+    const parity =
+        typeof plyIndexZeroBased === "number"
+            ? plyIndexZeroBased
+            : (typeof moveIndex !== "undefined" ? moveIndex : 0);
+    const clockEl = parity % 2 === 0 ? wEl : bEl;
+    clockEl.innerText = timerToText(Math.max(0, Math.round(move.moveTime)));
+}
+
+/** Board shows position after `moveIndex` plies; sync clocks to that point. */
+function syncReviewClocksForCurrentPly() {
+    if (!gameInfo || gameInfo.mode !== "review") {
+        return;
+    }
+    if (moveIndex <= 0) {
+        resetClocks();
+        return;
+    }
+    const m = gameMoves.moves[moveIndex - 1];
+    if (m) {
+        applyReviewClockDisplays(m, moveIndex - 1);
+    }
+}
+
+async function showMoveForReview(move, animnate, plyIndexZeroBased) {
     // let move = { ...moveToReview };
     if (gameInfo.mode != "review") { return; }
     if (!move) { return; }
@@ -3989,15 +4040,7 @@ async function showMoveForReview(move, animnate) {
         game.completePromotion(move);
     }
 
-    const clock = moveIndex % 2 == 0 ?
-        document.getElementById("whiteClockTimeText") :
-        document.getElementById("blackClockTimeText");
-    if (move.moveTime) {
-        clock.innerText = timerToText(move.moveTime);
-    }
-    else {
-        clock.innerText = "";
-    }
+    applyReviewClockDisplays(move, plyIndexZeroBased);
 
     lastMove = move;
 }
@@ -4040,13 +4083,15 @@ async function loadMove(e) {
     moveIndex = 0;
     for (let i = 0; i < moves.length; i++) {
         const move = moves[i];
-        showMoveForReview(move, false);
+        showMoveForReview(move, false, i);
 
         if (e.target.id == "td_move" + (i + 1)) {
             moveIndex = i + 1;
             break;
         }
     }
+
+    syncReviewClocksForCurrentPly();
 
     const movesTDList = document.querySelectorAll("[id ^= 'td_move']");
     movesTDList.forEach(td => td.classList.remove("selectedMove"));

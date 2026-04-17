@@ -21,10 +21,19 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
                 });
 
                 break;
-            case "resign":
-                await game.resign(msg.isWhite ? "white" : "black");
+            case "resign": {
+                const snap =
+                    typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number"
+                        ? {
+                            moveTime: typeof msg.moveTime === "number" ? msg.moveTime : undefined,
+                            whiteTimer: msg.whiteTimer,
+                            blackTimer: msg.blackTimer,
+                        }
+                        : undefined;
+                await game.resign(msg.isWhite ? "white" : "black", snap ? { resignClockSnapshot: snap } : {});
                 msg.info = "Opponent resigned";
                 break;
+            }
             case "offer draw": {
                 const numFullMoves = Math.floor(game.moves.length / 2);
                 const offeredBy = msg.isWhite ? "white" : "black";
@@ -45,7 +54,7 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
             }
             case "move accepted":
                 if (game.moves.length > 0) {
-                    game.updateLastMoveTime(msg.moveTime);
+                    game.updateLastMoveTime(msg.moveTime, msg.whiteTimer, msg.blackTimer);
                 }
                 if (typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number") {
                     game.sendClockSyncToWatchers(msg.whiteTimer, msg.blackTimer);
