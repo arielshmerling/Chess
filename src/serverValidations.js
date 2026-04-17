@@ -150,6 +150,13 @@ const wsInfoClockSyncSchema = Joi.object({
     blackTimer: Joi.number().required(),
 }).strict();
 
+/** Server → client (and safe if echoed); no user fields required. */
+const wsInfoGameOverSchema = Joi.object({
+    gameId: wsGameId,
+    type: Joi.string().valid("info").required(),
+    info: Joi.string().valid("game over").required(),
+}).strict();
+
 const wsInfoMoveAcceptedSchema = Joi.object({
     gameId: wsGameId,
     type: Joi.string().valid("info").required(),
@@ -201,6 +208,7 @@ const webSocketMessageSchema =
         wsInfoChatSchema,
         wsInfoOutOfTimeSchema,
         wsInfoClockSyncSchema,
+        wsInfoGameOverSchema,
         wsInfoMoveAcceptedSchema,
         wsInfoGenericSchema,
         wsCmdUndoRedoSchema,
@@ -233,6 +241,27 @@ exports.validate = (obj, validator) => {
 exports.validateWebSocketMessage = (obj) => {
     const { error, value } = webSocketMessageSchema.validate(obj, { abortEarly: false });
     if (error) {
+        const topDetails = error.details.map((d) => `${d.path.join(".") || "(root)"}: ${d.message}`).join("; ");
+        let payloadPreview = "";
+        try {
+            payloadPreview = JSON.stringify(obj);
+        } catch (stringifyErr) {
+            payloadPreview = `[stringify error: ${stringifyErr && stringifyErr.message ? stringifyErr.message : stringifyErr}]`;
+        }
+        if (payloadPreview.length > 4000) {
+            payloadPreview = payloadPreview.slice(0, 4000) + "…";
+        }
+        console.error("[WS validate] alternatives failed:", topDetails);
+        console.error("[WS validate] payload:", payloadPreview);
+        if (obj && obj.type === "info" && obj.info === "move accepted") {
+            const onlyMoveAccepted = wsInfoMoveAcceptedSchema.validate(obj, { abortEarly: false });
+            if (onlyMoveAccepted.error) {
+                const moveDetails = onlyMoveAccepted.error.details
+                    .map((d) => `${d.path.join(".") || "(root)"}: ${d.message}`)
+                    .join("; ");
+                console.error("[WS validate] move accepted schema alone:", moveDetails);
+            }
+        }
         const message = error.details.map((d) => d.message).join("; ");
         return { ok: false, error: message };
     }

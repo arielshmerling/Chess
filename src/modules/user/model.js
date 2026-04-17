@@ -92,6 +92,8 @@ const userSchema = new mongoose.Schema({
         difficulty: { type: Number, min: 1, max: 5, default: 3 },
         mouse: { type: String, enum: ["drag", "double"], default: "drag" },
         showAvailableMoves: { type: Boolean, default: true },
+        /** Per-side clock budget for new single-player games (minutes). */
+        timeMinutes: { type: Number, min: 1, max: 180, default: 90 },
     },
 
 });

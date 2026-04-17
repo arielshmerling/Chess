@@ -17,10 +17,17 @@ exports.newGame = (gameType, username, userId, options = {}) => {
             engine: options.engine || "brain4",
             difficulty: options.difficulty || 3,
             mouse: options.mouse || "drag",
-            showAvailableMoves: options.showAvailableMoves !== false
+            showAvailableMoves: options.showAvailableMoves !== false,
+            timeMinutes: typeof options.timeMinutes === "number" && options.timeMinutes >= 1 && options.timeMinutes <= 180
+                ? options.timeMinutes
+                : 90,
         }
     };
     const game = GameFactory.createGame(gameInfo, player, "play");
+    const tm = options.timeMinutes;
+    if (typeof tm === "number" && tm >= 1 && tm <= 180) {
+        game.chessGame.GameTimeLength = tm * 60;
+    }
     return game;
 };
 

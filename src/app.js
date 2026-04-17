@@ -149,6 +149,7 @@ app.ws("/ws", async (ws, req) => {
                 if (game) {
                     game.init(ws, msg.data.userId);
                 }
+                return;
             }
 
             if (msg.type == "watch") {
@@ -156,8 +157,8 @@ app.ws("/ws", async (ws, req) => {
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
                     game.addWatcher(ws, msg.data.username);
-                } else {
-                }
+                } 
+                return;
             }
         } catch (error) {
             console.error("Error processing WebSocket message:", error);

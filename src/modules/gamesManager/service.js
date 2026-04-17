@@ -468,6 +468,21 @@ exports.gameTypeToText = (gameTypeInt) => {
 };
 
 
+/** PGN-style result for DB → compact display in game lists (1-0, 0-1, ½-½). */
+function formatGameListResult(result, state) {
+    if (state === "cancelled") {
+        return "Cancelled";
+    }
+    const r = result && String(result).trim();
+    if (!r) {
+        return "-";
+    }
+    if (r === "1/2-1/2") {
+        return "½-½";
+    }
+    return r;
+}
+
 exports.parseGames = (gameDocs) => {
 
     return gameDocs.map(function (gameDoc) {
@@ -484,7 +499,7 @@ exports.parseGames = (gameDocs) => {
             _sortableDate: created,
             White: gameDoc.whitePlayer,
             Black: gameDoc.blackPlayer,
-            Result: gameDoc.state === "cancelled" ? "Cancelled" : (gameDoc.result || "-"),
+            Result: formatGameListResult(gameDoc.result, gameDoc.state),
             Status: gameDoc.state || "-",
             Reason: gameDoc.reason,
             Type: gameDoc.gameType,

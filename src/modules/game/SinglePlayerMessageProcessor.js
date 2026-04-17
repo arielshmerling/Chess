@@ -62,8 +62,15 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
                 break;
             case "rematch declined":
                 break;
-            case "outOfTime":
+            case "outOfTime": {
+                const loser = msg.loser === "white" || msg.loser === "black" ? msg.loser : "white";
+                await game.outOfTime(loser);
+                const go = { type: "info", info: "game over", gameId: game.gameId };
+                game.sendMessage(go, true);
+                game.sendMessage(go, false);
+                game.sendInfoToWatchers(go);
                 break;
+            }
             default:
                 break;
         }

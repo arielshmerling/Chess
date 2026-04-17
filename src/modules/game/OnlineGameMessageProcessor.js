@@ -81,8 +81,12 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         game.sendMessageToOpponent(msg, msg.isWhite);
     }
 
-    reportOutOfTime(game, msg) {
-        game.outOfTime(msg.loser);
+    async reportOutOfTime(game, msg) {
+        await game.outOfTime(msg.loser);
+        const go = { type: "info", info: "game over", gameId: game.gameId };
+        game.sendMessage(go, true);
+        game.sendMessage(go, false);
+        game.sendInfoToWatchers(go);
     }
 
     onInfoReceived(game, msg) {

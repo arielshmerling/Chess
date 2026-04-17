@@ -1606,16 +1606,46 @@ function resetButtons() {
     //document.getElementById("rematchBtn").classList.add("btnDisabled");
 }
 
+/** Full clock per side (seconds) from server gameInfo, or default 90 min. */
+function initialClockSecondsFromGameInfo() {
+    const fallback = 90 * 60;
+    if (typeof gameInfo === "undefined" || !gameInfo) {
+        return fallback;
+    }
+    if (typeof gameInfo.whiteTimer === "number" && gameInfo.whiteTimer > 0) {
+        return gameInfo.whiteTimer;
+    }
+    if (typeof gameInfo.gameTimeMinutes === "number" && gameInfo.gameTimeMinutes >= 1) {
+        return Math.round(gameInfo.gameTimeMinutes * 60);
+    }
+    return fallback;
+}
+
 function resetClocks() {
     clearInterval(whiteHandle);
     clearInterval(blackHandle);
-    blackTimer = 90 * 60;
-    whiteTimer = 90 * 60;
+    whiteHandle = null;
+    blackHandle = null;
+    whiteTimer = initialClockSecondsFromGameInfo();
+    blackTimer =
+        typeof gameInfo !== "undefined" && gameInfo && typeof gameInfo.blackTimer === "number" && gameInfo.blackTimer > 0
+            ? gameInfo.blackTimer
+            : whiteTimer;
+    if (typeof game !== "undefined" && game) {
+        try {
+            game.GameTimeLength = whiteTimer;
+        } catch {
+            /* ignore if client game has no setter */
+        }
+    }
     const whiteClock = document.getElementById("whiteClockTimeText");
-    whiteClock.innerText = timerToText(whiteTimer);
     const blackClock = document.getElementById("blackClockTimeText");
-    blackClock.innerText = timerToText(blackTimer);
-
+    if (whiteClock) {
+        whiteClock.innerText = timerToText(whiteTimer);
+    }
+    if (blackClock) {
+        blackClock.innerText = timerToText(blackTimer);
+    }
 }
 
 /**
@@ -2689,11 +2719,11 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (info == "game over") {
                 clearOpponentDisconnectGrace();
                 //displayMessage("Game Over");
-                log("System", "Game Over");
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
+                log("System", "Game over.");
             }
 
             if (info == "Opponenet left the game") {
@@ -2800,7 +2830,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
-
+                log("System", "Game over.");
             }
 
             if (info == "move validated successfully") {
@@ -2899,7 +2929,8 @@ function startWebSockets(username, isWhite, isWatcher) {
                                 engine: gameInfo.engine || "brain4",
                                 difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
                                 mouse: gameInfo.mousePreference || "drag",
-                                showAvailableMoves: gameInfo.showAvailableMoves !== false
+                                showAvailableMoves: gameInfo.showAvailableMoves !== false,
+                                timeMinutes: gameInfo.gameTimeMinutes != null ? gameInfo.gameTimeMinutes : 90,
                             };
                         }
                         if (typeof openPlayNowModal === "function") {
@@ -3054,6 +3085,9 @@ async function declineRematch() {
 async function moveAccepted(move) {
     if (gameInfo.gameType == "SinglePlayerGame") {
         disableButtons(["drawBtn"]);
+        /* Time-out / synthetic moves may omit moveStr; undefined is dropped by JSON.stringify and breaks server Joi. */
+        const moveStr =
+            move && move.moveStr != null && move.moveStr !== undefined ? move.moveStr : "";
         const message = {
             type: "info",
             info: "move accepted",
@@ -3062,7 +3096,7 @@ async function moveAccepted(move) {
             username: gameInfo.username,
             isWhite: currentPlayerIsWhite,
             moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
-            moveStr: move.moveStr,
+            moveStr,
             whiteTimer: whiteTimer,
             blackTimer: blackTimer,
         };
@@ -3252,7 +3286,8 @@ async function menuRematchEventHandler() {
                 engine: gameInfo.engine || "brain4",
                 difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
                 mouse: gameInfo.mousePreference || "drag",
-                showAvailableMoves: gameInfo.showAvailableMoves !== false
+                showAvailableMoves: gameInfo.showAvailableMoves !== false,
+                timeMinutes: gameInfo.gameTimeMinutes != null ? gameInfo.gameTimeMinutes : 90,
             };
         }
         if (typeof openPlayNowModal === "function") {
@@ -3335,8 +3370,8 @@ async function menuResignEventHandler() {
     const player = currentPlayerIsWhite ? "White" : "Black";
     if (gameInfo.gameType == "PracticeGame") {
         displayMessage("Game Over");
-        log("System", "Game Over");
         game.resign(player);
+        log("System", "Game over.");
         const message = {
             type: "info",
             info: "resign",
@@ -3389,6 +3424,9 @@ async function menuResignEventHandler() {
         } else {
             displayMessage(humanHasMoved ? `You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins ` : "Game cancelled");
             log(humanHasMoved ? currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName : "System", humanHasMoved ? "I resign!" : "Game cancelled");
+        }
+        if (game.GameOver) {
+            log("System", "Game over.");
         }
     }
 }
@@ -3605,16 +3643,28 @@ function startDisconnectionTimer() {
 /// Clocks Handling
 
 function updateTimers(gameInfo) {
-    if (gameInfo.whiteTimer) {
+    if (typeof gameInfo.whiteTimer === "number" && gameInfo.whiteTimer >= 0) {
         whiteTimer = gameInfo.whiteTimer;
         const whiteClock = document.getElementById("whiteClockTimeText");
-        whiteClock.innerText = timerToText(whiteTimer);
+        if (whiteClock) {
+            whiteClock.innerText = timerToText(whiteTimer);
+        }
     }
 
-    if (gameInfo.blackTimer) {
+    if (typeof gameInfo.blackTimer === "number" && gameInfo.blackTimer >= 0) {
         blackTimer = gameInfo.blackTimer;
         const blackClock = document.getElementById("blackClockTimeText");
-        blackClock.innerText = timerToText(blackTimer);
+        if (blackClock) {
+            blackClock.innerText = timerToText(blackTimer);
+        }
+    }
+
+    if (typeof game !== "undefined" && game && typeof gameInfo.whiteTimer === "number" && gameInfo.whiteTimer > 0) {
+        try {
+            game.GameTimeLength = gameInfo.whiteTimer;
+        } catch {
+            /* ignore */
+        }
     }
 }
 
@@ -3686,10 +3736,11 @@ function switchClocks() {
 }
 
 function outOfTime() {
-
-    displayMessage(`Time's up! ${game.Turn} lost`);
-    game.OutOfTime = game.Turn;
-    sendOutOfTime(game.Turn);
+    const loser = game.Turn;
+    displayMessage(`Time's up! ${loser} lost`);
+    log("System", `Time's up — ${loser} ran out of time.`);
+    game.OutOfTime = loser;
+    sendOutOfTime(loser);
 }
 
 

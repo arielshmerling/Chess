@@ -51,13 +51,21 @@
           </div>
         </div>
         <div class="play-now-field">
-          <label class="play-now-label" for="playNowEngine">Engine</label>
-          <select id="playNowEngine" name="engine" class="play-now-select">
-            <option value="brain4">Brain 4.0</option>
-            <option value="brain3">Brain 3</option>
-            <option value="brain2">Brain 2</option>
-            <option value="brain5">Brain 5</option>
-          </select>
+          <div class="play-now-engine-time-row">
+            <div class="play-now-engine-col">
+              <label class="play-now-label" for="playNowEngine">Engine</label>
+              <select id="playNowEngine" name="engine" class="play-now-select play-now-select--compact">
+                <option value="brain4">Brain 4.0</option>
+                <option value="brain3">Brain 3</option>
+                <option value="brain2">Brain 2</option>
+                <option value="brain5">Brain 5</option>
+              </select>
+            </div>
+            <div class="play-now-time-col">
+              <label class="play-now-label" for="playNowTimeMinutes">Time (min)</label>
+              <input type="number" id="playNowTimeMinutes" name="timeMinutes" class="play-now-time-input" min="1" max="180" step="1" value="90" title="Clock time per side in minutes">
+            </div>
+          </div>
         </div>
         <div class="play-now-field">
           <label class="play-now-label" for="playNowDifficulty">Difficulty (1–5)</label>

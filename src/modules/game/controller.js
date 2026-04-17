@@ -122,6 +122,12 @@ function createGameInfo(game, userName, userId) {
         clientDate.engine = game.options.engine;
         clientDate.showAvailableMoves = game.options.showAvailableMoves !== false;
     }
+    if (game.chessGame) {
+        const gtl = game.chessGame.GameTimeLength;
+        if (typeof gtl === "number" && Number.isFinite(gtl) && gtl > 0) {
+            clientDate.gameTimeMinutes = Math.max(1, Math.round(gtl / 60));
+        }
+    }
 
     if (userName != clientDate.whitePlayerName && userName != clientDate.blackPlayerName) {
         watcher = true;
@@ -271,7 +277,12 @@ exports.startGame = catchAsync(async (req, res) => {
     const difficultyNum = (difficulty >= 1 && difficulty <= 5) ? difficulty : 3;
     const mouse = (req.query.mouse === "double" || req.query.mouse === "drag") ? req.query.mouse : "drag";
     const showAvailableMoves = req.query.showMoves !== "0";
-    req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves };
+    const timeMinutesParsed = parseInt(req.query.timeMinutes, 10);
+    const timeMinutes =
+        Number.isFinite(timeMinutesParsed) && timeMinutesParsed >= 1 && timeMinutesParsed <= 180
+            ? timeMinutesParsed
+            : 90;
+    req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves, timeMinutes };
 
     // When user picks options from Play Now modal (engine in query), they want a NEW game; don't reuse existing
     const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.engine !== undefined;
@@ -389,6 +400,7 @@ exports.startGame = catchAsync(async (req, res) => {
                 difficulty: options.difficulty != null ? options.difficulty : 3,
                 mouse: options.mouse || "drag",
                 showAvailableMoves: options.showAvailableMoves !== false,
+                timeMinutes: options.timeMinutes != null ? options.timeMinutes : 90,
             },
         });
     }

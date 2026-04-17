@@ -60,6 +60,13 @@ function applyLastGameOptions(opts) {
     if (opts.engine && form.elements.engine) {
         form.elements.engine.value = opts.engine;
     }
+    const timeInput = form.querySelector("input[name='timeMinutes']");
+    if (timeInput) {
+        const tm = opts.timeMinutes != null ? Number(opts.timeMinutes) : NaN;
+        if (Number.isFinite(tm) && tm >= 1 && tm <= 180) {
+            timeInput.value = String(Math.round(tm));
+        }
+    }
     if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 5) {
         const difficultyInput = form.querySelector("input[name='difficulty']");
         const valueSpan = document.getElementById("playNowDifficultyValue");
@@ -102,13 +109,21 @@ function startNewGameFromModal(event) {
     const difficulty = formData.get("difficulty") || "3";
     const mouse = formData.get("mouse") || "drag";
     const showMoves = formData.get("showMoves") === "1" ? "1" : "0";
+    let timeMinutes = parseInt(formData.get("timeMinutes"), 10);
+    if (!Number.isFinite(timeMinutes) || timeMinutes < 1) {
+        timeMinutes = 90;
+    }
+    if (timeMinutes > 180) {
+        timeMinutes = 180;
+    }
     const params = new URLSearchParams({
         gameType: "1",
         color: color,
         engine: engine,
         difficulty: difficulty,
         mouse: mouse,
-        showMoves: showMoves
+        showMoves: showMoves,
+        timeMinutes: String(timeMinutes),
     });
     closePlayNowModal();
     window.location = "/game?" + params.toString();

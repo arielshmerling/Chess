@@ -315,6 +315,17 @@ class GameBase {
             reason: `Out Of Time. ${loser} lost`
         });
 
+        const resultMove = this.chessGame.ResultMove;
+        if (resultMove) {
+            if (this.moves.length > 0) {
+                resultMove.moveTime = this.moves[this.moves.length - 1].moveTime;
+            }
+            else {
+                resultMove.moveTime = this.chessGame.GameTimeLength;
+            }
+            this.moves.push(resultMove);
+            await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
+        }
     }
 
     onMessageReceived = async (recivedData) => {
@@ -325,6 +336,11 @@ class GameBase {
             console.error("WebSocket JSON parse failed:", e.message);
             return;
         }
+        /* Routed only on /ws app handler; ignore if same socket still receives these. */
+        if (msg.type === "connection" || msg.type === "watch" || msg.type === "subscribeLobby" || msg.type === "presenceSubscribe") {
+            return;
+        }
+
         const validation = validateWebSocketMessage(msg);
         if (!validation.ok) {
             console.error("WebSocket message validation failed:", validation.error);
