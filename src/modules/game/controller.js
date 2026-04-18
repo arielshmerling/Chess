@@ -247,6 +247,7 @@ exports.startGame = catchAsync(async (req, res) => {
             return res.redirect("/friends");
         }
         const playableAsParticipant = [
+            "new",
             "pending",
             "establishing",
             "in progress",
@@ -286,8 +287,9 @@ exports.startGame = catchAsync(async (req, res) => {
     const isPrivate = req.query.private === "1";
     req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves, timeMinutes, isPrivate };
 
-    // When user picks options from Play Now modal (engine in query), they want a NEW game; don't reuse existing
-    const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.engine !== undefined;
+    // Only explicit newGame=1 (set by Play Now modal) means "start a fresh game"; engine is always in that URL
+    // and would otherwise match on every refresh and skip session / in-progress reuse.
+    const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.newGame === "1";
 
     let gameDoc;
     let game;
@@ -330,6 +332,40 @@ exports.startGame = catchAsync(async (req, res) => {
             return;
         }
         return res.redirect("/home");
+    }
+
+    /**
+     * Refresh often hits the server before WS `init()` flips status from "new" to "in progress", so
+     * findGameByStatus(..., "in progress") misses. Session still has the correct gameId — resume when it matches
+     * this gameType and is not finished.
+     */
+    if (!wantsNewGameWithOptions && req.session.gameId) {
+        const sessionGame = gamesManagerService.getGameById(req.session.gameId);
+        if (sessionGame && isUserInGame(sessionGame, userId)) {
+            const expectedName = gamesManagerService.gameTypeToText(gameTypeInt);
+            if (sessionGame.constructor.name === expectedName) {
+                const state = sessionGame.status || sessionGame.lastStatus;
+                if (state === "game over" || state === "cancelled") {
+                    req.session.gameId = null;
+                } else if ([
+                    "new",
+                    "pending",
+                    "establishing",
+                    "in progress",
+                    "on hold",
+                    "reJoining",
+                ].includes(state)) {
+                    if (state === "on hold") {
+                        sessionGame.status = "reJoining";
+                    }
+                    registerEvents(sessionGame);
+                    req.session.gameId = sessionGame.gameId;
+                    setGamePageNoCache(res);
+                    res.render("game", { username, gameId: sessionGame.gameId, hideTopbar: true });
+                    return;
+                }
+            }
+        }
     }
 
     // Game is in progress - for example, user refresh the game page (skip if they asked for new game with options)
@@ -408,6 +444,10 @@ exports.startGame = catchAsync(async (req, res) => {
         });
     }
     setGamePageNoCache(res);
+    /** Canonical URL so refresh hits ?id= and does not treat modal query params as a new-game signal */
+    if (gameTypeInt === 1 && game.gameId != null) {
+        return res.redirect(302, "/game?id=" + encodeURIComponent(String(game.gameId)));
+    }
     res.render("game", { username, gameId: game.gameId, hideTopbar: true });
 });
 

@@ -122,6 +122,7 @@ function startNewGameFromModal(event) {
     }
     const params = new URLSearchParams({
         gameType: "1",
+        newGame: "1",
         color: color,
         engine: engine,
         difficulty: difficulty,
