@@ -68,7 +68,7 @@ exports.showHomePage = async (req, res) => {
 
     res.locals.username = username;
     let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
-    // Home page: only these columns (exclude Reason, Type, Status)
+    // Home table columns (Reason is not shown as a column; surfaced as Result cell tooltip)
     const homeColumns = ["Id", "Date", "Time", "White", "Black", "Result", "Moves"];
     playerGames = playerGames.map((g) => {
         const out = {};
@@ -76,6 +76,10 @@ exports.showHomePage = async (req, res) => {
             if (Object.prototype.hasOwnProperty.call(g, k)) out[k] = g[k];
         }
         if (Object.prototype.hasOwnProperty.call(g, "_sortableDate")) out._sortableDate = g._sortableDate;
+        const reason = g.Reason != null ? String(g.Reason).trim() : "";
+        if (reason) {
+            out._resultReason = reason;
+        }
         return out;
     });
     res.locals.playerGames = playerGames;

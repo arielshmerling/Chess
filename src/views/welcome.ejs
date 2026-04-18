@@ -108,11 +108,14 @@
     <!-- Active Games (Online + AI) -->
     <div class="games-panel online-games-panel">
       <div class="panel-header">
-        <div class="panel-title-group">
-          <h3 class="panel-title">Active Games</h3>
-          <span class="panel-badge">Live</span>
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h3 class="panel-title">Active Games</h3>
+            <span class="panel-badge">Live</span>
+          </div>
+          <a href="/active-games-list" class="panel-show-all-btn" title="View all active games">Show All</a>
         </div>
-        <div class="panel-subtitle">Most recent first · <a href="/active-games-list" class="panel-subtitle-link">All active games</a></div>
+        <div class="panel-subtitle">Most recent first</div>
       </div>
       <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
         <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
@@ -141,15 +144,6 @@
         <div class="no-games-message" id="online-no-games-msg">
           <p>No games at the moment</p>
         </div>
-        <div class="panel-footer active-games-home-footer">
-          <a href="/active-games-list" class="footer-link">
-            <span>View all active games</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"/>
-              <path d="M12 5l7 7-7 7"/>
-            </svg>
-          </a>
-        </div>
       </div>
       <script src="/activeGamesHome.js" defer></script>
     </div>
@@ -157,8 +151,11 @@
     <!-- Friends (accepted only; invite / rejoin — no remove) -->
     <div class="games-panel home-friends-panel" id="homeFriendsPanel">
       <div class="panel-header">
-        <div class="panel-title-group">
-          <h3 class="panel-title">Friends</h3>
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h3 class="panel-title">Friends</h3>
+          </div>
+          <a href="/friends" class="panel-show-all-btn" title="Friends page">Show All</a>
         </div>
         <div class="panel-subtitle">Invite an online friend to play</div>
       </div>
@@ -180,15 +177,6 @@
           <p>No friends yet</p>
           <p class="home-friends-empty-hint"><a href="/friends" class="footer-link home-friends-empty-link">Find players</a></p>
         </div>
-      </div>
-      <div class="panel-footer home-friends-footer">
-        <a href="/friends" class="footer-link">
-          <span>Friends page</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14"/>
-            <path d="M12 5l7 7-7 7"/>
-          </svg>
-        </a>
       </div>
       <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function () {
@@ -659,8 +647,11 @@
     <!-- My Games -->
     <div class="games-panel my-games-panel">
       <div class="panel-header">
-        <div class="panel-title-group">
-          <h3 class="panel-title">My Games</h3>
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h3 class="panel-title">My Games</h3>
+          </div>
+          <a href="/list" class="panel-show-all-btn" title="View All Games">Show All</a>
         </div>
         <div class="panel-subtitle">Your recent completed games</div>
       </div>
@@ -692,7 +683,7 @@
                 <% for(const key in obj) { %>
                   <% if(key !== 'Id' && !key.startsWith('_')) { %>
                     <% sortVal = key === 'Date' ? (obj._sortableDate != null ? obj._sortableDate : 0) : (key === 'Moves' ? (obj.Moves != null ? obj.Moves : 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
-                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %> onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
                   <%= obj[key] %>
                 </td>
                   <% } %>
@@ -757,15 +748,6 @@
           <p>No completed games yet</p>
         </div>
         <% } %>
-        <div class="panel-footer">
-          <a href="/list" class="footer-link">
-            <span>View All Games</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"/>
-              <path d="M12 5l7 7-7 7"/>
-            </svg>
-          </a>
-        </div>
       </div>
     </div>
   </div>

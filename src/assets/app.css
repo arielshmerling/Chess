@@ -2103,7 +2103,6 @@ li {
 
 .admin-page .games-table tbody tr.admin-user-row:hover {
     background: linear-gradient(90deg, rgba(152, 193, 217, 0.18) 0%, rgba(152, 193, 217, 0.1) 100%);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .admin-page .games-table .admin-cell-email {
