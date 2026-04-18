@@ -142,6 +142,89 @@ exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
 });
 
 /**
+ * Parse a move stored on a Game document (string or object).
+ * @param {unknown} raw
+ * @returns {object|null}
+ */
+function parseStoredMove(raw) {
+    if (raw == null) {
+        return null;
+    }
+    if (typeof raw === "object") {
+        return raw;
+    }
+    if (typeof raw === "string") {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
+/**
+ * Replay persisted online moves onto a ChessGame and return board + turn for previews.
+ * Prefers the in-memory OnlineGame when present (fresher than DB between writes).
+ * @param {string} gameId
+ * @param {unknown[]} dbMoves
+ * @returns {{ board: unknown[][], turn: string } | null}
+ */
+exports.getActiveGameBoardSnapshot = (gameId, dbMoves) => {
+    const live = exports.getGameById(gameId);
+    if (live && live.chessGame) {
+        const gs = live.chessGame.GameState;
+        if (gs && gs.board) {
+            return { board: gs.board, turn: gs.turn || "white" };
+        }
+    }
+    return exports.replayStoredMovesToBoardState(dbMoves);
+};
+
+/**
+ * @param {unknown[]} movesRaw
+ * @returns {{ board: unknown[][], turn: string } | null}
+ */
+exports.replayStoredMovesToBoardState = (movesRaw) => {
+    const { ChessGame } = require("../../ChessGame");
+    const chess = new ChessGame(true);
+    chess.startNewGame(true);
+    const moves = (movesRaw || []).map(parseStoredMove).filter(Boolean);
+    for (const m of moves) {
+        if (!m.source || !m.target) {
+            continue;
+        }
+        if (chess.isResultMove(m)) {
+            break;
+        }
+        try {
+            const actual = chess.makeMove(m.source, m.target);
+            if (!actual) {
+                break;
+            }
+            if (actual.promotion) {
+                if (m.selectedPiece != null) {
+                    actual.selectedPiece = m.selectedPiece;
+                    chess.completePromotion(actual);
+                } else {
+                    break;
+                }
+            }
+        } catch {
+            break;
+        }
+        if (chess.GameOver) {
+            break;
+        }
+    }
+    const gs = chess.GameState;
+    if (!gs || !gs.board) {
+        return null;
+    }
+    return { board: gs.board, turn: gs.turn || "white" };
+};
+
+/**
  * Retrieves recent games that finished with state "game over" from the database.
  * Excludes in progress, on hold, new, pending, etc.
  *

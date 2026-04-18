@@ -112,138 +112,46 @@
           <h3 class="panel-title">Active Games</h3>
           <span class="panel-badge">Live</span>
         </div>
-        <div class="panel-subtitle">Now in progress</div>
+        <div class="panel-subtitle">Most recent first · <a href="/active-games-list" class="panel-subtitle-link">All active games</a></div>
       </div>
       <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
-        <div class="table-scroll" id="online-games-table-wrap">
-          <table class="games-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Game</th>
-                <th>Started</th>
-                <th>Moves</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="online-games-tbody">
-              <% if(allGames && allGames.length > 0) { %>
-              <% var rowNum = 1; for(var idx = 0; idx < allGames.length; idx++) { var obj = allGames[idx]; %>
-              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold')) ? '/game?id=' + obj.Id : '/watch?id=' + obj.Id; %>
-              <tr data-game-id="<%= obj.Id %>" onclick="window.location='<%= gameUrl %>'">
-                <td class="row-number"><%= rowNum++ %></td>
-                <td class="Game"><%= obj.Game %></td>
-                <td class="Started"><%= obj.Started %></td>
-                <td class="Moves"><%= obj.Moves %></td>
-                <td class="Status"><%= obj.Status || 'In progress' %></td>
-              </tr>
-              <% } %>
-              <% } %>
-            </tbody>
-          </table>
+        <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
+        <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+          window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
+        </script>
+        <div id="online-games-cards-root" class="online-games-cards-root">
+          <div
+            id="active-game-highlight-wrap"
+            class="active-game-highlight"
+            style="display: <%= (allGames && allGames.length > 0) ? 'flex' : 'none' %>;"
+            role="link"
+            tabindex="0"
+          >
+            <div class="active-highlight-board-wrap">
+              <div id="active-mini-board" class="active-mini-board" aria-hidden="true"></div>
+            </div>
+            <div class="active-highlight-side">
+              <div id="active-highlight-names" class="active-highlight-names"></div>
+              <p id="active-highlight-started" class="active-highlight-started" title=""></p>
+              <div id="active-highlight-meta" class="active-highlight-meta"></div>
+            </div>
+          </div>
+          <div id="active-games-compact-list" class="active-games-compact-list" aria-label="Other active games"></div>
         </div>
         <div class="no-games-message" id="online-no-games-msg">
           <p>No games at the moment</p>
         </div>
+        <div class="panel-footer active-games-home-footer">
+          <a href="/active-games-list" class="footer-link">
+            <span>View all active games</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
       </div>
-      <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
-(function() {
-  window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
-  var container = document.getElementById("online-games-container");
-  var tbody = document.getElementById("online-games-tbody");
-  var tableWrap = document.getElementById("online-games-table-wrap");
-  var noGamesMsg = document.getElementById("online-no-games-msg");
-  function setVisibility() {
-    var hasRows = tbody && tbody.querySelectorAll("tr").length > 0;
-    if (container) container.classList.toggle("has-online-games", !!hasRows);
-    if (tableWrap) tableWrap.style.display = hasRows ? "" : "none";
-    if (noGamesMsg) noGamesMsg.style.display = hasRows ? "none" : "block";
-  }
-  function renumberRows() {
-    if (!tbody) return;
-    var rows = tbody.querySelectorAll("tr");
-    for (var i = 0; i < rows.length; i++) {
-      var numCell = rows[i].querySelector("td.row-number");
-      if (numCell) numCell.textContent = i + 1;
-    }
-  }
-  function getGameRowUrl(id, data) {
-    var isParticipant = data.isParticipant === true || (window.__WELCOME_USERNAME__ && data.whitePlayerName !== undefined && (data.whitePlayerName === window.__WELCOME_USERNAME__ || data.blackPlayerName === window.__WELCOME_USERNAME__));
-    var status = data.Status || data.status || "In progress";
-    if (isParticipant && (status === "In progress" || status === "On hold")) return "/game?id=" + encodeURIComponent(id);
-    return "/watch?id=" + encodeURIComponent(id);
-  }
-  function addOrUpdateGameRow(data) {
-    if (!tbody || !data.gameId) return;
-    var id = String(data.gameId);
-    var url = getGameRowUrl(id, data);
-    var tr = tbody.querySelector("tr[data-game-id=\"" + id + "\"]");
-    if (tr) {
-      var gCell = tr.querySelector("td.Game");
-      var sCell = tr.querySelector("td.Started");
-      var mCell = tr.querySelector("td.Moves");
-      var statusCell = tr.querySelector("td.Status");
-      if (gCell) gCell.textContent = data.Game || "";
-      if (sCell) sCell.textContent = data.Started || "";
-      if (mCell) mCell.textContent = data.Moves != null ? data.Moves : "0";
-      if (statusCell) statusCell.textContent = data.Status || "In progress";
-      tr.onclick = function() { window.location = url; };
-      return;
-    }
-    tr = document.createElement("tr");
-    tr.setAttribute("data-game-id", id);
-    tr.onclick = function() { window.location = url; };
-    var statusText = (data.Status || "In progress").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + (data.Game || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Started\">" + (data.Started || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\">" + statusText + "</td>";
-    tbody.appendChild(tr);
-    renumberRows();
-    setVisibility();
-  }
-  function updateGameRow(gameId, data) {
-    if (!tbody) return;
-    var tr = tbody.querySelector("tr[data-game-id=\"" + String(gameId) + "\"]");
-    if (!tr) return;
-    if (data.movesCount != null) {
-      var movesCell = tr.querySelector("td.Moves");
-      if (movesCell) movesCell.textContent = data.movesCount;
-    }
-    if (data.status === "game over") {
-      tr.remove();
-      renumberRows();
-      setVisibility();
-    }
-  }
-  if (container && tbody) setVisibility();
-
-  function refreshActiveGamesFromServer() {
-    fetch("/active-games", { credentials: "same-origin" })
-      .then(function(r) { return r.ok ? r.json() : []; })
-      .then(function(games) {
-        if (!tbody || !Array.isArray(games)) return;
-        var ids = games.map(function(g) { return String(g.Id); });
-        games.forEach(function(g) {
-          addOrUpdateGameRow({ gameId: g.Id, Game: g.Game, Started: g.Started, Moves: g.Moves, Status: g.Status, isParticipant: g.IsParticipant, whitePlayerName: g.whitePlayerName, blackPlayerName: g.blackPlayerName });
-        });
-        tbody.querySelectorAll("tr[data-game-id]").forEach(function(tr) {
-          if (ids.indexOf(tr.getAttribute("data-game-id")) === -1) tr.remove();
-        });
-        renumberRows();
-        setVisibility();
-      })
-      .catch(function() {});
-  }
-
-  setInterval(refreshActiveGamesFromServer, 8000);
-  refreshActiveGamesFromServer();
-
-  window.addEventListener("site-ws-message", function (ev) {
-    var msg = ev.detail;
-    if (!msg) return;
-    if (msg.type === "onlineGameInProgress" && msg.data) addOrUpdateGameRow(msg.data);
-    if (msg.type === "onlineGameUpdated" && msg.data) updateGameRow(msg.data.gameId, msg.data);
-  });
-})();
-      </script>
+      <script src="/activeGamesHome.js" defer></script>
     </div>
 
     <!-- Friends (accepted only; invite / rejoin — no remove) -->

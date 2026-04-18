@@ -2,22 +2,66 @@ const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
 const { User } = require("../user/model");
 
+/**
+ * @param {object} g - row from getOnGoingOnlineGames
+ * @param {string} username
+ * @param {{ board?: unknown[][], turn?: string, isHighlight?: boolean }} [extras]
+ */
+function mapOngoingGameForClient(g, username, extras = {}) {
+    const whiteName = g.whitePlayer?.userName || "";
+    const blackName = g.blackPlayer?.userName || "";
+    const isParticipant = whiteName === username || blackName === username;
+    const startedMs = g.startedOn;
+    const moveCount = g.moves ? g.moves.length : 0;
+    const halfMoves = Math.ceil(moveCount / 2);
+    let startedLabel = "Not started";
+    let startedTooltip = "";
+    if (startedMs) {
+        startedLabel = `${parseInt((Date.now() - startedMs) / 1000 / 60, 10)} minutes ago`;
+        try {
+            startedTooltip = `Started: ${new Date(startedMs).toLocaleString()}`;
+        } catch {
+            startedTooltip = "";
+        }
+    }
+    const row = {
+        Id: g.gameId,
+        Game: whiteName + " Vs. " + blackName,
+        Started: startedLabel,
+        startedAtMs: startedMs,
+        StartedTooltip: startedTooltip,
+        Moves: halfMoves,
+        Status: g.state === "on hold" ? "On hold" : "In progress",
+        IsParticipant: isParticipant,
+        whitePlayerName: whiteName,
+        blackPlayerName: blackName,
+    };
+    if (extras.board) {
+        row.board = extras.board;
+    }
+    if (extras.turn) {
+        row.turn = extras.turn;
+    }
+    if (extras.isHighlight != null) {
+        row.isHighlight = extras.isHighlight;
+    }
+    return row;
+}
+
 exports.showHomePage = async (req, res) => {
 
     const username = req.session.user_name;
-    const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
-    const allGames = onGoing.map((g) => {
-        const whiteName = g.whitePlayer?.userName || "";
-        const blackName = g.blackPlayer?.userName || "";
-        const isParticipant = whiteName === username || blackName === username;
-        return {
-            Id: g.gameId,
-            Game: whiteName + " Vs. " + blackName,
-            Started: g.startedOn ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago" : "Not started",
-            Moves: Math.ceil((g.moves || []).length / 2),
-            Status: g.state === "on hold" ? "On hold" : "In progress",
-            IsParticipant: isParticipant,
-        };
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(4);
+    const allGames = onGoing.map((g, index) => {
+        if (index === 0) {
+            const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
+            return mapOngoingGameForClient(g, username, {
+                board: snap ? snap.board : null,
+                turn: snap ? snap.turn : "white",
+                isHighlight: true,
+            });
+        }
+        return mapOngoingGameForClient(g, username, { isHighlight: false });
     });
     //console.log(allGames);
     //req.session.gameId = null; // why? this causes a crash on back button
@@ -47,25 +91,35 @@ exports.showHomePage = async (req, res) => {
 
 exports.getActiveGamesJson = async (req, res) => {
     const username = req.session.user_name;
-    const onGoing = await gamesManagerService.getOnGoingOnlineGames(10);
-    const allGames = onGoing.map((g) => {
-        const whiteName = g.whitePlayer?.userName || "";
-        const blackName = g.blackPlayer?.userName || "";
-        const isParticipant = whiteName === username || blackName === username;
-        return {
-            Id: g.gameId,
-            Game: whiteName + " Vs. " + blackName,
-            Started: g.startedOn
-                ? parseInt((Date.now() - g.startedOn) / 1000 / 60, 10) + " minutes ago"
-                : "Not started",
-            Moves: Math.ceil((g.moves || []).length / 2),
-            Status: g.state === "on hold" ? "On hold" : "In progress",
-            IsParticipant: isParticipant,
-            whitePlayerName: whiteName,
-            blackPlayerName: blackName,
-        };
-    });
+    const limitRaw = req.query.limit;
+    const limit = Math.min(Math.max(parseInt(String(limitRaw || "10"), 10) || 10, 1), 200);
+    const includeBoard = req.query.includeBoard === "1" || req.query.includeBoard === "true";
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(limit);
+    let allGames;
+    if (includeBoard) {
+        allGames = onGoing.map((g, index) => {
+            if (index === 0) {
+                const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
+                return mapOngoingGameForClient(g, username, {
+                    board: snap ? snap.board : null,
+                    turn: snap ? snap.turn : "white",
+                    isHighlight: true,
+                });
+            }
+            return mapOngoingGameForClient(g, username, { isHighlight: false });
+        });
+    } else {
+        allGames = onGoing.map((g) => mapOngoingGameForClient(g, username));
+    }
     res.json(allGames);
+};
+
+exports.showActiveGamesListPage = async (req, res) => {
+    const username = req.session.user_name;
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(100);
+    const allGames = onGoing.map((g) => mapOngoingGameForClient(g, username));
+    res.locals.username = username;
+    res.render("active-games-list", { allGames });
 };
 
 exports.showList = async (req, res) => {
