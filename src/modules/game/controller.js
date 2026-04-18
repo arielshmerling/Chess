@@ -21,6 +21,32 @@ function setGamePageNoCache(res) {
     res.set("Expires", "0");
 }
 
+/** Desktop play template (unchanged). */
+const PLAY_VIEW_DESKTOP = "game";
+/** Mobile-only play UI — separate EJS + CSS; does not use `game.ejs` or `app.css` game rules. */
+const PLAY_VIEW_MOBILE = "mobile-game";
+
+function userAgentLooksMobile(req) {
+    const ua = (req.get("user-agent") || "").toLowerCase();
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
+}
+
+function playGameView(req) {
+    return req.playGameView === PLAY_VIEW_MOBILE ? PLAY_VIEW_MOBILE : PLAY_VIEW_DESKTOP;
+}
+
+function playGamePath(req) {
+    return req.playGameView === PLAY_VIEW_MOBILE ? "/mobile-game" : "/game";
+}
+
+/**
+ * Renders the active play page (desktop `game` or isolated `mobile-game`). Used by `executeStartGame` and join flows.
+ */
+function renderPlayGame(req, res, locals) {
+    setGamePageNoCache(res);
+    res.render(playGameView(req), locals);
+}
+
 /**
  * 
  * Handles requests related to reviewing games.
@@ -229,6 +255,20 @@ function isUserInGame(game, userId) {
 }
 
 exports.startGame = catchAsync(async (req, res) => {
+    if (req.path === "/game" && userAgentLooksMobile(req) && req.query.desktop !== "1") {
+        const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+        return res.redirect(302, "/mobile-game" + q);
+    }
+    req.playGameView = PLAY_VIEW_DESKTOP;
+    return executeStartGame(req, res);
+});
+
+exports.startGameMobile = catchAsync(async (req, res) => {
+    req.playGameView = PLAY_VIEW_MOBILE;
+    return executeStartGame(req, res);
+});
+
+const executeStartGame = catchAsync(async (req, res) => {
 
     const username = req.session.user_name;
     const userId = req.session.user_id;
@@ -262,8 +302,7 @@ exports.startGame = catchAsync(async (req, res) => {
             game.status = "reJoining";
             registerEvents(game);
         }
-        setGamePageNoCache(res);
-        res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+        renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
         return;
     }
 
@@ -316,8 +355,7 @@ exports.startGame = catchAsync(async (req, res) => {
         if (isInvitedBlackJoiner && alreadyJoinedOpenStates.has(friendJoinGame.status)) {
             req.session.gameId = friendJoinGame.gameId;
             registerEvents(friendJoinGame);
-            setGamePageNoCache(res);
-            res.render("game", { username, gameId: friendJoinGame.gameId, hideTopbar: true });
+            renderPlayGame(req, res, { username, gameId: friendJoinGame.gameId, hideTopbar: true });
             return;
         }
         if (
@@ -360,8 +398,7 @@ exports.startGame = catchAsync(async (req, res) => {
                     }
                     registerEvents(sessionGame);
                     req.session.gameId = sessionGame.gameId;
-                    setGamePageNoCache(res);
-                    res.render("game", { username, gameId: sessionGame.gameId, hideTopbar: true });
+                    renderPlayGame(req, res, { username, gameId: sessionGame.gameId, hideTopbar: true });
                     return;
                 }
             }
@@ -373,8 +410,7 @@ exports.startGame = catchAsync(async (req, res) => {
         game = gamesManagerService.findGameByStatus(gameTypeInt, userId, "in progress");
         if (game) {
             req.session.gameId = game.gameId;
-            setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+            renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -387,8 +423,7 @@ exports.startGame = catchAsync(async (req, res) => {
             game.status = "reJoining";
             req.session.gameId = game.gameId;
             registerEvents(game);
-            setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+            renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -399,8 +434,7 @@ exports.startGame = catchAsync(async (req, res) => {
         if (game) {
             req.session.gameId = game.gameId;
             registerEvents(game);
-            setGamePageNoCache(res);
-            res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+            renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
             return;
         }
     }
@@ -443,12 +477,12 @@ exports.startGame = catchAsync(async (req, res) => {
             },
         });
     }
-    setGamePageNoCache(res);
     /** Canonical URL so refresh hits ?id= and does not treat modal query params as a new-game signal */
     if (gameTypeInt === 1 && game.gameId != null) {
-        return res.redirect(302, "/game?id=" + encodeURIComponent(String(game.gameId)));
+        setGamePageNoCache(res);
+        return res.redirect(302, playGamePath(req) + "?id=" + encodeURIComponent(String(game.gameId)));
     }
-    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+    renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
 });
 
 const onPracticeQuitMidGame = async (e) => {
@@ -548,8 +582,7 @@ async function joinPendingOnlineGameAsBlackCore(game, username, userId, req) {
  */
 async function joinPendingOnlineGameAsBlack(game, username, userId, req, res) {
     await joinPendingOnlineGameAsBlackCore(game, username, userId, req);
-    setGamePageNoCache(res);
-    res.render("game", { username, gameId: game.gameId, hideTopbar: true });
+    renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
 }
 
 /**

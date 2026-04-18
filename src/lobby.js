@@ -1,5 +1,16 @@
 /*global startGame */
 
+function getPlayGameBasePath() {
+    try {
+        const p = window.location.pathname || "";
+        if (p === "/mobile-game" || p.indexOf("/mobile-game") === 0) {
+            return "/mobile-game";
+        }
+    } catch {
+        /* pathname unavailable */
+    }
+    return "/game";
+}
 
 /* eslint-disable-next-line no-unused-vars */
 function menuPositionSetup() {
@@ -18,7 +29,7 @@ function startSearchingForOpponenet() {
 
 /* eslint-disable-next-line no-unused-vars */
 function startAIGame() {
-    window.location = "./game?gameType=1"; //SinglePlayerGame
+    window.location = getPlayGameBasePath() + "?gameType=1"; // SinglePlayerGame
 }
 
 function openPlayNowModal() {
@@ -134,12 +145,12 @@ function startNewGameFromModal(event) {
         params.set("private", "1");
     }
     closePlayNowModal();
-    window.location = "/game?" + params.toString();
+    window.location = getPlayGameBasePath() + "?" + params.toString();
 }
 
 /* eslint-disable-next-line no-unused-vars */
 function startPracticeGame() {
-    window.location = "./game?gameType=3";
+    window.location = getPlayGameBasePath() + "?gameType=3";
 }
 /* eslint-disable-next-line no-unused-vars */
 function navigateToGameList() {

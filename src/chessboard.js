@@ -277,11 +277,16 @@ const Labels = {
     BOOKMARK_ALERT_TITLE: "Bookmark position",
 };
 
+function isPlayGamePage() {
+    const p = window.location.pathname || "";
+    return p === "/game" || p === "/mobile-game";
+}
+
 window.onload = function () {
     console.log(window.location.pathname);
     //populatePaletteSelctor();
     // overrideFormValidity();
-    if (window.location.pathname == "/game" ||
+    if (isPlayGamePage() ||
         window.location.pathname == "/watch" ||
         window.location.pathname == "/review" ||
         window.location.pathname == "/research") {
@@ -396,7 +401,7 @@ function startDrag(e) {
 
     if (gameInfo.mode == "review") { return; }
 
-    const allowDrag = window.location.pathname === "/game" ||
+    const allowDrag = isPlayGamePage() ||
         (window.location.pathname === "/research" && researchMode && researchSelected === "select");
     if (!allowDrag) { return; }
 

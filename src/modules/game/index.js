@@ -4,6 +4,7 @@ const gameController = require("./controller");
 const router = express.Router();
 router.get("/review", requireLogin, gameController.review);
 router.get("/watch", requireLogin, gameController.watchGame);
+router.get("/mobile-game", requireLogin, gameController.startGameMobile);
 router.get("/game", requireLogin, gameController.startGame);
 router.get("/research", requireLogin, gameController.showResearch);
 router.get("/gameInfo", requireLogin, gameController.getGameInfo);
