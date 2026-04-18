@@ -282,6 +282,11 @@ function isPlayGamePage() {
     return p === "/game" || p === "/mobile-game";
 }
 
+function isMobileGameShell() {
+    return typeof document !== "undefined" && document.body &&
+        document.body.classList.contains("mobile-game-shell");
+}
+
 window.onload = function () {
     console.log(window.location.pathname);
     //populatePaletteSelctor();
@@ -623,8 +628,12 @@ async function startGame(isRematch) {
     }
     updateRowOrder();
     updateLegend();
-    bookmarks = await getBookmarks();
-    updateBookmarks(bookmarks);
+    if (!isMobileGameShell()) {
+        bookmarks = await getBookmarks();
+        updateBookmarks(bookmarks);
+    } else {
+        bookmarks = [];
+    }
 
     if (gameInfo.mode == "review") {
         if (gameInfo.reviewType == "pgn") { currentPlayerIsWhite = true; }
@@ -666,6 +675,9 @@ async function startGame(isRematch) {
 }
 
 async function applyBookmarkFromUrlIfPresent() {
+    if (isMobileGameShell()) {
+        return;
+    }
     const params = new URLSearchParams(window.location.search);
     const bookmarkIdParam = params.get("bookmarkId");
     if (!bookmarkIdParam || gameType !== "SinglePlayerGame" || !gameInfo || !gameInfo.id) return;
@@ -4177,8 +4189,10 @@ function addOptionsButtons() {
         { id: "flipBtn", onclick: flipboard, text: Labels.FLIP },
         { id: "lastMoveBtn", onclick: viewLastMove, text: Labels.LAST_MOVE },
         { id: "homeBtn", onclick: backToHome, text: Labels.HOME },
-        { id: "bookmarkBtn", onclick: showBookmarks, text: Labels.BOOKMARKS }
     ];
+    if (!isMobileGameShell()) {
+        buttons.push({ id: "bookmarkBtn", onclick: showBookmarks, text: Labels.BOOKMARKS });
+    }
 
     const optionsSection = document.getElementById("options");
 
@@ -4247,7 +4261,13 @@ async function sendChatMessage(chatMessage) {
 
 
 function showBookmarks() {
+    if (isMobileGameShell()) {
+        return;
+    }
     const bookmarksPanel = document.getElementById("bookmarksPanel");
+    if (!bookmarksPanel) {
+        return;
+    }
     if (bookmarksPanel.style.opacity == "1") {
         closeBookmarkPanel();
     }
@@ -4260,7 +4280,14 @@ function showBookmarks() {
 
 /* eslint-disable-next-line no-unused-vars */
 async function addBookmark() {
+    if (isMobileGameShell()) {
+        return;
+    }
     if (dialogOn) return;
+    const bookmarksListEarly = document.getElementById("bookmarksList");
+    if (!bookmarksListEarly) {
+        return;
+    }
     if (researchMode) {
         const positionErr = getResearchBookmarkPositionValidationMessage();
         if (positionErr) {
@@ -4269,7 +4296,7 @@ async function addBookmark() {
         }
     }
 
-    const bookmarksList = document.getElementById("bookmarksList");
+    const bookmarksList = bookmarksListEarly;
     const div = createNewBookmarkDiv();
     bookmarksList.prepend(div);
     const input = document.getElementById("newBookmarkName");
@@ -4534,6 +4561,9 @@ function loadBookmarkOnBoard(bookmarkId) {
 
 /** Apply bookmark: in research, load on board only; in game, apply to server and load. Execute button in research redirects to game instead of calling this. */
 async function applyBookmarkAction(bookmarkId) {
+    if (isMobileGameShell()) {
+        return;
+    }
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
     if (!bookmarkObj) return;
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
@@ -4550,6 +4580,9 @@ async function applyBookmarkAction(bookmarkId) {
 }
 
 async function onBookmarkAdded(bookmarkId, name, date, gameType) {
+    if (isMobileGameShell()) {
+        return;
+    }
     if (researchMode) {
         const positionErr = getResearchBookmarkPositionValidationMessage("add");
         if (positionErr) {
@@ -4558,6 +4591,9 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
         }
     }
     const bookmarksList = document.getElementById("bookmarksList");
+    if (!bookmarksList) {
+        return;
+    }
     const newBookmarkCard = document.getElementById("newBookmark");
     const bookmark = createBookmarkDiv(bookmarkId, name, date, gameType);
     bookmarksList.removeChild(newBookmarkCard);
@@ -4668,6 +4704,9 @@ function updateBookmarks(bookmarks) {
 
     let i = 1;
     const bookmarksList = document.getElementById("bookmarksList");
+    if (!bookmarksList) {
+        return;
+    }
     bookmarksList.innerHTML = "";
 
     for (const bookmark of bookmarks) {
@@ -4682,6 +4721,9 @@ function updateBookmarks(bookmarks) {
 function closeBookmarkPanel() {
     if (researchMode) return;
     const bookmarksPanel = document.getElementById("bookmarksPanel");
+    if (!bookmarksPanel) {
+        return;
+    }
     if (bookmarksPanel.style.opacity == "1") {
         bookmarksPanel.style.opacity = "0";
         bookmarksPanel.style.width = "0px";

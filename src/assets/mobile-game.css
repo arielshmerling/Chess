@@ -294,21 +294,21 @@ body.mobile-game-shell #options .button {
     font-size: 0.95rem;
 }
 
-body.mobile-game-shell .bookmarksPanel {
-    right: 8px;
-    left: auto;
-    top: auto;
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-    max-height: min(38vh, 280px);
-    width: min(calc(100vw - 16px), 360px);
-    z-index: 90;
-}
-
-@media (max-width: 380px) {
-    body.mobile-game-shell .bookmarksPanel {
-        right: 4px;
-        width: calc(100vw - 8px);
-    }
+/* Bookmarks are not used on mobile; keep stub off-screen and non-interactive (was overlapping the board). */
+body.mobile-game-shell .mobile-game-bookmarks-stub {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    border: 0 !important;
+    z-index: -1 !important;
 }
 
 /* Play-now modal must sit above the fixed bottom action bar (options uses z-index 400). */
