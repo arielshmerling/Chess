@@ -51,7 +51,7 @@ body.mobile-game-shell #main {
     padding: 0 2px;
 }
 
-/* —— Match bar (clocks + vs + turn indicator) —— */
+/* —— Match bar (clocks + vs); active turn = gold frame on clock (data-active-turn from mobile-game-ui.js) —— */
 body.mobile-game-shell .mobile-match-bar {
     order: 0;
     flex: 0 0 auto;
@@ -61,29 +61,44 @@ body.mobile-game-shell .mobile-match-bar {
 
 body.mobile-game-shell .mobile-match-bar__row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    align-items: stretch;
+    /* Narrow clock columns; center (names) keeps flexible space. */
+    grid-template-columns: minmax(68px, 22vw) minmax(0, 1fr) minmax(68px, 22vw);
     gap: 6px;
     width: 100%;
+    box-sizing: border-box;
+    align-items: center;
 }
 
 body.mobile-game-shell .mobile-clock-cell {
     border-radius: 8px;
     overflow: hidden;
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    box-sizing: border-box;
+    margin: 6px;
+    padding: 2px;
+    border: 2px solid transparent;
+    width: calc(100% - 12px);
+    max-width: 100%;
+    justify-self: center;
+    transition: border-color 0.28s ease, box-shadow 0.28s ease;
 }
 
 body.mobile-game-shell .mobile-clock-cell--white {
     background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.14);
 }
 
 body.mobile-game-shell .mobile-clock-cell--black {
     background: #0f0f0f;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.mobile-game-shell .mobile-match-bar[data-active-turn="white"] .mobile-clock-cell--white {
+    border-color: #d4af37;
+}
+
+body.mobile-game-shell .mobile-match-bar[data-active-turn="black"] .mobile-clock-cell--black {
+    border-color: #d4af37;
 }
 
 body.mobile-game-shell .mobile-clock-display {
@@ -92,7 +107,7 @@ body.mobile-game-shell .mobile-clock-display {
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 8px 6px;
+    padding: 4px 4px;
     box-sizing: border-box;
     margin: 0;
     background: transparent;
@@ -106,7 +121,7 @@ body.mobile-game-shell .mobile-clock-display .turnClock {
 body.mobile-game-shell .mobile-clock-time {
     font-size: clamp(0.95rem, 3.8vw, 1.15rem);
     font-weight: 500;
-    color: #6b7280;
+    color: #838383;
     font-variant-numeric: tabular-nums;
 }
 
@@ -120,54 +135,37 @@ body.mobile-game-shell .mobile-vs-block {
 
 body.mobile-game-shell .mobile-vs-title {
     appearance: none;
-    background: rgba(45, 49, 52, 0.55);
-    border: 1px solid rgba(152, 193, 217, 0.25);
-    border-radius: 10px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     color: var(--light, #e0fbfc);
-    padding: 8px 10px;
+    padding: 4px 6px;
     max-width: min(52vw, 220px);
     cursor: default;
     text-align: center;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-body.mobile-game-shell .mobile-vs-line {
+body.mobile-game-shell .mobile-vs-title .mobile-vs-name {
     display: block;
-    font-size: clamp(0.72rem, 2.8vw, 0.88rem);
-    line-height: 1.35;
-    white-space: nowrap;
+    font-size: clamp(0.84rem, 3.4vw, 1.05rem);
+    line-height: 1.28;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
-body.mobile-game-shell .mobile-vs-sep {
-    opacity: 0.75;
-    padding: 0 0.2em;
-}
-
-body.mobile-game-shell .mobile-turn-bar-track {
-    position: relative;
-    width: 100%;
-    height: 4px;
-    margin-top: 6px;
-    border-radius: 2px;
-    background: rgba(152, 193, 217, 0.15);
-    overflow: hidden;
-}
-
-body.mobile-game-shell .mobile-turn-bar-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, #98c1d9, #e0fbfc);
-    border-radius: 2px;
-    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
-}
-
-body.mobile-game-shell .mobile-match-bar[data-active-turn="black"] .mobile-turn-bar-indicator {
-    transform: translateX(100%);
+body.mobile-game-shell .mobile-vs-title .mobile-vs-sep {
+    display: block;
+    font-size: clamp(0.78rem, 3vw, 0.92rem);
+    line-height: 1.2;
+    padding: 3px 0;
+    opacity: 0.82;
+    font-weight: 500;
+    letter-spacing: 0.04em;
 }
 
 /* —— Board —— */

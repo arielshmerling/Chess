@@ -22,10 +22,10 @@
       <div class="mobile-vs-block">
         <button type="button" class="mobile-vs-title" id="mobileMatchTitleBtn"
           title=""
-          aria-label="Match: white vs black. Tooltip shows game ID.">
-          <span class="mobile-vs-line">
-            <span id="whitePlayerName" class="mobile-vs-name"></span><span class="mobile-vs-sep"> vs </span><span id="blackPlayerName" class="mobile-vs-name"></span>
-          </span>
+          aria-label="Players and game ID (tooltip).">
+          <span id="whitePlayerName" class="mobile-vs-name mobile-vs-name--line1"></span>
+          <span class="mobile-vs-sep" aria-hidden="true">Vs.</span>
+          <span id="blackPlayerName" class="mobile-vs-name mobile-vs-name--line3"></span>
         </button>
       </div>
       <div class="mobile-clock-cell mobile-clock-cell--black">
@@ -34,9 +34,6 @@
           <div id="blackClockTimeText" class="mobile-clock-time">05:00:00</div>
         </div>
       </div>
-    </div>
-    <div class="mobile-turn-bar-track" aria-hidden="true">
-      <div class="mobile-turn-bar-indicator"></div>
     </div>
   </section>
 
