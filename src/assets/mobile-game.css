@@ -1,152 +1,283 @@
 /**
- * Mobile play shell only — loaded by `mobile-game-boilerplate.ejs`.
- * Imports shared tokens and board styling from `app.css` without modifying that file.
- * All layout differences from desktop live here.
+ * Mobile play shell only — `mobile-game-boilerplate.ejs`.
+ * Imports shared board/piece rules from `app.css` without editing that file.
+ * All layout for `/mobile-game` is scoped under `body.mobile-game-shell`.
  */
 @import url("/assets/app.css");
 
+/*
+ * Board geometry: `.chessboard_horizontal_stack` is a square of side `--total-board-height`
+ * where `--total-board-height` = `--board-height` + 40px (frame in app.css :root).
+ * Setting `--board-height` to the full viewport width makes the stack wider than the screen
+ * and corrupts layout (clip / scroll / misaligned pieces).
+ */
 body.mobile-game-shell {
-    --mobile-board-max: min(92vmin, calc(100vw - 20px));
-    --board-height: var(--mobile-board-max);
+    --mobile-stack-outer: min(
+        calc(100vw - 4px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)),
+        92vmin
+    );
+    --board-height: max(200px, calc(var(--mobile-stack-outer) - 40px));
+    --square-size: calc(var(--board-height) / 8) !important;
+    --total-board-height: calc(var(--board-height) + 40px);
+    --captured-piece-size: calc(var(--square-size) / 1.3);
+    --sideboxes-width: calc(var(--square-size) / 1.3 * 5);
+    --promotion-box-size: calc(var(--square-size) * 4);
+    --promotion-width: var(--board-height);
+    --moves-height: max(80px, calc(var(--total-board-height) / 2 - 70px));
 }
 
-body.mobile-game-shell #header {
-    height: auto;
-    min-height: 48px;
-    font-size: clamp(0.85rem, 3.5vw, 1rem);
-    padding: 4px 8px;
-    flex-wrap: wrap;
-}
-
-body.mobile-game-shell .topBarMenu {
-    display: none;
-}
-
-body.mobile-game-shell .site-logo-img {
-    height: 1.5em;
-    width: 120px;
-}
-
-body.mobile-game-shell #logout {
-    margin-right: 8px;
-    font-size: 14px;
-    gap: 8px;
-}
+/* Keep topbar identical to desktop game (no compact header overrides). */
 
 body.mobile-game-shell main {
-    margin-top: 52px;
     width: 100%;
     max-width: 100vw;
     box-sizing: border-box;
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
-    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-}
-
-body.mobile-game-shell.hide-topbar main {
-    margin-top: 12px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 body.mobile-game-shell #main {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     margin-top: 8px;
-    gap: 8px;
+    gap: 6px;
+    box-sizing: border-box;
+    padding: 0 2px;
+}
+
+/* —— Match bar (clocks + vs + turn indicator) —— */
+body.mobile-game-shell .mobile-match-bar {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100%;
     box-sizing: border-box;
 }
 
-body.mobile-game-shell .mobile-game-page .seperator {
+body.mobile-game-shell .mobile-match-bar__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+}
+
+body.mobile-game-shell .mobile-clock-cell {
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.mobile-game-shell .mobile-clock-cell--white {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+body.mobile-game-shell .mobile-clock-cell--black {
+    background: #0f0f0f;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body.mobile-game-shell .mobile-clock-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px 6px;
+    box-sizing: border-box;
+    margin: 0;
+    background: transparent;
+    border: none;
+}
+
+body.mobile-game-shell .mobile-clock-display .turnClock {
     display: none;
 }
 
-body.mobile-game-shell #chessboard {
-    order: 0;
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
+body.mobile-game-shell .mobile-clock-time {
+    font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+    font-weight: 500;
+    color: #6b7280;
+    font-variant-numeric: tabular-nums;
 }
 
-body.mobile-game-shell .controlPanel {
+body.mobile-game-shell .mobile-vs-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 4px 4px 0;
+}
+
+body.mobile-game-shell .mobile-vs-title {
+    appearance: none;
+    background: rgba(45, 49, 52, 0.55);
+    border: 1px solid rgba(152, 193, 217, 0.25);
+    border-radius: 10px;
+    color: var(--light, #e0fbfc);
+    padding: 8px 10px;
+    max-width: min(52vw, 220px);
+    cursor: default;
+    text-align: center;
+}
+
+body.mobile-game-shell .mobile-vs-line {
+    display: block;
+    font-size: clamp(0.72rem, 2.8vw, 0.88rem);
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.mobile-game-shell .mobile-vs-sep {
+    opacity: 0.75;
+    padding: 0 0.2em;
+}
+
+body.mobile-game-shell .mobile-turn-bar-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: rgba(152, 193, 217, 0.15);
+    overflow: hidden;
+}
+
+body.mobile-game-shell .mobile-turn-bar-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, #98c1d9, #e0fbfc);
+    border-radius: 2px;
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+body.mobile-game-shell .mobile-match-bar[data-active-turn="black"] .mobile-turn-bar-indicator {
+    transform: translateX(100%);
+}
+
+/* —— Board —— */
+body.mobile-game-shell #chessboard {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Stack is pixel-sized from CSS variables; keep it visually centered and within width */
+body.mobile-game-shell #chessboard .chessboard_horizontal_stack {
+    flex: 0 0 auto;
+    max-width: 100%;
+}
+
+/* —— Captures (compact, two rows each) —— */
+body.mobile-game-shell .mobile-captures-row {
+    order: 2;
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
     align-items: flex-start;
     justify-content: center;
-    width: 100%;
-    max-width: 100%;
+}
+
+body.mobile-game-shell .mobile-capture-tray.captureToolsList {
+    flex: 1 1 50%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    width: auto !important;
+    height: auto !important;
+    min-height: 52px;
+    max-height: 64px;
+    margin: 0 !important;
+    padding: 4px !important;
     box-sizing: border-box;
-    gap: 6px;
+    background-color: var(--panel-background);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    align-items: center;
+    justify-items: center;
 }
 
-body.mobile-game-shell .mobile-game-controlPanel--top {
-    order: -1;
-}
-
-body.mobile-game-shell .mobile-game-controlPanel--bottom {
-    order: 1;
-}
-
-body.mobile-game-shell .sideBlock {
-    flex: 1 1 auto;
-    min-width: min(160px, 46%);
+body.mobile-game-shell .mobile-capture-tray.captureToolsList .draggable {
+    width: auto !important;
+    height: auto !important;
     max-width: 100%;
-    box-sizing: border-box;
+    max-height: 28px;
+    object-fit: contain;
 }
 
-body.mobile-game-shell .sideBlock.clock {
-    font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+/* —— Offscreen / hidden DOM for game logic (moves table, chat, status dots) —— */
+body.mobile-game-shell .mobile-game-offscreen-suite {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 360px;
+    height: 480px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
 }
 
-body.mobile-game-shell .captureToolsList {
-    height: auto;
-    min-height: calc(var(--square-size, 44px) * 2);
-    width: min(100%, var(--sideboxes-width));
-    max-width: 100%;
+body.mobile-game-shell .mobile-game-hidden-player {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
-body.mobile-game-shell .messagesContainer {
-    width: 100%;
-    max-width: 100%;
-    height: 132px;
-    flex: 1 1 100%;
+body.mobile-game-shell .mobile-game-offscreen-suite .messagesContainer {
+    width: 340px;
+    height: 120px;
 }
 
-body.mobile-game-shell .messages {
-    width: calc(100% - 8px);
-    height: calc(132px - 44px);
-    font-size: 0.85em;
+body.mobile-game-shell .mobile-game-offscreen-suite .messages {
+    height: 80px;
 }
 
-body.mobile-game-shell .chatline {
-    width: calc(100% - 36px);
-    font-size: 12px;
-    height: 28px;
-}
-
-body.mobile-game-shell .movesDivContainer {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
+/* Bottom action bar — always visible, above board content */
+body.mobile-game-shell #options.mobile-options-bar,
 body.mobile-game-shell #options {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     margin: 0;
-    z-index: 70;
+    z-index: 400;
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px;
     row-gap: 8px;
     padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(to top, rgba(20, 24, 30, 0.96), rgba(20, 24, 30, 0.88));
-    border-top: 1px solid rgba(152, 193, 217, 0.2);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+    background: linear-gradient(to top, rgba(12, 16, 22, 0.98), rgba(20, 24, 30, 0.94));
+    border-top: 1px solid rgba(152, 193, 217, 0.22);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45);
 }
 
 body.mobile-game-shell #options .button {
@@ -157,18 +288,14 @@ body.mobile-game-shell #options .button {
     font-size: 0.95rem;
 }
 
-body.mobile-game-shell .debug-game-id {
-    font-size: 10px;
-    margin: 8px auto 12px;
-}
-
 body.mobile-game-shell .bookmarksPanel {
     right: 8px;
     left: auto;
     top: auto;
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    max-height: min(42vh, 320px);
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    max-height: min(38vh, 280px);
     width: min(calc(100vw - 16px), 360px);
+    z-index: 90;
 }
 
 @media (max-width: 380px) {
@@ -176,4 +303,9 @@ body.mobile-game-shell .bookmarksPanel {
         right: 4px;
         width: calc(100vw - 8px);
     }
+}
+
+/* Play-now modal must sit above the fixed bottom action bar (options uses z-index 400). */
+body.mobile-game-shell .play-now-modal {
+    z-index: 500;
 }

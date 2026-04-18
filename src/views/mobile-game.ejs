@@ -17,65 +17,61 @@
     </div>
 
   </div>
-  <div class="controlPanel mobile-game-controlPanel--top">
-    <div id="blackClock" class="sideBlock clock short blackClock">
-      <div id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" />
-      </div>
-      <div id="blackClockTimeText">05:00:00</div>
 
-    </div>
-      <div id="blackPlayersInfo" class="sideBlock playerInfo short">
-      <div class="playerInfo-statusWrap">
-        <div class="friends-status-dot friends-status-offline" id="blackPlayerStatus" title="" aria-label=""></div>
-      </div>
-      <div id="blackPlayerName"></div>
-      <div id="blackPlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
-    </div>
-
-    <div id="whiteCapturedPiece" class="sideBlock captureToolsList"></div>
-    <div>
-
-      <div id="movesDivContainer" class="movesDivContainer">
-        <div id="movesDivHeader" class="movesDivHeader">
-          <table class="movesTableHeader">
-            <tr>
-              <th>#</th>
-              <th>White</th>
-              <th>Black</th>
-            </tr>
-          </table>
-        </div>
-        <div id="movesDiv" class="movesDiv">
-
+  <section id="mobile-match-bar" class="mobile-match-bar" data-active-turn="white" data-game-id="<%= typeof gameId !== 'undefined' && gameId != null ? String(gameId).replace(/"/g, '&quot;') : '' %>">
+    <div class="mobile-match-bar__row">
+      <div class="mobile-clock-cell mobile-clock-cell--white">
+        <div id="whiteClock" class="mobile-clock-display">
+          <div id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt="" /></div>
+          <div id="whiteClockTimeText" class="mobile-clock-time">05:00:00</div>
         </div>
       </div>
-      <div id="gameNav" class="gameNav">
-
+      <div class="mobile-vs-block">
+        <button type="button" class="mobile-vs-title" id="mobileMatchTitleBtn"
+          title=""
+          aria-label="Match: white vs black. Tooltip shows game ID.">
+          <span class="mobile-vs-line">
+            <span id="whitePlayerName" class="mobile-vs-name"></span><span class="mobile-vs-sep"> vs </span><span id="blackPlayerName" class="mobile-vs-name"></span>
+          </span>
+        </button>
+      </div>
+      <div class="mobile-clock-cell mobile-clock-cell--black">
+        <div id="blackClock" class="mobile-clock-display">
+          <div id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt="" /></div>
+          <div id="blackClockTimeText" class="mobile-clock-time">05:00:00</div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <div class="seperator"></div>
+    <div class="mobile-turn-bar-track" aria-hidden="true">
+      <div class="mobile-turn-bar-indicator"></div>
+    </div>
+  </section>
 
   <div id="chessboard"> </div>
 
-  <div class="seperator"></div>
+  <div class="mobile-captures-row">
+    <div id="whiteCapturedPiece" class="sideBlock captureToolsList mobile-capture-tray"></div>
+    <div id="blackCapturedPiece" class="sideBlock captureToolsList mobile-capture-tray"></div>
+  </div>
 
+  <div class="mobile-game-offscreen-suite" aria-hidden="true">
+    <div id="movesDivContainer" class="movesDivContainer">
+      <div id="movesDivHeader" class="movesDivHeader">
+        <table class="movesTableHeader">
+          <tr>
+            <th>#</th>
+            <th>White</th>
+            <th>Black</th>
+          </tr>
+        </table>
+      </div>
+      <div id="movesDiv" class="movesDiv">
 
-  <div class="controlPanel mobile-game-controlPanel--bottom">
-    <div id="whiteClock" class="sideBlock clock short whiteClock">
-      <div id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" />
       </div>
-      <div id="whiteClockTimeText">05:00:00</div>
     </div>
-    <div id="whitePlayersInfo" class="sideBlock playerInfo short">
-      <div class="playerInfo-statusWrap">
-        <div class="friends-status-dot friends-status-offline" id="whitePlayerStatus" title="" aria-label=""></div>
-      </div>
-      <div id="whitePlayerName"></div>
-      <div id="whitePlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
+    <div id="gameNav" class="gameNav">
+
     </div>
-    <div id="blackCapturedPiece" class="sideBlock captureToolsList"></div>
     <div class="messagesContainer">
       <div id="messages" class="messages"></div>
       <div class="chatSendLine">
@@ -83,14 +79,24 @@
         <img src="/images/whiteSend.png" alt="send" class="sendButton" onclick="onSendChatButtonClick(event)" />
       </div>
     </div>
+    <div id="blackPlayersInfo" class="sideBlock playerInfo short mobile-game-hidden-player">
+      <div class="playerInfo-statusWrap">
+        <div class="friends-status-dot friends-status-offline" id="blackPlayerStatus" title="" aria-label=""></div>
+      </div>
+      <div id="blackPlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
+    </div>
+    <div id="whitePlayersInfo" class="sideBlock playerInfo short mobile-game-hidden-player">
+      <div class="playerInfo-statusWrap">
+        <div class="friends-status-dot friends-status-offline" id="whitePlayerStatus" title="" aria-label=""></div>
+      </div>
+      <div id="whitePlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
+    </div>
   </div>
 
 </div>
 
-<section id="options">
+<section id="options" class="mobile-options-bar">
 </section>
-
-<div id="debugGameId" class="debug-game-id" title="Debug: game identifier">Game ID: <%= typeof gameId !== 'undefined' && gameId != null ? gameId : '(none)' %></div>
 
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
     <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>

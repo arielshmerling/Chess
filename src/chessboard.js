@@ -562,6 +562,12 @@ function updateDebugGameId() {
         const id = (typeof gameInfo !== "undefined" && gameInfo && gameInfo.id) ? gameInfo.id : "(none)";
         el.textContent = "Game ID: " + id;
     }
+    try {
+        const gid = (typeof gameInfo !== "undefined" && gameInfo && gameInfo.id) ? String(gameInfo.id) : "";
+        document.dispatchEvent(new CustomEvent("shmerlingGameId", { detail: { id: gid } }));
+    } catch {
+        /* ignore */
+    }
 }
 
 async function startGame(isRematch) {
