@@ -40,6 +40,7 @@ exports.storeGameInDB = catchAsync(async (game) => {
         gameType: game.constructor.name,
         whitePlayer: game.whitePlayer ? game.whitePlayer.userName : "",
         blackPlayer: game.blackPlayer ? game.blackPlayer.userName : "",
+        isPrivate: game.isPrivate === true,
     });
 
     await gameDoc.save();
@@ -117,16 +118,19 @@ exports.getRecentFinishedGamesByUsername = catchAsync(async (username, amount) =
  * Includes: in-progress games, and "on hold" games only from the last hour.
  *
  * @param {number} amount - Maximum number of games to return.
+ * @param {{ publicOnly?: boolean }} [options] - When publicOnly is not false, exclude private games (missing isPrivate counts as public).
  * @returns {Promise<Object[]>} Array of game objects with gameId, whitePlayer, blackPlayer, startedOn, moves.
  */
-exports.getOnGoingOnlineGames = catchAsync(async (amount) => {
+exports.getOnGoingOnlineGames = catchAsync(async (amount, options = {}) => {
+    const publicOnly = options.publicOnly !== false;
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const query = {
+    const stateOr = {
         $or: [
             { state: "in progress" },
             { state: "on hold", created: { $gte: oneHourAgo } },
         ],
     };
+    const query = publicOnly ? { $and: [stateOr, { isPrivate: { $ne: true } }] } : stateOr;
     const gameDocs = await Game.find(query)
         .sort({ created: -1 })
         .limit(amount)

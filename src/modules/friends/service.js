@@ -26,7 +26,7 @@ function sanitizeFriendSearchQuery(q) {
  * @returns {Promise<Set<string>>}
  */
 async function getUsernamesCurrentlyPlaying() {
-    const games = await gamesManagerService.getOnGoingOnlineGames(500);
+    const games = await gamesManagerService.getOnGoingOnlineGames(500, { publicOnly: false });
     const names = new Set();
     for (const g of games) {
         const w = g.whitePlayer?.userName;

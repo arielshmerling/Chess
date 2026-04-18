@@ -94,6 +94,8 @@ const userSchema = new mongoose.Schema({
         showAvailableMoves: { type: Boolean, default: true },
         /** Per-side clock budget for new single-player games (minutes). */
         timeMinutes: { type: Number, min: 1, max: 180, default: 90 },
+        /** Last “Private” choice for Play Now (vs AI); not shown on club homepage when true. */
+        isPrivate: { type: Boolean, default: false },
     },
 
 });

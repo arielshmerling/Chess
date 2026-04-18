@@ -2931,6 +2931,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                                 mouse: gameInfo.mousePreference || "drag",
                                 showAvailableMoves: gameInfo.showAvailableMoves !== false,
                                 timeMinutes: gameInfo.gameTimeMinutes != null ? gameInfo.gameTimeMinutes : 90,
+                                isPrivate: gameInfo.isPrivate === true,
                             };
                         }
                         if (typeof openPlayNowModal === "function") {
@@ -3288,6 +3289,7 @@ async function menuRematchEventHandler() {
                 mouse: gameInfo.mousePreference || "drag",
                 showAvailableMoves: gameInfo.showAvailableMoves !== false,
                 timeMinutes: gameInfo.gameTimeMinutes != null ? gameInfo.gameTimeMinutes : 90,
+                isPrivate: gameInfo.isPrivate === true,
             };
         }
         if (typeof openPlayNowModal === "function") {

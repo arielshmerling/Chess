@@ -115,6 +115,7 @@ function createGameInfo(game, userName, userId) {
         whiteTimer: calculateTimer(game, true),
         blackTimer: calculateTimer(game, false),
         status: game.status,
+        isPrivate: game.isPrivate === true,
     };
     if (game.options) {
         clientDate.mousePreference = game.options.mouse || "drag";
@@ -282,7 +283,8 @@ exports.startGame = catchAsync(async (req, res) => {
         Number.isFinite(timeMinutesParsed) && timeMinutesParsed >= 1 && timeMinutesParsed <= 180
             ? timeMinutesParsed
             : 90;
-    req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves, timeMinutes };
+    const isPrivate = req.query.private === "1";
+    req.session.newGameOptions = { color, engine, difficulty: difficultyNum, mouse, showAvailableMoves, timeMinutes, isPrivate };
 
     // When user picks options from Play Now modal (engine in query), they want a NEW game; don't reuse existing
     const wantsNewGameWithOptions = gameTypeInt === 1 && req.query.engine !== undefined;
@@ -401,6 +403,7 @@ exports.startGame = catchAsync(async (req, res) => {
                 mouse: options.mouse || "drag",
                 showAvailableMoves: options.showAvailableMoves !== false,
                 timeMinutes: options.timeMinutes != null ? options.timeMinutes : 90,
+                isPrivate: options.isPrivate === true,
             },
         });
     }
@@ -437,6 +440,9 @@ function registerEvents(game) {
 }
 
 function broadcastActiveGameToLobby(type, game, extra = {}) {
+    if (game.isPrivate === true) {
+        return;
+    }
     const broadcast = gamesManagerService.getLobbyBroadcast();
     if (!broadcast) {
         return;
@@ -768,7 +774,9 @@ const onRematch = async (e) => {
     oldGame.OnPracticeQuitMidGame = null;
     oldGame.OnRematch = null;
 
-    const newGame = gameService.newGame(oldGame.constructor.name, initiator.userName, initiator.userId);
+    const newGame = gameService.newGame(oldGame.constructor.name, initiator.userName, initiator.userId, {
+        isPrivate: oldGame.isPrivate === true,
+    });
     gamesManagerService.AddGame(newGame);
 
     //for now , keep same players colors

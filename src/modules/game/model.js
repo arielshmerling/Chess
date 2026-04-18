@@ -43,6 +43,11 @@ const gameSchema = new mongoose.Schema({
     gameType: {
         type: String,
     },
+    /** When true, game is hidden from club homepage / active-games lists (not broadcast to lobby). */
+    isPrivate: {
+        type: Boolean,
+        default: false,
+    },
 
     moves: [{
         type: String,

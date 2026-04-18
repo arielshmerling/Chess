@@ -90,6 +90,10 @@ function applyLastGameOptions(opts) {
     if (showCheckbox) {
         showCheckbox.checked = opts.showAvailableMoves !== false;
     }
+    const privateCheckbox = form.querySelector("input[name='private']");
+    if (privateCheckbox) {
+        privateCheckbox.checked = opts.isPrivate === true;
+    }
 }
 
 function closePlayNowModal() {
@@ -125,6 +129,9 @@ function startNewGameFromModal(event) {
         showMoves: showMoves,
         timeMinutes: String(timeMinutes),
     });
+    if (formData.get("private") === "1") {
+        params.set("private", "1");
+    }
     closePlayNowModal();
     window.location = "/game?" + params.toString();
 }

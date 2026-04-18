@@ -13,6 +13,7 @@ exports.newGame = (gameType, username, userId, options = {}) => {
         gameType,
         playAsBlack: options.color === "black",
         invitedUserId: options.invitedUserId != null ? String(options.invitedUserId) : undefined,
+        isPrivate: options.isPrivate === true,
         options: {
             engine: options.engine || "brain4",
             difficulty: options.difficulty || 3,

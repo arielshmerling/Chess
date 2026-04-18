@@ -60,6 +60,7 @@ class GameBase {
         this.moves = gameInfo.moves || [];
         /** If set, only this user may join as Black (friend invite); open queue when null. */
         this.invitedUserId = gameInfo.invitedUserId != null ? String(gameInfo.invitedUserId) : null;
+        this.isPrivate = gameInfo.isPrivate === true;
 
     }
 
