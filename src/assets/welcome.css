@@ -682,6 +682,70 @@ main {
     gap: 30px;
 }
 
+/* Welcome: Active games + Friends side by side */
+.welcome-active-games-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: stretch;
+}
+
+@media (max-width: 960px) {
+    .welcome-active-games-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Home friends mini-table (no row navigation) */
+.home-friends-body:not(.has-home-friends) #home-friends-table-wrap {
+    display: none;
+}
+
+.home-friends-body.has-home-friends .home-friends-empty {
+    display: none;
+}
+
+.home-friends-table tbody tr {
+    cursor: default;
+}
+
+.home-friends-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+
+.home-friends-name-cell .friends-username {
+    flex: unset;
+    min-width: 0;
+    display: inline;
+}
+
+.home-friends-actions-cell {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.home-friends-actions-cell .friends-row-actions {
+    justify-content: flex-end;
+}
+
+.home-friends-footer {
+    padding-top: 0;
+}
+
+.home-friends-empty-hint {
+    margin-top: 12px;
+    margin-bottom: 0;
+}
+
+.home-friends-empty-link.footer-link {
+    display: inline-flex;
+    padding: 8px 16px;
+    font-size: 14px;
+    margin-top: 0;
+}
+
 .games-panel {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(33, 51, 79, 0.5) 100%);
     border: 2px solid rgba(152, 193, 217, 0.25);
