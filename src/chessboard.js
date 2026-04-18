@@ -405,12 +405,15 @@ function startDrag(e) {
         (window.location.pathname === "/research" && researchMode && researchSelected === "select");
     if (!allowDrag) { return; }
 
+    draggedImage = e.target;
+    if (!draggedImage || !draggedImage.classList || !draggedImage.classList.contains("draggable")) {
+        return;
+    }
+
+    /* Only here: avoid suppressing click (e.g. double-click / tap-to-move on squares). */
     if (e.target.type != "textarea" && e.target.type != "text") {
         if (e.preventDefault) { e.preventDefault(); }
     }
-
-    draggedImage = e.target;
-    if (draggedImage.className != "draggable") { return; };
 
     if (!researchMode && gameType != "PracticeGame" &&
         (currentPlayerIsWhite && draggedImage.src.indexOf("black") != -1 ||
@@ -1191,7 +1194,8 @@ function applyMousePreference(preference) {
 
 function onBoardClickToMove(e) {
     if (gameInfo.mode === "review" || game.GameOver) { return; }
-    if (gameType !== "SinglePlayerGame" && gameType !== "PracticeGame") { return; }
+    if (gameInfo && gameInfo.watcher) { return; }
+    /* Listener is only attached in double-click mode; tryMove supports online play. */
     const square = e.target.closest(".square");
     if (!square) { return; }
     const row = parseInt(square.getAttribute("data-row"), 10);
