@@ -1,5 +1,5 @@
 /**
- * Home page: active games as cards (highlight + compact) with optional mini-board preview.
+ * Home page: up to 3 active game cards (full highlight layout with mini-board each).
  */
 (function () {
     "use strict";
@@ -85,23 +85,86 @@
         return "/watch?id=" + encodeURIComponent(g.Id);
     }
 
-    function render(root, games, username) {
-        var highlightWrap = document.getElementById("active-game-highlight-wrap");
-        var compactList = document.getElementById("active-games-compact-list");
+    function buildHighlightCard(first, username) {
+        var wrap = document.createElement("div");
+        wrap.className = "active-game-highlight";
+        wrap.setAttribute("data-game-id", String(first.Id));
+        wrap.setAttribute("role", "link");
+        wrap.setAttribute("tabindex", "0");
+        var url = getGameUrl(first, username);
+        wrap.onclick = function () {
+            window.location.href = url;
+        };
+        wrap.onkeydown = function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = url;
+            }
+        };
+
+        var boardWrap = document.createElement("div");
+        boardWrap.className = "active-highlight-board-wrap";
+        var boardEl = document.createElement("div");
+        boardEl.className = "active-mini-board";
+        boardEl.setAttribute("aria-hidden", "true");
+        boardWrap.appendChild(boardEl);
+
+        var side = document.createElement("div");
+        side.className = "active-highlight-side";
+
+        var namesEl = document.createElement("div");
+        namesEl.className = "active-highlight-names";
+        namesEl.innerHTML =
+            '<span class="active-highlight-white">' +
+            esc(first.whitePlayerName || "White") +
+            '</span><span class="active-highlight-vs"> vs </span><span class="active-highlight-black">' +
+            esc(first.blackPlayerName || "Black") +
+            "</span>";
+
+        var startedEl = document.createElement("p");
+        startedEl.className = "active-highlight-started";
+        startedEl.textContent = first.Started || "";
+        startedEl.title = first.StartedTooltip || "";
+
+        var metaEl = document.createElement("div");
+        metaEl.className = "active-highlight-meta";
+        var turn = first.turn === "black" ? "Black" : "White";
+        metaEl.innerHTML =
+            '<span class="active-meta-item"><span class="active-meta-label">Moves</span> ' +
+            esc(first.Moves != null ? first.Moves : "0") +
+            '</span><span class="active-meta-item"><span class="active-meta-label">Turn</span> ' +
+            esc(turn) +
+            '</span><span class="active-meta-item"><span class="active-meta-label">Status</span> ' +
+            esc(first.Status || "In progress") +
+            "</span>";
+
+        side.appendChild(namesEl);
+        side.appendChild(startedEl);
+        side.appendChild(metaEl);
+
+        wrap.appendChild(boardWrap);
+        wrap.appendChild(side);
+
+        drawMiniBoard(boardEl, first.board);
+
+        return wrap;
+    }
+
+    function render(games, username) {
+        var root = document.getElementById("online-games-cards-root");
         var emptyEl = document.getElementById("online-no-games-msg");
-        var boardEl = document.getElementById("active-mini-board");
         var container = document.getElementById("online-games-container");
 
-        if (!highlightWrap || !compactList) {
+        if (!root) {
             return;
         }
+
+        root.innerHTML = "";
 
         if (!games || games.length === 0) {
             if (container) {
                 container.classList.remove("has-online-games");
             }
-            highlightWrap.style.display = "none";
-            compactList.innerHTML = "";
             if (emptyEl) {
                 emptyEl.style.display = "block";
             }
@@ -115,78 +178,19 @@
             emptyEl.style.display = "none";
         }
 
-        var first = games[0];
-        var rest = games.slice(1);
-
-        highlightWrap.style.display = "flex";
-        highlightWrap.setAttribute("data-game-id", String(first.Id));
-        highlightWrap.onclick = function () {
-            window.location.href = getGameUrl(first, username);
-        };
-
-        var namesEl = document.getElementById("active-highlight-names");
-        var metaEl = document.getElementById("active-highlight-meta");
-        var startedEl = document.getElementById("active-highlight-started");
-        if (namesEl) {
-            namesEl.innerHTML =
-                '<span class="active-highlight-white">' +
-                esc(first.whitePlayerName || "White") +
-                '</span><span class="active-highlight-vs"> vs </span><span class="active-highlight-black">' +
-                esc(first.blackPlayerName || "Black") +
-                "</span>";
-        }
-        if (startedEl) {
-            startedEl.textContent = first.Started || "";
-            startedEl.title = first.StartedTooltip || "";
-        }
-        if (metaEl) {
-            var turn = first.turn === "black" ? "Black" : "White";
-            metaEl.innerHTML =
-                '<span class="active-meta-item"><span class="active-meta-label">Moves</span> ' +
-                esc(first.Moves != null ? first.Moves : "0") +
-                '</span><span class="active-meta-item"><span class="active-meta-label">Turn</span> ' +
-                esc(turn) +
-                '</span><span class="active-meta-item"><span class="active-meta-label">Status</span> ' +
-                esc(first.Status || "In progress") +
-                "</span>";
-        }
-        drawMiniBoard(boardEl, first.board);
-
-        compactList.innerHTML = "";
-        rest.forEach(function (g) {
-            var card = document.createElement("button");
-            card.type = "button";
-            card.className = "active-game-compact-card";
-            card.setAttribute("data-game-id", String(g.Id));
-            card.innerHTML =
-                '<span class="active-compact-names">' +
-                esc(g.whitePlayerName || "") +
-                " vs " +
-                esc(g.blackPlayerName || "") +
-                "</span>" +
-                '<span class="active-compact-meta">' +
-                esc(g.Started || "") +
-                " · " +
-                esc(g.Moves != null ? g.Moves : "0") +
-                " moves</span>";
-            card.title = g.StartedTooltip || "";
-            card.onclick = function () {
-                window.location.href = getGameUrl(g, username);
-            };
-            compactList.appendChild(card);
+        var list = games.slice(0, 3);
+        list.forEach(function (g) {
+            root.appendChild(buildHighlightCard(g, username));
         });
     }
 
     function refresh(username) {
-        fetch("/active-games?limit=4&includeBoard=1", { credentials: "same-origin" })
+        fetch("/active-games?limit=3&includeBoard=1", { credentials: "same-origin" })
             .then(function (r) {
                 return r.ok ? r.json() : [];
             })
             .then(function (games) {
-                var root = document.getElementById("online-games-cards-root");
-                if (root) {
-                    render(root, Array.isArray(games) ? games : [], username);
-                }
+                render(Array.isArray(games) ? games : [], username);
             })
             .catch(function () {});
     }
@@ -203,7 +207,7 @@
                 initial = [];
             }
         }
-        render(null, initial, username);
+        render(initial, username);
         refresh(username);
         setInterval(function () {
             refresh(username);

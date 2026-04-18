@@ -51,17 +51,14 @@ function mapOngoingGameForClient(g, username, extras = {}) {
 exports.showHomePage = async (req, res) => {
 
     const username = req.session.user_name;
-    const onGoing = await gamesManagerService.getOnGoingOnlineGames(4);
-    const allGames = onGoing.map((g, index) => {
-        if (index === 0) {
-            const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
-            return mapOngoingGameForClient(g, username, {
-                board: snap ? snap.board : null,
-                turn: snap ? snap.turn : "white",
-                isHighlight: true,
-            });
-        }
-        return mapOngoingGameForClient(g, username, { isHighlight: false });
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(3);
+    const allGames = onGoing.map((g) => {
+        const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
+        return mapOngoingGameForClient(g, username, {
+            board: snap ? snap.board : null,
+            turn: snap ? snap.turn : "white",
+            isHighlight: true,
+        });
     });
     //console.log(allGames);
     //req.session.gameId = null; // why? this causes a crash on back button
@@ -101,16 +98,13 @@ exports.getActiveGamesJson = async (req, res) => {
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(limit);
     let allGames;
     if (includeBoard) {
-        allGames = onGoing.map((g, index) => {
-            if (index === 0) {
-                const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
-                return mapOngoingGameForClient(g, username, {
-                    board: snap ? snap.board : null,
-                    turn: snap ? snap.turn : "white",
-                    isHighlight: true,
-                });
-            }
-            return mapOngoingGameForClient(g, username, { isHighlight: false });
+        allGames = onGoing.map((g) => {
+            const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
+            return mapOngoingGameForClient(g, username, {
+                board: snap ? snap.board : null,
+                turn: snap ? snap.turn : "white",
+                isHighlight: true,
+            });
         });
     } else {
         allGames = onGoing.map((g) => mapOngoingGameForClient(g, username));

@@ -122,25 +122,7 @@
         <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
           window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
         </script>
-        <div id="online-games-cards-root" class="online-games-cards-root">
-          <div
-            id="active-game-highlight-wrap"
-            class="active-game-highlight"
-            style="display: <%= (allGames && allGames.length > 0) ? 'flex' : 'none' %>;"
-            role="link"
-            tabindex="0"
-          >
-            <div class="active-highlight-board-wrap">
-              <div id="active-mini-board" class="active-mini-board" aria-hidden="true"></div>
-            </div>
-            <div class="active-highlight-side">
-              <div id="active-highlight-names" class="active-highlight-names"></div>
-              <p id="active-highlight-started" class="active-highlight-started" title=""></p>
-              <div id="active-highlight-meta" class="active-highlight-meta"></div>
-            </div>
-          </div>
-          <div id="active-games-compact-list" class="active-games-compact-list" aria-label="Other active games"></div>
-        </div>
+        <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="Active games"></div>
         <div class="no-games-message" id="online-no-games-msg">
           <p>No games at the moment</p>
         </div>

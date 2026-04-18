@@ -10,7 +10,9 @@
     "analysis": "npx eslint ./src/**/*.js",
     "start": "node ./server.js",
     "start:dev": "node --inspect ./server.js",
-    "start:prod": "node ./server.js"
+    "start:prod": "node ./server.js",
+    "dummy:active-games:add": "node ./scripts/dummy-active-games-seed.js",
+    "dummy:active-games:remove": "node ./scripts/dummy-active-games-delete.js"
   },
   "keywords": [],
   "author": "",

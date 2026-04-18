@@ -1183,44 +1183,6 @@ main {
     min-width: 72px;
 }
 
-.active-games-compact-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.active-game-compact-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(152, 193, 217, 0.2);
-    color: var(--light);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.active-game-compact-card:hover {
-    background: rgba(152, 193, 217, 0.12);
-    border-color: rgba(152, 193, 217, 0.4);
-}
-
-.active-compact-names {
-    font-weight: 600;
-    font-size: 15px;
-}
-
-.active-compact-meta {
-    font-size: 13px;
-    color: var(--semiLight);
-}
-
 .active-games-list-page .active-games-list-hero {
     margin-bottom: 24px;
 }
