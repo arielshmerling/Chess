@@ -19,6 +19,8 @@ let disconnectionTimer, disconnectionTimerHandle;
 let opponentDisconnectGraceTimer = null;
 /** Auto-dismiss timer for board-centered status flashes (check / checkmate / draw). */
 let flashDismissTimerId = null;
+/** Default auto-dismiss for mobile board flashes when `displayMessage` is called without `durationMs`. */
+const MOBILE_BOARD_FLASH_DEFAULT_MS = 3000;
 let moveHandle;
 let moveIndex = 0;
 const buttonsState = [];
@@ -1819,10 +1821,10 @@ function createPromotionBox() {
 /**
  * Displays a flash message on special events. Empty string clears any visible flash and pending auto-dismiss.
  *
- * @param {string} message - Text to show (HTML only used for legacy top-bar messages).
- * @param {number} [durationMs] - On **mobile play only** (`body.mobile-game-shell`), a positive value shows
- *   the message centered on `#chessboard` and removes it after that many ms. On desktop, this argument is
- *   ignored and the legacy top bar is always used.
+ * @param {string} message - Text to show. On desktop, HTML is supported via `innerHTML` on the top bar only.
+ * @param {number} [durationMs] - On **mobile** (`body.mobile-game-shell`), every message uses the board-centered
+ *   overlay. If this is a positive number, the message is removed after that many ms; otherwise a default
+ *   (see `MOBILE_BOARD_FLASH_DEFAULT_MS`) applies. On desktop, this argument is ignored (legacy top bar + CSS).
  */
 function displayMessage(message, durationMs) {
     if (flashDismissTimerId != null) {
@@ -1839,13 +1841,13 @@ function displayMessage(message, durationMs) {
         return;
     }
 
-    const div = document.createElement("div");
-    div.id = "flash";
-    const useBoardSplash = isMobileGameShell() &&
-        typeof durationMs === "number" && durationMs > 0;
     const chessboardDiv = document.getElementById("chessboard");
-
-    if (useBoardSplash && chessboardDiv) {
+    if (isMobileGameShell() && chessboardDiv) {
+        const duration = (typeof durationMs === "number" && durationMs > 0)
+            ? durationMs
+            : MOBILE_BOARD_FLASH_DEFAULT_MS;
+        const div = document.createElement("div");
+        div.id = "flash";
         div.className = "board-flash-message";
         div.setAttribute("role", "status");
         div.setAttribute("aria-live", "polite");
@@ -1857,10 +1859,12 @@ function displayMessage(message, durationMs) {
             if (flash && flash.classList.contains("board-flash-message")) {
                 flash.parentNode.removeChild(flash);
             }
-        }, durationMs);
+        }, duration);
         return;
     }
 
+    const div = document.createElement("div");
+    div.id = "flash";
     div.classList.add("topbarMessages");
     div.classList.add("flash-message");
     div.innerHTML = message;
@@ -2176,6 +2180,7 @@ function hideMessageBox() {
 }
 
 function messageBox(text, yesCallback, noCallback) {
+    closeMobileMovesListPanel();
 
     dialogOn = true;
     const chessboardDiv = document.getElementById("chessboard");
@@ -4204,7 +4209,138 @@ async function goBackHome() {
     window.location = "/home";
 }
 
+/** Flat SVG icons for mobile bottom bar (currentColor). */
+const MOBILE_OPTION_ICONS = {
+    resign: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z\"/></svg>",
+    rematch: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z\"/></svg>",
+    draw: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M5 9h14v2H5V9zm0 4h14v2H5v-2z\"/></svg>",
+    flip: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M16 17.01V11h-2v7.01h-3L15 22l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z\"/></svg>",
+    lastMove: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z\"/></svg>",
+    movesList: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h11v2H4v-2z\"/></svg>",
+};
+
+let mobileMovesPanelScrollLockPrev = "";
+
+function createMobileIconButton(id, onclick, ariaLabel, iconHtml) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = id;
+    btn.className = "button mobile-opt-icon-btn";
+    btn.setAttribute("aria-label", ariaLabel);
+    btn.title = ariaLabel;
+    btn.innerHTML = iconHtml;
+    btn.onclick = onclick;
+    return btn;
+}
+
+function openMobileMovesListPanel() {
+    const panel = document.getElementById("mobileMovesPanel");
+    if (!panel) {
+        return;
+    }
+    panel.classList.add("mobile-moves-panel--open");
+    panel.setAttribute("aria-hidden", "false");
+    mobileMovesPanelScrollLockPrev = document.body.style.overflow || "";
+    document.body.style.overflow = "hidden";
+    const movesDiv = document.getElementById("movesDiv");
+    if (movesDiv) {
+        movesDiv.scrollTop = movesDiv.scrollHeight;
+    }
+}
+
+function closeMobileMovesListPanel() {
+    const panel = document.getElementById("mobileMovesPanel");
+    if (!panel) {
+        return;
+    }
+    panel.classList.remove("mobile-moves-panel--open");
+    panel.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = mobileMovesPanelScrollLockPrev;
+}
+
+window.openMobileMovesListPanel = openMobileMovesListPanel;
+window.closeMobileMovesListPanel = closeMobileMovesListPanel;
+
+function addMobileOptionsButtons(optionsSection) {
+    const ghostHost = document.createElement("div");
+    ghostHost.className = "mobile-options-ghost-host";
+    ghostHost.setAttribute("aria-hidden", "true");
+
+    const ghostButtons = [
+        { id: "homeBtn", onclick: backToHome, text: Labels.HOME },
+        { id: "undoBtn", onclick: menuUndo, text: Labels.UNDO },
+        { id: "redoBtn", onclick: menuRedo, text: Labels.REDO },
+    ];
+    ghostButtons.forEach((b) => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.id = b.id;
+        el.className = "button";
+        el.innerText = b.text;
+        el.onclick = b.onclick;
+        ghostHost.appendChild(el);
+    });
+
+    const row = document.createElement("div");
+    row.className = "mobile-options-bar-row";
+
+    const dual = document.createElement("div");
+    dual.className = "mobile-options-dual";
+
+    const resignBtn = createMobileIconButton(
+        "resignBtn",
+        menuResignEventHandler,
+        Labels.RESIGN,
+        MOBILE_OPTION_ICONS.resign
+    );
+    const rematchBtn = createMobileIconButton(
+        "rematchBtn",
+        menuRematchEventHandler,
+        Labels.REMATCH,
+        MOBILE_OPTION_ICONS.rematch
+    );
+    dual.appendChild(resignBtn);
+    dual.appendChild(rematchBtn);
+    row.appendChild(dual);
+
+    row.appendChild(createMobileIconButton(
+        "drawBtn",
+        menuOfferDrawEventHandler,
+        Labels.DRAW,
+        MOBILE_OPTION_ICONS.draw
+    ));
+    row.appendChild(createMobileIconButton(
+        "flipBtn",
+        flipboard,
+        Labels.FLIP,
+        MOBILE_OPTION_ICONS.flip
+    ));
+    row.appendChild(createMobileIconButton(
+        "lastMoveBtn",
+        viewLastMove,
+        Labels.LAST_MOVE,
+        MOBILE_OPTION_ICONS.lastMove
+    ));
+
+    row.appendChild(createMobileIconButton(
+        "mobileMovesListBtn",
+        openMobileMovesListPanel,
+        "Moves list",
+        MOBILE_OPTION_ICONS.movesList
+    ));
+
+    optionsSection.appendChild(row);
+    optionsSection.appendChild(ghostHost);
+}
+
 function addOptionsButtons() {
+    const optionsSection = document.getElementById("options");
+
+    if (optionsSection && isMobileGameShell()) {
+        addMobileOptionsButtons(optionsSection);
+        return;
+    }
+
     const buttons = [
         { id: "rematchBtn", onclick: menuRematchEventHandler, text: Labels.REMATCH },
         { id: "resignBtn", onclick: menuResignEventHandler, text: Labels.RESIGN },
@@ -4214,12 +4350,8 @@ function addOptionsButtons() {
         { id: "flipBtn", onclick: flipboard, text: Labels.FLIP },
         { id: "lastMoveBtn", onclick: viewLastMove, text: Labels.LAST_MOVE },
         { id: "homeBtn", onclick: backToHome, text: Labels.HOME },
+        { id: "bookmarkBtn", onclick: showBookmarks, text: Labels.BOOKMARKS },
     ];
-    if (!isMobileGameShell()) {
-        buttons.push({ id: "bookmarkBtn", onclick: showBookmarks, text: Labels.BOOKMARKS });
-    }
-
-    const optionsSection = document.getElementById("options");
 
     if (optionsSection) {
         buttons.forEach(buttonInfo => {

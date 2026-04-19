@@ -303,7 +303,7 @@ body.mobile-game-shell .mobile-game-offscreen-suite .messages {
     height: 80px;
 }
 
-/* Bottom action bar — always visible, above board content */
+/* Bottom action bar — flat icon toolbar (mobile only) */
 body.mobile-game-shell #options.mobile-options-bar,
 body.mobile-game-shell #options {
     position: fixed;
@@ -312,22 +312,267 @@ body.mobile-game-shell #options {
     bottom: 0;
     margin: 0;
     z-index: 400;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-    row-gap: 8px;
-    padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(to top, rgba(12, 16, 22, 0.98), rgba(20, 24, 30, 0.94));
-    border-top: 1px solid rgba(152, 193, 217, 0.22);
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: #1a1d22;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
 }
 
-body.mobile-game-shell #options .button {
-    min-height: 44px;
+body.mobile-game-shell .mobile-options-ghost-host {
+    position: absolute;
+    width: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+body.mobile-game-shell .mobile-options-bar-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+body.mobile-game-shell .mobile-opt-icon-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 88px;
+    min-height: 48px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #252a31;
+    background-image: none;
+    color: #e8eaed;
+    box-shadow: none;
+    filter: none;
+    font-size: 0;
+    line-height: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+body.mobile-game-shell .mobile-opt-icon-btn:hover {
+    color: #f0f2f5;
+}
+
+body.mobile-game-shell .mobile-opt-icon-btn:active:not(:disabled) {
+    background: #2f3540;
+    background-image: none;
+    filter: none;
+}
+
+body.mobile-game-shell .mobile-opt-icon-btn:disabled {
+    opacity: 0.32;
+    cursor: default;
+    background-image: none;
+    filter: none;
+}
+
+body.mobile-game-shell .mobile-opt-svg {
+    width: 26px;
+    height: 26px;
+    display: block;
+    flex-shrink: 0;
+}
+
+body.mobile-game-shell .mobile-options-dual {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 88px;
+    min-height: 48px;
+}
+
+body.mobile-game-shell .mobile-options-dual .mobile-opt-icon-btn {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    max-width: none;
+    width: 100%;
+}
+
+body.mobile-game-shell .mobile-options-dual #resignBtn:disabled,
+body.mobile-game-shell .mobile-options-dual #rematchBtn:disabled {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.mobile-game-shell .mobile-options-dual:has(#resignBtn:disabled):has(#rematchBtn:disabled)::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    width: 26px;
+    height: 26px;
+    opacity: 0.25;
+    background: no-repeat center / contain;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e8eaed'%3E%3Cpath d='M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* Moves list slide-up (same #movesDiv* as desktop, populated by chessboard.js) */
+body.mobile-game-shell .mobile-moves-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body.mobile-game-shell .mobile-moves-panel.mobile-moves-panel--open {
+    pointer-events: auto;
+    visibility: visible;
+    opacity: 1;
+}
+
+body.mobile-game-shell .mobile-moves-panel__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+body.mobile-game-shell .mobile-moves-panel__sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: min(78vh, 640px);
+    display: flex;
+    flex-direction: column;
+    background: #1e2228;
+    border-radius: 16px 16px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.mobile-game-shell .mobile-moves-panel--open .mobile-moves-panel__sheet {
+    transform: translateY(0);
+}
+
+body.mobile-game-shell .mobile-moves-panel__header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 10px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+body.mobile-game-shell .mobile-moves-panel__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e8eaed;
+    flex: 1;
+    text-align: left;
+    min-width: 0;
+}
+
+body.mobile-game-shell .mobile-moves-panel__header-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #c5cad3;
+    padding: 8px;
     min-width: 44px;
-    padding: 8px 12px;
-    margin: 0 4px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+body.mobile-game-shell .mobile-moves-panel__header-btn:active {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.mobile-game-shell .mobile-moves-panel__header-btn--close {
+    font-size: 1.75rem;
+    line-height: 1;
+    font-weight: 300;
+    flex-shrink: 0;
+}
+
+body.mobile-game-shell .mobile-moves-panel__body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap.movesDivContainer {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    height: auto;
+    max-height: none;
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap .movesDiv {
+    flex: 1;
+    min-height: 120px;
+    max-height: 52vh;
+    height: auto;
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap .movesDivHeader {
+    flex-shrink: 0;
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap .movesTableHeader {
+    width: 100%;
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap table.movesTable td {
     font-size: 0.95rem;
+    padding: 8px 6px;
+}
+
+body.mobile-game-shell .mobile-moves-panel__moves-wrap table.movesTable th {
+    font-size: 0.85rem;
+}
+
+/* Research: hide resign/rematch/draw controls (same intent as desktop research-mode rules) */
+body.mobile-game-shell.research-mode .mobile-options-dual,
+body.mobile-game-shell.research-mode #drawBtn.mobile-opt-icon-btn {
+    display: none !important;
 }
 
 /* Bookmarks are not used on mobile; keep stub off-screen and non-interactive (was overlapping the board). */
@@ -347,7 +592,7 @@ body.mobile-game-shell .mobile-game-bookmarks-stub {
     z-index: -1 !important;
 }
 
-/* Play-now modal must sit above the fixed bottom action bar (options uses z-index 400). */
+/* Play-now modal above moves panel (500) and options bar (400). */
 body.mobile-game-shell .play-now-modal {
-    z-index: 500;
+    z-index: 550;
 }

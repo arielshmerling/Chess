@@ -68,6 +68,18 @@
                 btn.title = raw ? ("Game ID: " + raw) : "";
             }
         });
+
+        document.addEventListener("keydown", function (ev) {
+            if (ev.key !== "Escape") {
+                return;
+            }
+            const panel = qs("mobileMovesPanel");
+            if (panel && panel.classList.contains("mobile-moves-panel--open") &&
+                typeof window.closeMobileMovesListPanel === "function") {
+                window.closeMobileMovesListPanel();
+                ev.preventDefault();
+            }
+        });
     }
 
     if (document.readyState === "loading") {
