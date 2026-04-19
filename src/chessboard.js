@@ -17,6 +17,8 @@ let whiteHandle, blackHandle;
 let disconnectionTimer, disconnectionTimerHandle;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let opponentDisconnectGraceTimer = null;
+/** Auto-dismiss timer for board-centered status flashes (check / checkmate / draw). */
+let flashDismissTimerId = null;
 let moveHandle;
 let moveIndex = 0;
 const buttonsState = [];
@@ -1815,31 +1817,54 @@ function createPromotionBox() {
 }
 
 /**
- *  Displays a flash message to the user on special events.
- * An Empty string, clears the message
+ * Displays a flash message on special events. Empty string clears any visible flash and pending auto-dismiss.
  *
- *  @param {string} message - The message to show to the user.
- * 
- * @example
- *
- *     displayMessage("Check!")  
- * displayMessage("")  
+ * @param {string} message - Text to show (HTML only used for legacy top-bar messages).
+ * @param {number} [durationMs] - On **mobile play only** (`body.mobile-game-shell`), a positive value shows
+ *   the message centered on `#chessboard` and removes it after that many ms. On desktop, this argument is
+ *   ignored and the legacy top bar is always used.
  */
-function displayMessage(message) {
+function displayMessage(message, durationMs) {
+    if (flashDismissTimerId != null) {
+        clearTimeout(flashDismissTimerId);
+        flashDismissTimerId = null;
+    }
 
     const existing = document.getElementById("flash");
-    if (existing) {
-        document.body.removeChild(existing);
+    if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
     }
 
-    if (message) {
-        const div = document.createElement("div");
-        div.classList.add("topbarMessages");
-        div.classList.add("flash-message");
-        div.innerHTML = message;
-        div.id = "flash";
-        document.body.appendChild(div);
+    if (!message) {
+        return;
     }
+
+    const div = document.createElement("div");
+    div.id = "flash";
+    const useBoardSplash = isMobileGameShell() &&
+        typeof durationMs === "number" && durationMs > 0;
+    const chessboardDiv = document.getElementById("chessboard");
+
+    if (useBoardSplash && chessboardDiv) {
+        div.className = "board-flash-message";
+        div.setAttribute("role", "status");
+        div.setAttribute("aria-live", "polite");
+        div.textContent = message;
+        chessboardDiv.appendChild(div);
+        flashDismissTimerId = setTimeout(function () {
+            flashDismissTimerId = null;
+            const flash = document.getElementById("flash");
+            if (flash && flash.classList.contains("board-flash-message")) {
+                flash.parentNode.removeChild(flash);
+            }
+        }, durationMs);
+        return;
+    }
+
+    div.classList.add("topbarMessages");
+    div.classList.add("flash-message");
+    div.innerHTML = message;
+    document.body.appendChild(div);
 }
 
 /// MessageBox
@@ -2243,7 +2268,7 @@ async function onUpdateReceivedEventHandler(gameState) {
 function checkEventHandler(turn) {
     alertMode = true;
     console.log(`Check! ${game.colorName(turn)} under attack`);
-    displayMessage("Check");
+    displayMessage("Check", 2000);
     const playerName = turn === "black" ? gameInfo.blackPlayerName : gameInfo.whitePlayerName;
     log(playerName, "Check!");
     const frame = document.getElementsByClassName("frame");
@@ -2252,7 +2277,7 @@ function checkEventHandler(turn) {
 
 async function checkmateEventHandler(turn) {
     alertMode = true;
-    displayMessage(`Checkmate! ${game.opponent(game.colorName(turn))} wins!`);
+    displayMessage(`Checkmate! ${game.opponent(game.colorName(turn))} wins!`, 5000);
     const playerName = game.colorName(turn) == "Black" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
     log(playerName, "Checkmate!");
     const frame = document.getElementsByClassName("frame");
@@ -2273,7 +2298,7 @@ async function drawEventHandler(reason) {
     clearInterval(whiteHandle);
     clearInterval(blackHandle);
     alertMode = true;
-    displayMessage(`Draw! ${reason}`);
+    displayMessage(`Draw! ${reason}`, 5000);
     log("System", "Draw");
     log("System", reason);
     const frame = document.getElementsByClassName("frame");
