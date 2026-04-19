@@ -4211,24 +4211,53 @@ async function goBackHome() {
 
 /** Flat SVG icons for mobile bottom bar (currentColor). */
 const MOBILE_OPTION_ICONS = {
-    resign: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z\"/></svg>",
-    rematch: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z\"/></svg>",
-    draw: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M5 9h14v2H5V9zm0 4h14v2H5v-2z\"/></svg>",
+    /* Clear X — resign */
+    resign: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 7l10 10M17 7L7 17\"/></svg>",
+    /* Asterisk — new game / rematch */
+    rematch: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\">"
+        + "<g transform=\"translate(12,12)\"><line x1=\"0\" y1=\"-7\" x2=\"0\" y2=\"7\"/>"
+        + "<line x1=\"-6.06\" y1=\"-3.5\" x2=\"6.06\" y2=\"3.5\"/><line x1=\"6.06\" y1=\"-3.5\" x2=\"-6.06\" y2=\"3.5\"/></g></svg>",
+    /* Draw score style: 1/2 – 1/2 */
+    draw: "<svg class=\"mobile-opt-svg mobile-opt-svg--text\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"currentColor\">"
+        + "<text x=\"12\" y=\"15.2\" text-anchor=\"middle\" font-size=\"6.75\" font-weight=\"700\" font-family=\"ui-monospace,Menlo,Consolas,monospace\" letter-spacing=\"-0.04em\">1/2–1/2</text></svg>",
     flip: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M16 17.01V11h-2v7.01h-3L15 22l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z\"/></svg>",
-    lastMove: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z\"/></svg>",
+    /* Question mark — last move hint */
+    lastMove: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"currentColor\">"
+        + "<path d=\"M11.2 16.2V15c0-1.35.45-2.1 1.65-2.85 1-.65 1.55-1.45 1.55-2.55 0-1.45-1.15-2.5-2.9-2.5-1.55 0-2.75 1-2.9 2.45H7.1C7.25 7.55 9.15 6 11.5 6c2.65 0 4.6 1.65 4.6 4.05 0 1.65-.75 2.75-2.15 3.55-.9.55-1.25 1.05-1.25 2.05v.55h-1.5z\"/>"
+        + "<circle cx=\"11.25\" cy=\"19.2\" r=\"1.35\"/></svg>",
     movesList: "<svg class=\"mobile-opt-svg\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h11v2H4v-2z\"/></svg>",
 };
 
 let mobileMovesPanelScrollLockPrev = "";
 
-function createMobileIconButton(id, onclick, ariaLabel, iconHtml) {
+/** Short label under the icon (mobile toolbar). */
+const MOBILE_OPT_CAPTION = {
+    resign: "Resign",
+    rematch: "Rematch",
+    draw: "Draw",
+    flip: "Flip",
+    lastMove: "Last",
+    movesList: "Moves",
+};
+
+function createMobileIconButton(id, onclick, ariaLabel, iconHtml, captionKey) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.id = id;
     btn.className = "button mobile-opt-icon-btn";
     btn.setAttribute("aria-label", ariaLabel);
     btn.title = ariaLabel;
-    btn.innerHTML = iconHtml;
+    const stack = document.createElement("span");
+    stack.className = "mobile-opt-stack";
+    const iconSlot = document.createElement("span");
+    iconSlot.className = "mobile-opt-icon-slot";
+    iconSlot.innerHTML = iconHtml;
+    const cap = document.createElement("span");
+    cap.className = "mobile-opt-caption";
+    cap.textContent = MOBILE_OPT_CAPTION[captionKey] || captionKey;
+    stack.appendChild(iconSlot);
+    stack.appendChild(cap);
+    btn.appendChild(stack);
     btn.onclick = onclick;
     return btn;
 }
@@ -4291,13 +4320,15 @@ function addMobileOptionsButtons(optionsSection) {
         "resignBtn",
         menuResignEventHandler,
         Labels.RESIGN,
-        MOBILE_OPTION_ICONS.resign
+        MOBILE_OPTION_ICONS.resign,
+        "resign"
     );
     const rematchBtn = createMobileIconButton(
         "rematchBtn",
         menuRematchEventHandler,
         Labels.REMATCH,
-        MOBILE_OPTION_ICONS.rematch
+        MOBILE_OPTION_ICONS.rematch,
+        "rematch"
     );
     dual.appendChild(resignBtn);
     dual.appendChild(rematchBtn);
@@ -4307,26 +4338,30 @@ function addMobileOptionsButtons(optionsSection) {
         "drawBtn",
         menuOfferDrawEventHandler,
         Labels.DRAW,
-        MOBILE_OPTION_ICONS.draw
+        MOBILE_OPTION_ICONS.draw,
+        "draw"
     ));
     row.appendChild(createMobileIconButton(
         "flipBtn",
         flipboard,
         Labels.FLIP,
-        MOBILE_OPTION_ICONS.flip
+        MOBILE_OPTION_ICONS.flip,
+        "flip"
     ));
     row.appendChild(createMobileIconButton(
         "lastMoveBtn",
         viewLastMove,
         Labels.LAST_MOVE,
-        MOBILE_OPTION_ICONS.lastMove
+        MOBILE_OPTION_ICONS.lastMove,
+        "lastMove"
     ));
 
     row.appendChild(createMobileIconButton(
         "mobileMovesListBtn",
         openMobileMovesListPanel,
         "Moves list",
-        MOBILE_OPTION_ICONS.movesList
+        MOBILE_OPTION_ICONS.movesList,
+        "movesList"
     ));
 
     optionsSection.appendChild(row);

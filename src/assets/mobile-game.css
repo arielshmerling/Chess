@@ -57,7 +57,13 @@ body.mobile-game-shell {
     --board-height: max(200px, calc(var(--mobile-stack-outer) - 20px));
     --square-size: calc(var(--board-height) / 8) !important;
     --total-board-height: calc(var(--board-height) + 40px);
-    --captured-piece-size: calc(var(--square-size) / 1.3);
+    /* Capture trays: 8×2 grid per side — size from stack width (half ≈ one tray / 8 columns). */
+    --mobile-capture-piece: clamp(
+        10px,
+        calc((var(--mobile-stack-outer) - 28px) / 2 / 8 - 2px),
+        20px
+    );
+    --captured-piece-size: var(--mobile-capture-piece);
     --sideboxes-width: calc(var(--square-size) / 1.3 * 5);
     --promotion-box-size: calc(var(--square-size) * 4);
     --promotion-width: var(--board-height);
@@ -72,7 +78,7 @@ body.mobile-game-shell main {
     box-sizing: border-box;
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
 }
 
 body.mobile-game-shell #main {
@@ -232,12 +238,12 @@ body.mobile-game-shell #chessboard .chessboard_horizontal_stack {
     max-width: 100%;
 }
 
-/* —— Captures (compact, two rows each) —— */
+/* —— Captures: two rows × eight pieces per tray (max 15 captures; grid stays fixed) —— */
 body.mobile-game-shell .mobile-captures-row {
     order: 2;
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     box-sizing: border-box;
     align-items: flex-start;
@@ -246,29 +252,41 @@ body.mobile-game-shell .mobile-captures-row {
 
 body.mobile-game-shell .mobile-capture-tray.captureToolsList {
     flex: 1 1 50%;
+    min-width: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: 2px 2px;
     width: auto !important;
     height: auto !important;
-    min-height: 52px;
-    max-height: 64px;
+    min-height: calc(var(--mobile-capture-piece) * 2 + 8px);
+    max-height: calc(var(--mobile-capture-piece) * 2 + 8px);
     margin: 0 !important;
-    padding: 4px !important;
+    padding: 3px 4px !important;
     box-sizing: border-box;
     background-color: var(--panel-background);
     border: 1px solid var(--panel-border);
     border-radius: 8px;
     align-items: center;
     justify-items: center;
+    overflow: hidden;
 }
 
-body.mobile-game-shell .mobile-capture-tray.captureToolsList .draggable {
-    width: auto !important;
-    height: auto !important;
+body.mobile-game-shell .mobile-capture-tray.captureToolsList img.draggable,
+body.mobile-game-shell .mobile-capture-tray.captureToolsList img.captured {
+    width: var(--mobile-capture-piece) !important;
+    height: var(--mobile-capture-piece) !important;
     max-width: 100%;
-    max-height: 28px;
+    max-height: 100%;
+    margin: 0 !important;
+    padding: 0;
     object-fit: contain;
+    object-position: center;
+    filter: none;
+    justify-self: center;
+    align-self: center;
+    box-sizing: border-box;
 }
 
 /* —— Offscreen / hidden DOM for game logic (moves table, chat, status dots) —— */
@@ -349,11 +367,12 @@ body.mobile-game-shell .mobile-options-bar-row {
 body.mobile-game-shell .mobile-opt-icon-btn {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 88px;
-    min-height: 48px;
+    max-width: 92px;
+    min-height: 56px;
     margin: 0;
-    padding: 0;
+    padding: 5px 3px 4px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     border-radius: 10px;
@@ -363,14 +382,51 @@ body.mobile-game-shell .mobile-opt-icon-btn {
     color: #e8eaed;
     box-shadow: none;
     filter: none;
-    font-size: 0;
-    line-height: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    cursor: pointer;
+}
+
+body.mobile-game-shell .mobile-opt-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    min-height: 0;
+    pointer-events: none;
+}
+
+body.mobile-game-shell .mobile-opt-icon-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+body.mobile-game-shell .mobile-opt-caption {
+    font-size: 0.58rem;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    color: #8b9199;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    pointer-events: none;
 }
 
 body.mobile-game-shell .mobile-opt-icon-btn:hover {
     color: #f0f2f5;
+}
+
+body.mobile-game-shell .mobile-opt-icon-btn:hover .mobile-opt-caption {
+    color: #a8aeb6;
 }
 
 body.mobile-game-shell .mobile-opt-icon-btn:active:not(:disabled) {
@@ -387,18 +443,24 @@ body.mobile-game-shell .mobile-opt-icon-btn:disabled {
 }
 
 body.mobile-game-shell .mobile-opt-svg {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     display: block;
     flex-shrink: 0;
+    shape-rendering: geometricPrecision;
+}
+
+body.mobile-game-shell .mobile-opt-svg--text {
+    width: 26px;
+    height: 24px;
 }
 
 body.mobile-game-shell .mobile-options-dual {
     position: relative;
     flex: 1 1 0;
     min-width: 0;
-    max-width: 88px;
-    min-height: 48px;
+    max-width: 92px;
+    min-height: 56px;
 }
 
 body.mobile-game-shell .mobile-options-dual .mobile-opt-icon-btn {
@@ -409,6 +471,7 @@ body.mobile-game-shell .mobile-options-dual .mobile-opt-icon-btn {
     bottom: 0;
     max-width: none;
     width: 100%;
+    min-height: 0;
 }
 
 body.mobile-game-shell .mobile-options-dual #resignBtn:disabled,
