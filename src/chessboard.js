@@ -291,6 +291,20 @@ function isMobileGameShell() {
         document.body.classList.contains("mobile-game-shell");
 }
 
+/** Touch devices need tap-to-move (click on square); mouse-drag uses mousemove which does not track fingers. */
+function shouldUseTapToMoveOnTouchShell() {
+    if (!isMobileGameShell() || !isPlayGamePage()) {
+        return false;
+    }
+    if (typeof gameInfo === "undefined" || !gameInfo || gameInfo.watcher) {
+        return false;
+    }
+    if (gameInfo.mode === "review") {
+        return false;
+    }
+    return true;
+}
+
 window.onload = function () {
     console.log(window.location.pathname);
     //populatePaletteSelctor();
@@ -419,15 +433,16 @@ function startDrag(e) {
         return;
     }
 
-    /* Only here: avoid suppressing click (e.g. double-click / tap-to-move on squares). */
-    if (e.target.type != "textarea" && e.target.type != "text") {
-        if (e.preventDefault) { e.preventDefault(); }
-    }
-
     if (!researchMode && gameType != "PracticeGame" &&
         (currentPlayerIsWhite && draggedImage.src.indexOf("black") != -1 ||
         !currentPlayerIsWhite && draggedImage.src.indexOf("white") != -1)) {
         return;
+    }
+
+    /* After we know we are dragging our piece: avoid text selection; do not run before early returns
+     * or tap-to-move (click) on the same tap is suppressed on mobile. */
+    if (e.target.type != "textarea" && e.target.type != "text") {
+        if (e.preventDefault) { e.preventDefault(); }
     }
 
     // if (game.GameOver) {
@@ -713,6 +728,7 @@ function initPracticeGame(gameInfo, currentPlayerIsWhite) {
     disableButtons(["rematchBtn", "drawBtn"]);
     enableButtons(["resignBtn", "redoBtn", "undoBtn", "lastMoveBtn", "homeBtn"]);
     hideButtons(["drawBtn"]);
+    applyMousePreference(gameInfo.mousePreference || "drag");
 }
 
 function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, isWatcher) {
@@ -783,6 +799,10 @@ function initOnlineGame(gameInfo, currentPlayerIsWhite, isRematch, isRejoined, i
     //     const blackClock = document.getElementById("blackClockTimeText");
     //     blackClock.innerText = timerToText(blackTimer);
     // }
+
+    if (!isWatcher) {
+        applyMousePreference(gameInfo.mousePreference || "drag");
+    }
 }
 
 let researchMode = false;
@@ -1188,11 +1208,14 @@ function initSinglePlayerGame(gameInfo, currentPlayerIsWhite, isRematch, isWatch
 }
 
 function applyMousePreference(preference) {
+    const stored = preference != null ? preference : ((typeof gameInfo !== "undefined" && gameInfo && gameInfo.mousePreference) || "drag");
+    const effective = shouldUseTapToMoveOnTouchShell() ? "double" : stored;
+
     clickToMoveSelected = null;
     const innerBoard = document.getElementById("innerBoard");
     if (!innerBoard) { return; }
     innerBoard.removeEventListener("click", onBoardClickToMove);
-    if (preference === "double") {
+    if (effective === "double") {
         innerBoard.classList.add("move-mode-double");
         const pieces = document.querySelectorAll("#innerBoard .square img");
         pieces.forEach(function (img) {
@@ -1205,6 +1228,18 @@ function applyMousePreference(preference) {
         innerBoard.addEventListener("click", onBoardClickToMove);
     } else {
         innerBoard.classList.remove("move-mode-double");
+        document.querySelectorAll("#innerBoard .square img").forEach(function (img) {
+            img.setAttribute("class", "draggable");
+            if (!researchMode && gameType != "PracticeGame") {
+                if (currentPlayerIsWhite && img.src.indexOf("black") != -1 ||
+                    !currentPlayerIsWhite && img.src.indexOf("white") != -1) {
+                    img.setAttribute("class", "nondraggable");
+                }
+            }
+            if (!researchMode && gameInfo && gameInfo.mode == "review") {
+                img.setAttribute("class", "nondraggable");
+            }
+        });
     }
 }
 
@@ -1329,6 +1364,9 @@ function drawBoard(board) {
                 placePiece(url, i, j);
             }
         }
+    }
+    if (shouldUseTapToMoveOnTouchShell() && typeof gameInfo !== "undefined" && gameInfo) {
+        applyMousePreference(gameInfo.mousePreference || "drag");
     }
 }
 
