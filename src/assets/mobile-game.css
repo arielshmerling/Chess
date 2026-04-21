@@ -106,7 +106,7 @@ body.mobile-game-shell .mobile-match-bar {
 body.mobile-game-shell .mobile-match-bar__row {
     display: grid;
     /* Narrow clock columns; center (names) keeps flexible space. */
-    grid-template-columns: minmax(68px, 22vw) minmax(0, 1fr) minmax(68px, 22vw);
+    grid-template-columns: minmax(76px, 26vw) minmax(0, 1fr) minmax(76px, 26vw);
     gap: 6px;
     width: 100%;
     box-sizing: border-box;
@@ -151,7 +151,7 @@ body.mobile-game-shell .mobile-clock-display {
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 4px 4px;
+    padding: 6px 5px;
     box-sizing: border-box;
     margin: 0;
     background: transparent;
@@ -163,7 +163,7 @@ body.mobile-game-shell .mobile-clock-display .turnClock {
 }
 
 body.mobile-game-shell .mobile-clock-time {
-    font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+    font-size: clamp(1.05rem, 4.3vw, 1.32rem);
     font-weight: 500;
     color: #838383;
     font-variant-numeric: tabular-nums;
@@ -183,33 +183,44 @@ body.mobile-game-shell .mobile-vs-title {
     border: none;
     border-radius: 0;
     color: var(--light, #e0fbfc);
-    padding: 4px 6px;
-    max-width: min(52vw, 220px);
+    padding: 4px 4px;
+    max-width: 100%;
     cursor: default;
     text-align: center;
     font-family: inherit;
     width: 100%;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    min-width: 0;
+    overflow: hidden;
 }
 
 body.mobile-game-shell .mobile-vs-title .mobile-vs-name {
     display: block;
-    font-size: clamp(0.84rem, 3.4vw, 1.05rem);
-    line-height: 1.28;
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: clamp(1rem, 3.4vw, 1.05rem);
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 100%;
+    text-align: center;
 }
 
 body.mobile-game-shell .mobile-vs-title .mobile-vs-sep {
-    display: block;
+    flex: 0 0 auto;
     font-size: clamp(0.78rem, 3vw, 0.92rem);
-    line-height: 1.2;
-    padding: 3px 0;
+    line-height: 1.25;
+    padding: 0;
     opacity: 0.82;
     font-weight: 500;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
 }
 
 /* —— Board —— */
