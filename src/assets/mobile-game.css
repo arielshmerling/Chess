@@ -300,6 +300,60 @@ body.mobile-game-shell .mobile-capture-tray.captureToolsList img.captured {
     box-sizing: border-box;
 }
 
+/* —— Mobile review: replay toolbar (start / prev / play / pause / next / end / export) —— */
+body.mobile-game-shell #main.mobile-review-page .mobile-review-game-nav {
+    order: 3;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 4px 4px 4px;
+    background: var(--moves-panel-bg, #354c69);
+    border-radius: 8px;
+    border: 1px solid var(--panel-border, #618ea8);
+}
+
+body.mobile-game-shell #main.mobile-review-page .mobile-review-game-nav .reviewButtons {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 4px 2px;
+    cursor: pointer;
+    filter: invert(0.62);
+    box-sizing: border-box;
+}
+
+body.mobile-game-shell #main.mobile-review-page .mobile-review-game-nav .reviewButtons:active {
+    filter: invert(0.88);
+}
+
+body.mobile-game-shell #main.mobile-review-page .mobile-review-game-nav .reviewButtons img {
+    display: block;
+    max-height: 22px;
+    width: auto;
+    margin: 0 auto;
+}
+
+body.mobile-game-shell #main.mobile-review-page .mobile-review-game-nav .reviewButtons.reviewButtonPress {
+    position: relative;
+    top: 1px;
+}
+
+/* Used by chessboard (toggle play/pause, etc.); app.css is not loaded on mobile shell. */
+body.mobile-game-shell .hide {
+    display: none !important;
+}
+
 /* —— Offscreen / hidden DOM for game logic (moves table, chat, status dots) —— */
 body.mobile-game-shell .mobile-game-offscreen-suite {
     position: absolute;

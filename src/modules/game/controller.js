@@ -25,6 +25,10 @@ function setGamePageNoCache(res) {
 const PLAY_VIEW_DESKTOP = "game";
 /** Mobile-only play UI — separate EJS + CSS; does not use `game.ejs` or `app.css` game rules. */
 const PLAY_VIEW_MOBILE = "mobile-game";
+/** Desktop review uses `game.ejs` (unchanged). */
+const REVIEW_VIEW_DESKTOP = "game";
+/** Mobile-only review — separate EJS like `mobile-game.ejs`. */
+const REVIEW_VIEW_MOBILE = "mobile-review";
 
 function userAgentLooksMobile(req) {
     const ua = (req.get("user-agent") || "").toLowerCase();
@@ -48,12 +52,11 @@ function renderPlayGame(req, res, locals) {
 }
 
 /**
- * 
- * Handles requests related to reviewing games.
+ * Loads or creates the review game in session and renders the given view (`game` or `mobile-review`).
  */
-exports.review = catchAsync(async (req, res) => {
+async function executeReview(req, res, viewName) {
     validate(req.query, "review");
-    const { id } = req.query; //type [history , pgn]    
+    const { id } = req.query;
     req.session.gameId = id;
 
     let game = gamesManagerService.getGameById(id);
@@ -63,7 +66,6 @@ exports.review = catchAsync(async (req, res) => {
             res.redirect("login");
             return;
         }
-        //console.log(gameInfo);
         game = gameService.createReviewGame(req.session.user_id, req.session.user_name, gameInfo, "review");
         gamesManagerService.AddGame(game);
     }
@@ -72,7 +74,23 @@ exports.review = catchAsync(async (req, res) => {
     }
 
     setGamePageNoCache(res);
-    res.render("game", { gameId: game && game.gameId != null ? game.gameId : undefined, hideTopbar: true });
+    res.render(viewName, { gameId: game && game.gameId != null ? game.gameId : undefined, hideTopbar: true });
+}
+
+/**
+ * Review game (desktop `game.ejs`). Mobile user-agents are redirected to `/mobile-review` unless `desktop=1`.
+ */
+exports.review = catchAsync(async (req, res) => {
+    if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
+        const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+        return res.redirect(302, "/mobile-review" + q);
+    }
+    await executeReview(req, res, REVIEW_VIEW_DESKTOP);
+});
+
+/** Same as `review` but always renders the mobile-only template (no redirect loop). */
+exports.reviewMobile = catchAsync(async (req, res) => {
+    await executeReview(req, res, REVIEW_VIEW_MOBILE);
 });
 
 /**

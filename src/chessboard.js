@@ -312,6 +312,7 @@ window.onload = function () {
     if (isPlayGamePage() ||
         window.location.pathname == "/watch" ||
         window.location.pathname == "/review" ||
+        window.location.pathname == "/mobile-review" ||
         window.location.pathname == "/research") {
         game = new ChessGame();
         createGUIBoard();
@@ -673,6 +674,9 @@ async function startGame(isRematch) {
         hideButtons(["undoBtn", "redoBtn"]);
         enableButtons(["lastMoveBtn", "homeBtn"]);
         showMoveButtons(true);
+        if (isMobileGameShell()) {
+            hideButtons(["rematchBtn", "resignBtn", "drawBtn", "undoBtn", "redoBtn"]);
+        }
     }
     else {
         switch (gameType) {

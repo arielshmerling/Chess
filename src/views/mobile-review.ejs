@@ -1,0 +1,97 @@
+<% layout("../views/layouts/mobile-game-boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+<script>
+  window.__LAST_GAME_OPTIONS__ = window.__LAST_GAME_OPTIONS__ || {};
+</script>
+
+<div id="main" class="mobile-game-page mobile-review-page" data-initial-game-id="<%= typeof gameId !== 'undefined' && gameId != null ? gameId : '' %>" data-research-mode="false" data-mobile-review="true">
+  <div id="bookmarksPanel" class="mobile-game-bookmarks-stub" aria-hidden="true">
+    <div id="bookmarksList" class="bookmarksList"></div>
+  </div>
+
+  <section id="mobile-match-bar" class="mobile-match-bar" data-active-turn="white" data-game-id="<%= typeof gameId !== 'undefined' && gameId != null ? String(gameId).replace(/"/g, '&quot;') : '' %>">
+    <div class="mobile-match-bar__row">
+      <div class="mobile-clock-cell mobile-clock-cell--white">
+        <div id="whiteClock" class="mobile-clock-display">
+          <div id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt="" /></div>
+          <div id="whiteClockTimeText" class="mobile-clock-time">05:00:00</div>
+        </div>
+      </div>
+      <div class="mobile-vs-block">
+        <button type="button" class="mobile-vs-title" id="mobileMatchTitleBtn"
+          title=""
+          aria-label="Players and game ID (tooltip).">
+          <span id="whitePlayerName" class="mobile-vs-name"></span>
+          <span class="mobile-vs-sep" aria-hidden="true">vs.</span>
+          <span id="blackPlayerName" class="mobile-vs-name"></span>
+        </button>
+      </div>
+      <div class="mobile-clock-cell mobile-clock-cell--black">
+        <div id="blackClock" class="mobile-clock-display">
+          <div id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt="" /></div>
+          <div id="blackClockTimeText" class="mobile-clock-time">05:00:00</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="chessboard"> </div>
+
+  <div class="mobile-captures-row">
+    <div id="whiteCapturedPiece" class="sideBlock captureToolsList mobile-capture-tray"></div>
+    <div id="blackCapturedPiece" class="sideBlock captureToolsList mobile-capture-tray"></div>
+  </div>
+
+  <div id="gameNav" class="gameNav mobile-review-game-nav" role="toolbar" aria-label="Replay navigation"></div>
+
+  <div id="mobileMovesPanel" class="mobile-moves-panel" aria-hidden="true">
+    <div class="mobile-moves-panel__backdrop" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-hidden="true"></div>
+    <div class="mobile-moves-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="mobileMovesPanelTitle">
+      <div class="mobile-moves-panel__header">
+        <h2 id="mobileMovesPanelTitle" class="mobile-moves-panel__title">Moves</h2>
+        <button type="button" class="mobile-moves-panel__header-btn mobile-moves-panel__header-btn--close" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-label="Close moves list">&times;</button>
+      </div>
+      <div class="mobile-moves-panel__body">
+        <div id="movesDivContainer" class="movesDivContainer mobile-moves-panel__moves-wrap">
+          <div id="movesDivHeader" class="movesDivHeader">
+            <table class="movesTableHeader">
+              <tr>
+                <th>#</th>
+                <th>White</th>
+                <th>Black</th>
+              </tr>
+            </table>
+          </div>
+          <div id="movesDiv" class="movesDiv"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-game-offscreen-suite" aria-hidden="true">
+    <div class="messagesContainer">
+      <div id="messages" class="messages"></div>
+      <div class="chatSendLine">
+        <input type="text" class="chatline" id="chatline" maxlength="30" />
+        <img src="/images/whiteSend.png" alt="send" class="sendButton" onclick="onSendChatButtonClick(event)" />
+      </div>
+    </div>
+    <div id="blackPlayersInfo" class="sideBlock playerInfo short mobile-game-hidden-player">
+      <div class="playerInfo-statusWrap">
+        <div class="friends-status-dot friends-status-offline" id="blackPlayerStatus" title="" aria-label=""></div>
+      </div>
+      <div id="blackPlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
+    </div>
+    <div id="whitePlayersInfo" class="sideBlock playerInfo short mobile-game-hidden-player">
+      <div class="playerInfo-statusWrap">
+        <div class="friends-status-dot friends-status-offline" id="whitePlayerStatus" title="" aria-label=""></div>
+      </div>
+      <div id="whitePlayerDiconnectionTimer" class="disconnectionTimer hide"></div>
+    </div>
+  </div>
+
+</div>
+
+<section id="options" class="mobile-options-bar">
+</section>

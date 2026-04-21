@@ -3,6 +3,7 @@ const { requireLogin } = require("./../../utils.js");
 const gameController = require("./controller");
 const router = express.Router();
 router.get("/review", requireLogin, gameController.review);
+router.get("/mobile-review", requireLogin, gameController.reviewMobile);
 router.get("/watch", requireLogin, gameController.watchGame);
 router.get("/mobile-game", requireLogin, gameController.startGameMobile);
 router.get("/game", requireLogin, gameController.startGame);
