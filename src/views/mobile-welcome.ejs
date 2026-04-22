@@ -5,10 +5,7 @@
 
 <div id="main" class="mobile-home-main">
   <div class="mobile-home-hero">
-    <p class="mobile-home-greeting">
-      <span class="mobile-home-greeting-hi">Hi <%= typeof username !== "undefined" && username ? username : "there" %></span>
-      <span class="mobile-home-greeting-sub">Let's play some chess.</span>
-    </p>
+    <p class="mobile-home-greeting"><span class="mobile-home-greeting-strong">Hi <%= typeof username !== "undefined" && username ? username : "there" %></span>, let's play some chess.</p>
     <button type="button" class="mobile-home-play-computer" id="startAIGame" onclick="openPlayNowModal()">
       <span class="mobile-home-play-computer-label">Play computer</span>
     </button>
