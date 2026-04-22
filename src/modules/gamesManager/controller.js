@@ -7,6 +7,52 @@ const { User } = require("../user/model");
  * @param {string} username
  * @param {{ board?: unknown[][], turn?: string, isHighlight?: boolean }} [extras]
  */
+function userAgentLooksMobile(req) {
+    const ua = (req.get("user-agent") || "").toLowerCase();
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
+}
+
+/**
+ * Shared data for `welcome` and `mobile-welcome` (same queries and column shaping).
+ */
+async function loadHomePageData(req) {
+    const username = req.session.user_name;
+    const onGoing = await gamesManagerService.getOnGoingOnlineGames(3);
+    const allGames = onGoing.map((g) => {
+        const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
+        return mapOngoingGameForClient(g, username, {
+            board: snap ? snap.board : null,
+            turn: snap ? snap.turn : "white",
+            isHighlight: true,
+        });
+    });
+
+    let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
+    const homeColumns = ["Id", "Date", "Time", "White", "Black", "Result", "Moves"];
+    playerGames = playerGames.map((g) => {
+        const out = {};
+        for (const k of homeColumns) {
+            if (Object.prototype.hasOwnProperty.call(g, k)) { out[k] = g[k]; }
+        }
+        if (Object.prototype.hasOwnProperty.call(g, "_sortableDate")) { out._sortableDate = g._sortableDate; }
+        const reason = g.Reason != null ? String(g.Reason).trim() : "";
+        if (reason) {
+            out._resultReason = reason;
+        }
+        return out;
+    });
+
+    let lastGameOptions = null;
+    if (req.session.user_id) {
+        const user = await User.findById(req.session.user_id).select("lastGameOptions").lean();
+        if (user && user.lastGameOptions) {
+            lastGameOptions = user.lastGameOptions;
+        }
+    }
+
+    return { username, allGames, playerGames, lastGameOptions };
+}
+
 function mapOngoingGameForClient(g, username, extras = {}) {
     const whiteName = g.whitePlayer?.userName || "";
     const blackName = g.blackPlayer?.userName || "";
@@ -49,45 +95,22 @@ function mapOngoingGameForClient(g, username, extras = {}) {
 }
 
 exports.showHomePage = async (req, res) => {
-
-    const username = req.session.user_name;
-    const onGoing = await gamesManagerService.getOnGoingOnlineGames(3);
-    const allGames = onGoing.map((g) => {
-        const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
-        return mapOngoingGameForClient(g, username, {
-            board: snap ? snap.board : null,
-            turn: snap ? snap.turn : "white",
-            isHighlight: true,
-        });
-    });
-    //console.log(allGames);
-    //req.session.gameId = null; // why? this causes a crash on back button
-
-    res.locals.username = username;
-    let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
-    // Home table columns (Reason is not shown as a column; surfaced as Result cell tooltip)
-    const homeColumns = ["Id", "Date", "Time", "White", "Black", "Result", "Moves"];
-    playerGames = playerGames.map((g) => {
-        const out = {};
-        for (const k of homeColumns) {
-            if (Object.prototype.hasOwnProperty.call(g, k)) out[k] = g[k];
-        }
-        if (Object.prototype.hasOwnProperty.call(g, "_sortableDate")) out._sortableDate = g._sortableDate;
-        const reason = g.Reason != null ? String(g.Reason).trim() : "";
-        if (reason) {
-            out._resultReason = reason;
-        }
-        return out;
-    });
-    res.locals.playerGames = playerGames;
-    let lastGameOptions = null;
-    if (req.session.user_id) {
-        const user = await User.findById(req.session.user_id).select("lastGameOptions").lean();
-        if (user && user.lastGameOptions) {
-            lastGameOptions = user.lastGameOptions;
-        }
+    if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
+        const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+        return res.redirect(302, "/mobile-home" + q);
     }
-    res.render("welcome", { allGames, lastGameOptions });
+    const ctx = await loadHomePageData(req);
+    res.locals.username = ctx.username;
+    res.locals.playerGames = ctx.playerGames;
+    res.render("welcome", { allGames: ctx.allGames, lastGameOptions: ctx.lastGameOptions });
+};
+
+/** Same data as `showHomePage`; renders compact mobile-only template. */
+exports.showHomePageMobile = async (req, res) => {
+    const ctx = await loadHomePageData(req);
+    res.locals.username = ctx.username;
+    res.locals.playerGames = ctx.playerGames;
+    res.render("mobile-welcome", { allGames: ctx.allGames, lastGameOptions: ctx.lastGameOptions });
 };
 
 exports.getActiveGamesJson = async (req, res) => {

@@ -1,0 +1,273 @@
+<% layout("../views/layouts/mobile-welcome-boilerplate") %>
+<script>
+  window.__LAST_GAME_OPTIONS__ = <%- JSON.stringify(typeof lastGameOptions !== "undefined" && lastGameOptions ? lastGameOptions : {}) %>;
+</script>
+
+<div id="main" class="mobile-home-main">
+  <div class="mobile-home-hero">
+    <p class="mobile-home-greeting">
+      <span class="mobile-home-greeting-hi">Hi <%= typeof username !== "undefined" && username ? username : "there" %></span>
+      <span class="mobile-home-greeting-sub">Let's play some chess.</span>
+    </p>
+    <button type="button" class="mobile-home-play-computer" id="startAIGame" onclick="openPlayNowModal()">
+      <span class="mobile-home-play-computer-label">Play computer</span>
+    </button>
+  </div>
+
+  <div class="mobile-home-tabs-wrap">
+    <div class="mobile-home-tabs" role="tablist" aria-label="Home sections">
+      <button type="button" class="mobile-home-tab mobile-home-tab--active" role="tab" aria-selected="true" aria-controls="mobile-home-tab-friends" id="mobile-home-tabbtn-friends" data-tab="friends">Friends</button>
+      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-games" id="mobile-home-tabbtn-games" data-tab="games">Games</button>
+      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-library" id="mobile-home-tabbtn-library" data-tab="library">Library</button>
+    </div>
+  </div>
+
+  <div id="mobile-home-tab-friends" class="mobile-home-tab-panel mobile-home-tab-panel--active" role="tabpanel" aria-labelledby="mobile-home-tabbtn-friends">
+    <%- include('partials/home-friends-welcome.ejs', { homeFriendsCompact: true }) %>
+  </div>
+
+  <div id="mobile-home-tab-games" class="mobile-home-tab-panel" role="tabpanel" aria-labelledby="mobile-home-tabbtn-games" hidden>
+    <div class="mobile-home-subsection">
+      <div class="mobile-home-subsection-head">
+        <h3 class="mobile-home-h3">Live &amp; public</h3>
+        <a class="mobile-home-inline-link" href="/active-games-list">Browse all</a>
+      </div>
+      <div class="mobile-home-card">
+        <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
+          <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
+          <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+            window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
+          </script>
+          <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="Active games"></div>
+          <div class="no-games-message" id="online-no-games-msg">
+            <p>No public games right now.</p>
+          </div>
+        </div>
+      </div>
+      <script src="/activeGamesHome.js" defer></script>
+    </div>
+
+    <div class="mobile-home-subsection">
+      <div class="mobile-home-subsection-head">
+        <h3 class="mobile-home-h3">Your history</h3>
+        <a class="mobile-home-inline-link" href="/list">Full list</a>
+      </div>
+      <div class="mobile-home-card mobile-home-card--table">
+        <div class="panel-body mobile-home-my-games-body">
+          <% if(playerGames && playerGames.length > 0) { %>
+          <div class="table-scroll compact mobile-home-table-wrap">
+            <table class="games-table sortable mobile-home-my-table">
+              <thead>
+                <tr>
+                  <th class="sortable-th" data-sort-key="rowIndex" title="Sort by row number">
+                    <span class="th-label">#</span>
+                    <span class="sort-icon" aria-hidden="true"></span>
+                  </th>
+                  <% obj = playerGames[0]; %>
+                  <% for(const key in obj) { %>
+                    <% if(key !== "Id" && !key.startsWith("_")) { %>
+                  <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="Sort by <%= key.trim() %>">
+                    <span class="th-label"><%= key %></span>
+                    <span class="sort-icon" aria-hidden="true"></span>
+                  </th>
+                    <% } %>
+                  <% } %>
+                </tr>
+              </thead>
+              <tbody>
+                <% rowIndex = 0; for(const obj of playerGames) { %>
+                <tr data-row-index="<%= rowIndex %>" onclick=<%-`"window.location='/mobile-review?type=history&id=${obj.Id}'"`%>>
+                  <td class="row-number sortable-td" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>"><%= rowIndex + 1 %></td>
+                  <% for(const key in obj) { %>
+                    <% if(key !== 'Id' && !key.startsWith('_')) { %>
+                      <% sortVal = key === 'Date' ? (obj._sortableDate != null ? obj._sortableDate : 0) : (key === 'Moves' ? (obj.Moves != null ? obj.Moves : 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
+                  <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %> onclick=<%-`"window.location='/mobile-review?type=history&id=${obj.Id}'"`%>>
+                    <%= obj[key] %>
+                  </td>
+                    <% } %>
+                  <% } %>
+                </tr>
+                <% rowIndex++; } %>
+              </tbody>
+            </table>
+          </div>
+          <script>
+(function() {
+    var table = document.querySelector('.mobile-home-my-table.sortable');
+    if (!table) return;
+    var thead = table.querySelector('thead tr');
+    var tbody = table.querySelector('tbody');
+    var sortState = { key: null, asc: true };
+    function getSortValue(cell) {
+        var key = cell.getAttribute('data-sort-key');
+        var raw = cell.getAttribute('data-sort-value');
+        if (key === 'rowIndex' || key === 'Date' || key === 'Moves') return Number(raw) || 0;
+        return raw;
+    }
+    function compare(a, b) {
+        var na = typeof a === 'number', nb = typeof b === 'number';
+        if (na && nb) return a - b;
+        if (na) return -1;
+        if (nb) return 1;
+        return String(a).localeCompare(String(b));
+    }
+    thead.addEventListener('click', function(ev) {
+        var th = ev.target.closest('th.sortable-th');
+        if (!th) return;
+        ev.preventDefault();
+        var key = th.getAttribute('data-sort-key');
+        if (sortState.key === key) sortState.asc = !sortState.asc;
+        else { sortState.key = key; sortState.asc = true; }
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function(ra, rb) {
+            var ca = ra.querySelector('td[data-sort-key="' + key + '"]');
+            var cb = rb.querySelector('td[data-sort-key="' + key + '"]');
+            if (!ca || !cb) return 0;
+            var va = getSortValue(ca), vb = getSortValue(cb);
+            var cmp = compare(va, vb);
+            return sortState.asc ? cmp : -cmp;
+        });
+        rows.forEach(function(r) { tbody.appendChild(r); });
+        rows.forEach(function(r, i) {
+            var numCell = r.querySelector('td[data-sort-key="rowIndex"]');
+            if (numCell) { numCell.setAttribute('data-sort-value', i); numCell.textContent = i + 1; }
+        });
+        thead.querySelectorAll('.sort-icon').forEach(function(icon) { icon.textContent = ''; icon.classList.remove('asc', 'desc'); });
+        var activeIcon = th.querySelector('.sort-icon');
+        if (activeIcon) {
+            activeIcon.textContent = sortState.asc ? '\u25B2' : '\u25BC';
+            activeIcon.classList.add(sortState.asc ? 'asc' : 'desc');
+        }
+    });
+})();
+          </script>
+          <% } else { %>
+          <div class="no-games-message mobile-home-no-games">
+            <p>No finished games yet.</p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobile-home-tab-library" class="mobile-home-tab-panel" role="tabpanel" aria-labelledby="mobile-home-tabbtn-library" hidden>
+    <div class="mobile-home-library-card">
+      <div class="mobile-home-library-icon" aria-hidden="true">♟</div>
+      <h3 class="mobile-home-library-title">Game library</h3>
+      <p class="mobile-home-library-copy">Search famous games by player, event, or opening — open any result in review mode with full navigation.</p>
+      <a class="mobile-home-library-cta" href="/search">Open library search</a>
+      <p class="mobile-home-library-foot">Want a blank board for analysis? <a href="/research">Research mode</a></p>
+    </div>
+  </div>
+
+  <div id="playNowModal" class="play-now-modal" aria-hidden="true">
+    <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
+    <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
+      <h2 id="playNowModalTitle" class="play-now-modal-title">Start a new Game</h2>
+      <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
+        <div class="play-now-field">
+          <label class="play-now-label">Playing color</label>
+          <div class="play-now-radio-group">
+            <label class="play-now-radio">
+              <input type="radio" name="color" value="white" checked>
+              <span>White</span>
+            </label>
+            <label class="play-now-radio">
+              <input type="radio" name="color" value="black">
+              <span>Black</span>
+            </label>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <div class="play-now-engine-time-row">
+            <div class="play-now-engine-col">
+              <label class="play-now-label" for="playNowEngine">Engine</label>
+              <select id="playNowEngine" name="engine" class="play-now-select play-now-select--compact">
+                <option value="brain4">Brain 4.0</option>
+                <option value="brain3">Brain 3</option>
+                <option value="brain2">Brain 2</option>
+                <option value="brain5">Brain 5</option>
+              </select>
+            </div>
+            <div class="play-now-time-col">
+              <label class="play-now-label" for="playNowTimeMinutes">Time (min)</label>
+              <input type="number" id="playNowTimeMinutes" name="timeMinutes" class="play-now-time-input" min="1" max="180" step="1" value="90" title="Clock time per side in minutes">
+            </div>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-label" for="playNowDifficulty">Difficulty (1–5)</label>
+          <div class="play-now-slider-row">
+            <input type="range" min="1" max="5" value="3" name="difficulty" id="playNowDifficulty" class="play-now-slider" oninput="document.getElementById('playNowDifficultyValue').textContent=this.value">
+            <span id="playNowDifficultyValue" class="play-now-slider-value">3</span>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-label">Mouse preference</label>
+          <div class="play-now-radio-group">
+            <label class="play-now-radio" id="mouseDragLabel">
+              <input type="radio" name="mouse" value="drag" id="mouseDrag" checked>
+              <span>Drag</span>
+            </label>
+            <label class="play-now-radio">
+              <input type="radio" name="mouse" value="double" id="mouseDouble">
+              <span>Double click</span>
+            </label>
+          </div>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-checkbox-label">
+            <input type="checkbox" name="showMoves" id="playNowShowMoves" value="1" checked>
+            <span>Show available moves</span>
+          </label>
+        </div>
+        <div class="play-now-field">
+          <label class="play-now-checkbox-label" title="A private game is not visible to other members and is not shown on the club homepage.">
+            <input type="checkbox" name="private" id="playNowPrivate" value="1">
+            <span>Private</span>
+          </label>
+        </div>
+        <div class="play-now-modal-actions">
+          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()">Cancel</button>
+          <button type="submit" class="play-now-btn-start">Start</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+(function () {
+  var tabs = document.querySelectorAll(".mobile-home-tab");
+  var panels = {
+    friends: document.getElementById("mobile-home-tab-friends"),
+    games: document.getElementById("mobile-home-tab-games"),
+    library: document.getElementById("mobile-home-tab-library")
+  };
+  function activate(name) {
+    Object.keys(panels).forEach(function (key) {
+      var p = panels[key];
+      if (!p) return;
+      if (key === name) {
+        p.removeAttribute("hidden");
+        p.classList.add("mobile-home-tab-panel--active");
+      } else {
+        p.setAttribute("hidden", "hidden");
+        p.classList.remove("mobile-home-tab-panel--active");
+      }
+    });
+    tabs.forEach(function (btn) {
+      var on = btn.getAttribute("data-tab") === name;
+      btn.classList.toggle("mobile-home-tab--active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+  tabs.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var name = btn.getAttribute("data-tab");
+      if (name) activate(name);
+    });
+  });
+})();
+</script>

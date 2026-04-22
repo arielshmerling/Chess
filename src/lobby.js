@@ -6,6 +6,9 @@ function getPlayGameBasePath() {
         if (p === "/mobile-game" || p.indexOf("/mobile-game") === 0) {
             return "/mobile-game";
         }
+        if (p === "/mobile-home" || p.indexOf("/mobile-home") === 0) {
+            return "/mobile-game";
+        }
     } catch {
         /* pathname unavailable */
     }

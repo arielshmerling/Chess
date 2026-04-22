@@ -72,6 +72,17 @@
             .replace(/"/g, "&quot;");
     }
 
+    function playBase() {
+        if (typeof getPlayGameBasePath === "function") {
+            try {
+                return getPlayGameBasePath();
+            } catch (e) {
+                /* ignore */
+            }
+        }
+        return "/game";
+    }
+
     function getGameUrl(g, username) {
         var w = g.whitePlayerName != null ? String(g.whitePlayerName) : "";
         var b = g.blackPlayerName != null ? String(g.blackPlayerName) : "";
@@ -80,7 +91,7 @@
             (username && (w === username || b === username));
         var status = g.Status || "In progress";
         if (isParticipant && (status === "In progress" || status === "On hold")) {
-            return "/game?id=" + encodeURIComponent(g.Id);
+            return playBase() + "?id=" + encodeURIComponent(g.Id);
         }
         return "/watch?id=" + encodeURIComponent(g.Id);
     }

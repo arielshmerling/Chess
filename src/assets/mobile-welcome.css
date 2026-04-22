@@ -1,0 +1,563 @@
+/**
+ * Mobile home (`body.mobile-home-shell`). Works with `app.css` header + theme switch.
+ *
+ * app.css sets `body { align-items: center }` and `#main { flex-direction: row }` for
+ * the game layout — we override those here so content stacks and stays within the viewport.
+ */
+
+/* —— Layout: full-width column shell —— */
+body.mobile-home-shell {
+    font-family: "Roboto", system-ui, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    align-items: stretch;
+    background: var(--body-background, #3d5a80);
+    color: var(--light, #e0fbfc);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+body.mobile-home-shell *,
+body.mobile-home-shell *::before,
+body.mobile-home-shell *::after {
+    box-sizing: border-box;
+}
+
+body.mobile-home-shell #header.mobile-home-shell-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50px;
+    z-index: 300;
+    background-color: rgba(10, 10, 10, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 0 4px 0 0;
+    max-width: 100%;
+    min-width: 0;
+    /* app.css #header uses font-size: 2em — kills mobile width; reset for this page */
+    font-size: 14px;
+}
+
+body.mobile-home-shell #header #logoArea {
+    flex-wrap: nowrap;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+body.mobile-home-shell #header .site-logo-img {
+    height: 1.75em;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+}
+
+/* Top bar: logo (left) + username / theme / logout (right) — no center nav */
+body.mobile-home-shell #header.mobile-home-topbar--minimal {
+    justify-content: space-between;
+}
+
+body.mobile-home-shell #logout {
+    margin-right: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+body.mobile-home-shell #logout .switch {
+    transform: scale(0.85);
+    transform-origin: center right;
+}
+
+body.mobile-home-shell #logout a {
+    font-size: 12px;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+
+body.mobile-home-shell .flash-message,
+body.mobile-home-shell .topbarMessages {
+    max-width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+body.mobile-home-shell .topbar-username {
+    margin-right: 6px;
+    max-width: min(42vw, 160px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+body.mobile-home-shell main {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    /* Header is sticky in-flow — drop the extra 50px offset meant for position:absolute #header */
+    margin-top: 0;
+    box-sizing: border-box;
+    padding: 12px 14px calc(28px + env(safe-area-inset-bottom, 0));
+    padding-left: max(14px, env(safe-area-inset-left, 0));
+    padding-right: max(14px, env(safe-area-inset-right, 0));
+    overflow-x: hidden;
+}
+
+/* Critical: welcome page uses id="main" — app.css makes it a horizontal flex row for the board UI */
+body.mobile-home-shell #main.mobile-home-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Tame global app.css rules inside main */
+body.mobile-home-shell main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.mobile-home-shell main select,
+body.mobile-home-shell main textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    height: auto !important;
+    min-height: 44px;
+}
+
+body.mobile-home-shell main .play-now-modal input,
+body.mobile-home-shell main .play-now-modal select {
+    min-height: 48px;
+}
+
+body.mobile-home-shell .mobile-home-main {
+    max-width: 520px;
+    width: 100%;
+    margin: 0 auto;
+    min-width: 0;
+}
+
+/* —— Hero: compact greeting + green CTA —— */
+body.mobile-home-shell .mobile-home-hero {
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+body.mobile-home-shell .mobile-home-greeting {
+    margin: 0 0 12px;
+    line-height: 1.3;
+}
+
+body.mobile-home-shell .mobile-home-greeting-hi {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--light, #e0fbfc);
+    letter-spacing: -0.02em;
+}
+
+body.mobile-home-shell .mobile-home-greeting-sub {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--semiLight, #98c1d9);
+}
+
+body.mobile-home-shell .mobile-home-play-computer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 14px 18px;
+    min-height: 48px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    background: linear-gradient(180deg, #52b788 0%, #2d6a4f 55%, #1b4332 100%);
+    color: #fff;
+    box-shadow:
+        0 4px 0 rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(27, 67, 50, 0.45);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.mobile-home-shell .mobile-home-play-computer:active {
+    transform: translateY(1px) scale(0.99);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12), 0 4px 16px rgba(27, 67, 50, 0.35);
+}
+
+body.mobile-home-shell .mobile-home-play-computer-label {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* —— Tabs —— */
+body.mobile-home-shell .mobile-home-tabs-wrap {
+    position: sticky;
+    top: 50px;
+    z-index: 50;
+    /* Avoid negative horizontal margins — they extend past main and get clipped by overflow-x */
+    margin: 0 0 16px;
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 0 10px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 100%);
+}
+
+body.mobile-home-shell .mobile-home-tabs {
+    display: flex;
+    flex-direction: row;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    gap: 4px;
+}
+
+body.mobile-home-shell .mobile-home-tab {
+    flex: 1 1 0;
+    margin: 0;
+    padding: 11px 8px;
+    border: none;
+    border-radius: 11px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--semiLight, #98c1d9);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.mobile-home-shell .mobile-home-tab--active {
+    color: var(--darker, #293241);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(224, 251, 252, 0.88) 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+body.mobile-home-shell .mobile-home-tab:not(.mobile-home-tab--active):active {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--light, #e0fbfc);
+}
+
+/* —— Tab panels —— */
+body.mobile-home-shell .mobile-home-tab-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    animation: mobileHomeFade 0.22s ease;
+}
+
+body.mobile-home-shell .mobile-home-tab-panel[hidden] {
+    display: none;
+}
+
+@keyframes mobileHomeFade {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}
+
+body.mobile-home-shell .mobile-home-subsection {
+    margin-bottom: 20px;
+}
+
+body.mobile-home-shell .mobile-home-subsection:last-child {
+    margin-bottom: 0;
+}
+
+body.mobile-home-shell .mobile-home-subsection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+}
+
+body.mobile-home-shell .mobile-home-h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--light, #e0fbfc);
+    letter-spacing: 0.02em;
+}
+
+body.mobile-home-shell .mobile-home-inline-link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--semiLight, #98c1d9);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.mobile-home-shell .mobile-home-inline-link:active {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--light, #e0fbfc);
+}
+
+body.mobile-home-shell .mobile-home-card {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.mobile-home-shell .mobile-home-card .panel-body.online-games-body {
+    padding: 12px;
+}
+
+body.mobile-home-shell .mobile-home-card .panel-body.mobile-home-my-games-body {
+    padding: 0;
+}
+
+body.mobile-home-shell .active-game-highlight {
+    border-radius: 12px;
+    padding: 12px;
+    gap: 12px;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+body.mobile-home-shell .active-mini-board {
+    width: min(200px, 36vw);
+    max-width: 100%;
+}
+
+body.mobile-home-shell .active-highlight-names {
+    font-size: clamp(0.95rem, 3.8vw, 1.1rem);
+    word-break: break-word;
+}
+
+body.mobile-home-shell .active-game-highlight:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+body.mobile-home-shell .active-mini-board-grid {
+    border-radius: 8px;
+}
+
+body.mobile-home-shell .online-active-games-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.mobile-home-shell #online-games-container .no-games-message {
+    text-align: center;
+    padding: 18px 10px;
+    font-size: 0.88rem;
+    color: var(--semiLight, #98c1d9);
+}
+
+body.mobile-home-shell #online-games-container .no-games-message p {
+    margin: 0;
+}
+
+body.mobile-home-shell .mobile-home-card--table .mobile-home-my-games-body {
+    padding: 0;
+}
+
+body.mobile-home-shell .mobile-home-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.mobile-home-shell .mobile-home-my-table {
+    font-size: 0.78rem;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+}
+
+body.mobile-home-shell .home-friends-panel--compact #home-friends-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+body.mobile-home-shell .home-friends-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: auto;
+}
+
+body.mobile-home-shell .home-friends-table .home-friends-name-cell {
+    word-break: break-word;
+    max-width: 42vw;
+}
+
+body.mobile-home-shell .mobile-home-my-table thead {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.mobile-home-shell .mobile-home-my-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+body.mobile-home-shell .mobile-home-no-games {
+    padding: 20px 14px;
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--semiLight, #98c1d9);
+}
+
+/* —— Friends compact —— */
+body.mobile-home-shell .home-friends-panel--compact .home-friends-panel-header--compact {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.mobile-home-shell .home-friends-compact-hint {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--semiLight, #98c1d9);
+}
+
+body.mobile-home-shell .home-friends-panel--compact {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+}
+
+body.mobile-home-shell .home-friends-panel--compact .panel-body {
+    padding: 10px 8px 12px;
+    min-width: 0;
+}
+
+body.mobile-home-shell .home-friends-panel--compact .friends-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* —— Library tab —— */
+body.mobile-home-shell .mobile-home-library-card {
+    text-align: center;
+    padding: 28px 16px 32px;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.15) 100%);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+}
+
+body.mobile-home-shell .mobile-home-library-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 8px;
+    opacity: 0.9;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+body.mobile-home-shell .mobile-home-library-title {
+    margin: 0 0 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--light, #e0fbfc);
+}
+
+body.mobile-home-shell .mobile-home-library-copy {
+    margin: 0 0 20px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--semiLight, #98c1d9);
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.mobile-home-shell .mobile-home-library-cta {
+    display: inline-block;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #fff;
+    border-radius: 12px;
+    background: linear-gradient(180deg, var(--panel-background, #4e829f) 0%, #3d6a82 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+body.mobile-home-shell .mobile-home-library-cta:active {
+    filter: brightness(1.06);
+}
+
+body.mobile-home-shell .mobile-home-library-foot {
+    margin: 18px 0 0;
+    font-size: 0.8rem;
+    color: var(--semiLight, #98c1d9);
+}
+
+body.mobile-home-shell .mobile-home-library-foot a {
+    color: var(--light, #e0fbfc);
+    font-weight: 500;
+}
+
+/* —— Modal on mobile home —— */
+body.mobile-home-shell .play-now-modal {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+body.mobile-home-shell .play-now-modal-dialog {
+    border-radius: 16px;
+    max-width: min(420px, calc(100vw - 24px));
+    width: 100%;
+    max-height: min(90vh, 640px);
+    overflow-y: auto;
+    padding: 20px 18px;
+}
+
+/* —— Palette dock (themes.js) —— */
+body.mobile-home-shell .palettes {
+    position: fixed;
+    right: 8px;
+    bottom: calc(52px + env(safe-area-inset-bottom, 0));
+    z-index: 250;
+}

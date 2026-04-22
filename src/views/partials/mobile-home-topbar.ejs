@@ -1,0 +1,37 @@
+<% var minimalTopbar = typeof hideTopbar !== 'undefined' && hideTopbar; %>
+<div id="header" class="mobile-home-shell-header mobile-home-topbar--minimal">
+  <div id="logoArea" class="flexRow">
+    <div class="site-title">
+      <a href="/mobile-home" aria-label="Home"><img src="/images/shmerling.png" alt="Shmerling" class="site-logo-img"></a>
+    </div>
+  </div>
+
+  <div id="logout">
+    <% if (username) { %>
+    <span class="topbar-username"><%= username %></span>
+    <% } %>
+    <label class="switch">
+      <input type="checkbox" id="themeSwitch">
+      <span class="slider round"></span>
+    </label>
+    <% if (!minimalTopbar) { %>
+    <% if (username) { %>
+    <a href="/logout"> Log out </a>
+    <% } else { %>
+    <a href="/Login"> Log in </a>
+    <% } %>
+    <% } %>
+  </div>
+</div>
+
+<div id="mainMenu" class="mainMenu" style="visibility: hidden;">
+  <div class="menuItem" onclick="menuNewGameOnePlayer()">Human Vs. Computer</div>
+  <div class="menuItem" onclick="menuNewGameTwoPlayers()">New Game 2 Players</div>
+  <div class="menuItem" onclick="menuResignEventHandler()">Resign</div>
+  <div class="menuItem" onclick="menuUndo()">Undo</div>
+  <div class="menuItem" onclick="menuSaveEventHandler();">Save</div>
+  <div class="menuItem" onclick="menuLoadEventHandler()">Load</div>
+  <div class="menuItem" onclick="menuPositionSetup()">Position Setup</div>
+  <div class="menuItem" onclick="menuSettings()">Settings</div>
+  <div class="menuItem last" onclick="">Help</div>
+</div>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Home — Chess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/welcome.css">
+  <link rel="stylesheet" href="/friends.css">
+  <link rel="stylesheet" href="/assets/mobile-welcome.css">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/themes.js"></script>
+  <script src="/lobby.js"></script>
+  <script src="/customValidation.js"></script>
+  <script src="/siteDialogs.js"></script>
+  <% if (typeof username !== 'undefined' && username) { %>
+  <script src="/lobbyPresence.js"></script>
+  <script src="/friendGameInvite.js"></script>
+  <% } %>
+</head>
+
+<body class="mobile-home-shell">
+  <% if(username) { %>
+  <%- include('../partials/mobile-home-topbar') %>
+  <% }%>
+
+  <%- include("../partials/flash") %>
+
+  <main>
+    <%-body %>
+  </main>
+
+  <div id="paletteSelctor" class="palettes"></div>
+
+  <%- include('../partials/footer') %>
+
+  <%- include('../partials/site-dialogs') %>
+
+  <% if (typeof username !== 'undefined' && username) { %>
+  <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+    (function () {
+      function ping() {
+        fetch("/api/presence/ping", { method: "POST", credentials: "same-origin" }).catch(function () {});
+      }
+      ping();
+      setInterval(ping, 45000);
+    })();
+  </script>
+  <% } %>
+
+</body>
+
+</html>
