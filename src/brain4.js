@@ -213,6 +213,7 @@ function stateScore(chess, move) {
         score = pieceValue(targetPiece.pieceType);
     }
 
+    console.log("stateScore: " + score);
     return score;
 }
 

@@ -117,13 +117,28 @@ function getFirstLegalMove(game) {
     return moves[0];
 }
 
+/** DB keys use SavedGameState (stripped); collisions can return a stale book move. */
+function isBookMoveStillLegal(game, move) {
+    if (!move || move.source == null || move.target == null) {
+        return false;
+    }
+    if (typeof move.source.row !== "number" || typeof move.source.col !== "number" ||
+        typeof move.target.row !== "number" || typeof move.target.col !== "number") {
+        return false;
+    }
+    return !!game.validateMove(move.source, move.target, game.Turn).valid;
+}
+
 exports.brainNextMoveFunc = async (game, options) => {
     const state = game.GameState;
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
-    const move = await tryFindMatchState(game);
-    if (move) {
-        return move;
+    const bookMove = await tryFindMatchState(game);
+    if (bookMove && isBookMoveStillLegal(game, bookMove)) {
+        return bookMove;
+    }
+    if (bookMove) {
+        console.warn("[Brain5] Opening-book move rejected (collision or stale DB); using search.");
     }
 
     // Try once, and retry once if it fails
@@ -196,6 +211,11 @@ function suggestMove(chess, maxDepth, alpha = -Infinity, beta = Infinity, origin
         const move = orderedMoves[i];
         const moveScore = scoreMove(chess, move, maxDepth, alpha, beta, originalTurn);
 
+        // NaN / non-finite scores must not win (e.g. alpha-beta edge cases); skip this candidate
+        if (!Number.isFinite(moveScore)) {
+            continue;
+        }
+
         // Always maximize for the current player (matching brain4's behavior)
         if (moveScore > bestScore) {
             bestScore = moveScore;
@@ -224,6 +244,11 @@ function suggestMove(chess, maxDepth, alpha = -Infinity, beta = Infinity, origin
                 break; // Alpha cutoff: we won't allow opponent to get this good
             }
         }
+    }
+
+    if (!bestMove && moves.length > 0) {
+        bestMove = orderedMoves[0];
+        console.warn("[Brain5] No finite-scored move chosen — using first ordered legal candidate.");
     }
 
     depth--;
@@ -487,17 +512,29 @@ if (!isMainThread) {
             depth = 0;
             chess.loadGame(gameState);
             chess.SearchMode = true;
-            const move = suggestMove(chess, maxDepth);
+            const raw = suggestMove(chess, maxDepth);
             chess.SearchMode = false;
 
             const duration = Date.now() - startTime;
             console.log(`Brain 5 completed request ${requestId} in ${duration}ms`);
 
-            if (move) {
+            let move = raw;
+            if (!raw || raw.source == null || raw.target == null) {
+                move = getFirstLegalMove(chess);
+                console.error(`[Brain5] Worker: suggestMove returned score-only or null (request ${requestId}); first legal fallback.`);
+            } else {
+                const v = chess.validateMove(raw.source, raw.target, chess.Turn);
+                if (!v.valid) {
+                    move = getFirstLegalMove(chess);
+                    console.error(`[Brain5] Worker: chosen move failed validateMove (request ${requestId}); first legal fallback.`, raw);
+                }
+            }
+
+            if (move && move.source != null && move.target != null) {
                 move.turn = chess.Turn;
                 parentPort.postMessage({ requestId, move });
             } else {
-                console.error(`Worker thread: suggestMove returned null (request ${requestId})`);
+                console.error(`Worker thread: no legal move after fallback (request ${requestId})`);
                 parentPort.postMessage({ requestId, error: "No move found" });
             }
         } catch (err) {

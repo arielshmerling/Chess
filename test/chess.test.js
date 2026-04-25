@@ -2361,5 +2361,37 @@ describe("Rgex", () => {
     })
 })
 
+describe("Regression: Engine illegal move Kc4 after Nb5+", () => {
+    // Game: 1.d4 d5 2.c4 c5 3.cxd5 cxd4 4.Qxd4 Nc6 5.Qc5 e6 6.Qb5 Qxd5
+    //       7.Qa4 Bb4+ 8.Nc3 Bd7 9.Qxb4 Nxb4 10.Nxd5 exd5 11.a4 Nc2+
+    //       12.Kd2 Nxa1 13.a5 O-O-O 14.b4 Nb3+ 15.Kc2 Nd4+ 16.Kc3 ...
+    //
+    // Board is stored in whitePlayerView:false (black's perspective).
+    // Coordinate translations (black view → standard):
+    //   black knight at (3,4) = d4    │  target (4,6) = b5  → Nb5+
+    //   white king   at (2,5) = c3    │  target (3,5) = c4  → Kc4  (illegal)
+    //   black pawn   at (4,4) = d5    │  attacks c4 → Kc4 must be rejected
+    const bugState = `{"board":[[{"color":"white","pieceType":4},{"color":"white","pieceType":2},{"color":"white","pieceType":3},null,null,{"color":"white","pieceType":3},null,null],[{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},null,null,null,null],[null,null,null,null,null,{"color":"white","pieceType":1},null,null],[null,null,null,null,{"color":"black","pieceType":2},null,{"color":"white","pieceType":0},null],[null,null,null,null,{"color":"black","pieceType":0},null,null,{"color":"white","pieceType":0}],[null,null,null,null,null,null,null,null],[{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},null,{"color":"black","pieceType":3},null,{"color":"black","pieceType":0},{"color":"black","pieceType":0}],[{"color":"black","pieceType":4},{"color":"black","pieceType":2},null,null,{"color":"black","pieceType":4},{"color":"black","pieceType":1},null,null]],"turn":"black","capturedPiecesList":[{"color":"white","pieceType":5},{"color":"black","pieceType":5},{"color":"white","pieceType":4},{"color":"black","pieceType":3},{"color":"white","pieceType":2},{"color":"black","pieceType":0},{"color":"white","pieceType":0},{"color":"black","pieceType":0},{"color":"white","pieceType":0}],"check":false,"checkmate":false,"draw":false,"drawReason":"","resigned":"","outOfTime":"","whiteKingMoved":true,"blackKingMoved":true,"farWhiteRookMoved":false,"farBlackRookMoved":false,"nearWhiteRookMoved":false,"nearBlackRookMoved":false,"whitePlayerView":false,"fiftyMovesCounter":4,"promoting":false,"queensideWhiteRookMoved":false,"queensideBlackRookMoved":false,"kingsideWhiteRookMoved":false,"kingsideBlackRookMoved":false,"lastMove":{"valid":true,"source":{"row":1,"col":5},"target":{"row":2,"col":5},"piece":{"color":"white","pieceType":1},"promotion":false,"ennPassant":false,"capturedPiece":null,"hitSquare":null,"turn":"white","castling":false,"whitePlayerView":false}}`;
+
+    it("Kc4 is not a legal response after 16...Nb5+ because the d5 pawn controls c4", () => {
+        // Arrange
+        game.startNewGame();
+        game.loadGame(bugState);
+
+        // 16...Nb5+ : black knight (d4) moves to b5, giving check to white king on c3
+        // In black-view coordinates: source (3,4) → target (4,6)
+        const knightMove = game.makeMove({ row: 3, col: 4 }, { row: 4, col: 6 }, "black");
+        assert.equal(knightMove.valid, true, "Nb5+ should be a valid black move");
+        assert.equal(game.Check, true, "White king should be in check after Nb5+");
+
+        // 17. Kc4? : white king (c3) attempts c4 — must be rejected (d5 pawn covers c4)
+        // In black-view coordinates: source (2,5) → target (3,5)
+        const kc4 = game.validateMove({ row: 2, col: 5 }, { row: 3, col: 5 }, "white");
+
+        // Assert
+        assert.equal(kc4.valid, false, "Kc4 must be illegal because the d5 pawn controls c4");
+    });
+});
+
 
 
