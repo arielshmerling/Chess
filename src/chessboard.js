@@ -946,6 +946,61 @@ function initBookmarksPanelDraggable() {
     });
 }
 
+/**
+ * Research: infer king/rook "moved" flags from the current board (home squares depend on `whitePlayerView`,
+ * matching ChessGame / #getBoardViewSettings and castling column logic in #performMove).
+ */
+function researchIsKingOnSquare(board, row, col, color, KING) {
+    const p = board[row] && board[row][col];
+    return !!(p && p.color === color && p.pieceType === KING);
+}
+function researchIsRookOnSquare(board, row, col, color, ROOK) {
+    const p = board[row] && board[row][col];
+    return !!(p && p.color === color && p.pieceType === ROOK);
+}
+function researchSyncKingRookFlagsFromBoard(state) {
+    if (!state || !state.board) {
+        return;
+    }
+    const KING = game.KING;
+    const ROOK = game.ROOK;
+    const b = state.board;
+    const wv = state.whitePlayerView !== false;
+    var whiteRow;
+    var blackRow;
+    var wKingR;
+    var wKingC;
+    var bKingR;
+    var bKingC;
+    var ksCol;
+    var qsCol;
+    if (wv) {
+        whiteRow = 7;
+        blackRow = 0;
+        wKingR = 7; wKingC = 4;
+        bKingR = 0; bKingC = 4;
+        ksCol = 7;
+        qsCol = 0;
+    } else {
+        whiteRow = 0;
+        blackRow = 7;
+        wKingR = 0; wKingC = 3;
+        bKingR = 7; bKingC = 3;
+        ksCol = 0;
+        qsCol = 7;
+    }
+    state.whiteKingMoved = !researchIsKingOnSquare(b, wKingR, wKingC, "white", KING);
+    state.blackKingMoved = !researchIsKingOnSquare(b, bKingR, bKingC, "black", KING);
+    state.kingsideWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, ksCol, "white", ROOK);
+    state.queensideWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, qsCol, "white", ROOK);
+    state.kingsideBlackRookMoved = !researchIsRookOnSquare(b, blackRow, ksCol, "black", ROOK);
+    state.queensideBlackRookMoved = !researchIsRookOnSquare(b, blackRow, qsCol, "black", ROOK);
+    state.farWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, 0, "white", ROOK);
+    state.nearWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, 7, "white", ROOK);
+    state.farBlackRookMoved = !researchIsRookOnSquare(b, blackRow, 0, "black", ROOK);
+    state.nearBlackRookMoved = !researchIsRookOnSquare(b, blackRow, 7, "black", ROOK);
+}
+
 function initResearchMode() {
     researchMode = true;
     document.body.classList.add("research-mode");
@@ -957,6 +1012,7 @@ function initResearchMode() {
     game.startNewGame(true);
     const state = JSON.parse(JSON.stringify(game.GameState));
     state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
+    researchSyncKingRookFlagsFromBoard(state);
     game.loadGame(JSON.stringify(state));
     const innerBoardEl = document.getElementById("innerBoard");
     if (innerBoardEl) innerBoardEl.classList.add("research-no-animate");
@@ -992,7 +1048,9 @@ function applyResearchBookmarkFromUrlIfPresent() {
     const bookmarkObj = bookmarks.find(function (b) { return b._id === bookmarkIdParam; });
     if (!bookmarkObj) return;
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
-    game.loadGame(stateStr);
+    const loaded = JSON.parse(stateStr);
+    researchSyncKingRookFlagsFromBoard(loaded);
+    game.loadGame(JSON.stringify(loaded));
     const state = game.GameState;
     if (state && state.board) { drawBoard(state.board); }
     const div = document.getElementById("bookmark" + bookmarkObj.id);
@@ -1084,6 +1142,7 @@ function createResearchToolbox() {
     resetBtn.onclick = function () {
         const state = JSON.parse(JSON.stringify(game.GameState));
         state.board = Array.from({ length: game.BOARD_ROWS }, () => Array(game.BOARD_COLUMNS).fill(null));
+        researchSyncKingRookFlagsFromBoard(state);
         game.loadGame(JSON.stringify(state));
         researchSelected = { color: "white", pieceType: game.PAWN };
         panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
@@ -1140,6 +1199,7 @@ function registerResearchBoardClick() {
         } else if (researchSelected && typeof researchSelected === "object") {
             state.board[row][col] = { color: researchSelected.color, pieceType: researchSelected.pieceType };
         } else return;
+        researchSyncKingRookFlagsFromBoard(state);
         game.loadGame(JSON.stringify(state));
     });
 
@@ -1177,6 +1237,7 @@ function registerResearchBoardClick() {
                 const state = JSON.parse(JSON.stringify(game.GameState));
                 state.board[targetRow][targetCol] = state.board[sr][sc];
                 state.board[sr][sc] = null;
+                researchSyncKingRookFlagsFromBoard(state);
                 game.loadGame(JSON.stringify(state));
             }
         }
@@ -4788,7 +4849,9 @@ function loadBookmarkOnBoard(bookmarkId) {
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
     if (!bookmarkObj) return;
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
-    game.loadGame(stateStr);
+    const loaded = JSON.parse(stateStr);
+    researchSyncKingRookFlagsFromBoard(loaded);
+    game.loadGame(JSON.stringify(loaded));
     const state = game.GameState;
     if (state && state.board) { drawBoard(state.board); }
 }
@@ -5036,7 +5099,13 @@ function showLoadGameDialog() {
 function loadGameButtonEventHandler() {
 
     const textArea = document.getElementById("loadGameText");
-    game.loadGame(textArea.value);
+    if (researchMode) {
+        const loaded = JSON.parse(textArea.value);
+        researchSyncKingRookFlagsFromBoard(loaded);
+        game.loadGame(JSON.stringify(loaded));
+    } else {
+        game.loadGame(textArea.value);
+    }
     sendCommand("setState", game.GameState);
     const loadGamePanel = document.getElementById("loadGamePanel");
     loadGamePanel.style.visibility = "hidden";
