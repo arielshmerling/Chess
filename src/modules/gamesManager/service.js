@@ -175,14 +175,19 @@ function parseStoredMove(raw) {
  * @returns {{ board: unknown[][], turn: string } | null}
  */
 exports.getActiveGameBoardSnapshot = (gameId, dbMoves) => {
-    const live = exports.getGameById(gameId);
-    if (live && live.chessGame) {
-        const gs = live.chessGame.GameState;
-        if (gs && gs.board) {
-            return { board: gs.board, turn: gs.turn || "white" };
+    try {
+        const live = exports.getGameById(gameId);
+        if (live && live.chessGame) {
+            const gs = live.chessGame.GameState;
+            if (gs && gs.board) {
+                return { board: gs.board, turn: gs.turn || "white" };
+            }
         }
+        return exports.replayStoredMovesToBoardState(dbMoves);
+    } catch (err) {
+        console.error(`[getActiveGameBoardSnapshot] Error for game ${gameId} — returning null:`, err.message);
+        return null;
     }
-    return exports.replayStoredMovesToBoardState(dbMoves);
 };
 
 /**
@@ -190,42 +195,53 @@ exports.getActiveGameBoardSnapshot = (gameId, dbMoves) => {
  * @returns {{ board: unknown[][], turn: string } | null}
  */
 exports.replayStoredMovesToBoardState = (movesRaw) => {
-    const { ChessGame } = require("../../ChessGame");
-    const chess = new ChessGame(true);
-    chess.startNewGame(true);
-    const moves = (movesRaw || []).map(parseStoredMove).filter(Boolean);
-    for (const m of moves) {
-        if (!m.source || !m.target) {
-            continue;
-        }
-        if (chess.isResultMove(m)) {
-            break;
-        }
-        try {
-            const actual = chess.makeMove(m.source, m.target);
-            if (!actual) {
+    try {
+        const { ChessGame } = require("../../ChessGame");
+        const chess = new ChessGame(true);
+        chess.startNewGame(true);
+        const moves = (movesRaw || []).map(parseStoredMove).filter(Boolean);
+        for (const m of moves) {
+            if (!m.source || !m.target) {
+                continue;
+            }
+            if (chess.isResultMove(m)) {
                 break;
             }
-            if (actual.promotion) {
-                if (m.selectedPiece != null) {
-                    actual.selectedPiece = m.selectedPiece;
-                    chess.completePromotion(actual);
-                } else {
+            try {
+                // Validate before making the move — catches corrupted/empty-square moves
+                // without triggering the async #performMove error path in ChessGame.
+                const validation = chess.validateMove(m.source, m.target, chess.Turn);
+                if (!validation || !validation.valid) {
                     break;
                 }
+                const actual = chess.makeMove(m.source, m.target);
+                if (!actual) {
+                    break;
+                }
+                if (actual.promotion) {
+                    if (m.selectedPiece != null) {
+                        actual.selectedPiece = m.selectedPiece;
+                        chess.completePromotion(actual);
+                    } else {
+                        break;
+                    }
+                }
+            } catch {
+                break;
             }
-        } catch {
-            break;
+            if (chess.GameOver) {
+                break;
+            }
         }
-        if (chess.GameOver) {
-            break;
+        const gs = chess.GameState;
+        if (!gs || !gs.board) {
+            return null;
         }
-    }
-    const gs = chess.GameState;
-    if (!gs || !gs.board) {
+        return { board: gs.board, turn: gs.turn || "white" };
+    } catch (err) {
+        console.error("[replayStoredMovesToBoardState] Unexpected error — skipping game snapshot:", err.message);
         return null;
     }
-    return { board: gs.board, turn: gs.turn || "white" };
 };
 
 /**

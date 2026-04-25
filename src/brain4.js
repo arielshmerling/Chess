@@ -160,10 +160,14 @@ function suggestMove(chess, maxDepth) {
         depth--;
         return moves[0];
     }
-
+    console.log("suggestMove, avialble moves: " + moves.length + " moves");
     for (let i = 0; i < moves.length; i++) {
         const move = moves[i];
         move.score = scoreMove(chess, move, maxDepth);
+        if(depth==1){
+        console.log(i + ". " + chess.getSimpleNotation(move) + " stateScore: " + move.score);
+        }
+        
     }
 
     const finalResult = findBestMove(moves);
@@ -176,7 +180,7 @@ function findBestMove(moves) {
     const max = Math.max(...moves.map(o => o.score));
     moves = moves.filter(o => o.score == max);
     const rand = Math.floor(Math.random() * moves.length);
-    //console.log("findBestMove: " + moves.length + " moves, choosing random move #" + rand);
+    console.log("findBestMove: " + moves.length + " moves, choosing random move #" + rand + " (" + chess.getSimpleNotation(moves[rand]) + ")");
     return moves[rand];
 }
 /**

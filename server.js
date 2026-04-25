@@ -1,3 +1,8 @@
+// Prevent any stray unhandled Promise rejection from crashing the process.
+process.on("unhandledRejection", (reason) => {
+    console.error("[unhandledRejection] Caught unhandled Promise rejection:", reason);
+});
+
 const app = require("./src/app.js"); // Import the configured Express app
 const { Database } = require("./src/db/database.js");
 const gameManagerService = require("./src/modules/gamesManager/service.js");

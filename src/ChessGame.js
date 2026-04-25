@@ -766,6 +766,57 @@ class ChessGame {
         return ambiguousInfo;
     }
 
+    getSimpleNotation(move) {
+        const letters = ["a", "b", "c", "d", "e", "f", "g", "h"];
+        const moveString = [];
+
+        if (move.castling) {
+            return move.kingsideCastling ? "O-O" : "O-O-O";
+        }
+
+        const PIECE = 0, SOURCE_ROW = 2, SOURCE_COL = 1, CAPTURE = 3, TARGET_COL = 4, TARGET_ROW = 5, PROMOTION = 6, PROMOTION_PIECE = 7, ALERT = 8;
+
+
+        moveString[PIECE] = this.pieceToLetter(move.piece.pieceType);
+        
+       
+                moveString[SOURCE_ROW] = this.#state.whitePlayerView ?
+                    this.BOARD_ROWS - move.source.row :
+                    move.source.row + 1;
+           
+                moveString[SOURCE_COL] = this.#state.whitePlayerView ?
+                    letters[move.source.col] :
+                    letters[this.BOARD_COLUMNS - move.source.col - 1];
+            
+        
+
+
+        moveString[TARGET_COL] = this.#state.whitePlayerView ?
+            letters[move.target.col] :
+            letters[this.BOARD_COLUMNS - move.target.col - 1];
+
+        moveString[TARGET_ROW] = this.#state.whitePlayerView ?
+            this.BOARD_ROWS - move.target.row :
+            move.target.row + 1;
+
+        if (move.promotion) {
+            moveString[PROMOTION] = "=";
+            moveString[PROMOTION_PIECE] = this.pieceToLetter(move.selectedPiece);
+        }
+
+        if (move.check) {
+            moveString[ALERT] = "+";
+        }
+
+        if (move.checkmate) {
+            moveString[ALERT] = "#";
+        }
+
+        const result = moveString.join("");
+        return result;
+        
+    }
+
     getPGNMoveNotation(move) {
 
         if (this.SearchMode) {
