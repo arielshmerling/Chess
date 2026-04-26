@@ -345,6 +345,104 @@ body.research-dragging #innerBoard {
     background: rgba(100, 180, 100, 0.25);
 }
 
+.research-brain-config {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    z-index: 49;
+    width: 250px;
+    background: var(--panel-background, rgba(30, 30, 30, 0.95));
+    border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    user-select: none;
+}
+
+.research-brain-config-titlebar {
+    cursor: grab;
+    padding: 8px 10px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--semiLight, #98c1d9);
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.1));
+}
+
+.research-brain-config-body {
+    padding: 8px 10px 10px;
+}
+
+.research-brain-config-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.research-brain-config-row label {
+    font-size: 0.8em;
+    color: var(--light);
+    min-width: 48px;
+}
+
+.research-brain-engine-select {
+    flex: 1;
+    min-height: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--panel-border);
+    background: var(--textbox-background);
+    color: var(--textbox-forecolor);
+    font-size: 0.8em;
+}
+
+.research-brain-config-status {
+    font-size: 0.75em;
+    color: var(--semiLight);
+    margin-bottom: 6px;
+}
+
+.research-brain-config-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.research-brain-config-table th,
+.research-brain-config-table td {
+    font-size: 0.78em;
+    padding: 4px;
+    text-transform: capitalize;
+}
+
+.research-brain-config-table th {
+    color: var(--semiLight);
+    text-align: left;
+}
+
+.research-brain-config-table input {
+    width: 100%;
+    height: 24px;
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    background-color: var(--textbox-background);
+    color: var(--textbox-forecolor);
+    box-sizing: border-box;
+    padding: 2px 6px;
+}
+
+.research-brain-config-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.research-brain-config-actions .button {
+    min-height: 26px;
+    padding: 3px 10px;
+}
+
 /* Research mode: hide side panels (clocks, moves, player info) */
 #main[data-research-mode="true"] .controlPanel {
     display: none;

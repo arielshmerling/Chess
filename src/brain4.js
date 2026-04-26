@@ -2,9 +2,11 @@
 const { Worker, isMainThread, parentPort, workerData } = require("worker_threads");
 const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
+const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
 var chess;
 var depth = 0;
 const DEFAULT_MAX_DEPTH = 2;
+let runtimeConfig = getDefaultConfig("brain4");
 
 exports.Name = "Brain 4.0";
 
@@ -95,7 +97,7 @@ function createWorkerPromise(strState, maxDepth) {
 
         // Send request to worker
         console.log(`Sending request ${requestId} to worker thread (depth ${depthLimit})`);
-        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit });
+        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit, config: runtimeConfig });
     });
 }
 
@@ -118,6 +120,7 @@ function getFirstLegalMove(game) {
 }
 
 exports.brainNextMoveFunc = async (game, options) => {
+    runtimeConfig = sanitizeBrainConfig("brain4", options?.config || {});
     const state = game.GameState;
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
@@ -259,20 +262,21 @@ function scoreMove(chess, move, maxDepth) {
 }
 
 function pieceValue(pieceType) {
+    const scores = runtimeConfig.pieceScores;
 
     switch (pieceType) {
         case chess.PAWN:
-            return 1;
+            return scores.pawn;
         case chess.ROOK:
-            return 5;
+            return scores.rook;
         case chess.KNIGHT:
-            return 3;
+            return scores.knight;
         case chess.BISHOP:
-            return 3.25;
+            return scores.bishop;
         case chess.QUEEN:
-            return 9;
+            return scores.queen;
         case chess.KING:
-            return 10000;
+            return scores.king;
         default:
             return 0;
     }
@@ -301,7 +305,7 @@ if (!isMainThread) {
 
     // Listen for messages from main thread
     parentPort.on("message", (request) => {
-        const { requestId, gameState, maxDepth: requestMaxDepth } = request;
+        const { requestId, gameState, maxDepth: requestMaxDepth, config } = request;
 
         if (!requestId || !gameState) {
             console.error("Worker thread: Invalid request received", request);
@@ -310,6 +314,7 @@ if (!isMainThread) {
         }
 
         const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        runtimeConfig = sanitizeBrainConfig("brain4", config || {});
         console.log(`Brain 4 is thinking... (request ${requestId}, depth ${maxDepth})`);
         const startTime = Date.now();
 

@@ -3,6 +3,7 @@ const path = require("path");
 const { GameBase } = require("./GameBase");
 const { Player } = require("./Player");
 const { SinglePlayerMessageProcessor } = require("./SinglePlayerMessageProcessor");
+const brainConfigService = require("./brainConfigService");
 
 const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41"];
 
@@ -50,6 +51,8 @@ class SinglePlayerGame extends GameBase {
             this._BrainTimeoutFallbackError = null;
         } else {
             const engine = loadEngine(this.options.engine);
+            const engineName = this.options.engine || "brain4";
+            this.options.engineConfig = brainConfigService.loadBrainConfig(engineName);
             this._brainNextMoveFunc = engine.brainNextMoveFunc;
             this._brainName = engine.Name;
             this._BrainTimeoutFallbackError = engine.BrainTimeoutFallbackError;
@@ -104,7 +107,10 @@ class SinglePlayerGame extends GameBase {
         try {
             // console.profile();
             console.time("brain");
-            const brainMove = await brainNextMoveFunc(chessGame, { maxDepth });
+            const brainMove = await brainNextMoveFunc(chessGame, {
+                maxDepth,
+                config: this.options.engineConfig,
+            });
             console.timeEnd("brain");
             //    console.profileEnd();
 

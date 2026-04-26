@@ -10,6 +10,7 @@ const gamesManagerService = require("../gamesManager/service");
 const { Game } = require("./model");
 const { Player } = require("./Player");
 const { User } = require("../user/model");
+const brainConfigService = require("./brainConfigService");
 const ExpressError = require("../../utils/ExpressError");
 const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
@@ -142,6 +143,18 @@ exports.getGameInfo = catchAsync(async (req, res) => {
     else {
         res.redirect("/home");
     }
+});
+
+exports.getBrainConfig = catchAsync(async (req, res) => {
+    const engine = typeof req.query.engine === "string" ? String(req.query.engine).trim() : "brain4";
+    const config = brainConfigService.loadBrainConfig(engine);
+    res.send({ engine, config });
+});
+
+exports.saveBrainConfig = catchAsync(async (req, res) => {
+    const engine = typeof req.body.engine === "string" ? String(req.body.engine).trim() : "brain4";
+    const config = brainConfigService.saveBrainConfig(engine, req.body.config || {});
+    res.send({ status: "OK", engine, config });
 });
 
 function createGameInfo(game, userName, userId) {

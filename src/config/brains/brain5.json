@@ -1,0 +1,10 @@
+{
+  "pieceScores": {
+    "pawn": 1,
+    "rook": 5,
+    "knight": 3,
+    "bishop": 3.25,
+    "queen": 9,
+    "king": 10000
+  }
+}

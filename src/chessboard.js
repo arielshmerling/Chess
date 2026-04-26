@@ -39,6 +39,22 @@ const BOOKMARK_BRAIN_OPTIONS = [
     { value: "brain4", label: "Brain 4.0" },
 ];
 const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
+const BRAIN_CONFIG_PIECE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "king"];
+const BRAIN_CONFIG_DEFAULTS = {
+    brain: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
+    brain2: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
+    brain3: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
+    brain4: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
+    brain41: {
+        pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+        specialEvaluations: {
+            knightPairBonus: 0,
+            bishopPairBonus: 0,
+            bishopKnightPairBonus: 0,
+        },
+    },
+    brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
+};
 
 function normalizeBookmarkEngine(engineName) {
     return BOOKMARK_BRAIN_OPTIONS.some(function (opt) { return opt.value === engineName; }) ? engineName : "brain41";
@@ -89,6 +105,7 @@ async function executeBookmarkFromResearch(bookmarkObj, bookmarkId) {
     await startGame();
     await applyBookmarkAction(bookmarkId);
     setResearchRunningBookmark(bookmarkId);
+    syncBrainConfigPanelEngine(engine);
 }
 
 function setResearchRunningBookmark(bookmarkId) {
@@ -889,6 +906,12 @@ let researchSelected = null; // { color, pieceType } or "eraser" or "select"
 let researchDraggingFrom = null; // { row, col } when dragging in select mode
 let researchEditingBookmarkId = null; // bookmark id when editing position (Edit → Save flow)
 let researchRunningBookmarkId = null; // bookmark id currently running from research
+let researchBrainConfigState = {
+    engine: "brain41",
+    saved: null,
+    draft: null,
+    dirty: false,
+};
 
 function updateResearchCursor() {
     if (!researchMode) return;
@@ -923,6 +946,7 @@ function researchSelectTool() {
 const RESEARCH_LAYOUT_KEYS = {
     toolbox: "researchLayoutToolbox",
     bookmarks: "researchLayoutBookmarks",
+    brainConfig: "researchLayoutBrainConfig",
 };
 
 function applySavedPanelPosition(panelEl, storageKey, defaultLeft, defaultTop) {
@@ -1093,6 +1117,8 @@ function initResearchMode() {
     const innerBoardEl = document.getElementById("innerBoard");
     if (innerBoardEl) innerBoardEl.classList.add("research-no-animate");
     createResearchToolbox();
+    createResearchBrainConfigPanel();
+    loadResearchBrainConfig("brain41");
     registerResearchBoardClick();
     addOptionsButtons();
     const bookmarkBtnEl = document.getElementById("bookmarkBtn");
@@ -1254,6 +1280,274 @@ function createResearchToolbox() {
         const left = board && m ? Math.max(gap, (board.offsetLeft || 0) - w - gap) : gap;
         const top = m ? Math.max(gap, (m.offsetHeight - h) / 2) : 80;
         return { left: left, top: top };
+    });
+}
+
+function getResearchConfigEngineLabel(engineName) {
+    const match = BOOKMARK_BRAIN_OPTIONS.find(function (opt) { return opt.value === engineName; });
+    return match ? match.label : engineName;
+}
+
+function getResearchActiveEngine() {
+    if (researchRunningBookmarkId != null) {
+        const runningBookmark = bookmarks.find(function (el) { return el.id == researchRunningBookmarkId; });
+        if (runningBookmark && runningBookmark.engine) {
+            return normalizeBookmarkEngine(runningBookmark.engine);
+        }
+    }
+    if (gameInfo && gameInfo.engine) {
+        return normalizeBookmarkEngine(gameInfo.engine);
+    }
+    return "brain41";
+}
+
+function setResearchConfigDirtyState(dirty) {
+    researchBrainConfigState.dirty = !!dirty;
+    const panel = document.getElementById("researchBrainConfig");
+    if (!panel) {
+        return;
+    }
+    panel.classList.toggle("is-dirty", !!dirty);
+    const saveBtn = panel.querySelector(".research-brain-config-save");
+    const discardBtn = panel.querySelector(".research-brain-config-discard");
+    if (saveBtn) saveBtn.disabled = !dirty;
+    if (discardBtn) discardBtn.disabled = !dirty;
+}
+
+function getBrainConfigDefaults(engineName) {
+    const safeEngine = normalizeBookmarkEngine(engineName || "brain41");
+    const defaults = BRAIN_CONFIG_DEFAULTS[safeEngine] || BRAIN_CONFIG_DEFAULTS.brain41;
+    return JSON.parse(JSON.stringify(defaults));
+}
+
+function getBrainConfigFieldDefs(engineName) {
+    const fields = BRAIN_CONFIG_PIECE_KEYS.map(function (key) {
+        return {
+            label: key,
+            section: "pieceScores",
+            key: key,
+        };
+    });
+    if (engineName === "brain41") {
+        fields.push({
+            label: "Knights Pair Bonus",
+            section: "specialEvaluations",
+            key: "knightPairBonus",
+        });
+        fields.push({
+            label: "Bishop Pair Bonus",
+            section: "specialEvaluations",
+            key: "bishopPairBonus",
+        });
+        fields.push({
+            label: "Bishop Knioght Pair Bonus",
+            section: "specialEvaluations",
+            key: "bishopKnightPairBonus",
+        });
+    }
+    return fields;
+}
+
+function renderResearchBrainConfigTable() {
+    const panel = document.getElementById("researchBrainConfig");
+    if (!panel) {
+        return;
+    }
+    const tbody = panel.querySelector(".research-brain-config-table tbody");
+    if (!tbody) {
+        return;
+    }
+    tbody.innerHTML = "";
+    const fields = getBrainConfigFieldDefs(researchBrainConfigState.engine || "brain41");
+    fields.forEach(function (field) {
+        const sectionDraft = researchBrainConfigState.draft && researchBrainConfigState.draft[field.section]
+            ? researchBrainConfigState.draft[field.section]
+            : {};
+        const row = document.createElement("tr");
+        const nameCell = document.createElement("td");
+        nameCell.textContent = field.label;
+        row.appendChild(nameCell);
+        const valueCell = document.createElement("td");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "0.01";
+        input.value = String(sectionDraft[field.key] != null ? sectionDraft[field.key] : 0);
+        input.setAttribute("data-config-section", field.section);
+        input.setAttribute("data-config-key", field.key);
+        input.addEventListener("input", function () {
+            const parsed = Number(input.value);
+            if (!researchBrainConfigState.draft) {
+                researchBrainConfigState.draft = {};
+            }
+            if (!researchBrainConfigState.draft[field.section]) {
+                researchBrainConfigState.draft[field.section] = {};
+            }
+            researchBrainConfigState.draft[field.section][field.key] = Number.isFinite(parsed) ? parsed : 0;
+            const isDirty = fields.some(function (f) {
+                const draftVal = researchBrainConfigState.draft && researchBrainConfigState.draft[f.section]
+                    ? researchBrainConfigState.draft[f.section][f.key]
+                    : undefined;
+                const savedVal = researchBrainConfigState.saved && researchBrainConfigState.saved[f.section]
+                    ? researchBrainConfigState.saved[f.section][f.key]
+                    : undefined;
+                return Number(draftVal) !== Number(savedVal);
+            });
+            setResearchConfigDirtyState(isDirty);
+        });
+        valueCell.appendChild(input);
+        row.appendChild(valueCell);
+        tbody.appendChild(row);
+    });
+}
+
+async function loadResearchBrainConfig(engineName) {
+    const safeEngine = normalizeBookmarkEngine(engineName);
+    researchBrainConfigState.engine = safeEngine;
+    const panel = document.getElementById("researchBrainConfig");
+    if (panel) {
+        const statusEl = panel.querySelector(".research-brain-config-status");
+        if (statusEl) {
+            statusEl.textContent = "Loading...";
+        }
+    }
+    const response = await getServerInfo("/brain-config?engine=" + encodeURIComponent(safeEngine));
+    const loadedConfig = response && response.config ? response.config : getBrainConfigDefaults(safeEngine);
+    researchBrainConfigState.saved = JSON.parse(JSON.stringify(loadedConfig));
+    researchBrainConfigState.draft = JSON.parse(JSON.stringify(loadedConfig));
+    renderResearchBrainConfigTable();
+    setResearchConfigDirtyState(false);
+    if (panel) {
+        const statusEl = panel.querySelector(".research-brain-config-status");
+        if (statusEl) {
+            statusEl.textContent = getResearchConfigEngineLabel(safeEngine);
+        }
+    }
+}
+
+async function saveResearchBrainConfig() {
+    const engine = researchBrainConfigState.engine || getResearchActiveEngine();
+    const response = await postServerInfo("/brain-config", {
+        engine: engine,
+        config: researchBrainConfigState.draft || { pieceScores: {} },
+    });
+    const savedConfig = response && response.config ? response.config : researchBrainConfigState.draft;
+    researchBrainConfigState.saved = JSON.parse(JSON.stringify(savedConfig));
+    researchBrainConfigState.draft = JSON.parse(JSON.stringify(savedConfig));
+    renderResearchBrainConfigTable();
+    setResearchConfigDirtyState(false);
+}
+
+function discardResearchBrainConfigChanges() {
+    if (!researchBrainConfigState.saved) {
+        return;
+    }
+    researchBrainConfigState.draft = JSON.parse(JSON.stringify(researchBrainConfigState.saved));
+    renderResearchBrainConfigTable();
+    setResearchConfigDirtyState(false);
+}
+
+function syncBrainConfigPanelEngine(engineName) {
+    const panel = document.getElementById("researchBrainConfig");
+    if (!panel) {
+        return;
+    }
+    const select = panel.querySelector(".research-brain-engine-select");
+    const safeEngine = normalizeBookmarkEngine(engineName);
+    if (select) {
+        select.value = safeEngine;
+    }
+    loadResearchBrainConfig(safeEngine).catch(function (error) {
+        console.error("Failed to sync brain config panel engine:", error);
+    });
+}
+
+function createResearchBrainConfigPanel() {
+    if (document.getElementById("researchBrainConfig")) {
+        return;
+    }
+    const panel = document.createElement("div");
+    panel.id = "researchBrainConfig";
+    panel.className = "research-brain-config";
+    const titleBar = document.createElement("div");
+    titleBar.className = "research-brain-config-titlebar";
+    titleBar.textContent = "Brain Config";
+    panel.appendChild(titleBar);
+
+    const body = document.createElement("div");
+    body.className = "research-brain-config-body";
+
+    const topRow = document.createElement("div");
+    topRow.className = "research-brain-config-row";
+    const engineLabel = document.createElement("label");
+    engineLabel.textContent = "Engine";
+    engineLabel.setAttribute("for", "researchBrainEngineSelect");
+    const engineSelect = document.createElement("select");
+    engineSelect.id = "researchBrainEngineSelect";
+    engineSelect.className = "research-brain-engine-select";
+    BOOKMARK_BRAIN_OPTIONS.forEach(function (opt) {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        engineSelect.appendChild(option);
+    });
+    engineSelect.value = getResearchActiveEngine();
+    engineSelect.addEventListener("change", function () {
+        loadResearchBrainConfig(engineSelect.value).catch(function (error) {
+            console.error("Failed to load brain config:", error);
+            alertMessageBox("Failed to load brain config.");
+        });
+    });
+    topRow.appendChild(engineLabel);
+    topRow.appendChild(engineSelect);
+    body.appendChild(topRow);
+
+    const status = document.createElement("div");
+    status.className = "research-brain-config-status";
+    status.textContent = getResearchConfigEngineLabel(engineSelect.value);
+    body.appendChild(status);
+
+    const table = document.createElement("table");
+    table.className = "research-brain-config-table";
+    table.innerHTML = "<thead><tr><th>Property</th><th>Value</th></tr></thead><tbody></tbody>";
+    body.appendChild(table);
+
+    const actions = document.createElement("div");
+    actions.className = "research-brain-config-actions";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "button research-brain-config-save";
+    saveBtn.textContent = "Save";
+    saveBtn.disabled = true;
+    saveBtn.addEventListener("click", function () {
+        saveResearchBrainConfig().catch(function (error) {
+            console.error("Failed to save brain config:", error);
+            alertMessageBox("Failed to save brain config.");
+        });
+    });
+    const discardBtn = document.createElement("button");
+    discardBtn.type = "button";
+    discardBtn.className = "button research-brain-config-discard";
+    discardBtn.textContent = "Discard";
+    discardBtn.disabled = true;
+    discardBtn.addEventListener("click", function () {
+        discardResearchBrainConfigChanges();
+    });
+    actions.appendChild(saveBtn);
+    actions.appendChild(discardBtn);
+    body.appendChild(actions);
+
+    panel.appendChild(body);
+    const main = document.getElementById("main");
+    if (main) {
+        main.insertBefore(panel, main.firstChild);
+    }
+    setupDraggablePanel(panel, titleBar, RESEARCH_LAYOUT_KEYS.brainConfig, function () {
+        const m = document.getElementById("main");
+        const board = document.getElementById("chessboard");
+        const gap = 20;
+        const width = panel.offsetWidth || 260;
+        const left = board && m ? Math.max(gap, (board.offsetLeft || 0) - width - gap) : gap;
+        return { left: left, top: 20 };
     });
 }
 
@@ -2564,6 +2858,9 @@ function scrollMoveCellIntoView(td) {
 
 function updateMovesTable(moves) {
 
+    if(!moves){
+        return;
+    }
     const movesDiv = document.getElementById("movesDiv");
     movesDiv.innerHTML = "";
     const table = document.createElement("table");
@@ -4887,6 +5184,9 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
             bookmarkObj.engine = updatedEngine;
             try {
                 await postServerInfo("/updateBookmark", { id: bookmarkObj._id, engine: updatedEngine });
+                if (researchRunningBookmarkId === bookmarkId) {
+                    syncBrainConfigPanelEngine(updatedEngine);
+                }
             } catch (error) {
                 console.error("Failed to update bookmark brain version:", error);
                 bookmarkObj.engine = previousEngine;

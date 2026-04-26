@@ -1,10 +1,12 @@
 const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
+const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
 var chess;
 const DEFAULT_MAX_DEPTH = 2;
 const MAX_DEBUG_MOVES_TO_PRINT = 12;
 const LOG_PREFIX = "[Brain4.1]";
+let runtimeConfig = getDefaultConfig("brain41");
 
 exports.Name = "Brain 4.1";
 
@@ -66,7 +68,7 @@ function getOrCreateWorker() {
     return persistentWorker;
 }
 
-function createWorkerPromise(strState, maxDepth) {
+function createWorkerPromise(strState, maxDepth, config) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
@@ -88,7 +90,7 @@ function createWorkerPromise(strState, maxDepth) {
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
         console.log(`${LOG_PREFIX} Sending request ${requestId} (depth ${depthLimit})`);
-        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit });
+        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit, config });
     });
 }
 
@@ -109,6 +111,7 @@ function getFirstLegalMove(game) {
 }
 
 exports.brainNextMoveFunc = async (game, options) => {
+    runtimeConfig = sanitizeBrainConfig("brain41", options?.config || {});
     const state = game.GameState;
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
@@ -119,11 +122,11 @@ exports.brainNextMoveFunc = async (game, options) => {
     }
 
     try {
-        return await createWorkerPromise(strState, maxDepth);
+        return await createWorkerPromise(strState, maxDepth, runtimeConfig);
     } catch (err) {
         console.log(`${LOG_PREFIX} First attempt failed, retrying once. Error: ${err.message}`);
         try {
-            return await createWorkerPromise(strState, maxDepth);
+            return await createWorkerPromise(strState, maxDepth, runtimeConfig);
         } catch {
             console.log(`${LOG_PREFIX} Both attempts failed, using first legal fallback move`);
             const fallbackMove = getFirstLegalMove(game);
@@ -236,10 +239,83 @@ function allPossibleMoves(localChess) {
 function stateScore(localChess, move) {
     const state = localChess.GameState;
     const targetPiece = state.board[move.target.row][move.target.col];
-    if (targetPiece == null) {
-        return 0;
+    let score = 0;
+    if (targetPiece != null) {
+        score = pieceValue(localChess, targetPiece.pieceType);
     }
-    return pieceValue(localChess, targetPiece.pieceType);
+    if (hasCurrentPlayerExactlyTwoKnights(localChess)) {
+        score += Number(runtimeConfig.specialEvaluations?.knightPairBonus) || 0;
+    }
+    if (hasCurrentPlayerExactlyTwoBishops(localChess)) {
+        score += Number(runtimeConfig.specialEvaluations?.bishopPairBonus) || 0;
+    }
+    if (hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess)) {
+        score += Number(runtimeConfig.specialEvaluations?.bishopKnightPairBonus) || 0;
+    }
+    return score;
+}
+
+function hasCurrentPlayerExactlyTwoKnights(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return false;
+    }
+    const currentColor = localChess.Turn;
+    let knightsCount = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === localChess.KNIGHT) {
+                knightsCount += 1;
+            }
+        }
+    }
+    return knightsCount === 2;
+}
+
+function hasCurrentPlayerExactlyTwoBishops(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return false;
+    }
+    const currentColor = localChess.Turn;
+    let bishopsCount = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === localChess.BISHOP) {
+                bishopsCount += 1;
+            }
+        }
+    }
+    return bishopsCount === 2;
+}
+
+function hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return false;
+    }
+    const currentColor = localChess.Turn;
+    let hasBishop = false;
+    let hasKnight = false;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (!piece || piece.color !== currentColor) {
+                continue;
+            }
+            if (piece.pieceType === localChess.BISHOP) {
+                hasBishop = true;
+            } else if (piece.pieceType === localChess.KNIGHT) {
+                hasKnight = true;
+            }
+            if (hasBishop && hasKnight) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function scoreMove(localChess, move, maxDepth, ply) {
@@ -293,19 +369,20 @@ function scoreMove(localChess, move, maxDepth, ply) {
 }
 
 function pieceValue(localChess, pieceType) {
+    const scores = runtimeConfig.pieceScores;
     switch (pieceType) {
         case localChess.PAWN:
-            return 1;
+            return scores.pawn;
         case localChess.ROOK:
-            return 5;
+            return scores.rook;
         case localChess.KNIGHT:
-            return 3;
+            return scores.knight;
         case localChess.BISHOP:
-            return 3.25;
+            return scores.bishop;
         case localChess.QUEEN:
-            return 9;
+            return scores.queen;
         case localChess.KING:
-            return 10000;
+            return scores.king;
         default:
             return 0;
     }
@@ -333,7 +410,7 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
-        const { requestId, gameState, maxDepth: requestMaxDepth } = request;
+        const { requestId, gameState, maxDepth: requestMaxDepth, config } = request;
 
         if (!requestId || !gameState) {
             console.error(`${LOG_PREFIX} Worker received invalid request`, request);
@@ -342,6 +419,7 @@ if (!isMainThread) {
         }
 
         const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        runtimeConfig = sanitizeBrainConfig("brain41", config || {});
         const startTime = Date.now();
         console.log(`${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}`);
 
