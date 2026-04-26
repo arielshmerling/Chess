@@ -1,5 +1,5 @@
 
-const { Worker, isMainThread, parentPort, workerData } = require("worker_threads");
+const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
@@ -45,7 +45,7 @@ function getOrCreateWorker() {
         persistentWorker.on("error", (err) => {
             console.error("Persistent worker thread error:", err);
             // Reject all pending requests
-            for (const [requestId, pending] of pendingRequests.entries()) {
+            for (const [, pending] of pendingRequests.entries()) {
                 clearTimeout(pending.timeout);
                 pending.reject(err);
             }
@@ -59,7 +59,7 @@ function getOrCreateWorker() {
                 console.error(`Persistent worker thread exited with code ${code}`);
             }
             // Reject all pending requests
-            for (const [requestId, pending] of pendingRequests.entries()) {
+            for (const [, pending] of pendingRequests.entries()) {
                 clearTimeout(pending.timeout);
                 pending.reject(new Error(`Worker thread exited with code ${code}`));
             }
@@ -137,7 +137,7 @@ exports.brainNextMoveFunc = async (game, options) => {
         // Retry once
         try {
             return await createWorkerPromise(strState, maxDepth);
-        } catch (retryErr) {
+        } catch {
             // Both attempts timed out - get first legal move as fallback
             console.log("Both brain move attempts timed out, using fallback move");
             const fallbackMove = getFirstLegalMove(game);

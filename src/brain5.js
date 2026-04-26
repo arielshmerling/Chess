@@ -1,5 +1,5 @@
 
-const { Worker, isMainThread, parentPort, workerData } = require("worker_threads");
+const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 var chess;
@@ -43,7 +43,7 @@ function getOrCreateWorker() {
         persistentWorker.on("error", (err) => {
             console.error("Persistent worker thread error:", err);
             // Reject all pending requests
-            for (const [requestId, pending] of pendingRequests.entries()) {
+            for (const [, pending] of pendingRequests.entries()) {
                 clearTimeout(pending.timeout);
                 pending.reject(err);
             }
@@ -57,7 +57,7 @@ function getOrCreateWorker() {
                 console.error(`Persistent worker thread exited with code ${code}`);
             }
             // Reject all pending requests
-            for (const [requestId, pending] of pendingRequests.entries()) {
+            for (const [, pending] of pendingRequests.entries()) {
                 clearTimeout(pending.timeout);
                 pending.reject(new Error(`Worker thread exited with code ${code}`));
             }
@@ -149,7 +149,7 @@ exports.brainNextMoveFunc = async (game, options) => {
         // Retry once
         try {
             return await createWorkerPromise(strState, maxDepth);
-        } catch (retryErr) {
+        } catch {
             // Both attempts timed out - get first legal move as fallback
             console.log("Both brain move attempts timed out, using fallback move");
             const fallbackMove = getFirstLegalMove(game);
@@ -197,8 +197,8 @@ function suggestMove(chess, maxDepth, alpha = -Infinity, beta = Infinity, origin
     if (depth > maxDepth) {
         depth--;
         // At max depth, return static evaluation from current player's perspective
-        const eval = evaluatePosition(chess, chess.Turn);
-        return { score: eval };
+        const staticEval = evaluatePosition(chess, chess.Turn);
+        return { score: staticEval };
     }
 
     let bestMove = null;
@@ -285,14 +285,6 @@ function orderMoves(chess, moves) {
     });
 }
 
-function findBestMove(moves) {
-    if (!moves || moves.length == 0) { return null; }
-    const max = Math.max(...moves.map(o => o.score));
-    moves = moves.filter(o => o.score == max);
-    const rand = Math.floor(Math.random() * moves.length);
-    return moves[rand];
-}
-
 /**
  * 
  * @param {ChessGame} chess 
@@ -376,7 +368,6 @@ function stateScore(chess, move) {
  */
 function scoreMove(chess, move, maxDepth, alpha, beta, originalTurn) {
     // Score is from the perspective of the player making the move (before the move)
-    const movePlayerTurn = chess.Turn;
     let score = stateScore(chess, move);
 
     chess.makeMove(move.source, move.target);

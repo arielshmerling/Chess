@@ -243,83 +243,8 @@ function stateScore(localChess, move) {
     if (targetPiece != null) {
         score = pieceValue(localChess, targetPiece.pieceType);
     }
-    if (hasCurrentPlayerExactlyTwoKnights(localChess)) {
-        score += Number(runtimeConfig.specialEvaluations?.knightPairBonus) || 0;
-    }
-    if (hasCurrentPlayerExactlyTwoBishops(localChess)) {
-        score += Number(runtimeConfig.specialEvaluations?.bishopPairBonus) || 0;
-    }
-    if (hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess)) {
-        score += Number(runtimeConfig.specialEvaluations?.bishopKnightPairBonus) || 0;
-    }
-    score -= getCurrentPlayerDoubledPawnCount(localChess) * (Number(runtimeConfig.specialEvaluations?.doublePawnPenalty) || 0);
-    score += getCurrentPlayerAdvancedPawnCount(localChess)
-        * pieceValue(localChess, localChess.PAWN)
-        * (Number(runtimeConfig.specialEvaluations?.pawnAdvancedBonus) || 0);
+    score += getPawnEvalDelta(localChess, runtimeConfig.specialEvaluations, pieceValue(localChess, localChess.PAWN));
     return score;
-}
-
-function hasCurrentPlayerExactlyTwoKnights(localChess) {
-    const state = localChess.GameState;
-    if (!state || !state.board) {
-        return false;
-    }
-    const currentColor = localChess.Turn;
-    let knightsCount = 0;
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const piece = state.board[row][col];
-            if (piece && piece.color === currentColor && piece.pieceType === localChess.KNIGHT) {
-                knightsCount += 1;
-            }
-        }
-    }
-    return knightsCount === 2;
-}
-
-function hasCurrentPlayerExactlyTwoBishops(localChess) {
-    const state = localChess.GameState;
-    if (!state || !state.board) {
-        return false;
-    }
-    const currentColor = localChess.Turn;
-    let bishopsCount = 0;
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const piece = state.board[row][col];
-            if (piece && piece.color === currentColor && piece.pieceType === localChess.BISHOP) {
-                bishopsCount += 1;
-            }
-        }
-    }
-    return bishopsCount === 2;
-}
-
-function hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess) {
-    const state = localChess.GameState;
-    if (!state || !state.board) {
-        return false;
-    }
-    const currentColor = localChess.Turn;
-    let hasBishop = false;
-    let hasKnight = false;
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const piece = state.board[row][col];
-            if (!piece || piece.color !== currentColor) {
-                continue;
-            }
-            if (piece.pieceType === localChess.BISHOP) {
-                hasBishop = true;
-            } else if (piece.pieceType === localChess.KNIGHT) {
-                hasKnight = true;
-            }
-            if (hasBishop && hasKnight) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 function getCurrentPlayerDoubledPawnCount(localChess) {
@@ -374,6 +299,20 @@ function isAdvancedPawnRankForColor(row, color) {
     }
     return false;
 }
+
+/** Pawn structure adjustment used by {@link stateScore} (config-driven double penalty + advanced bonus). */
+function getPawnEvalDelta(localChess, specialEvaluations, pawnValue) {
+    const dpp = Number(specialEvaluations && specialEvaluations.doublePawnPenalty) || 0;
+    const pab = Number(specialEvaluations && specialEvaluations.pawnAdvancedBonus) || 0;
+    const pv = Number(pawnValue) || 0;
+    return -getCurrentPlayerDoubledPawnCount(localChess) * dpp
+        + getCurrentPlayerAdvancedPawnCount(localChess) * pv * pab;
+}
+
+exports.getCurrentPlayerDoubledPawnCount = getCurrentPlayerDoubledPawnCount;
+exports.getCurrentPlayerAdvancedPawnCount = getCurrentPlayerAdvancedPawnCount;
+exports.isAdvancedPawnRankForColor = isAdvancedPawnRankForColor;
+exports.getPawnEvalDelta = getPawnEvalDelta;
 
 function scoreMove(localChess, move, maxDepth, ply) {
     let score = stateScore(localChess, move);

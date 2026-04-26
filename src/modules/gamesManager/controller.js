@@ -153,7 +153,8 @@ exports.showList = async (req, res) => {
 };
 
 exports.search = async (req, res) => {
-    let { page, q, sort: sortKey, order: sortOrder } = req.query;
+    let { page, q } = req.query;
+    const { sort: sortKey, order: sortOrder } = req.query;
     if (!page) {
         page = 1; // default
     }
@@ -214,8 +215,8 @@ exports.delete = async (req, res) => {
     const sortKey = req.body.sortKey;
     const sortOrder = req.body.sortOrder;
     const query = [];
-    if (sortKey) query.push("sort=" + encodeURIComponent(sortKey));
-    if (sortOrder) query.push("order=" + encodeURIComponent(sortOrder));
+    if (sortKey) {query.push("sort=" + encodeURIComponent(sortKey));}
+    if (sortOrder) {query.push("order=" + encodeURIComponent(sortOrder));}
     const qs = query.length ? "?" + query.join("&") : "";
     res.redirect("/list" + qs);
 };

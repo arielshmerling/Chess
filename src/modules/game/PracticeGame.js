@@ -29,6 +29,7 @@ class PracticeGame extends GameBase {
      * Practice quit mid-game: do not run resign flow (no result move, no game over in DB).
      * Persist state in progress, reason null, result null.
      */
+    /* eslint-disable-next-line no-unused-vars -- same signature as GameBase/OnlineGame */
     async resign(_resignedPlayer) {
         this._practiceQuitMidGame = true;
         this.status = "in progress";

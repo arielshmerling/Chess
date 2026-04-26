@@ -73,10 +73,11 @@
     }
 
     function playBase() {
-        if (typeof getPlayGameBasePath === "function") {
+        var pathFn = typeof window !== "undefined" ? window.getPlayGameBasePath : null;
+        if (typeof pathFn === "function") {
             try {
-                return getPlayGameBasePath();
-            } catch (e) {
+                return pathFn();
+            } catch {
                 /* ignore */
             }
         }
@@ -126,9 +127,9 @@
         var namesEl = document.createElement("div");
         namesEl.className = "active-highlight-names";
         namesEl.innerHTML =
-            '<span class="active-highlight-white">' +
+            "<span class=\"active-highlight-white\">" +
             esc(first.whitePlayerName || "White") +
-            '</span><span class="active-highlight-vs"> vs </span><span class="active-highlight-black">' +
+            "</span><span class=\"active-highlight-vs\"> vs </span><span class=\"active-highlight-black\">" +
             esc(first.blackPlayerName || "Black") +
             "</span>";
 
@@ -141,11 +142,11 @@
         metaEl.className = "active-highlight-meta";
         var turn = first.turn === "black" ? "Black" : "White";
         metaEl.innerHTML =
-            '<span class="active-meta-item"><span class="active-meta-label">Moves</span> ' +
+            "<span class=\"active-meta-item\"><span class=\"active-meta-label\">Moves</span> " +
             esc(first.Moves != null ? first.Moves : "0") +
-            '</span><span class="active-meta-item"><span class="active-meta-label">Turn</span> ' +
+            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">Turn</span> " +
             esc(turn) +
-            '</span><span class="active-meta-item"><span class="active-meta-label">Status</span> ' +
+            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">Status</span> " +
             esc(first.Status || "In progress") +
             "</span>";
 
@@ -214,7 +215,7 @@
         if (el && el.textContent) {
             try {
                 initial = JSON.parse(el.textContent);
-            } catch (e) {
+            } catch {
                 initial = [];
             }
         }

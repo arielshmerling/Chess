@@ -135,7 +135,7 @@ exports.getGameInfo = catchAsync(async (req, res) => {
     if (game) {
         let clientDate = {};
         if (game.status == "reJoining") {
-            await rejoinGame(game, req.session.user_name, req.session.user_id);
+            await rejoinGame(game);
         }
         clientDate = createGameInfo(game, req.session.user_name, req.session.user_id);
         res.send(clientDate);
@@ -247,7 +247,7 @@ function calculateTimer(game, isWhite) {
     }
 }
 
-async function rejoinGame(game, userName, userId) {
+async function rejoinGame(game) {
     /* Rejoin fanout ("opponent rejoined", etc.) is sent when the player's WebSocket attaches (e.g. OnlineGame.updateChannel), not from HTTP. */
 
     // update game status

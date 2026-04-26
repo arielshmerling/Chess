@@ -45,7 +45,7 @@ function twilioConfigured() {
 }
 
 async function sendEmailNotification(subject, text) {
-    if (!smtpConfigured()) return;
+    if (!smtpConfigured()) {return;}
     const port = Number(process.env.SMTP_PORT || 587);
     /* Port 465 = TLS from connect. Port 587 = plain SMTP then STARTTLS (secure must be false). */
     const implicitTls = port === 465;
@@ -62,7 +62,7 @@ async function sendEmailNotification(subject, text) {
     const recipients = process.env.ADMIN_NOTIFY_EMAILS.split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-    if (recipients.length === 0) return;
+    if (recipients.length === 0) {return;}
     const from = process.env.SMTP_FROM || process.env.SMTP_USER;
     await transporter.sendMail({
         from,
@@ -73,7 +73,7 @@ async function sendEmailNotification(subject, text) {
 }
 
 async function sendSmsNotification(text) {
-    if (!twilioConfigured()) return;
+    if (!twilioConfigured()) {return;}
     const sid = process.env.TWILIO_ACCOUNT_SID;
     const token = process.env.TWILIO_AUTH_TOKEN;
     const from = process.env.TWILIO_PHONE_NUMBER;

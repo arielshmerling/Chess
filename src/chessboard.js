@@ -48,9 +48,6 @@ const BRAIN_CONFIG_DEFAULTS = {
     brain41: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
         specialEvaluations: {
-            knightPairBonus: 0,
-            bishopPairBonus: 0,
-            bishopKnightPairBonus: 0,
             doublePawnPenalty: 0.25,
             pawnAdvancedBonus: 0.2,
         },
@@ -349,10 +346,6 @@ const guiBoard = [
     [null, null, null, null, null, null, null, null],
     [null, null, null, null, null, null, null, null]
 ];
-
-const UserMessages = {
-    OPPONENT_RECONNCETION_FAILED: "Opponent failed to reconnect",
-};
 
 const Labels = {
     LOAD_GAME: "Load Game",
@@ -797,10 +790,10 @@ async function applyBookmarkFromUrlIfPresent() {
     }
     const params = new URLSearchParams(window.location.search);
     const bookmarkIdParam = params.get("bookmarkId");
-    if (!bookmarkIdParam || gameType !== "SinglePlayerGame" || !gameInfo || !gameInfo.id) return;
+    if (!bookmarkIdParam || gameType !== "SinglePlayerGame" || !gameInfo || !gameInfo.id) {return;}
     const list = await getBookmarks();
     const bookmarkObj = list.find(function (b) { return b._id === bookmarkIdParam; });
-    if (!bookmarkObj) return;
+    if (!bookmarkObj) {return;}
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     await postServerInfo("/applyBookmark", { gameId: gameInfo.id, bookarkId: bookmarkObj._id });
     game.loadGame(stateStr);
@@ -908,7 +901,7 @@ let researchSelected = null; // { color, pieceType } or "eraser" or "select"
 let researchDraggingFrom = null; // { row, col } when dragging in select mode
 let researchEditingBookmarkId = null; // bookmark id when editing position (Edit → Save flow)
 let researchRunningBookmarkId = null; // bookmark id currently running from research
-let researchBrainConfigState = {
+const researchBrainConfigState = {
     engine: "brain41",
     saved: null,
     draft: null,
@@ -916,9 +909,9 @@ let researchBrainConfigState = {
 };
 
 function updateResearchCursor() {
-    if (!researchMode) return;
+    if (!researchMode) {return;}
     const innerBoard = document.getElementById("innerBoard");
-    if (!innerBoard) return;
+    if (!innerBoard) {return;}
     if (researchSelected === "eraser") {
         innerBoard.setAttribute("data-research-cursor", "eraser");
     } else if (researchSelected === "select") {
@@ -940,7 +933,7 @@ function researchSelectTool() {
     if (panel) {
         panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
         const selectBtn = panel.querySelector(".research-toolbox-select");
-        if (selectBtn) selectBtn.classList.add("selected");
+        if (selectBtn) {selectBtn.classList.add("selected");}
     }
     updateResearchCursor();
 }
@@ -965,7 +958,7 @@ function applySavedPanelPosition(panelEl, storageKey, defaultLeft, defaultTop) {
                 return true;
             }
         }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     panelEl.style.left = defaultLeft + "px";
     panelEl.style.top = defaultTop + "px";
     panelEl.style.right = "auto";
@@ -976,7 +969,7 @@ function applySavedPanelPosition(panelEl, storageKey, defaultLeft, defaultTop) {
 
 function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPosition) {
     const main = document.getElementById("main");
-    if (!main || !panelEl || !dragHandleEl) return;
+    if (!main || !panelEl || !dragHandleEl) {return;}
     function placeDefault() {
         const d = getDefaultPosition();
         applySavedPanelPosition(panelEl, storageKey, d.left, d.top);
@@ -987,13 +980,13 @@ function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPositi
         e.preventDefault();
         try {
             localStorage.removeItem(storageKey);
-        } catch (err) { /* ignore */ }
+        } catch { /* ignore */ }
         const d = getDefaultPosition();
         applySavedPanelPosition(panelEl, storageKey, d.left, d.top);
     });
     dragHandleEl.addEventListener("mousedown", function (e) {
-        if (e.button !== 0) return;
-        if (e.target.closest("a")) return;
+        if (e.button !== 0) {return;}
+        if (e.target.closest("a")) {return;}
         e.preventDefault();
         const startX = e.clientX;
         const startY = e.clientY;
@@ -1022,7 +1015,7 @@ function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPositi
                     left: panelEl.offsetLeft,
                     top: panelEl.offsetTop,
                 }));
-            } catch (err) { /* ignore */ }
+            } catch { /* ignore */ }
         }
         document.addEventListener("mousemove", onMove);
         document.addEventListener("mouseup", onUp);
@@ -1031,9 +1024,9 @@ function setupDraggablePanel(panelEl, dragHandleEl, storageKey, getDefaultPositi
 
 function initBookmarksPanelDraggable() {
     const bookmarksPanel = document.getElementById("bookmarksPanel");
-    if (!bookmarksPanel) return;
+    if (!bookmarksPanel) {return;}
     const header = bookmarksPanel.querySelector(".panelHeader");
-    if (!header || header.dataset.dragSetup) return;
+    if (!header || header.dataset.dragSetup) {return;}
     header.dataset.dragSetup = "1";
     header.classList.add("bookmarksPanel-dragHandle");
     bookmarksPanel.classList.add("bookmarksPanel-draggable");
@@ -1117,14 +1110,14 @@ function initResearchMode() {
     researchSyncKingRookFlagsFromBoard(state);
     game.loadGame(JSON.stringify(state));
     const innerBoardEl = document.getElementById("innerBoard");
-    if (innerBoardEl) innerBoardEl.classList.add("research-no-animate");
+    if (innerBoardEl) {innerBoardEl.classList.add("research-no-animate");}
     createResearchToolbox();
     createResearchBrainConfigPanel();
     loadResearchBrainConfig("brain41");
     registerResearchBoardClick();
     addOptionsButtons();
     const bookmarkBtnEl = document.getElementById("bookmarkBtn");
-    if (bookmarkBtnEl) bookmarkBtnEl.remove();
+    if (bookmarkBtnEl) {bookmarkBtnEl.remove();}
     generateMoveButtons();
     registerWindowEvents();
     disableButtons(["rematchBtn", "resignBtn", "drawBtn", "undoBtn", "redoBtn", "lastMoveBtn"]);
@@ -1136,7 +1129,7 @@ function initResearchMode() {
         applyResearchBookmarkFromUrlIfPresent();
     });
     const controlPanel = document.querySelector(".controlPanel");
-    if (controlPanel) controlPanel.classList.add("research-simplified");
+    if (controlPanel) {controlPanel.classList.add("research-simplified");}
     const bookmarksPanel = document.getElementById("bookmarksPanel");
     if (bookmarksPanel) {
         bookmarksPanel.style.opacity = "1";
@@ -1148,9 +1141,9 @@ function initResearchMode() {
 function applyResearchBookmarkFromUrlIfPresent() {
     const params = new URLSearchParams(window.location.search);
     const bookmarkIdParam = params.get("bookmarkId");
-    if (!bookmarkIdParam) return;
+    if (!bookmarkIdParam) {return;}
     const bookmarkObj = bookmarks.find(function (b) { return b._id === bookmarkIdParam; });
-    if (!bookmarkObj) return;
+    if (!bookmarkObj) {return;}
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     const loaded = JSON.parse(stateStr);
     researchSyncKingRookFlagsFromBoard(loaded);
@@ -1251,7 +1244,7 @@ function createResearchToolbox() {
         researchSelected = { color: "white", pieceType: game.PAWN };
         panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); });
         const whitePawnBtn = panel.querySelector(".research-toolbox-piece[data-color=\"white\"][data-piece=\"" + game.PAWN + "\"]");
-        if (whitePawnBtn) whitePawnBtn.classList.add("selected");
+        if (whitePawnBtn) {whitePawnBtn.classList.add("selected");}
         updateResearchCursor();
     };
     toolsRow.appendChild(resetBtn);
@@ -1272,7 +1265,7 @@ function createResearchToolbox() {
     toolsRow.appendChild(defaultPosBtn);
     panel.appendChild(toolsRow);
     const main = document.getElementById("main");
-    if (main) main.insertBefore(panel, main.firstChild);
+    if (main) {main.insertBefore(panel, main.firstChild);}
     setupDraggablePanel(panel, titleBar, RESEARCH_LAYOUT_KEYS.toolbox, function () {
         const m = document.getElementById("main");
         const board = document.getElementById("chessboard");
@@ -1312,8 +1305,8 @@ function setResearchConfigDirtyState(dirty) {
     panel.classList.toggle("is-dirty", !!dirty);
     const saveBtn = panel.querySelector(".research-brain-config-save");
     const discardBtn = panel.querySelector(".research-brain-config-discard");
-    if (saveBtn) saveBtn.disabled = !dirty;
-    if (discardBtn) discardBtn.disabled = !dirty;
+    if (saveBtn) {saveBtn.disabled = !dirty;}
+    if (discardBtn) {discardBtn.disabled = !dirty;}
 }
 
 function getBrainConfigDefaults(engineName) {
@@ -1331,21 +1324,6 @@ function getBrainConfigFieldDefs(engineName) {
         };
     });
     if (engineName === "brain41") {
-        fields.push({
-            label: "Knights Pair Bonus",
-            section: "specialEvaluations",
-            key: "knightPairBonus",
-        });
-        fields.push({
-            label: "Bishop Pair Bonus",
-            section: "specialEvaluations",
-            key: "bishopPairBonus",
-        });
-        fields.push({
-            label: "Bishop Knioght Pair Bonus",
-            section: "specialEvaluations",
-            key: "bishopKnightPairBonus",
-        });
         fields.push({
             label: "Double Pawn Penalty",
             section: "specialEvaluations",
@@ -1565,41 +1543,41 @@ function createResearchBrainConfigPanel() {
 
 function registerResearchBoardClick() {
     const innerBoard = document.getElementById("innerBoard");
-    if (!innerBoard) return;
+    if (!innerBoard) {return;}
 
     innerBoard.addEventListener("click", function researchBoardClick(ev) {
-        if (!researchMode) return;
-        if (researchSelected === "select") return;
+        if (!researchMode) {return;}
+        if (researchSelected === "select") {return;}
         const square = ev.target.closest(".square");
-        if (!square) return;
+        if (!square) {return;}
         const row = parseInt(square.getAttribute("data-row"), 10);
         const col = parseInt(square.getAttribute("data-col"), 10);
-        if (isNaN(row) || isNaN(col)) return;
+        if (isNaN(row) || isNaN(col)) {return;}
         const state = JSON.parse(JSON.stringify(game.GameState));
         if (researchSelected === "eraser") {
             state.board[row][col] = null;
         } else if (researchSelected && typeof researchSelected === "object") {
             state.board[row][col] = { color: researchSelected.color, pieceType: researchSelected.pieceType };
-        } else return;
+        } else {return;}
         researchSyncKingRookFlagsFromBoard(state);
         game.loadGame(JSON.stringify(state));
     });
 
     innerBoard.addEventListener("mousedown", function researchBoardMouseDown(ev) {
-        if (!researchMode || researchSelected !== "select") return;
+        if (!researchMode || researchSelected !== "select") {return;}
         const square = ev.target.closest(".square");
-        if (!square) return;
+        if (!square) {return;}
         const row = parseInt(square.getAttribute("data-row"), 10);
         const col = parseInt(square.getAttribute("data-col"), 10);
-        if (isNaN(row) || isNaN(col)) return;
+        if (isNaN(row) || isNaN(col)) {return;}
         const state = game.GameState;
-        if (!state.board[row][col]) return;
+        if (!state.board[row][col]) {return;}
         researchDraggingFrom = { row: row, col: col };
         document.body.classList.add("research-dragging");
     });
 
     document.addEventListener("mouseup", function researchBoardMouseUp(ev) {
-        if (!researchDraggingFrom) return;
+        if (!researchDraggingFrom) {return;}
         const inner = document.getElementById("innerBoard");
         if (!inner) { researchDraggingFrom = null; document.body.classList.remove("research-dragging"); return; }
         if (typeof draggedImage !== "undefined" && draggedImage) {
@@ -1736,7 +1714,7 @@ function onBoardClickToMove(e) {
         }
         return;
     }
-    tryMove(clickToMoveSelected, pos).then(function (moved) {
+    tryMove(clickToMoveSelected, pos).then(function () {
         clickToMoveSelected = null;
         resetSqaureColor();
     });
@@ -2449,9 +2427,9 @@ function getResearchBookmarkPositionValidationMessage(purpose) {
                 continue;
             }
             const bucket = byColor[col];
-            if (t === PT_PAWN) bucket.pawn++;
-            else if (t === PT_ROOK) bucket.rook++;
-            else if (t === PT_KNIGHT) bucket.knight++;
+            if (t === PT_PAWN) {bucket.pawn++;}
+            else if (t === PT_ROOK) {bucket.rook++;}
+            else if (t === PT_KNIGHT) {bucket.knight++;}
             else if (t === PT_BISHOP) {
                 bucket.bishop++;
                 if (col === "white") {
@@ -2459,7 +2437,7 @@ function getResearchBookmarkPositionValidationMessage(purpose) {
                 } else {
                     blackBishopSquare = { row: r, col: c };
                 }
-            } else if (t === PT_QUEEN) bucket.queen++;
+            } else if (t === PT_QUEEN) {bucket.queen++;}
             else if (t === PT_KING) {
                 bucket.king++;
                 if (col === "white") {
@@ -2473,12 +2451,12 @@ function getResearchBookmarkPositionValidationMessage(purpose) {
 
     const wk = byColor.white.king;
     if (wk !== 1) {
-        if (wk === 0) return header + "There must be exactly one white king on the board. None was found.";
+        if (wk === 0) {return header + "There must be exactly one white king on the board. None was found.";}
         return header + "There must be exactly one white king on the board. Found " + wk + " white kings.";
     }
     const bk = byColor.black.king;
     if (bk !== 1) {
-        if (bk === 0) return header + "There must be exactly one black king on the board. None was found.";
+        if (bk === 0) {return header + "There must be exactly one black king on the board. None was found.";}
         return header + "There must be exactly one black king on the board. Found " + bk + " black kings.";
     }
 
@@ -2596,7 +2574,7 @@ function createAlertMessageBox(text) {
 function alertMessageBox(text) {
     dialogOn = true;
     const chessboardDiv = document.getElementById("chessboard");
-    if (!chessboardDiv) return;
+    if (!chessboardDiv) {return;}
     const cloakDiv = createCloak();
     cloakDiv.classList.add("cloak--alert");
     chessboardDiv.appendChild(cloakDiv);
@@ -3220,12 +3198,12 @@ function startWebSockets(username, isWhite, isWatcher) {
                     whiteTimer = move.moveTime;
                     if (whiteHandle) { clearInterval(whiteHandle); whiteHandle = null; }
                     const whiteClock = document.getElementById("whiteClockTimeText");
-                    if (whiteClock) whiteClock.innerText = timerToText(whiteTimer);
+                    if (whiteClock) {whiteClock.innerText = timerToText(whiteTimer);}
                 } else {
                     blackTimer = move.moveTime;
                     if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
                     const blackClock = document.getElementById("blackClockTimeText");
-                    if (blackClock) blackClock.innerText = timerToText(blackTimer);
+                    if (blackClock) {blackClock.innerText = timerToText(blackTimer);}
                 }
             }
             switchClocks();
@@ -3253,8 +3231,8 @@ function startWebSockets(username, isWhite, isWatcher) {
                 if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
                 const whiteClock = document.getElementById("whiteClockTimeText");
                 const blackClock = document.getElementById("blackClockTimeText");
-                if (whiteClock) whiteClock.innerText = timerToText(whiteTimer);
-                if (blackClock) blackClock.innerText = timerToText(blackTimer);
+                if (whiteClock) {whiteClock.innerText = timerToText(whiteTimer);}
+                if (blackClock) {blackClock.innerText = timerToText(blackTimer);}
                 switchClocks();
             }
         }
@@ -3479,8 +3457,8 @@ function startWebSockets(username, isWhite, isWatcher) {
                                 isPrivate: gameInfo.isPrivate === true,
                             };
                         }
-                        if (typeof openPlayNowModal === "function") {
-                            openPlayNowModal();
+                        if (typeof window !== "undefined" && typeof window.openPlayNowModal === "function") {
+                            window.openPlayNowModal();
                         }
                     }
                 }
@@ -3837,8 +3815,8 @@ async function menuRematchEventHandler() {
                 isPrivate: gameInfo.isPrivate === true,
             };
         }
-        if (typeof openPlayNowModal === "function") {
-            openPlayNowModal();
+        if (typeof window !== "undefined" && typeof window.openPlayNowModal === "function") {
+            window.openPlayNowModal();
         }
         return;
     }
@@ -3877,7 +3855,6 @@ function disableButtons(btnList) {
         }
     }
 }
-
 
 
 function hideButtons(btnList) {
@@ -4102,8 +4079,7 @@ async function getGameInfo(isRematch) {
 }
 
 async function setRematchGameId(newGameID) {
-    const response = await postServerInfo("/rematch", { id: newGameID });
-    //   console.log(response);
+    await postServerInfo("/rematch", { id: newGameID });
 }
 
 async function getGameMoves() {
@@ -4354,7 +4330,6 @@ function showMoveButtons(show) {
     }
 
 }
-
 
 
 /** @param {boolean} isPlay - true: show Play / hide Pause (paused); false: hide Play / show Pause (playing) */
@@ -4963,7 +4938,7 @@ async function addBookmark() {
     if (isMobileGameShell()) {
         return;
     }
-    if (dialogOn) return;
+    if (dialogOn) {return;}
     const bookmarksListEarly = document.getElementById("bookmarksList");
     if (!bookmarksListEarly) {
         return;
@@ -5023,18 +4998,18 @@ function createNewBookmarkDiv() {
 
 function toggleBookmarkAccordion(e) {
     const row = e.target.closest(".bookmark-row");
-    if (!row) return;
+    if (!row) {return;}
     const bookmarkEl = row.closest(".bookmark");
-    if (!bookmarkEl) return;
-    if (e.target.closest(".bookmark-actions") || e.target.closest("input")) return;
+    if (!bookmarkEl) {return;}
+    if (e.target.closest(".bookmark-actions") || e.target.closest("input")) {return;}
     if (researchEditingBookmarkId != null) {
         const clickedId = parseInt(bookmarkEl.id.replace("bookmark", ""), 10);
-        if (clickedId !== researchEditingBookmarkId) return;
+        if (clickedId !== researchEditingBookmarkId) {return;}
     }
     const list = document.getElementById("bookmarksList");
     if (list) {
         list.querySelectorAll(".bookmark.expanded").forEach(function (el) {
-            if (el !== bookmarkEl) el.classList.remove("expanded");
+            if (el !== bookmarkEl) {el.classList.remove("expanded");}
         });
     }
     const wasExpanded = bookmarkEl.classList.contains("expanded");
@@ -5047,7 +5022,7 @@ function toggleBookmarkAccordion(e) {
     }
 }
 
-function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
+function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate) {
     const div = document.createElement("div");
     div.classList.add("bookmark");
     div.setAttribute("id", "bookmark" + bookmarkId);
@@ -5118,7 +5093,7 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     editBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7\"/><path d=\"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z\"/></svg>";
     editBtn.addEventListener("click", function (ev) {
         ev.stopPropagation();
-        if (editBtn.disabled) return;
+        if (editBtn.disabled) {return;}
         if (researchMode) {
             exitBookmarkPositionEditMode();
             researchEditingBookmarkId = bookmarkId;
@@ -5282,12 +5257,12 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
 }
 
 function exitBookmarkPositionEditMode() {
-    if (researchEditingBookmarkId == null) return;
+    if (researchEditingBookmarkId == null) {return;}
     const list = document.getElementById("bookmarksList");
     if (list) {
         list.querySelectorAll(".bookmark-editing").forEach(function (el) {
             const editBtnEl = el.querySelector(".bookmark-edit-save-btn");
-            if (editBtnEl) editBtnEl.disabled = false;
+            if (editBtnEl) {editBtnEl.disabled = false;}
             el.classList.remove("bookmark-editing");
         });
     }
@@ -5304,7 +5279,7 @@ async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
         }
     }
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
-    if (!bookmarkObj) return;
+    if (!bookmarkObj) {return;}
     const stateRaw = game.GameState;
     const state = JSON.parse(JSON.stringify(stateRaw));
     const moves = researchMode ? [] : (gameMoves && gameMoves.moves ? gameMoves.moves.map(m => JSON.stringify(m)) : []);
@@ -5324,7 +5299,7 @@ async function saveBookmarkPosition(bookmarkId, editBtn, bookmarkDiv) {
 /** Load bookmark state onto the board only (no redirect). Used when clicking the bookmark name/row in research. */
 function loadBookmarkOnBoard(bookmarkId) {
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
-    if (!bookmarkObj) return;
+    if (!bookmarkObj) {return;}
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     const loaded = JSON.parse(stateStr);
     researchSyncKingRookFlagsFromBoard(loaded);
@@ -5339,7 +5314,7 @@ async function applyBookmarkAction(bookmarkId) {
         return;
     }
     const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
-    if (!bookmarkObj) return;
+    if (!bookmarkObj) {return;}
     const stateStr = typeof bookmarkObj.state === "string" ? bookmarkObj.state : JSON.stringify(bookmarkObj.state);
     if (researchMode) {
         loadBookmarkOnBoard(bookmarkId);
@@ -5369,13 +5344,13 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
         return;
     }
     const newBookmarkCard = document.getElementById("newBookmark");
-    const bookmark = createBookmarkDiv(bookmarkId, name, date, gameType);
+    const bookmark = createBookmarkDiv(bookmarkId, name, date);
     bookmarksList.removeChild(newBookmarkCard);
     bookmarksList.prepend(bookmark);
 
     const state = game.GameState;
     const strMoves = researchMode ? [] : (gameMoves && gameMoves.moves ? gameMoves.moves.map(m => JSON.stringify(m)) : []);
-    const response = await postServerInfo("/bookmark", {
+    await postServerInfo("/bookmark", {
         gameState: state,
         name,
         gameType: gameInfo.gameType || gameType,
@@ -5383,7 +5358,6 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
         engine: "brain41",
         depth: 3,
     });
-    //console.log(response);
     bookmarks = await getBookmarks();
     updateBookmarks(bookmarks);
 
@@ -5392,11 +5366,11 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
 function exitEditBookmarkMode() {
     const bookmarkNameWrapper = currentEditingBookmark.parentElement;
     const editBookmarkInput = bookmarkNameWrapper.querySelector("#editBookmarkInput");
-    if (editBookmarkInput) bookmarkNameWrapper.removeChild(editBookmarkInput);
+    if (editBookmarkInput) {bookmarkNameWrapper.removeChild(editBookmarkInput);}
     const nameEl = bookmarkNameWrapper.querySelector(".bookmarkName");
     const renameBtnEl = bookmarkNameWrapper.querySelector(".bookmark-rename-btn");
-    if (nameEl) nameEl.classList.remove("hide");
-    if (renameBtnEl) renameBtnEl.classList.remove("hide");
+    if (nameEl) {nameEl.classList.remove("hide");}
+    if (renameBtnEl) {renameBtnEl.classList.remove("hide");}
     currentEditingBookmark = null;
 }
 
@@ -5421,7 +5395,7 @@ function enterEditBookmarkMode(e) {
 
     currentEditingBookmark.classList.add("hide");
     const renameBtnEl = bookmarkNameWrapper.querySelector(".bookmark-rename-btn");
-    if (renameBtnEl) renameBtnEl.classList.add("hide");
+    if (renameBtnEl) {renameBtnEl.classList.add("hide");}
     bookmarkNameWrapper.appendChild(gameNameInput);
     gameNameInput.focus();
     gameNameInput.select();
@@ -5445,7 +5419,7 @@ async function deleteBookmark(e) {
         return;
     }
     const bookmarkElement = (e.target && e.target.closest ? e.target.closest(".bookmark") : null) || (e.srcElement && e.srcElement.parentElement && e.srcElement.parentElement.parentElement ? e.srcElement.parentElement.parentElement.parentElement : null);
-    if (!bookmarkElement || !bookmarkElement.id) return;
+    if (!bookmarkElement || !bookmarkElement.id) {return;}
     const id = parseInt(bookmarkElement.id.replace("bookmark", ""), 10);
     const bookmark = bookmarks.find((o) => o.id == id);
     bookmarks = bookmarks.filter(item => item.id !== id);
@@ -5461,26 +5435,6 @@ async function deleteBookmark(e) {
     }
 }
 
-async function loadBookmark(e) {
-    const bookmarkElement = e.currentTarget;
-    const id = bookmarkElement.id.replace("bookmark", "");
-    const bookmarkObj = bookmarks.find(el => el.id == id);
-    if (bookmarkObj) {
-
-        if (gameInfo.gameType == "SinglePlayerGame") {
-            const result = await postServerInfo("/applyBookmark", { gameId: gameInfo.id, bookarkId: bookmarkObj._id });
-            console.log("Applying bookmark: " + result);
-        }
-        else if (bookmarkObj.moves && bookmarkObj.moves.length > 0) {
-            const moves = bookmarkObj.moves.map(m => JSON.parse(m));
-            game.loadMoves(moves);
-            updateMovesTable(moves);
-        }
-        game.loadGame(bookmarkObj.state);
-
-    }
-}
-
 function updateBookmarks(bookmarks) {
 
     let i = 1;
@@ -5492,7 +5446,7 @@ function updateBookmarks(bookmarks) {
 
     for (const bookmark of bookmarks) {
         bookmark.id = i;
-        const bookmarkDiv = createBookmarkDiv(bookmark.id, bookmark.name, bookmark.date, bookmark.gameType);
+        const bookmarkDiv = createBookmarkDiv(bookmark.id, bookmark.name, bookmark.date);
         bookmarksList.prepend(bookmarkDiv);
         i++;
     }
@@ -5500,7 +5454,7 @@ function updateBookmarks(bookmarks) {
 }
 
 function closeBookmarkPanel() {
-    if (researchMode) return;
+    if (researchMode) {return;}
     const bookmarksPanel = document.getElementById("bookmarksPanel");
     if (!bookmarksPanel) {
         return;
@@ -5509,7 +5463,7 @@ function closeBookmarkPanel() {
         bookmarksPanel.style.opacity = "0";
         bookmarksPanel.style.width = "0px";
         const list = document.getElementById("bookmarksList");
-        if (list) list.querySelectorAll(".bookmark.expanded").forEach(function (el) { el.classList.remove("expanded"); });
+        if (list) {list.querySelectorAll(".bookmark.expanded").forEach(function (el) { el.classList.remove("expanded"); });}
     }
 }
 

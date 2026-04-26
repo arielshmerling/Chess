@@ -19,9 +19,6 @@ const DEFAULT_CONFIGS = {
     brain41: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
         specialEvaluations: {
-            knightPairBonus: 0,
-            bishopPairBonus: 0,
-            bishopKnightPairBonus: 0,
             doublePawnPenalty: 0.25,
             pawnAdvancedBonus: 0.2,
         },
@@ -62,27 +59,6 @@ function sanitizeBrainConfig(engineName, rawConfig) {
     }
     if (safeEngine === "brain41") {
         const specialEvaluations = { ...fallback.specialEvaluations };
-        const pairBonus = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.knightPairBonus
-            : specialEvaluations.knightPairBonus);
-        if (Number.isFinite(pairBonus)) {
-            specialEvaluations.knightPairBonus = pairBonus;
-        }
-        const bishopPairBonus = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.bishopPairBonus
-            : specialEvaluations.bishopPairBonus);
-        if (Number.isFinite(bishopPairBonus)) {
-            specialEvaluations.bishopPairBonus = bishopPairBonus;
-        }
-        const bishopKnightPairRaw = rawConfig && rawConfig.specialEvaluations
-            ? (rawConfig.specialEvaluations.bishopKnightPairBonus != null
-                ? rawConfig.specialEvaluations.bishopKnightPairBonus
-                : rawConfig.specialEvaluations.bishopKnioghtPairBonus)
-            : specialEvaluations.bishopKnightPairBonus;
-        const bishopKnightPairBonus = Number(bishopKnightPairRaw);
-        if (Number.isFinite(bishopKnightPairBonus)) {
-            specialEvaluations.bishopKnightPairBonus = bishopKnightPairBonus;
-        }
         const doublePawnPenalty = Number(rawConfig && rawConfig.specialEvaluations
             ? rawConfig.specialEvaluations.doublePawnPenalty
             : specialEvaluations.doublePawnPenalty);

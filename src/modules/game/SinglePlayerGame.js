@@ -120,6 +120,7 @@ class SinglePlayerGame extends GameBase {
                 this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, brainMove);
             }
             else {
+                /* invalid brain move — no fan-out */
             }
 
         } catch (err) {

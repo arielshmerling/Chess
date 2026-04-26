@@ -187,3 +187,8 @@ function menuNewGameOnePlayer() {
     // gameType = 1;
     startGame();
 }
+
+if (typeof window !== "undefined") {
+    window.openPlayNowModal = openPlayNowModal;
+    window.startNewGameFromModal = startNewGameFromModal;
+}

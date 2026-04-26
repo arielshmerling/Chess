@@ -196,9 +196,9 @@ exports.updateBookmark = async (userId, id, date, name, gameType, gameState, mov
         const userBookmark = user.bookmarks.find((o) => o._id == id);
         const bookmarkDoc = await Bookmark.findOne({ _id: id });
         if (bookmarkDoc && userBookmark) {
-            if (name !== undefined) bookmarkDoc.name = name;
-            if (date !== undefined) bookmarkDoc.date = new Date(date);
-            if (gameType !== undefined) bookmarkDoc.gameType = gameType;
+            if (name !== undefined) {bookmarkDoc.name = name;}
+            if (date !== undefined) {bookmarkDoc.date = new Date(date);}
+            if (gameType !== undefined) {bookmarkDoc.gameType = gameType;}
             if (gameState !== undefined) {
                 bookmarkDoc.state = typeof gameState === "string" ? gameState : JSON.stringify(gameState);
                 bookmarkDoc.markModified("state");

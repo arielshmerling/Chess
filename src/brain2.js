@@ -41,28 +41,13 @@ class Brain {
         }
         else {
             this.#game.SearchMode = true;
-
-
-
-            this.#suggestMove()
-
+            move = this.#suggestMove();
             this.#game.SearchMode = false;
-            move = result;
-            console.log("result from thread pool:", result); // result will be 2.
             if (move) {
                 move.turn = this.#game.Turn;
-                //           resolve(move);
                 return move;
             }
-            else {
-                return null;
-                //             reject(move);
-            }
-
-
-
-            // if (this.#canceling) { reject(); }
-            console.log("OK");
+            return null;
         }
         //     }, 100);
         //    });

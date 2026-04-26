@@ -137,8 +137,8 @@ exports.updateUserAdmin = async (req, res, next) => {
             actorUsername: req.session.user_name || "unknown",
         });
         if (req.session.user_id && String(req.session.user_id) === String(req.params.id)) {
-            if (result.username !== undefined) req.session.user_name = result.username;
-            if (result.admin !== undefined) req.session.admin = result.admin;
+            if (result.username !== undefined) {req.session.user_name = result.username;}
+            if (result.admin !== undefined) {req.session.admin = result.admin;}
         }
         res.json({ ok: true, user: result });
     } catch (err) {

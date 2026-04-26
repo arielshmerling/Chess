@@ -774,8 +774,7 @@ class ChessGame {
             return move.kingsideCastling ? "O-O" : "O-O-O";
         }
 
-        const PIECE = 0, SOURCE_ROW = 2, SOURCE_COL = 1, CAPTURE = 3, TARGET_COL = 4, TARGET_ROW = 5, PROMOTION = 6, PROMOTION_PIECE = 7, ALERT = 8;
-
+        const PIECE = 0, SOURCE_ROW = 2, SOURCE_COL = 1, TARGET_COL = 4, TARGET_ROW = 5, PROMOTION = 6, PROMOTION_PIECE = 7, ALERT = 8;
 
         moveString[PIECE] = this.pieceToLetter(move.piece.pieceType);
         
@@ -787,8 +786,6 @@ class ChessGame {
                 moveString[SOURCE_COL] = this.#state.whitePlayerView ?
                     letters[move.source.col] :
                     letters[this.BOARD_COLUMNS - move.source.col - 1];
-            
-        
 
 
         moveString[TARGET_COL] = this.#state.whitePlayerView ?

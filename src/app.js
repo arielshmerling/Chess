@@ -180,7 +180,8 @@ app.ws("/ws", async (ws, req) => {
         }
     });
 
-    ws.on("error", (error) => {
+    ws.on("error", () => {
+        /* ignore client socket errors */
     });
 
 });

@@ -224,32 +224,32 @@ class GameBase {
     };
 
     sendMoveToWatchers(gameId, isWhite, moveObj) {
-        if (!moveObj || moveObj.source == null || moveObj.target == null) return;
+        if (!moveObj || moveObj.source == null || moveObj.target == null) {return;}
         for (const watcher of this.watchers) {
-            if (!watcher || !watcher.ws) continue;
+            if (!watcher || !watcher.ws) {continue;}
             const ws = watcher.ws;
-            if (ws.readyState !== ws.OPEN) continue;
+            if (ws.readyState !== ws.OPEN) {continue;}
             const message = { type: "move", data: moveObj, gameId, isWhite };
             ws.send(JSON.stringify(message));
         }
     }
 
     sendClockSyncToWatchers(whiteTimer, blackTimer) {
-        if (typeof whiteTimer !== "number" || typeof blackTimer !== "number") return;
+        if (typeof whiteTimer !== "number" || typeof blackTimer !== "number") {return;}
         const message = { type: "clockSync", gameId: this.gameId, whiteTimer, blackTimer };
         for (const watcher of this.watchers) {
-            if (!watcher || !watcher.ws) continue;
+            if (!watcher || !watcher.ws) {continue;}
             const ws = watcher.ws;
-            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
+            if (ws.readyState === ws.OPEN) {ws.send(JSON.stringify(message));}
         }
     }
 
     sendInfoToWatchers(message) {
-        if (!message || message.type !== "info") return;
+        if (!message || message.type !== "info") {return;}
         for (const watcher of this.watchers) {
-            if (!watcher || !watcher.ws) continue;
+            if (!watcher || !watcher.ws) {continue;}
             const ws = watcher.ws;
-            if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
+            if (ws.readyState === ws.OPEN) {ws.send(JSON.stringify(message));}
         }
     }
 
@@ -267,7 +267,7 @@ class GameBase {
             data,
         };
         for (const watcher of this.watchers) {
-            if (!watcher || !watcher.ws) continue;
+            if (!watcher || !watcher.ws) {continue;}
             const ws = watcher.ws;
             if (ws.readyState === ws.OPEN) {
                 try {
