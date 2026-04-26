@@ -11,7 +11,10 @@ const {
     getCurrentPlayerAdvancedPawnCount,
     isAdvancedPawnRankForColor,
     getPawnEvalDelta,
+    getFirstKingRookMovePenaltyDelta,
+    isCastlingKingMove,
 } = require("../src/brain41");
+const { getDefaultConfig, sanitizeBrainConfig } = require("../src/modules/game/brainConfigService");
 
 function emptyStateBase(turn) {
     return {
@@ -164,5 +167,143 @@ describe("brain41 getPawnEvalDelta", () => {
             getPawnEvalDelta(game, { doublePawnPenalty: "x", pawnAdvancedBonus: "y" }, 10),
             0
         );
+    });
+});
+
+describe("brain41 isCastlingKingMove", () => {
+    const game = new ChessGame();
+    const K = game.KING;
+
+    it("detects a two-step horizontal king move on the same row", () => {
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 7, col: 6 },
+        };
+        assert.strictEqual(isCastlingKingMove(game, m), true);
+    });
+    it("is false for one king step", () => {
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 7, col: 5 },
+        };
+        assert.strictEqual(isCastlingKingMove(game, m), false);
+    });
+});
+
+describe("brain41 getFirstKingRookMovePenaltyDelta", () => {
+    const game = new ChessGame();
+    const K = game.KING;
+    const R = game.ROOK;
+    const se = { firstKingMovePenalty: 0.1, firstRookMovePenalty: 0.1 };
+
+    it("applies a penalty for the first non-castling king move", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.whiteKingMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 6, col: 4 },
+        };
+        assert.strictEqual(getFirstKingRookMovePenaltyDelta(game, m, se), -0.1);
+    });
+    it("does not penalize the king’s castling jump (two files)", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.whiteKingMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 7, col: 6 },
+        };
+        assert.strictEqual(getFirstKingRookMovePenaltyDelta(game, m, se), 0);
+    });
+    it("applies a penalty for a rook’s first move from the kingside home file", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.kingsideWhiteRookMoved = false;
+        s.queensideWhiteRookMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: R },
+            source: { row: 7, col: 7 },
+            target: { row: 7, col: 5 },
+        };
+        assert.strictEqual(getFirstKingRookMovePenaltyDelta(game, m, se), -0.1);
+    });
+    it("returns 0 when both penalties in config are 0", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.whiteKingMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 6, col: 4 },
+        };
+        assert.strictEqual(getFirstKingRookMovePenaltyDelta(game, m, {}), 0);
+    });
+    it("uses only firstKingMovePenalty when firstRookMovePenalty is 0", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.whiteKingMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: K },
+            source: { row: 7, col: 4 },
+            target: { row: 6, col: 4 },
+        };
+        assert.strictEqual(
+            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: 0.15, firstRookMovePenalty: 0 }),
+            -0.15
+        );
+    });
+    it("uses only firstRookMovePenalty when firstKingMovePenalty is 0", () => {
+        const s = emptyStateBase("white");
+        s.whitePlayerView = true;
+        s.kingsideWhiteRookMoved = false;
+        s.queensideWhiteRookMoved = false;
+        game.loadGame(JSON.stringify(s));
+        const m = {
+            piece: { color: "white", pieceType: R },
+            source: { row: 7, col: 0 },
+            target: { row: 5, col: 0 },
+        };
+        assert.strictEqual(
+            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: 0, firstRookMovePenalty: 0.12 }),
+            -0.12
+        );
+    });
+});
+
+describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalty", () => {
+    it("getDefaultConfig includes 0.1 for both", () => {
+        const c = getDefaultConfig("brain41");
+        assert.strictEqual(c.specialEvaluations.firstKingMovePenalty, 0.1);
+        assert.strictEqual(c.specialEvaluations.firstRookMovePenalty, 0.1);
+    });
+    it("sanitizeBrainConfig applies numeric overrides for both keys", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: {
+                firstKingMovePenalty: 0.05,
+                firstRookMovePenalty: 0.2,
+            },
+        });
+        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, 0.05);
+        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, 0.2);
+    });
+    it("sanitizeBrainConfig keeps defaults when values are not finite", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: {
+                firstKingMovePenalty: "x",
+                firstRookMovePenalty: Number.NaN,
+            },
+        });
+        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, 0.1);
+        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, 0.1);
     });
 });

@@ -9,6 +9,8 @@
   },
   "specialEvaluations": {
     "doublePawnPenalty": 0.25,
-    "pawnAdvancedBonus": 0.2
+    "pawnAdvancedBonus": 0.2,
+    "firstKingMovePenalty": 0.1,
+    "firstRookMovePenalty": 0.1
   }
 }

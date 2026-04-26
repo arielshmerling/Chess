@@ -50,6 +50,8 @@ const BRAIN_CONFIG_DEFAULTS = {
         specialEvaluations: {
             doublePawnPenalty: 0.25,
             pawnAdvancedBonus: 0.2,
+            firstKingMovePenalty: 0.1,
+            firstRookMovePenalty: 0.1,
         },
     },
     brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
@@ -1333,6 +1335,16 @@ function getBrainConfigFieldDefs(engineName) {
             label: "Pawn Advanced Bonus",
             section: "specialEvaluations",
             key: "pawnAdvancedBonus",
+        });
+        fields.push({
+            label: "First King Move Penalty",
+            section: "specialEvaluations",
+            key: "firstKingMovePenalty",
+        });
+        fields.push({
+            label: "First Rook Move Penalty",
+            section: "specialEvaluations",
+            key: "firstRookMovePenalty",
         });
     }
     return fields;

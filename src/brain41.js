@@ -236,6 +236,60 @@ function allPossibleMoves(localChess) {
     return moves;
 }
 
+function isCastlingKingMove(localChess, move) {
+    if (!move.piece || move.piece.pieceType !== localChess.KING) {
+        return false;
+    }
+    if (move.source.row !== move.target.row) {
+        return false;
+    }
+    return Math.abs(move.target.col - move.source.col) === 2;
+}
+
+/** Negative adjustment when the side to move “spends” first king or rook development (castling king jump exempt). */
+function getFirstKingRookMovePenaltyDelta(localChess, move, specialEvaluations) {
+    const kPen = Number(specialEvaluations && specialEvaluations.firstKingMovePenalty) || 0;
+    const rPen = Number(specialEvaluations && specialEvaluations.firstRookMovePenalty) || 0;
+    if (kPen === 0 && rPen === 0) {
+        return 0;
+    }
+    const state = localChess.GameState;
+    if (!state || !move.piece) {
+        return 0;
+    }
+    const wpv = state.whitePlayerView !== false;
+    const kingsideRookCol = wpv ? 7 : 0;
+    const queensideRookCol = wpv ? 0 : 7;
+    let units = 0;
+    if (kPen !== 0 && move.piece.pieceType === localChess.KING) {
+        const isFirst = (move.piece.color === "white" && !state.whiteKingMoved)
+            || (move.piece.color === "black" && !state.blackKingMoved);
+        if (isFirst && !isCastlingKingMove(localChess, move)) {
+            units += kPen;
+        }
+    }
+    if (rPen !== 0 && move.piece.pieceType === localChess.ROOK) {
+        const c = move.piece.color;
+        if (c === "white") {
+            if (move.source.col === kingsideRookCol && !state.kingsideWhiteRookMoved) {
+                units += rPen;
+            } else if (move.source.col === queensideRookCol && !state.queensideWhiteRookMoved) {
+                units += rPen;
+            }
+        } else {
+            if (move.source.col === kingsideRookCol && !state.kingsideBlackRookMoved) {
+                units += rPen;
+            } else if (move.source.col === queensideRookCol && !state.queensideBlackRookMoved) {
+                units += rPen;
+            }
+        }
+    }
+    if (units === 0) {
+        return 0;
+    }
+    return -units;
+}
+
 function stateScore(localChess, move) {
     const state = localChess.GameState;
     const targetPiece = state.board[move.target.row][move.target.col];
@@ -244,6 +298,7 @@ function stateScore(localChess, move) {
         score = pieceValue(localChess, targetPiece.pieceType);
     }
     score += getPawnEvalDelta(localChess, runtimeConfig.specialEvaluations, pieceValue(localChess, localChess.PAWN));
+    score += getFirstKingRookMovePenaltyDelta(localChess, move, runtimeConfig.specialEvaluations);
     return score;
 }
 
@@ -313,6 +368,8 @@ exports.getCurrentPlayerDoubledPawnCount = getCurrentPlayerDoubledPawnCount;
 exports.getCurrentPlayerAdvancedPawnCount = getCurrentPlayerAdvancedPawnCount;
 exports.isAdvancedPawnRankForColor = isAdvancedPawnRankForColor;
 exports.getPawnEvalDelta = getPawnEvalDelta;
+exports.getFirstKingRookMovePenaltyDelta = getFirstKingRookMovePenaltyDelta;
+exports.isCastlingKingMove = isCastlingKingMove;
 
 function scoreMove(localChess, move, maxDepth, ply) {
     let score = stateScore(localChess, move);

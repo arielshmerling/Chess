@@ -21,6 +21,8 @@ const DEFAULT_CONFIGS = {
         specialEvaluations: {
             doublePawnPenalty: 0.25,
             pawnAdvancedBonus: 0.2,
+            firstKingMovePenalty: 0.1,
+            firstRookMovePenalty: 0.1,
         },
     },
     brain5: {
@@ -70,6 +72,18 @@ function sanitizeBrainConfig(engineName, rawConfig) {
             : specialEvaluations.pawnAdvancedBonus);
         if (Number.isFinite(pawnAdvancedBonus)) {
             specialEvaluations.pawnAdvancedBonus = pawnAdvancedBonus;
+        }
+        const firstKingMovePenalty = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.firstKingMovePenalty
+            : specialEvaluations.firstKingMovePenalty);
+        if (Number.isFinite(firstKingMovePenalty)) {
+            specialEvaluations.firstKingMovePenalty = firstKingMovePenalty;
+        }
+        const firstRookMovePenalty = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.firstRookMovePenalty
+            : specialEvaluations.firstRookMovePenalty);
+        if (Number.isFinite(firstRookMovePenalty)) {
+            specialEvaluations.firstRookMovePenalty = firstRookMovePenalty;
         }
         return { pieceScores, specialEvaluations };
     }
