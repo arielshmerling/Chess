@@ -10,6 +10,8 @@
   "specialEvaluations": {
     "knightPairBonus": 0,
     "bishopPairBonus": 0,
-    "bishopKnightPairBonus": 0
+    "bishopKnightPairBonus": 0,
+    "doublePawnPenalty": 0.25,
+    "pawnAdvancedBonus": 0.2
   }
 }

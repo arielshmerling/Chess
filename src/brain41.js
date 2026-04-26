@@ -252,6 +252,10 @@ function stateScore(localChess, move) {
     if (hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess)) {
         score += Number(runtimeConfig.specialEvaluations?.bishopKnightPairBonus) || 0;
     }
+    score -= getCurrentPlayerDoubledPawnCount(localChess) * (Number(runtimeConfig.specialEvaluations?.doublePawnPenalty) || 0);
+    score += getCurrentPlayerAdvancedPawnCount(localChess)
+        * pieceValue(localChess, localChess.PAWN)
+        * (Number(runtimeConfig.specialEvaluations?.pawnAdvancedBonus) || 0);
     return score;
 }
 
@@ -314,6 +318,59 @@ function hasCurrentPlayerAtLeastOneBishopAndOneKnight(localChess) {
                 return true;
             }
         }
+    }
+    return false;
+}
+
+function getCurrentPlayerDoubledPawnCount(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return 0;
+    }
+    const currentColor = localChess.Turn;
+    let doubledCount = 0;
+    for (let col = 0; col < 8; col++) {
+        let pawnsInFile = 0;
+        for (let row = 0; row < 8; row++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === localChess.PAWN) {
+                pawnsInFile += 1;
+            }
+        }
+        if (pawnsInFile >= 2) {
+            doubledCount += pawnsInFile;
+        }
+    }
+    return doubledCount;
+}
+
+function getCurrentPlayerAdvancedPawnCount(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return 0;
+    }
+    const currentColor = localChess.Turn;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (!piece || piece.color !== currentColor || piece.pieceType !== localChess.PAWN) {
+                continue;
+            }
+            if (isAdvancedPawnRankForColor(row, currentColor)) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+}
+
+function isAdvancedPawnRankForColor(row, color) {
+    if (color === "white") {
+        return row >= 1 && row <= 3; // ranks 7..5 for white
+    }
+    if (color === "black") {
+        return row >= 4 && row <= 6; // ranks 4..2 for black
     }
     return false;
 }

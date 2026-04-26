@@ -51,6 +51,8 @@ const BRAIN_CONFIG_DEFAULTS = {
             knightPairBonus: 0,
             bishopPairBonus: 0,
             bishopKnightPairBonus: 0,
+            doublePawnPenalty: 0.25,
+            pawnAdvancedBonus: 0.2,
         },
     },
     brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
@@ -1343,6 +1345,16 @@ function getBrainConfigFieldDefs(engineName) {
             label: "Bishop Knioght Pair Bonus",
             section: "specialEvaluations",
             key: "bishopKnightPairBonus",
+        });
+        fields.push({
+            label: "Double Pawn Penalty",
+            section: "specialEvaluations",
+            key: "doublePawnPenalty",
+        });
+        fields.push({
+            label: "Pawn Advanced Bonus",
+            section: "specialEvaluations",
+            key: "pawnAdvancedBonus",
         });
     }
     return fields;

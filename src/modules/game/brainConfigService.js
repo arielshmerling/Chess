@@ -22,6 +22,8 @@ const DEFAULT_CONFIGS = {
             knightPairBonus: 0,
             bishopPairBonus: 0,
             bishopKnightPairBonus: 0,
+            doublePawnPenalty: 0.25,
+            pawnAdvancedBonus: 0.2,
         },
     },
     brain5: {
@@ -80,6 +82,18 @@ function sanitizeBrainConfig(engineName, rawConfig) {
         const bishopKnightPairBonus = Number(bishopKnightPairRaw);
         if (Number.isFinite(bishopKnightPairBonus)) {
             specialEvaluations.bishopKnightPairBonus = bishopKnightPairBonus;
+        }
+        const doublePawnPenalty = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.doublePawnPenalty
+            : specialEvaluations.doublePawnPenalty);
+        if (Number.isFinite(doublePawnPenalty)) {
+            specialEvaluations.doublePawnPenalty = doublePawnPenalty;
+        }
+        const pawnAdvancedBonus = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.pawnAdvancedBonus
+            : specialEvaluations.pawnAdvancedBonus);
+        if (Number.isFinite(pawnAdvancedBonus)) {
+            specialEvaluations.pawnAdvancedBonus = pawnAdvancedBonus;
         }
         return { pieceScores, specialEvaluations };
     }
