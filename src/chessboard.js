@@ -52,6 +52,11 @@ const BRAIN_CONFIG_DEFAULTS = {
             pawnAdvancedBonus: 0.2,
             firstKingMovePenalty: 0.1,
             firstRookMovePenalty: 0.1,
+            pawnsChainCountPenalty: 0.1,
+            drawMaterialDiffThreshold: 3,
+            drawScoreWhenAhead: -5,
+            drawScoreWhenBehind: 5,
+            drawScoreWhenEven: -0.1,
         },
     },
     brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
@@ -1346,6 +1351,31 @@ function getBrainConfigFieldDefs(engineName) {
             section: "specialEvaluations",
             key: "firstRookMovePenalty",
         });
+        fields.push({
+            label: "Pawn Chains Count Penalty",
+            section: "specialEvaluations",
+            key: "pawnsChainCountPenalty",
+        });
+        fields.push({
+            label: "Draw: material diff threshold",
+            section: "specialEvaluations",
+            key: "drawMaterialDiffThreshold",
+        });
+        fields.push({
+            label: "Draw score when ahead (material)",
+            section: "specialEvaluations",
+            key: "drawScoreWhenAhead",
+        });
+        fields.push({
+            label: "Draw score when behind (material)",
+            section: "specialEvaluations",
+            key: "drawScoreWhenBehind",
+        });
+        fields.push({
+            label: "Draw score when material even",
+            section: "specialEvaluations",
+            key: "drawScoreWhenEven",
+        });
     }
     return fields;
 }
@@ -1361,15 +1391,16 @@ function renderResearchBrainConfigTable() {
     }
     tbody.innerHTML = "";
     const fields = getBrainConfigFieldDefs(researchBrainConfigState.engine || "brain41");
-    fields.forEach(function (field) {
+
+    function makeFieldNameAndValueCells(field) {
         const sectionDraft = researchBrainConfigState.draft && researchBrainConfigState.draft[field.section]
             ? researchBrainConfigState.draft[field.section]
             : {};
-        const row = document.createElement("tr");
         const nameCell = document.createElement("td");
+        nameCell.className = "research-brain-config-name";
         nameCell.textContent = field.label;
-        row.appendChild(nameCell);
         const valueCell = document.createElement("td");
+        valueCell.className = "research-brain-config-value";
         const input = document.createElement("input");
         input.type = "number";
         input.step = "0.01";
@@ -1397,9 +1428,24 @@ function renderResearchBrainConfigTable() {
             setResearchConfigDirtyState(isDirty);
         });
         valueCell.appendChild(input);
-        row.appendChild(valueCell);
+        return { nameCell: nameCell, valueCell: valueCell };
+    }
+
+    for (let i = 0; i < fields.length; i += 2) {
+        const row = document.createElement("tr");
+        const a = makeFieldNameAndValueCells(fields[i]);
+        row.appendChild(a.nameCell);
+        row.appendChild(a.valueCell);
+        if (i + 1 < fields.length) {
+            const b = makeFieldNameAndValueCells(fields[i + 1]);
+            row.appendChild(b.nameCell);
+            row.appendChild(b.valueCell);
+        } else {
+            row.appendChild(document.createElement("td"));
+            row.appendChild(document.createElement("td"));
+        }
         tbody.appendChild(row);
-    });
+    }
 }
 
 async function loadResearchBrainConfig(engineName) {
@@ -1510,7 +1556,7 @@ function createResearchBrainConfigPanel() {
 
     const table = document.createElement("table");
     table.className = "research-brain-config-table";
-    table.innerHTML = "<thead><tr><th>Property</th><th>Value</th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Property</th><th>Value</th><th>Property</th><th>Value</th></tr></thead><tbody></tbody>";
     body.appendChild(table);
 
     const actions = document.createElement("div");

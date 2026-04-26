@@ -23,6 +23,11 @@ const DEFAULT_CONFIGS = {
             pawnAdvancedBonus: 0.2,
             firstKingMovePenalty: 0.1,
             firstRookMovePenalty: 0.1,
+            pawnsChainCountPenalty: 0.1,
+            drawMaterialDiffThreshold: 3,
+            drawScoreWhenAhead: -5,
+            drawScoreWhenBehind: 5,
+            drawScoreWhenEven: -0.1,
         },
     },
     brain5: {
@@ -85,6 +90,36 @@ function sanitizeBrainConfig(engineName, rawConfig) {
         if (Number.isFinite(firstRookMovePenalty)) {
             specialEvaluations.firstRookMovePenalty = firstRookMovePenalty;
         }
+        const pawnsChainCountPenalty = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.pawnsChainCountPenalty
+            : specialEvaluations.pawnsChainCountPenalty);
+        if (Number.isFinite(pawnsChainCountPenalty)) {
+            specialEvaluations.pawnsChainCountPenalty = pawnsChainCountPenalty;
+        }
+        const drawMaterialDiffThreshold = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.drawMaterialDiffThreshold
+            : specialEvaluations.drawMaterialDiffThreshold);
+        if (Number.isFinite(drawMaterialDiffThreshold)) {
+            specialEvaluations.drawMaterialDiffThreshold = drawMaterialDiffThreshold;
+        }
+        const drawScoreWhenAhead = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.drawScoreWhenAhead
+            : specialEvaluations.drawScoreWhenAhead);
+        if (Number.isFinite(drawScoreWhenAhead)) {
+            specialEvaluations.drawScoreWhenAhead = drawScoreWhenAhead;
+        }
+        const drawScoreWhenBehind = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.drawScoreWhenBehind
+            : specialEvaluations.drawScoreWhenBehind);
+        if (Number.isFinite(drawScoreWhenBehind)) {
+            specialEvaluations.drawScoreWhenBehind = drawScoreWhenBehind;
+        }
+        const drawScoreWhenEven = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.drawScoreWhenEven
+            : specialEvaluations.drawScoreWhenEven);
+        if (Number.isFinite(drawScoreWhenEven)) {
+            specialEvaluations.drawScoreWhenEven = drawScoreWhenEven;
+        }
         return { pieceScores, specialEvaluations };
     }
     return { pieceScores };
@@ -97,14 +132,19 @@ function loadBrainConfig(engineName) {
     if (!fs.existsSync(filePath)) {
         const defaults = getDefaultConfig(safeEngine);
         fs.writeFileSync(filePath, JSON.stringify(defaults, null, 2), "utf8");
+        console.log(`[BrainConfig] Wrote default ${safeEngine} to ${filePath}: ${JSON.stringify(defaults)}`);
         return defaults;
     }
     try {
         const raw = fs.readFileSync(filePath, "utf8");
-        return sanitizeBrainConfig(safeEngine, JSON.parse(raw));
+        const loaded = sanitizeBrainConfig(safeEngine, JSON.parse(raw));
+        console.log(`[BrainConfig] Loaded ${safeEngine} from ${filePath}: ${JSON.stringify(loaded)}`);
+        return loaded;
     } catch (error) {
         console.error(`[BrainConfig] Failed reading ${safeEngine} config, using defaults:`, error);
-        return getDefaultConfig(safeEngine);
+        const fallback = getDefaultConfig(safeEngine);
+        console.log(`[BrainConfig] Using defaults for ${safeEngine}: ${JSON.stringify(fallback)}`);
+        return fallback;
     }
 }
 

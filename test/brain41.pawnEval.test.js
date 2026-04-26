@@ -9,10 +9,14 @@ const { ChessGame } = require("../src/ChessGame");
 const {
     getCurrentPlayerDoubledPawnCount,
     getCurrentPlayerAdvancedPawnCount,
+    getCurrentPlayerPawnChainCount,
+    getPawnChainCountEvalDelta,
     isAdvancedPawnRankForColor,
     getPawnEvalDelta,
     getFirstKingRookMovePenaltyDelta,
     isCastlingKingMove,
+    getTotalMaterialValueForColor,
+    getDrawLeafScoreForMover,
 } = require("../src/brain41");
 const { getDefaultConfig, sanitizeBrainConfig } = require("../src/modules/game/brainConfigService");
 
@@ -49,6 +53,142 @@ function loadPawnBoard(game, turn, placer) {
     placer(s.board, game);
     game.loadGame(JSON.stringify(s));
 }
+
+/** White pawns on row 6, black on row 1, at given file indices (0 = a, …, 4 = e). */
+function loadPawnFiles(game, color, fileIndices) {
+    const s = emptyStateBase(color);
+    const P = 0;
+    const row = color === "white" ? 6 : 1;
+    for (const col of fileIndices) {
+        s.board[row][col] = { color, pieceType: P };
+    }
+    game.loadGame(JSON.stringify(s));
+}
+
+function loadPawnSquares(game, color, squares) {
+    const s = emptyStateBase(color);
+    const P = 0;
+    for (const sq of squares) {
+        s.board[sq.row][sq.col] = { color, pieceType: P };
+    }
+    game.loadGame(JSON.stringify(s));
+}
+
+/** Minimal K vs K (or with extra pawns) for material tests. KING=1, PAWN=0. */
+function loadKingsWithPawnExtras(game, whitePawnSquares, blackPawnSquares) {
+    const s = emptyStateBase("white");
+    const K = 1;
+    const P = 0;
+    s.board[7][4] = { color: "white", pieceType: K };
+    s.board[0][4] = { color: "black", pieceType: K };
+    for (const sq of whitePawnSquares) {
+        s.board[sq.row][sq.col] = { color: "white", pieceType: P };
+    }
+    for (const sq of blackPawnSquares) {
+        s.board[sq.row][sq.col] = { color: "black", pieceType: P };
+    }
+    game.loadGame(JSON.stringify(s));
+}
+
+describe("brain41 getCurrentPlayerPawnChainCount (diagonal / Chess.com pawn chains)", () => {
+    const game = new ChessGame();
+
+    it("returns 0 when the side to move has no pawns", () => {
+        loadPawnBoard(game, "white", () => {});
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 0);
+    });
+    it("treats a full home rank as 8 separate chains (only orthogonal neighbors, not diagonal links)", () => {
+        loadPawnFiles(game, "white", [0, 1, 2, 3, 4, 5, 6, 7]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 8);
+    });
+    it("merges pawns on one uninterrupted diagonal (e.g. c5–d4–e3–f2 style) into one chain", () => {
+        loadPawnSquares(game, "white", [
+            { row: 3, col: 0 },
+            { row: 4, col: 1 },
+            { row: 5, col: 2 },
+            { row: 6, col: 3 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
+    });
+    it("joins pawns on diagonally adjacent squares |Δr|=|Δc|=1", () => {
+        loadPawnSquares(game, "white", [
+            { row: 5, col: 0 },
+            { row: 6, col: 1 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
+    });
+    it("does not link pawns on the same file (doubled pawns) without a diagonal neighbor", () => {
+        const s = emptyStateBase("white");
+        const P = 0;
+        s.board[6][0] = { color: "white", pieceType: P };
+        s.board[5][0] = { color: "white", pieceType: P };
+        s.board[6][1] = { color: "white", pieceType: P };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 2);
+    });
+    it("returns 3 for three separate diagonal groups (no cross-links)", () => {
+        loadPawnSquares(game, "white", [
+            { row: 6, col: 0 },
+            { row: 5, col: 1 },
+            { row: 6, col: 3 },
+            { row: 5, col: 4 },
+            { row: 6, col: 7 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 3);
+    });
+    it("counts for the side to move (black) with the same diagonal rule", () => {
+        loadPawnSquares(game, "black", [
+            { row: 1, col: 0 },
+            { row: 2, col: 1 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
+    });
+});
+
+describe("brain41 getPawnChainCountEvalDelta", () => {
+    const game = new ChessGame();
+    const se = { pawnsChainCountPenalty: 0.1 };
+
+    it("is 0 for a single diagonal chain, no pawns, or a lone pawn", () => {
+        loadPawnSquares(game, "white", [
+            { row: 3, col: 0 },
+            { row: 4, col: 1 },
+            { row: 5, col: 2 },
+            { row: 6, col: 3 },
+        ]);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), 0);
+        loadPawnBoard(game, "white", () => {});
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), 0);
+        loadPawnSquares(game, "white", [{ row: 6, col: 0 }]);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), 0);
+    });
+    it("penalizes many chains on a rank: 8 pawns, 8 chains, (8-1)*0.1", () => {
+        loadPawnFiles(game, "white", [0, 1, 2, 3, 4, 5, 6, 7]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 8);
+        const d = getPawnChainCountEvalDelta(game, se);
+        assert.ok(Math.abs(d - (-0.7)) < 1e-12, `expected -0.7, got ${d}`);
+    });
+    it("subtracts (chainCount - 1) * pawnsChainCountPenalty for multiple diagonal groups", () => {
+        loadPawnSquares(game, "white", [
+            { row: 6, col: 0 },
+            { row: 5, col: 1 },
+            { row: 6, col: 3 },
+            { row: 5, col: 4 },
+            { row: 6, col: 7 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 3);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), -0.2);
+    });
+    it("returns 0 when the config coefficient is 0 or missing", () => {
+        loadPawnSquares(game, "white", [
+            { row: 6, col: 0 },
+            { row: 5, col: 1 },
+            { row: 6, col: 3 },
+        ]);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, { pawnsChainCountPenalty: 0 }), 0);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, {}), 0);
+    });
+});
 
 describe("brain41 isAdvancedPawnRankForColor", () => {
     it("treats rows 1–3 as advanced for white (toward top of board, row 0 = rank 8)", () => {
@@ -285,6 +425,7 @@ describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalt
         const c = getDefaultConfig("brain41");
         assert.strictEqual(c.specialEvaluations.firstKingMovePenalty, 0.1);
         assert.strictEqual(c.specialEvaluations.firstRookMovePenalty, 0.1);
+        assert.strictEqual(c.specialEvaluations.pawnsChainCountPenalty, 0.1);
     });
     it("sanitizeBrainConfig applies numeric overrides for both keys", () => {
         const out = sanitizeBrainConfig("brain41", {
@@ -305,5 +446,48 @@ describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalt
         });
         assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, 0.1);
         assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, 0.1);
+    });
+    it("sanitizeBrainConfig can override pawnsChainCountPenalty", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: { pawnsChainCountPenalty: 0.05 },
+        });
+        assert.strictEqual(out.specialEvaluations.pawnsChainCountPenalty, 0.05);
+    });
+});
+
+describe("brain41 draw leaf score (material-based)", () => {
+    const game = new ChessGame();
+    const se = getDefaultConfig("brain41").specialEvaluations;
+
+    it("getTotalMaterialValueForColor sums piece values for that side", () => {
+        loadKingsWithPawnExtras(game, [{ row: 6, col: 0 }], [{ row: 1, col: 0 }]);
+        const w = getTotalMaterialValueForColor(game, "white");
+        const b = getTotalMaterialValueForColor(game, "black");
+        assert.ok(w > 0 && b > 0);
+        assert.ok(Math.abs(w - b) < 0.001, "K+p vs K+p symmetric");
+    });
+    it("draw when materially even (|diff| < 3) uses drawScoreWhenEven", () => {
+        loadKingsWithPawnExtras(
+            game,
+            [{ row: 6, col: 0 }, { row: 6, col: 1 }],
+            [{ row: 1, col: 0 }, { row: 1, col: 1 }]
+        );
+        assert.strictEqual(getDrawLeafScoreForMover(game, "white", se), se.drawScoreWhenEven);
+    });
+    it("draw when ahead by material >= 3 uses drawScoreWhenAhead (default -5)", () => {
+        loadKingsWithPawnExtras(
+            game,
+            [{ row: 6, col: 0 }, { row: 6, col: 1 }, { row: 6, col: 2 }],
+            []
+        );
+        assert.strictEqual(getDrawLeafScoreForMover(game, "white", se), -5);
+    });
+    it("draw when behind by material >= 3 uses drawScoreWhenBehind (default +5)", () => {
+        loadKingsWithPawnExtras(
+            game,
+            [],
+            [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }]
+        );
+        assert.strictEqual(getDrawLeafScoreForMover(game, "white", se), 5);
     });
 });

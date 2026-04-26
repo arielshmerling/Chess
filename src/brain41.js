@@ -7,6 +7,17 @@ const DEFAULT_MAX_DEPTH = 2;
 const MAX_DEBUG_MOVES_TO_PRINT = 12;
 const LOG_PREFIX = "[Brain4.1]";
 let runtimeConfig = getDefaultConfig("brain41");
+let lastLoggedRuntimeConfigJson = null;
+
+/** Logs the effective brain41 config when it changes (avoids per-move spam in main thread and worker). */
+function logRuntimeConfigIfChanged(config, where) {
+    const serialized = JSON.stringify(config);
+    if (lastLoggedRuntimeConfigJson === serialized) {
+        return;
+    }
+    lastLoggedRuntimeConfigJson = serialized;
+    console.log(`${LOG_PREFIX} Using configuration [${where}]:`, serialized);
+}
 
 exports.Name = "Brain 4.1";
 
@@ -112,6 +123,7 @@ function getFirstLegalMove(game) {
 
 exports.brainNextMoveFunc = async (game, options) => {
     runtimeConfig = sanitizeBrainConfig("brain41", options?.config || {});
+    logRuntimeConfigIfChanged(runtimeConfig, "main");
     const state = game.GameState;
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
@@ -298,6 +310,7 @@ function stateScore(localChess, move) {
         score = pieceValue(localChess, targetPiece.pieceType);
     }
     score += getPawnEvalDelta(localChess, runtimeConfig.specialEvaluations, pieceValue(localChess, localChess.PAWN));
+    score += getPawnChainCountEvalDelta(localChess, runtimeConfig.specialEvaluations);
     score += getFirstKingRookMovePenaltyDelta(localChess, move, runtimeConfig.specialEvaluations);
     return score;
 }
@@ -345,6 +358,80 @@ function getCurrentPlayerAdvancedPawnCount(localChess) {
     return count;
 }
 
+/**
+ * Counts how many **pawn chains** the side to move has (Chess.com sense: pawns on the same
+ * diagonal, each “supporting” the next along that diagonal; 
+ * Two pawns are in the same chain if they are on **diagonally adjacent** squares
+ * (|Δrow| = 1, |Δcol| = 1) — the graph where edges are those links is split into
+ * connected components; each component is one chain. Isolated pawns are chains of size 1.
+ * Pawns on the same rank/file only (e.g. doubled pawns) are not on a diagonal with each
+ * other unless a third pawn links them.
+ */
+function getCurrentPlayerPawnChainCount(localChess) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return 0;
+    }
+    const currentColor = localChess.Turn;
+    const pawns = [];
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === localChess.PAWN) {
+                pawns.push({ row, col });
+            }
+        }
+    }
+    const n = pawns.length;
+    if (n === 0) {
+        return 0;
+    }
+    const parent = new Array(n);
+    for (let i = 0; i < n; i++) {
+        parent[i] = i;
+    }
+    function find(i) {
+        if (parent[i] !== i) {
+            parent[i] = find(parent[i]);
+        }
+        return parent[i];
+    }
+    function union(i, j) {
+        const ri = find(i);
+        const rj = find(j);
+        if (ri !== rj) {
+            parent[ri] = rj;
+        }
+    }
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const dr = Math.abs(pawns[i].row - pawns[j].row);
+            const dc = Math.abs(pawns[i].col - pawns[j].col);
+            if (dr === 1 && dc === 1) {
+                union(i, j);
+            }
+        }
+    }
+    const roots = new Set();
+    for (let i = 0; i < n; i++) {
+        roots.add(find(i));
+    }
+    return roots.size;
+}
+
+/** Penalizes fragmentation into many diagonal pawn chains: (chainCount - 1) * pawnsChainCountPenalty; one chain (or no pawns) adds nothing. */
+function getPawnChainCountEvalDelta(localChess, specialEvaluations) {
+    const p = Number(specialEvaluations && specialEvaluations.pawnsChainCountPenalty) || 0;
+    if (p === 0) {
+        return 0;
+    }
+    const c = getCurrentPlayerPawnChainCount(localChess);
+    if (c <= 1) {
+        return 0;
+    }
+    return -(c - 1) * p;
+}
+
 function isAdvancedPawnRankForColor(row, color) {
     if (color === "white") {
         return row >= 1 && row <= 3; // ranks 7..5 for white
@@ -366,12 +453,17 @@ function getPawnEvalDelta(localChess, specialEvaluations, pawnValue) {
 
 exports.getCurrentPlayerDoubledPawnCount = getCurrentPlayerDoubledPawnCount;
 exports.getCurrentPlayerAdvancedPawnCount = getCurrentPlayerAdvancedPawnCount;
+exports.getCurrentPlayerPawnChainCount = getCurrentPlayerPawnChainCount;
+exports.getPawnChainCountEvalDelta = getPawnChainCountEvalDelta;
 exports.isAdvancedPawnRankForColor = isAdvancedPawnRankForColor;
 exports.getPawnEvalDelta = getPawnEvalDelta;
 exports.getFirstKingRookMovePenaltyDelta = getFirstKingRookMovePenaltyDelta;
 exports.isCastlingKingMove = isCastlingKingMove;
+exports.getTotalMaterialValueForColor = getTotalMaterialValueForColor;
+exports.getDrawLeafScoreForMover = getDrawLeafScoreForMover;
 
 function scoreMove(localChess, move, maxDepth, ply) {
+    const movingPlayer = localChess.Turn;
     let score = stateScore(localChess, move);
     localChess.makeMove(move.source, move.target);
 
@@ -401,12 +493,12 @@ function scoreMove(localChess, move, maxDepth, ply) {
         score = 9999;
     }
 
-    if (localChess.Draw ) {
-        score = 0;
+    if (localChess.Draw) {
+        score = getDrawLeafScoreForMover(localChess, movingPlayer, runtimeConfig.specialEvaluations);
     }
 
     if (localChess.Moves.length > 50 && localChess.Check) {
-        score += 3;
+        score += 2.5;
     }
 
     if (ply < maxDepth) {
@@ -439,6 +531,48 @@ function pieceValue(localChess, pieceType) {
         default:
             return 0;
     }
+}
+
+function getTotalMaterialValueForColor(localChess, color) {
+    const state = localChess.GameState;
+    if (!state || !state.board) {
+        return 0;
+    }
+    let total = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === color) {
+                total += pieceValue(localChess, piece.pieceType);
+            }
+        }
+    }
+    return total;
+}
+
+/**
+ * Leaf score when a move ends in a draw, from the perspective of the side that moved.
+ * If material (sum of piece values) advantage >= threshold, draw is bad (-5 default); if
+ * behind by >= threshold, draw is good (+5); if within threshold, small preference (-0.1).
+ */
+function getDrawLeafScoreForMover(localChess, movingPlayerColor, specialEvaluations) {
+    const se = specialEvaluations || {};
+    const thrRaw = Number(se.drawMaterialDiffThreshold);
+    const threshold = Number.isFinite(thrRaw) ? thrRaw : 3;
+    const opponent = movingPlayerColor === "white" ? "black" : "white";
+    const my = getTotalMaterialValueForColor(localChess, movingPlayerColor);
+    const op = getTotalMaterialValueForColor(localChess, opponent);
+    const diff = my - op;
+    if (diff >= threshold) {
+        const v = Number(se.drawScoreWhenAhead);
+        return Number.isFinite(v) ? v : -5;
+    }
+    if (diff <= -threshold) {
+        const v = Number(se.drawScoreWhenBehind);
+        return Number.isFinite(v) ? v : 5;
+    }
+    const v = Number(se.drawScoreWhenEven);
+    return Number.isFinite(v) ? v : -0.1;
 }
 
 async function tryFindMatchState(game) {

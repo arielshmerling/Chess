@@ -350,7 +350,8 @@ body.research-dragging #innerBoard {
     left: 12px;
     top: 12px;
     z-index: 49;
-    width: 250px;
+    width: 440px;
+    max-width: min(480px, calc(100vw - 24px));
     background: var(--panel-background, rgba(30, 30, 30, 0.95));
     border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
     border-radius: 8px;
@@ -406,23 +407,44 @@ body.research-dragging #innerBoard {
 .research-brain-config-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 8px;
 }
 
 .research-brain-config-table th,
 .research-brain-config-table td {
     font-size: 0.78em;
-    padding: 4px;
+    padding: 4px 5px 4px 0;
     text-transform: capitalize;
+    vertical-align: middle;
 }
 
 .research-brain-config-table th {
     color: var(--semiLight);
     text-align: left;
+    width: 24%;
+}
+
+.research-brain-config-table th:nth-child(3) {
+    padding-left: 8px;
+}
+
+.research-brain-config-table .research-brain-config-name {
+    width: 24%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 4px;
+}
+
+.research-brain-config-table .research-brain-config-value {
+    width: 26%;
+    padding-right: 6px;
 }
 
 .research-brain-config-table input {
     width: 100%;
+    min-width: 0;
     height: 24px;
     border: 1px solid var(--panel-border);
     border-radius: 4px;
