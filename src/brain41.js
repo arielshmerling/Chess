@@ -246,22 +246,24 @@ function scoreMove(localChess, move, maxDepth, ply) {
     let score = stateScore(localChess, move);
     localChess.makeMove(move.source, move.target);
 
-   
+    if ( localChess.Check) {
+        console.log("check");
+    }
 
     if (move.promotion) {
         localChess.completePromotion(move);
         switch (move.selectedPiece) {
             case localChess.QUEEN:
-                score = 1100;
+                score = pieceValue(localChess, localChess.QUEEN);
                 break;
             case localChess.ROOK:
-                score = 1010;
+                score = pieceValue(localChess, localChess.ROOK);
                 break;
             case localChess.KNIGHT:
-                score = 1005;
+                score = pieceValue(localChess, localChess.KNIGHT);
                 break;
             case localChess.BISHOP:
-                score = 1000;
+                score = pieceValue(localChess, localChess.BISHOP);
                 break;
         }
     }
@@ -270,7 +272,11 @@ function scoreMove(localChess, move, maxDepth, ply) {
         score = 9999;
     }
 
-    if (/*localChess.Moves.length > 50 && */localChess.Check) {
+    if (localChess.Draw ) {
+        score = 0;
+    }
+
+    if (localChess.Moves.length > 50 && localChess.Check) {
         score += 3;
     }
 

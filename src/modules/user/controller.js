@@ -48,10 +48,10 @@ exports.getBookmarks = catchAsync(async (req, res) => {
 
 exports.setBookmark = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { gameState, name, gameType, moves } = req.body;
+    const { gameState, name, gameType, moves, engine, depth } = req.body;
 
     if (userId) {
-        await userService.addBookmark(userId, gameState, name, gameType, moves);
+        await userService.addBookmark(userId, gameState, name, gameType, moves, engine, depth);
         res.send("OK");
     }
     else {
@@ -62,10 +62,10 @@ exports.setBookmark = catchAsync(async (req, res) => {
 
 exports.updateBookmark = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { id, name, gameType, date, gameState, moves } = req.body;
+    const { id, name, gameType, date, gameState, moves, engine, depth } = req.body;
 
     if (id) {
-        await userService.updateBookmark(userId, id, date, name, gameType, gameState, moves);
+        await userService.updateBookmark(userId, id, date, name, gameType, gameState, moves, engine, depth);
         res.send("{ \"status\": \"OK\" }");
     }
     else {

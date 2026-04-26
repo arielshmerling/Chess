@@ -16,6 +16,16 @@ const bookmarkSchema = new mongoose.Schema({
     gameType: {
         type: String,
     },
+    engine: {
+        type: String,
+        default: "brain41",
+    },
+    depth: {
+        type: Number,
+        min: 1,
+        max: 5,
+        default: 3,
+    },
     date: {
         type: Date,
         default: mongoose.default.now,

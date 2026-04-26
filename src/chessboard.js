@@ -34,6 +34,80 @@ let currentEditingBookmark = null;
 let clickToMoveSelected = null;
 /** Suppress duplicate check alerts if OnUpdate still fires twice with the same checked side (backup guard). */
 let lastCheckNotifySide = null;
+const BOOKMARK_BRAIN_OPTIONS = [
+    { value: "brain41", label: "Brain 4.1" },
+    { value: "brain4", label: "Brain 4.0" },
+];
+const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
+
+function normalizeBookmarkEngine(engineName) {
+    return BOOKMARK_BRAIN_OPTIONS.some(function (opt) { return opt.value === engineName; }) ? engineName : "brain41";
+}
+
+function normalizeBookmarkDepth(depthValue) {
+    const parsed = Number(depthValue);
+    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : 3;
+}
+
+function isResearchScreen() {
+    return window.location.pathname === "/research";
+}
+
+function cleanupResearchUiForGameStart() {
+    const toolbox = document.getElementById("researchToolbox");
+    if (toolbox) {
+        toolbox.remove();
+    }
+    const controlPanel = document.querySelector(".controlPanel");
+    if (controlPanel) {
+        controlPanel.classList.remove("research-simplified");
+    }
+    const innerBoardEl = document.getElementById("innerBoard");
+    if (innerBoardEl) {
+        innerBoardEl.classList.remove("research-no-animate");
+    }
+    exitBookmarkPositionEditMode();
+    const board = document.getElementById("chessBoard");
+    if (board) {
+        board.style.cursor = "";
+    }
+    document.body.classList.remove("research-mode");
+}
+
+async function executeBookmarkFromResearch(bookmarkObj, bookmarkId) {
+    if (!bookmarkObj || !bookmarkObj._id) {
+        return;
+    }
+    const engine = normalizeBookmarkEngine(bookmarkObj.engine);
+    const depth = normalizeBookmarkDepth(bookmarkObj.depth);
+    const createPath = "/game?gameType=1&newGame=1&private=1&engine="
+        + encodeURIComponent(engine)
+        + "&difficulty=" + encodeURIComponent(String(depth));
+    await getServerInfo(createPath);
+    cleanupResearchUiForGameStart();
+    researchMode = false;
+    await startGame();
+    await applyBookmarkAction(bookmarkId);
+    setResearchRunningBookmark(bookmarkId);
+}
+
+function setResearchRunningBookmark(bookmarkId) {
+    researchRunningBookmarkId = bookmarkId;
+    const list = document.getElementById("bookmarksList");
+    if (!list) {
+        return;
+    }
+    list.querySelectorAll(".bookmark.bookmark-running").forEach(function (el) {
+        if (el.id !== "bookmark" + String(bookmarkId)) {
+            el.classList.remove("bookmark-running");
+        }
+    });
+    const activeBookmarkEl = document.getElementById("bookmark" + String(bookmarkId));
+    if (activeBookmarkEl) {
+        activeBookmarkEl.classList.add("bookmark-running");
+        activeBookmarkEl.classList.add("expanded");
+    }
+}
 
 function clearOpponentDisconnectGrace() {
     if (opponentDisconnectGraceTimer != null) {
@@ -425,8 +499,9 @@ function startDrag(e) {
 
     if (gameInfo.mode == "review") { return; }
 
-    const allowDrag = isPlayGamePage() ||
-        (window.location.pathname === "/research" && researchMode && researchSelected === "select");
+    const allowDrag = isPlayGamePage() || (
+        isResearchScreen() && (!researchMode || researchSelected === "select")
+    );
     if (!allowDrag) { return; }
 
     draggedImage = e.target;
@@ -813,6 +888,7 @@ let researchMode = false;
 let researchSelected = null; // { color, pieceType } or "eraser" or "select"
 let researchDraggingFrom = null; // { row, col } when dragging in select mode
 let researchEditingBookmarkId = null; // bookmark id when editing position (Edit → Save flow)
+let researchRunningBookmarkId = null; // bookmark id currently running from research
 
 function updateResearchCursor() {
     if (!researchMode) return;
@@ -4686,6 +4762,10 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     editModeLabel.classList.add("bookmark-edit-mode-label");
     editModeLabel.textContent = "edit mode";
     row.appendChild(editModeLabel);
+    const runModeLabel = document.createElement("span");
+    runModeLabel.classList.add("bookmark-run-mode-label");
+    runModeLabel.textContent = "Run";
+    row.appendChild(runModeLabel);
     div.appendChild(row);
 
     const details = document.createElement("div");
@@ -4777,6 +4857,79 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     const actionsRight = document.createElement("div");
     actionsRight.classList.add("bookmark-actions-right");
 
+    if (isResearchScreen()) {
+        const bookmarkObj = bookmarks.find(function (el) { return el.id == bookmarkId; });
+        const selectedEngine = normalizeBookmarkEngine(bookmarkObj && bookmarkObj.engine);
+        const selectedDepth = normalizeBookmarkDepth(bookmarkObj && bookmarkObj.depth);
+        const engineSelect = document.createElement("select");
+        engineSelect.className = "bookmark-engine-select";
+        engineSelect.setAttribute("title", "Brain version");
+        engineSelect.setAttribute("aria-label", "Brain version");
+        BOOKMARK_BRAIN_OPTIONS.forEach(function (opt) {
+            const optionEl = document.createElement("option");
+            optionEl.value = opt.value;
+            optionEl.textContent = opt.label;
+            if (opt.value === selectedEngine) {
+                optionEl.selected = true;
+            }
+            engineSelect.appendChild(optionEl);
+        });
+        engineSelect.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+        });
+        engineSelect.addEventListener("change", async function (ev) {
+            ev.stopPropagation();
+            if (!bookmarkObj || !bookmarkObj._id) {
+                return;
+            }
+            const previousEngine = normalizeBookmarkEngine(bookmarkObj.engine);
+            const updatedEngine = normalizeBookmarkEngine(engineSelect.value);
+            bookmarkObj.engine = updatedEngine;
+            try {
+                await postServerInfo("/updateBookmark", { id: bookmarkObj._id, engine: updatedEngine });
+            } catch (error) {
+                console.error("Failed to update bookmark brain version:", error);
+                bookmarkObj.engine = previousEngine;
+                engineSelect.value = previousEngine;
+            }
+        });
+        actionsRight.appendChild(engineSelect);
+
+        const depthSelect = document.createElement("select");
+        depthSelect.className = "bookmark-depth-select";
+        depthSelect.setAttribute("title", "Depth limit");
+        depthSelect.setAttribute("aria-label", "Depth limit");
+        BOOKMARK_DEPTH_OPTIONS.forEach(function (depth) {
+            const optionEl = document.createElement("option");
+            optionEl.value = String(depth);
+            optionEl.textContent = "D" + String(depth);
+            if (depth === selectedDepth) {
+                optionEl.selected = true;
+            }
+            depthSelect.appendChild(optionEl);
+        });
+        depthSelect.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+        });
+        depthSelect.addEventListener("change", async function (ev) {
+            ev.stopPropagation();
+            if (!bookmarkObj || !bookmarkObj._id) {
+                return;
+            }
+            const previousDepth = normalizeBookmarkDepth(bookmarkObj.depth);
+            const updatedDepth = normalizeBookmarkDepth(depthSelect.value);
+            bookmarkObj.depth = updatedDepth;
+            try {
+                await postServerInfo("/updateBookmark", { id: bookmarkObj._id, depth: updatedDepth });
+            } catch (error) {
+                console.error("Failed to update bookmark depth:", error);
+                bookmarkObj.depth = previousDepth;
+                depthSelect.value = String(previousDepth);
+            }
+        });
+        actionsRight.appendChild(depthSelect);
+    }
+
     const executeBtn = document.createElement("button");
     executeBtn.type = "button";
     executeBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-execute-btn";
@@ -4785,10 +4938,18 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
     executeBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>";
     executeBtn.addEventListener("click", function (ev) {
         ev.stopPropagation();
-        if (researchMode) {
+        if (isResearchScreen()) {
             const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
             if (bookmarkObj) {
-                window.location.href = "/game?gameType=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id);
+                executeBtn.disabled = true;
+                executeBookmarkFromResearch(bookmarkObj, bookmarkId)
+                    .catch(function (error) {
+                        console.error("Failed to execute bookmark from research:", error);
+                        alertMessageBox("Failed to start game from bookmark.");
+                    })
+                    .finally(function () {
+                        executeBtn.disabled = false;
+                    });
             }
         } else {
             applyBookmarkAction(bookmarkId);
@@ -4800,6 +4961,10 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate, gameType) {
 
     details.appendChild(actions);
     div.appendChild(details);
+    if (isResearchScreen() && researchRunningBookmarkId != null && researchRunningBookmarkId === bookmarkId) {
+        div.classList.add("bookmark-running");
+        div.classList.add("expanded");
+    }
 
     return div;
 }
@@ -4898,7 +5063,14 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
 
     const state = game.GameState;
     const strMoves = researchMode ? [] : (gameMoves && gameMoves.moves ? gameMoves.moves.map(m => JSON.stringify(m)) : []);
-    const response = await postServerInfo("/bookmark", { gameState: state, name, gameType: gameInfo.gameType || gameType, moves: strMoves });
+    const response = await postServerInfo("/bookmark", {
+        gameState: state,
+        name,
+        gameType: gameInfo.gameType || gameType,
+        moves: strMoves,
+        engine: "brain41",
+        depth: 3,
+    });
     //console.log(response);
     bookmarks = await getBookmarks();
     updateBookmarks(bookmarks);

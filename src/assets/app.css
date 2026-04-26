@@ -3270,6 +3270,26 @@ input:checked+.slider:before {
     display: inline;
 }
 
+.bookmark-run-mode-label {
+    display: none;
+    margin-left: auto;
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--light);
+    letter-spacing: 0.03em;
+    padding: 2px 6px;
+    background-color: rgba(152, 193, 217, 0.2);
+    border-radius: 4px;
+}
+
+.bookmark.bookmark-running .bookmark-run-mode-label {
+    display: inline;
+}
+
+.bookmark.bookmark-editing .bookmark-run-mode-label {
+    display: none;
+}
+
 .bookmark-details {
     display: none;
     padding: 8px;
@@ -3306,7 +3326,31 @@ input:checked+.slider:before {
 .bookmark-actions-right {
     display: flex;
     align-items: center;
+    gap: 6px;
     margin-left: auto;
+}
+
+.bookmark-engine-select {
+    min-height: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--panel-border);
+    background: var(--textbox-background);
+    color: var(--textbox-forecolor);
+    font-size: 0.8em;
+    padding: 0 4px;
+}
+
+.bookmark-depth-select {
+    min-height: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--panel-border);
+    background: var(--textbox-background);
+    color: var(--textbox-forecolor);
+    font-size: 0.8em;
+    padding: 0 4px;
+    width: 54px;
 }
 
 .bookmark-actions .bookmark-action-btn {
