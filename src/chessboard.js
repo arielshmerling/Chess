@@ -1851,6 +1851,39 @@ function drawBoard(board) {
     if (shouldUseTapToMoveOnTouchShell() && typeof gameInfo !== "undefined" && gameInfo) {
         applyMousePreference(gameInfo.mousePreference || "drag");
     }
+    applyCheckedKingSquareHighlight();
+}
+
+/**
+ * Highlights the king square of the side to move when that side is in check (including checkmate).
+ */
+function applyCheckedKingSquareHighlight() {
+    if (!game || guiBoard[0][0] == null) {
+        return;
+    }
+    for (let i = 0; i < game.BOARD_ROWS; i++) {
+        for (let j = 0; j < game.BOARD_COLUMNS; j++) {
+            guiBoard[i][j].classList.remove("king-in-check");
+        }
+    }
+    if (!game.Check) {
+        return;
+    }
+    const stateBoard = game.GameState && game.GameState.board;
+    if (!stateBoard) {
+        return;
+    }
+    const kingType = game.KING;
+    const turn = game.Turn;
+    for (let r = 0; r < game.BOARD_ROWS; r++) {
+        for (let c = 0; c < game.BOARD_COLUMNS; c++) {
+            const p = stateBoard[r][c];
+            if (p && p.pieceType === kingType && p.color === turn) {
+                guiBoard[r][c].classList.add("king-in-check");
+                return;
+            }
+        }
+    }
 }
 
 /**
@@ -2215,6 +2248,7 @@ function resetSqaureColor() {
             guiBoard[i][j].setAttribute("class", className);
         }
     }
+    applyCheckedKingSquareHighlight();
 }
 
 /// Cloak

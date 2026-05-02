@@ -1054,6 +1054,21 @@ body.research-mode .debug-game-id {
     opacity: 0.85;
 }
 
+/* Side to move is in check: king's square (including checkmate) */
+#innerBoard .square.king-in-check {
+    background-color: rgb(176, 52, 52) !important;
+}
+
+/* Keep check tint visible over drag-mode legal-move coloring */
+#innerBoard:not(.move-mode-double) .square.king-in-check.option {
+    background-color: rgb(176, 52, 52) !important;
+}
+
+#innerBoard .square.king-in-check.optionSource {
+    background-color: rgb(176, 52, 52) !important;
+    opacity: 1;
+}
+
 
 .draggable {
     position: relative;

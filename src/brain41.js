@@ -9,6 +9,9 @@ const LOG_PREFIX = "[Brain4.1]";
 let runtimeConfig = getDefaultConfig("brain41");
 let lastLoggedRuntimeConfigJson = null;
 
+/** Increments inside {@link scoreMove}; reset once per worker search. One count per branching evaluation (static score + recurse). */
+let positionsEvaluatedThisSearch = 0;
+
 /** Logs the effective brain41 config when it changes (avoids per-move spam in main thread and worker). */
 function logRuntimeConfigIfChanged(config, where) {
     const serialized = JSON.stringify(config);
@@ -129,7 +132,7 @@ exports.brainNextMoveFunc = async (game, options) => {
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
-        console.log(`${LOG_PREFIX} Opening book hit: ${toSimpleNotationSafe(game, move)}`);
+        console.log(`${LOG_PREFIX} Opening book hit: ${toSimpleNotationSafe(game, move)} (positions evaluated: 0)`);
         return move;
     }
 
@@ -463,6 +466,7 @@ exports.getTotalMaterialValueForColor = getTotalMaterialValueForColor;
 exports.getDrawLeafScoreForMover = getDrawLeafScoreForMover;
 
 function scoreMove(localChess, move, maxDepth, ply) {
+    positionsEvaluatedThisSearch += 1;
     const movingPlayer = localChess.Turn;
     let score = stateScore(localChess, move);
     localChess.makeMove(move.source, move.target);
@@ -611,13 +615,17 @@ if (!isMainThread) {
         console.log(`${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}`);
 
         try {
+            positionsEvaluatedThisSearch = 0;
             chess.loadGame(gameState);
             chess.SearchMode = true;
             const move = suggestMove(chess, maxDepth, 1);
             chess.SearchMode = false;
 
             const duration = Date.now() - startTime;
-            console.log(`${LOG_PREFIX} request=${requestId} completed in ${duration}ms`);
+            console.log(
+                `${LOG_PREFIX} request=${requestId} positions evaluated: ${positionsEvaluatedThisSearch}, `
+                    + `${duration}ms`
+            );
 
             if (move) {
                 move.turn = chess.Turn;
