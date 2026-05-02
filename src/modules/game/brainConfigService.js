@@ -28,6 +28,12 @@ const DEFAULT_CONFIGS = {
             drawScoreWhenAhead: -5,
             drawScoreWhenBehind: 5,
             drawScoreWhenEven: -0.1,
+            /** Rooks on open file on invading row (rank 7 for white, rank 2 for black): count as multiplier × rook piece value vs base (e.g. 1.25 = +25% rook value each). */
+            bestOpenRookOnSeventhMultiplier: 1.25,
+            /** Friendly rook on any fully open file counts as multiplier × rook value (default 1.125 = +12.5%). */
+            veryGoodOpenRookMultiplier: 1.125,
+            /** Friendly rook on a closed file (any pawn on that file): value scaled by multiplier (< 1 = penalty); default 0.75 ⇒ −25% per rook. */
+            poorClosedFileRookMultiplier: 0.75,
         },
     },
     brain5: {
@@ -119,6 +125,24 @@ function sanitizeBrainConfig(engineName, rawConfig) {
             : specialEvaluations.drawScoreWhenEven);
         if (Number.isFinite(drawScoreWhenEven)) {
             specialEvaluations.drawScoreWhenEven = drawScoreWhenEven;
+        }
+        const bestOpenRookOnSeventhMultiplier = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.bestOpenRookOnSeventhMultiplier
+            : specialEvaluations.bestOpenRookOnSeventhMultiplier);
+        if (Number.isFinite(bestOpenRookOnSeventhMultiplier)) {
+            specialEvaluations.bestOpenRookOnSeventhMultiplier = bestOpenRookOnSeventhMultiplier;
+        }
+        const veryGoodOpenRookMultiplier = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.veryGoodOpenRookMultiplier
+            : specialEvaluations.veryGoodOpenRookMultiplier);
+        if (Number.isFinite(veryGoodOpenRookMultiplier)) {
+            specialEvaluations.veryGoodOpenRookMultiplier = veryGoodOpenRookMultiplier;
+        }
+        const poorClosedFileRookMultiplier = Number(rawConfig && rawConfig.specialEvaluations
+            ? rawConfig.specialEvaluations.poorClosedFileRookMultiplier
+            : specialEvaluations.poorClosedFileRookMultiplier);
+        if (Number.isFinite(poorClosedFileRookMultiplier)) {
+            specialEvaluations.poorClosedFileRookMultiplier = poorClosedFileRookMultiplier;
         }
         return { pieceScores, specialEvaluations };
     }

@@ -315,6 +315,9 @@ function stateScore(localChess, move) {
     score += getPawnEvalDelta(localChess, runtimeConfig.specialEvaluations, pieceValue(localChess, localChess.PAWN));
     score += getPawnChainCountEvalDelta(localChess, runtimeConfig.specialEvaluations);
     score += getFirstKingRookMovePenaltyDelta(localChess, move, runtimeConfig.specialEvaluations);
+    score += getBestOpenRookSeventhBonusDelta(localChess, runtimeConfig.specialEvaluations);
+    score += getVeryGoodOpenFileRookBonusDelta(localChess, runtimeConfig.specialEvaluations);
+    score += getPoorClosedFileRookPenaltyDelta(localChess, runtimeConfig.specialEvaluations);
     return score;
 }
 
@@ -445,6 +448,151 @@ function isAdvancedPawnRankForColor(row, color) {
     return false;
 }
 
+/** Open file (no pawn of either color anywhere on that file). Same convention as pawn rows in {@link isAdvancedPawnRankForColor}. */
+function isBoardFileFullyOpen(localChess, col) {
+    const state = localChess.GameState;
+    const board = state && state.board;
+    if (!board) {
+        return false;
+    }
+    const pawn = localChess.PAWN;
+    for (let row = 0; row < 8; row++) {
+        const p = board[row][col];
+        if (p && p.pieceType === pawn) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** True if this square matches “rook on seventh rank”: white rook on row 1; black rook on row 6 (mirrors pawn-advanced indexing). */
+function isRookOnInvadingSeventhRowForColor(row, color) {
+    if (color === "white") {
+        return row === 1;
+    }
+    if (color === "black") {
+        return row === 6;
+    }
+    return false;
+}
+
+/**
+ * Side to move: each friendly rook that sits on an open file on rank 7 (white) / rank 2 (black)
+ * earns (multiplier − 1)× rook score (default multiplier 1.25 ⇒ +25% per such rook).
+ */
+function getBestOpenRookSeventhBonusDelta(localChess, specialEvaluations) {
+    const raw = specialEvaluations && specialEvaluations.bestOpenRookOnSeventhMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 1.25;
+    if (mult <= 1) {
+        return 0;
+    }
+    const state = localChess.GameState;
+    const board = state && state.board;
+    if (!board) {
+        return 0;
+    }
+    const side = localChess.Turn;
+    const rookT = localChess.ROOK;
+    const rookScore = pieceValue(localChess, rookT);
+    const extraPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (
+                piece
+                && piece.color === side
+                && piece.pieceType === rookT
+                && isRookOnInvadingSeventhRowForColor(row, side)
+                && isBoardFileFullyOpen(localChess, col)
+            ) {
+                count += 1;
+            }
+        }
+    }
+    return count * extraPerRook;
+}
+
+/**
+ * Side to move: each friendly rook on a fully open file (any rank) earns (multiplier − 1)× rook score
+ * (default 1.125 ⇒ +12.5% per such rook). Stacks with {@link getBestOpenRookSeventhBonusDelta} when both apply.
+ */
+function getVeryGoodOpenFileRookBonusDelta(localChess, specialEvaluations) {
+    const raw = specialEvaluations && specialEvaluations.veryGoodOpenRookMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 1.125;
+    if (mult <= 1) {
+        return 0;
+    }
+    const state = localChess.GameState;
+    const board = state && state.board;
+    if (!board) {
+        return 0;
+    }
+    const side = localChess.Turn;
+    const rookT = localChess.ROOK;
+    const rookScore = pieceValue(localChess, rookT);
+    const extraPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (
+                piece
+                && piece.color === side
+                && piece.pieceType === rookT
+                && isBoardFileFullyOpen(localChess, col)
+            ) {
+                count += 1;
+            }
+        }
+    }
+    return count * extraPerRook;
+}
+
+/** A closed file has at least one pawn on it (inverse of fully open file). */
+function isBoardFileClosedForRook(localChess, col) {
+    return !isBoardFileFullyOpen(localChess, col);
+}
+
+/**
+ * Side to move: each friendly rook on a closed file earns (multiplier − 1)× rook score (negative if multiplier &lt; 1).
+ * Default multiplier 0.75 ⇒ −25% per rook. Set to 1 to disable.
+ */
+function getPoorClosedFileRookPenaltyDelta(localChess, specialEvaluations) {
+    const raw = specialEvaluations && specialEvaluations.poorClosedFileRookMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 0.75;
+    if (mult >= 1) {
+        return 0;
+    }
+    const state = localChess.GameState;
+    const board = state && state.board;
+    if (!board) {
+        return 0;
+    }
+    const side = localChess.Turn;
+    const rookT = localChess.ROOK;
+    const rookScore = pieceValue(localChess, rookT);
+    const deltaPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (
+                piece
+                && piece.color === side
+                && piece.pieceType === rookT
+                && isBoardFileClosedForRook(localChess, col)
+            ) {
+                count += 1;
+            }
+        }
+    }
+    if (count === 0) {
+        return 0;
+    }
+    return count * deltaPerRook;
+}
+
 /** Pawn structure adjustment used by {@link stateScore} (config-driven double penalty + advanced bonus). */
 function getPawnEvalDelta(localChess, specialEvaluations, pawnValue) {
     const dpp = Number(specialEvaluations && specialEvaluations.doublePawnPenalty) || 0;
@@ -464,6 +612,12 @@ exports.getFirstKingRookMovePenaltyDelta = getFirstKingRookMovePenaltyDelta;
 exports.isCastlingKingMove = isCastlingKingMove;
 exports.getTotalMaterialValueForColor = getTotalMaterialValueForColor;
 exports.getDrawLeafScoreForMover = getDrawLeafScoreForMover;
+exports.isBoardFileFullyOpen = isBoardFileFullyOpen;
+exports.isRookOnInvadingSeventhRowForColor = isRookOnInvadingSeventhRowForColor;
+exports.getBestOpenRookSeventhBonusDelta = getBestOpenRookSeventhBonusDelta;
+exports.getVeryGoodOpenFileRookBonusDelta = getVeryGoodOpenFileRookBonusDelta;
+exports.isBoardFileClosedForRook = isBoardFileClosedForRook;
+exports.getPoorClosedFileRookPenaltyDelta = getPoorClosedFileRookPenaltyDelta;
 
 function scoreMove(localChess, move, maxDepth, ply) {
     positionsEvaluatedThisSearch += 1;

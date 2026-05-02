@@ -17,6 +17,12 @@ const {
     isCastlingKingMove,
     getTotalMaterialValueForColor,
     getDrawLeafScoreForMover,
+    getBestOpenRookSeventhBonusDelta,
+    getVeryGoodOpenFileRookBonusDelta,
+    getPoorClosedFileRookPenaltyDelta,
+    isBoardFileFullyOpen,
+    isBoardFileClosedForRook,
+    isRookOnInvadingSeventhRowForColor,
 } = require("../src/brain41");
 const { getDefaultConfig, sanitizeBrainConfig } = require("../src/modules/game/brainConfigService");
 
@@ -426,6 +432,9 @@ describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalt
         assert.strictEqual(c.specialEvaluations.firstKingMovePenalty, 0.1);
         assert.strictEqual(c.specialEvaluations.firstRookMovePenalty, 0.1);
         assert.strictEqual(c.specialEvaluations.pawnsChainCountPenalty, 0.1);
+        assert.strictEqual(c.specialEvaluations.bestOpenRookOnSeventhMultiplier, 1.25);
+        assert.strictEqual(c.specialEvaluations.veryGoodOpenRookMultiplier, 1.125);
+        assert.strictEqual(c.specialEvaluations.poorClosedFileRookMultiplier, 0.75);
     });
     it("sanitizeBrainConfig applies numeric overrides for both keys", () => {
         const out = sanitizeBrainConfig("brain41", {
@@ -452,6 +461,190 @@ describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalt
             specialEvaluations: { pawnsChainCountPenalty: 0.05 },
         });
         assert.strictEqual(out.specialEvaluations.pawnsChainCountPenalty, 0.05);
+    });
+    it("sanitizeBrainConfig can override bestOpenRookOnSeventhMultiplier", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: { bestOpenRookOnSeventhMultiplier: 1.5 },
+        });
+        assert.strictEqual(out.specialEvaluations.bestOpenRookOnSeventhMultiplier, 1.5);
+    });
+    it("sanitizeBrainConfig can override veryGoodOpenRookMultiplier", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: { veryGoodOpenRookMultiplier: 1.2 },
+        });
+        assert.strictEqual(out.specialEvaluations.veryGoodOpenRookMultiplier, 1.2);
+    });
+    it("sanitizeBrainConfig can override poorClosedFileRookMultiplier", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: { poorClosedFileRookMultiplier: 0.5 },
+        });
+        assert.strictEqual(out.specialEvaluations.poorClosedFileRookMultiplier, 0.5);
+    });
+});
+
+describe("brain41 best rook (open file, seventh rank / second rank penetration)", () => {
+    const game = new ChessGame();
+    const se = () => sanitizeBrainConfig("brain41", {}).specialEvaluations;
+
+    it("indexes seventh rank consistently with pawn-advanced helpers", () => {
+        assert.strictEqual(isRookOnInvadingSeventhRowForColor(1, "white"), true);
+        assert.strictEqual(isRookOnInvadingSeventhRowForColor(2, "white"), false);
+        assert.strictEqual(isRookOnInvadingSeventhRowForColor(6, "black"), true);
+        assert.strictEqual(isRookOnInvadingSeventhRowForColor(5, "black"), false);
+    });
+
+    it("detects fully open files (no pawns)", () => {
+        const sOpen = emptyStateBase("white");
+        sOpen.board[7][4] = { color: "white", pieceType: game.KING };
+        sOpen.board[0][7] = { color: "black", pieceType: game.KING };
+        game.loadGame(JSON.stringify(sOpen));
+        assert.strictEqual(isBoardFileFullyOpen(game, 3), true);
+        const sBlocked = emptyStateBase("white");
+        sBlocked.board[7][4] = { color: "white", pieceType: game.KING };
+        sBlocked.board[0][7] = { color: "black", pieceType: game.KING };
+        sBlocked.board[2][3] = { color: "white", pieceType: game.PAWN };
+        game.loadGame(JSON.stringify(sBlocked));
+        assert.strictEqual(isBoardFileFullyOpen(game, 3), false);
+    });
+
+    it("bonus (1.25×) for friendly rook on invasion rank when file has no pawn", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[1][3] = { color: "white", pieceType: R };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getBestOpenRookSeventhBonusDelta(game, se()), 5 * 0.25);
+    });
+
+    it("no bonus when a pawn occupies the rook's file somewhere", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        const P = game.PAWN;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[1][3] = { color: "white", pieceType: R };
+        s.board[6][3] = { color: "white", pieceType: P };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getBestOpenRookSeventhBonusDelta(game, se()), 0);
+    });
+
+    it("no bonus for multiplier 1", () => {
+        const s = emptyStateBase("white");
+        s.board[7][0] = { color: "white", pieceType: game.KING };
+        s.board[0][7] = { color: "black", pieceType: game.KING };
+        s.board[1][3] = { color: "white", pieceType: game.ROOK };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getBestOpenRookSeventhBonusDelta(game, { bestOpenRookOnSeventhMultiplier: 1 }), 0);
+    });
+
+    it("black to move: rook on row 6 open file", () => {
+        const s = emptyStateBase("black");
+        const K = game.KING;
+        const R = game.ROOK;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[6][2] = { color: "black", pieceType: R };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getBestOpenRookSeventhBonusDelta(game, se()), 5 * 0.25);
+    });
+});
+
+describe("brain41 very good rook (open file, any rank)", () => {
+    const game = new ChessGame();
+    const se = () => sanitizeBrainConfig("brain41", {}).specialEvaluations;
+
+    it("bonus 112.5% for rook on open file (e.g. white back rank)", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[7][3] = { color: "white", pieceType: R };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getVeryGoodOpenFileRookBonusDelta(game, se()), 5 * 0.125);
+    });
+
+    it("no bonus when file has a pawn", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        const P = game.PAWN;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[7][3] = { color: "white", pieceType: R };
+        s.board[1][3] = { color: "black", pieceType: P };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getVeryGoodOpenFileRookBonusDelta(game, se()), 0);
+    });
+
+    it("stacks with best-rook bonus on seventh rank open file", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[1][3] = { color: "white", pieceType: R };
+        game.loadGame(JSON.stringify(s));
+        const spec = se();
+        assert.strictEqual(
+            getBestOpenRookSeventhBonusDelta(game, spec) + getVeryGoodOpenFileRookBonusDelta(game, spec),
+            5 * 0.25 + 5 * 0.125
+        );
+    });
+});
+
+describe("brain41 poor rook (closed file)", () => {
+    const game = new ChessGame();
+    const se = () => sanitizeBrainConfig("brain41", {}).specialEvaluations;
+
+    it("closed file ≡ not fully open", () => {
+        const sOpen = emptyStateBase("white");
+        sOpen.board[7][4] = { color: "white", pieceType: game.KING };
+        sOpen.board[0][7] = { color: "black", pieceType: game.KING };
+        game.loadGame(JSON.stringify(sOpen));
+        assert.strictEqual(isBoardFileClosedForRook(game, 3), false);
+        const sClosed = emptyStateBase("white");
+        sClosed.board[7][4] = { color: "white", pieceType: game.KING };
+        sClosed.board[0][7] = { color: "black", pieceType: game.KING };
+        sClosed.board[6][3] = { color: "white", pieceType: game.PAWN };
+        game.loadGame(JSON.stringify(sClosed));
+        assert.strictEqual(isBoardFileClosedForRook(game, 3), true);
+    });
+
+    it("penalty 75% for rook when file has a pawn somewhere", () => {
+        const s = emptyStateBase("white");
+        const K = game.KING;
+        const R = game.ROOK;
+        const P = game.PAWN;
+        s.board[7][0] = { color: "white", pieceType: K };
+        s.board[0][7] = { color: "black", pieceType: K };
+        s.board[7][3] = { color: "white", pieceType: R };
+        s.board[1][3] = { color: "black", pieceType: P };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getPoorClosedFileRookPenaltyDelta(game, se()), -5 * 0.25);
+    });
+
+    it("no poor-rook adjustment on fully open file", () => {
+        const s = emptyStateBase("white");
+        s.board[7][0] = { color: "white", pieceType: game.KING };
+        s.board[0][7] = { color: "black", pieceType: game.KING };
+        s.board[7][3] = { color: "white", pieceType: game.ROOK };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getPoorClosedFileRookPenaltyDelta(game, se()), 0);
+        assert.strictEqual(getVeryGoodOpenFileRookBonusDelta(game, se()), 5 * 0.125);
+    });
+
+    it("no penalty when multiplier is 1", () => {
+        const s = emptyStateBase("white");
+        s.board[7][0] = { color: "white", pieceType: game.KING };
+        s.board[0][7] = { color: "black", pieceType: game.KING };
+        s.board[7][3] = { color: "white", pieceType: game.ROOK };
+        s.board[1][3] = { color: "black", pieceType: game.PAWN };
+        game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getPoorClosedFileRookPenaltyDelta(game, { poorClosedFileRookMultiplier: 1 }), 0);
     });
 });
 

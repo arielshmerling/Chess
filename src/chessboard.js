@@ -57,6 +57,9 @@ const BRAIN_CONFIG_DEFAULTS = {
             drawScoreWhenAhead: -5,
             drawScoreWhenBehind: 5,
             drawScoreWhenEven: -0.1,
+            bestOpenRookOnSeventhMultiplier: 1.25,
+            veryGoodOpenRookMultiplier: 1.125,
+            poorClosedFileRookMultiplier: 0.75,
         },
     },
     brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
@@ -1375,6 +1378,21 @@ function getBrainConfigFieldDefs(engineName) {
             label: "Draw score when material even",
             section: "specialEvaluations",
             key: "drawScoreWhenEven",
+        });
+        fields.push({
+            label: "Best rook (open file, 7th/2nd rank) multiplier",
+            section: "specialEvaluations",
+            key: "bestOpenRookOnSeventhMultiplier",
+        });
+        fields.push({
+            label: "Very good rook (open file) multiplier",
+            section: "specialEvaluations",
+            key: "veryGoodOpenRookMultiplier",
+        });
+        fields.push({
+            label: "Poor rook (closed file) multiplier",
+            section: "specialEvaluations",
+            key: "poorClosedFileRookMultiplier",
         });
     }
     return fields;

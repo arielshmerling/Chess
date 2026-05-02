@@ -16,6 +16,9 @@
     "drawMaterialDiffThreshold": 3,
     "drawScoreWhenAhead": -5,
     "drawScoreWhenBehind": 5,
-    "drawScoreWhenEven": -0.1
+    "drawScoreWhenEven": -0.1,
+    "bestOpenRookOnSeventhMultiplier": 1.25,
+    "veryGoodOpenRookMultiplier": 1.125,
+    "poorClosedFileRookMultiplier": 0.75
   }
 }
