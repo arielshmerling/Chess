@@ -178,7 +178,7 @@ exports.addBookmark = async (userId, gameState, name, gameType, moves, engine, d
                 name,
                 gameType,
                 moves,
-                engine: (engine === "brain4" || engine === "brain41") ? engine : "brain41",
+                engine: (engine === "brain4" || engine === "brain41" || engine === "brain42") ? engine : "brain41",
                 depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 5 ? parsedDepth : 3,
             });
             await bookmarkDoc.save();
@@ -208,7 +208,7 @@ exports.updateBookmark = async (userId, id, date, name, gameType, gameState, mov
                 bookmarkDoc.markModified("moves");
             }
             if (engine !== undefined) {
-                bookmarkDoc.engine = (engine === "brain4" || engine === "brain41") ? engine : "brain41";
+                bookmarkDoc.engine = (engine === "brain4" || engine === "brain41" || engine === "brain42") ? engine : "brain41";
             }
             if (depth !== undefined) {
                 const parsedDepth = Number(depth);

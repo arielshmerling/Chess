@@ -36,6 +36,9 @@ const DEFAULT_CONFIGS = {
             poorClosedFileRookMultiplier: 0.75,
         },
     },
+    brain42: {
+        pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+    },
     brain5: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
     },

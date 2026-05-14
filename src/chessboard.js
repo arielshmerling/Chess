@@ -36,6 +36,7 @@ let clickToMoveSelected = null;
 let lastCheckNotifySide = null;
 const BOOKMARK_BRAIN_OPTIONS = [
     { value: "brain41", label: "Brain 4.1" },
+    { value: "brain42", label: "Brain 4.2" },
     { value: "brain4", label: "Brain 4.0" },
 ];
 const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
@@ -62,6 +63,7 @@ const BRAIN_CONFIG_DEFAULTS = {
             poorClosedFileRookMultiplier: 0.75,
         },
     },
+    brain42: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
     brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
 };
 

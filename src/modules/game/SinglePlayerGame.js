@@ -5,7 +5,7 @@ const { Player } = require("./Player");
 const { SinglePlayerMessageProcessor } = require("./SinglePlayerMessageProcessor");
 const brainConfigService = require("./brainConfigService");
 
-const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41"];
+const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41", "brain42"];
 
 function loadEngine(engineName) {
     const name = (engineName && ALLOWED_ENGINES.includes(engineName)) ? engineName : "brain4";
