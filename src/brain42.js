@@ -1,11 +1,15 @@
 /**
  * Brain 4.2 — negamax with alpha-beta pruning over the same legal-move tree as other brains.
  *
- * Evaluation is material only (sum of configured piece values for the side to move minus the opponent).
- * Terminal positions: checkmate / stalemate / draw flag from {@link ChessGame}.
+ * Evaluation is mostly material (sum of configured piece values for the side to move minus the opponent).
+ * If {@link ChessGame#Checkmate} is set, the side to move is mated and receives score {@code -MATE_SCORE}
+ * (the parent ply negates it so the mating side sees a huge win).
  *
  * Every tentative move uses {@link withAppliedMove} so `makeMove` / `completePromotion` always pair with
  * exactly one `undo`, including when pruning breaks out of the move loop early.
+ *
+ * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateMaterialForSideToMove} call
+ * (leaf nodes) and logs the total after each completed search.
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { State } = require("./modules/game/model");
@@ -14,11 +18,14 @@ const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainC
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
-/** Large enough to dominate material; mate distance not tuned (future work). */
-const MATE_SCORE = 1_000_000;
+/** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
+const MATE_SCORE = 9_000_000_000_000_000;
 
 let chess;
 let runtimeConfig = getDefaultConfig("brain42");
+
+/** Counts {@link evaluateMaterialForSideToMove} invocations per worker search; reset before each request. */
+let leafEvaluationsThisSearch = 0;
 
 exports.Name = "Brain 4.2";
 
@@ -190,6 +197,10 @@ function pieceValue(game, pieceType) {
 
 /** Material for {@link ChessGame#Turn} minus opponent (no positional terms). */
 function evaluateMaterialForSideToMove(game) {
+    leafEvaluationsThisSearch += 1;
+    if (game.Checkmate) {
+        return -MATE_SCORE;
+    }
     if (game.Draw) {
         return 0;
     }
@@ -269,7 +280,7 @@ function withAppliedMove(game, move, fn) {
 
 /** Score for the side to move when they have no legal moves. */
 function scoreTerminalNoMoves(game) {
-    if (game.Check) {
+    if (game.Checkmate || game.Check) {
         return -MATE_SCORE;
     }
     return 0;
@@ -372,6 +383,7 @@ if (!isMainThread) {
         console.log(`${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}`);
 
         try {
+            leafEvaluationsThisSearch = 0;
             chess.loadGame(gameState);
             chess.SearchMode = true;
             const move = searchBestMoveAtRoot(chess, maxDepth);
@@ -392,6 +404,10 @@ if (!isMainThread) {
                 }
             }
 
+            console.log(
+                `${LOG_PREFIX} request=${requestId} final decision: leaf evaluations=${leafEvaluationsThisSearch}`,
+            );
+
             if (out && out.source != null) {
                 out.turn = chess.Turn;
                 parentPort.postMessage({ requestId, move: out });
@@ -400,7 +416,11 @@ if (!isMainThread) {
             }
         } catch (err) {
             const duration = Date.now() - startTime;
-            console.error(`${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms:`, err);
+            console.error(
+                `${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms `
+                    + `(leaf evaluations before error: ${leafEvaluationsThisSearch}):`,
+                err,
+            );
             parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
         }
     });
