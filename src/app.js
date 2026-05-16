@@ -50,6 +50,10 @@ const gamesManagerRoutes = require("./modules/gamesManager"); // Import the game
 const gameRoutes = require("./modules/game"); // Import the games manager routes
 const friendsRoutes = require("./modules/friends");
 
+if (process.env.SHMERLING_MODE === "desktop") {
+    require("./desktop/configureApp")(app);
+}
+
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
     res.locals.admin = req.session.admin;
@@ -58,10 +62,12 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use("/", userRoutes);
-app.use("/", gamesManagerRoutes);
-app.use("/", gameRoutes);
-app.use("/", friendsRoutes);
+if (process.env.SHMERLING_MODE !== "desktop") {
+    app.use("/", userRoutes);
+    app.use("/", gamesManagerRoutes);
+    app.use("/", gameRoutes);
+    app.use("/", friendsRoutes);
+}
 
 //production script
 app.use(express.static("./client/build"));

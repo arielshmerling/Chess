@@ -1,0 +1,503 @@
+.desktop-shell {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--body-background, var(--darker, #3d5a80));
+  color: var(--textbox-forecolor, #e8f4f8);
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  --desktop-card-bg: var(--panel-background, rgba(45, 60, 80, 0.92));
+  --desktop-card-border: var(--panel-border, rgba(152, 193, 217, 0.35));
+  accent-color: var(--desktop-accent, #5a8fb8);
+  --desktop-topbar-height: 64px;
+}
+
+body.desktop-has-topbar {
+  padding-top: var(--desktop-topbar-height);
+  box-sizing: border-box;
+}
+
+/* —— Top bar —— */
+.desktop-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: var(--desktop-topbar-height);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  background: #0d0d0d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e8e8e8;
+}
+
+.desktop-topbar-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  opacity: 0.95;
+}
+
+.desktop-topbar-logo:hover {
+  opacity: 1;
+}
+
+/* Matches centered home logo (140px wide), scaled to fit the 64px top bar */
+.desktop-topbar-logo img {
+  display: block;
+  width: 140px;
+  height: auto;
+  max-height: 50px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.desktop-topbar-spacer {
+  flex: 1;
+}
+
+.desktop-topbar-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.desktop-prefs {
+  position: relative;
+}
+
+.desktop-prefs-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8e8e8;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.desktop-prefs-trigger:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.desktop-prefs-trigger-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.desktop-prefs-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: #e8e8e8;
+  z-index: 1001;
+}
+
+.desktop-prefs-panel[hidden] {
+  display: none;
+}
+
+.desktop-prefs-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.desktop-prefs-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.desktop-prefs-theme {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.desktop-prefs-theme .desktop-theme-choice {
+  flex: 1;
+}
+
+.desktop-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.desktop-menu-king {
+  width: 200px;
+  height: auto;
+  margin-bottom: 1.75rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.desktop-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 280px;
+}
+
+.desktop-theme-choice {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.desktop-theme-choice:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.desktop-theme-choice.is-active {
+  border-color: var(--desktop-accent);
+  box-shadow: 0 0 0 1px var(--desktop-accent);
+  background: var(--desktop-accent-soft);
+}
+
+.desktop-theme-swatch {
+  display: flex;
+  width: 100%;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.desktop-theme-swatch--blue {
+  background: linear-gradient(
+    90deg,
+    #293241 0%,
+    #3d5a80 25%,
+    #668ea5 50%,
+    #98c1d9 75%,
+    #e0fbfc 100%
+  );
+}
+
+.desktop-theme-swatch--dark {
+  background: linear-gradient(
+    90deg,
+    #1a1a1a 0%,
+    #2d2d2d 35%,
+    #555555 65%,
+    #888888 100%
+  );
+}
+
+.desktop-theme-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.desktop-btn {
+  display: block;
+  text-align: center;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--desktop-card-border);
+  background: var(--button-background, rgba(0, 0, 0, 0.2));
+  color: inherit;
+  text-decoration: none;
+  font-size: 1rem;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: filter 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.desktop-btn-secondary {
+  background: var(--panel-background, rgba(0, 0, 0, 0.15));
+}
+
+.desktop-btn-primary {
+  background: var(--desktop-accent);
+  border-color: transparent;
+  color: var(--desktop-accent-text, #fff);
+  font-weight: 600;
+}
+
+.desktop-btn:hover:not(.desktop-btn-primary) {
+  filter: brightness(1.06);
+}
+
+.desktop-btn-primary:hover {
+  background: var(--desktop-accent-hover);
+  filter: brightness(1.05);
+}
+
+/* —— New game screen —— */
+.desktop-new-game-page .desktop-form-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--desktop-topbar-height));
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.desktop-menu-page .desktop-menu {
+  min-height: calc(100vh - var(--desktop-topbar-height));
+}
+
+.desktop-form-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-radius: 12px;
+  background: var(--desktop-card-bg);
+  border: 1px solid var(--desktop-card-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.desktop-back {
+  display: inline-block;
+  color: inherit;
+  opacity: 0.85;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.desktop-back:hover {
+  opacity: 1;
+  color: var(--semiLight, #98c1d9);
+}
+
+.desktop-form-card h1 {
+  margin: 0.35rem 0 1.25rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.desktop-form-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--desktop-card-border);
+}
+
+.desktop-form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 1rem;
+}
+
+.desktop-form-section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.desktop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.desktop-field:last-child {
+  margin-bottom: 0;
+}
+
+.desktop-field-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.desktop-field input[type="number"],
+.desktop-field select {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--desktop-card-border);
+  background: var(--textbox-background, rgba(0, 0, 0, 0.2));
+  color: inherit;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.desktop-field input[type="number"]:focus,
+.desktop-field select:focus {
+  outline: none;
+  border-color: var(--desktop-accent);
+  box-shadow: 0 0 0 2px var(--desktop-accent-soft);
+}
+
+.desktop-option-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.desktop-option-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.desktop-option-pill input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.desktop-option-pill span {
+  display: block;
+  text-align: center;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--desktop-card-border);
+  background: rgba(0, 0, 0, 0.15);
+  font-size: 0.95rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.desktop-option-pill:hover span {
+  border-color: var(--desktop-accent);
+}
+
+.desktop-option-pill input:checked + span {
+  background: var(--desktop-accent);
+  border-color: var(--desktop-accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.desktop-option-pill input:focus-visible + span {
+  outline: 2px solid var(--desktop-accent);
+  outline-offset: 2px;
+}
+
+.desktop-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.desktop-slider-row input[type="range"] {
+  flex: 1;
+  height: 6px;
+  margin: 0;
+  accent-color: var(--desktop-accent);
+  cursor: pointer;
+}
+
+.desktop-slider-value {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--desktop-accent-text, #fff);
+  background: var(--desktop-accent);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.desktop-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.desktop-check input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.desktop-check-box {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  border: 1px solid var(--desktop-card-border);
+  background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.desktop-check input:checked + .desktop-check-box {
+  background: var(--desktop-accent);
+  border-color: var(--desktop-accent);
+}
+
+.desktop-check input:checked + .desktop-check-box::after {
+  content: "";
+  position: absolute;
+  left: 0.32rem;
+  top: 0.12rem;
+  width: 0.35rem;
+  height: 0.6rem;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.desktop-check input:focus-visible + .desktop-check-box {
+  outline: 2px solid var(--desktop-accent);
+  outline-offset: 2px;
+}
+
+.desktop-btn-block {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 0.9rem 1.25rem;
+}
+
+.desktop-error {
+  color: #f88;
+  margin-bottom: 1rem;
+}
+
+.desktop-error-panel {
+  max-width: 32rem;
+  margin: 3rem auto;
+  padding: 2rem;
+  text-align: center;
+}

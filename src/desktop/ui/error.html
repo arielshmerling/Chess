@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error — Shmerling</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/app/ui/app.css">
+</head>
+<body class="desktop-shell">
+  <main class="desktop-error-panel">
+    <h1>Something went wrong</h1>
+    <p class="desktop-error-message" id="desktopErrorMessage">An error occurred.</p>
+    <p class="desktop-error-code" id="desktopErrorCode"></p>
+    <a class="desktop-btn desktop-btn-primary" href="/app/">Back to menu</a>
+  </main>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var msg = params.get("message");
+      var code = params.get("status");
+      if (msg) {
+        document.getElementById("desktopErrorMessage").textContent = msg;
+      }
+      if (code) {
+        document.getElementById("desktopErrorCode").textContent = "Error " + code;
+      }
+    })();
+  </script>
+</body>
+</html>

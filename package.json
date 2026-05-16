@@ -11,6 +11,9 @@
     "start": "node ./server.js",
     "start:dev": "node --inspect ./server.js",
     "start:prod": "node ./server.js",
+    "start:desktop:server": "SHMERLING_MODE=desktop SHMERLING_USER_DATA=./.shmerling-desktop-dev node ./server-desktop.js",
+    "desktop": "cd desktop && npm install && npm start",
+    "desktop:pack": "cd desktop && npm install && npm run pack",
     "dummy:active-games:add": "node ./scripts/dummy-active-games-seed.js",
     "dummy:active-games:remove": "node ./scripts/dummy-active-games-delete.js"
   },

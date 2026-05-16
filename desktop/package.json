@@ -1,0 +1,49 @@
+{
+  "name": "shmerling-desktop",
+  "productName": "Shmerling",
+  "version": "1.0.0",
+  "description": "Shmerling chess — offline desktop",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.shmerling.app",
+    "productName": "Shmerling",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "../server-desktop.js",
+      "../src/**/*",
+      "../data/opening-book-states.bin",
+      "../assets/**/*",
+      "!../**/*.test.js",
+      "!../test/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../data/opening-book-states.bin",
+        "to": "data/opening-book-states.bin"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.board-games",
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}

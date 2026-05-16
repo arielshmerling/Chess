@@ -53,6 +53,9 @@ class SinglePlayerGame extends GameBase {
             const engine = loadEngine(this.options.engine);
             const engineName = this.options.engine || "brain4";
             this.options.engineConfig = brainConfigService.loadBrainConfig(engineName);
+            if (engineName === "brain42") {
+                require(path.join(__dirname, "..", "..", "brain42")).preloadOpeningBook();
+            }
             this._brainNextMoveFunc = engine.brainNextMoveFunc;
             this._brainName = engine.Name;
             this._BrainTimeoutFallbackError = engine.BrainTimeoutFallbackError;
@@ -84,8 +87,27 @@ class SinglePlayerGame extends GameBase {
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
         // When human plays black, engine plays white and must make the first move
         if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
-            this.makeBrainMove(true);
+            this.scheduleInitialBrainMoveIfNeeded();
         }
+    }
+
+    scheduleInitialBrainMoveIfNeeded() {
+        const run = () => {
+            if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
+                void this.makeBrainMove(true);
+            }
+        };
+        if (this.options.engine === "brain42") {
+            require(path.join(__dirname, "..", "..", "brain42"))
+                .whenOpeningBookReady()
+                .then(run)
+                .catch((err) => {
+                    console.error("[SinglePlayerGame] Opening book preload failed:", err);
+                    run();
+                });
+            return;
+        }
+        run();
     }
 
 

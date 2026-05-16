@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
+  <title>Shmerling Chess</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/app/ui/app.css">
+  <link rel="stylesheet" href="/app/ui/desktop-play.css">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="/ChessGame.js"></script>
+  <script src="/themes.js"></script>
+  <script src="/app/ui/desktop-theme.js"></script>
+  <script src="/app/ui/desktop-chrome.js"></script>
+  <script src="/app/ui/desktop-api.js"></script>
+  <script src="/app/ui/desktop-board.js"></script>
+  <script src="/app/ui/desktop-play.js"></script>
+</head>
+<body class="desktop-shell desktop-play-page desktop-has-topbar hide-topbar">
+  <div class="desktop-play-layout">
+    <aside class="desktop-play-sidebar">
+      <div class="desktop-play-player desktop-play-player--opponent">
+        <div class="desktop-play-clock">
+          <span id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="20" alt=""></span>
+          <span id="blackClockTimeText" class="desktop-play-clock-text">00:00:00</span>
+        </div>
+        <span id="blackPlayerName" class="desktop-play-player-name">Black</span>
+      </div>
+
+      <div class="desktop-play-moves">
+        <div class="desktop-play-moves-header">Moves</div>
+        <div id="movesDiv" class="movesDiv desktop-play-moves-list"></div>
+      </div>
+
+      <div class="desktop-play-captured">
+        <div id="blackCapturedPiece" class="desktop-play-captured-row"></div>
+        <div id="whiteCapturedPiece" class="desktop-play-captured-row"></div>
+      </div>
+
+      <div class="desktop-play-player desktop-play-player--you">
+        <span id="whitePlayerName" class="desktop-play-player-name">White</span>
+        <div class="desktop-play-clock">
+          <span id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="20" alt=""></span>
+          <span id="whiteClockTimeText" class="desktop-play-clock-text">00:00:00</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="desktop-play-main">
+      <div id="chessboard" class="desktop-play-board"></div>
+      <p id="desktopPlayStatus" class="desktop-play-status" hidden></p>
+    </main>
+  </div>
+
+  <footer id="desktopPlayToolbar" class="desktop-play-toolbar"></footer>
+</body>
+</html>
