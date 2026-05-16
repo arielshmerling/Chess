@@ -12,7 +12,7 @@
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0">Users</button>
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-games" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Games</button>
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-engines" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Engines</button>
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-log" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Log</button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-states" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">States</button>
         </div>
       </div>
       <div class="panel-body admin-panel-body">
@@ -21,6 +21,17 @@
             <span class="admin-add-user-icon" aria-hidden="true">+</span>
             <span class="admin-add-user-label">Add user</span>
           </a>
+        </div>
+        <div class="admin-tab-toolbar" id="admin-states-toolbar" hidden>
+          <a href="/admin/generate-state" class="admin-add-user-btn">
+            <span class="admin-add-user-icon" aria-hidden="true">+</span>
+            <span class="admin-add-user-label">Generate</span>
+          </a>
+          <p class="admin-opening-book-count" aria-live="polite">
+            Opening book:
+            <strong><%= typeof openingBookEntryCount !== 'undefined' ? openingBookEntryCount : 0 %></strong>
+            unique state-move pairs
+          </p>
         </div>
         <div class="table-scroll compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
           <div id="admin-games-empty" class="no-games-message admin-games-empty" hidden>
@@ -67,7 +78,7 @@
       },
       { headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
       { headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
-      { headers: ["Time", "Level", "Message"], emptyMsg: "No log entries yet." }
+      { headers: ["Note"], emptyMsg: "Use Generate to open the opening-book and state generation page." }
     ];
 
     var tabs = document.querySelectorAll(".admin-tab-btn");
@@ -75,6 +86,7 @@
     var headRow = document.getElementById("admin-table-head-row");
     var tbody = document.getElementById("admin-table-body");
     var toolbar = document.getElementById("admin-users-toolbar");
+    var toolbarStates = document.getElementById("admin-states-toolbar");
     var panelMain = document.getElementById("admin-panel-main");
     var gamesEmptyEl = document.getElementById("admin-games-empty");
     var tableShell = document.getElementById("admin-table-shell");
@@ -877,6 +889,7 @@
       if (!cfg || !headRow || !tbody || !table) return;
 
       if (toolbar) toolbar.hidden = index !== 0;
+      if (toolbarStates) toolbarStates.hidden = index !== 3;
 
       if (index === 1) {
         panelMain.classList.add("admin-games-list-mode");
@@ -958,7 +971,7 @@
     var startTab = 0;
     if (tabQ === "games") startTab = 1;
     else if (tabQ === "engines") startTab = 2;
-    else if (tabQ === "log") startTab = 3;
+    else if (tabQ === "states") startTab = 3;
     selectTab(startTab);
     if (tabQ) {
       try {

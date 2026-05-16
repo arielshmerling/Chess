@@ -124,12 +124,126 @@ exports.login = catchAsync(async (req, res) => {
 });
 
 exports.showAdminPage = catchAsync(async (req, res) => {
-    const [adminUsers, adminGames] = await Promise.all([
+    const [adminUsers, adminGames, openingBookEntryCount] = await Promise.all([
         userService.listUsersForAdmin(),
         gamesManagerService.getAllGamesForAdmin(2000),
+        gamesManagerService.getOpeningBookEntryCount(),
     ]);
-    res.render("admin", { adminUsers, adminGames });
+    res.render("admin", { adminUsers, adminGames, openingBookEntryCount });
 });
+
+exports.showGenerateStatePage = (req, res) => {
+    res.render("admin-generate-state", {});
+};
+
+exports.stopGenerateState = (req, res) => {
+    gamesManagerService.requestGenerateStateStop();
+    res.json({ ok: true });
+};
+
+/**
+ * Server-Sent Events: replay PGNs into Mongo (`mode=mongo`) or binary opening book (`mode=book`).
+ */
+exports.generateStateStream = async (req, res) => {
+    if (!gamesManagerService.tryAcquireGenerateStateLock()) {
+        res.status(200);
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
+        res.setHeader("Connection", "keep-alive");
+        res.write(`data: ${JSON.stringify({
+            type: "error",
+            message: "Another generation job is already running. Wait for it to finish or open this page in one tab only.",
+        })}\n\n`);
+        res.end();
+        return;
+    }
+
+    gamesManagerService.resetGenerateStateStop();
+    const checkAbort = () => gamesManagerService.isGenerateStateStopRequested();
+
+    const mode = req.query.mode === "book" ? "book" : "mongo";
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    if (typeof res.flushHeaders === "function") {
+        res.flushHeaders();
+    }
+
+    const send = (obj) => {
+        res.write(`data: ${JSON.stringify(obj)}\n\n`);
+    };
+
+    try {
+        send({ type: "start", mode });
+        send({ type: "phase", phase: "scanning", message: "Listing PGN files…" });
+        const files = await gamesManagerService.getPGNFiles();
+        if (checkAbort()) {
+            send({
+                type: "done",
+                ok: true,
+                mode,
+                stopped: true,
+                cancelledBeforeRead: true,
+                file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+            });
+            return;
+        }
+        send({
+            type: "phase",
+            phase: "reading",
+            message: `Reading ${files.length} PGN file(s)…`,
+            fileCount: files.length,
+        });
+        const pgnGames = await gamesManagerService.readPGNGames(files, {
+            onProgress: (e) => send({ type: "progress", segment: "reading", ...e }),
+            checkAbort,
+        });
+        if (gamesManagerService.wasLastPgnReadInterrupted()) {
+            gamesManagerService.resetGenerateStateStop();
+        } else if (checkAbort()) {
+            send({
+                type: "done",
+                ok: true,
+                mode,
+                stopped: true,
+                cancelledAfterRead: true,
+                file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+            });
+            return;
+        }
+        send({
+            type: "phase",
+            phase: "replay",
+            message: `Replaying ${pgnGames.length} games…`,
+            totalGames: pgnGames.length,
+        });
+        const result = await gamesManagerService.replayPGNGames(pgnGames, {
+            saveToDB: mode === "mongo",
+            openingBookOutputPath: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : undefined,
+            onProgress: (e) => send({ type: "progress", segment: "replay", ...e }),
+            checkAbort,
+        });
+        send({
+            type: "done",
+            ok: true,
+            mode,
+            stopped: !!(result && result.stopped),
+            gamesCompleted: result && result.gamesCompleted != null ? result.gamesCompleted : undefined,
+            entryCount: result && result.positionCount != null ? result.positionCount : undefined,
+            bookUnchanged: mode === "book" && result && result.stopped && result.positionCount == null,
+            file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+        });
+    } catch (err) {
+        console.error("[generateStateStream]", err);
+        send({ type: "error", message: err.message || String(err) });
+    } finally {
+        gamesManagerService.resetGenerateStateStop();
+        gamesManagerService.releaseGenerateStateLock();
+        res.end();
+    }
+};
 
 exports.updateUserAdmin = async (req, res, next) => {
     try {

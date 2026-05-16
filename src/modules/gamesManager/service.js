@@ -1,8 +1,141 @@
-
+const fs = require("fs").promises;
+const path = require("path");
 const pgnReader = require("./pgnReader");
+const openingBookBinary = require("../../openingBookBinary");
+const gameStateCompact = require("../../gameStateCompact");
+const gameMoveCompact = require("../../gameMoveCompact");
 const { ChessGame } = require("../../ChessGame");
 const { Game, State } = require("../game/model");
 const catchAsync = require("../../utils/catchAsync");
+
+/** Server-local opening book (replaces Mongo `State` lookup when loaded at brain startup). */
+const OPENING_BOOK_BASENAME = "opening-book-states.bin";
+
+function getOpeningBookFilePath() {
+    return path.join(__dirname, "..", "..", "..", "data", OPENING_BOOK_BASENAME);
+}
+
+function getOpeningBookBuildFilePath() {
+    return `${getOpeningBookFilePath()}.building.bin`;
+}
+
+exports.getOpeningBookFilePath = getOpeningBookFilePath;
+exports.OPENING_BOOK_BASENAME = OPENING_BOOK_BASENAME;
+
+/**
+ * @param {{ stateBuf: Buffer, moveBuf: Buffer }[]} records
+ * @returns {{ move: object, stateKey: string }[]}
+ */
+function normalizeOpeningBookBinaryRecords(records) {
+    const out = [];
+    for (const { stateBuf, moveBuf } of records) {
+        let moveObj;
+        try {
+            moveObj = gameMoveCompact.decodeBufferToMoveObject(moveBuf);
+        } catch {
+            continue;
+        }
+        try {
+            gameStateCompact.decodeBufferToSavedGameStateString(stateBuf);
+        } catch {
+            continue;
+        }
+        out.push({
+            move: moveObj,
+            stateKey: gameStateCompact.compactStateBufferToLookupKey(stateBuf),
+        });
+    }
+    return out;
+}
+
+/**
+ * Reads the opening book from disk. Tries finalized `opening-book-states.bin`, then in-progress
+ * `opening-book-states.bin.building.bin`.
+ * @returns {Promise<{ move: object, stateKey: string }[]>} Normalized entries for brain42.
+ */
+exports.loadOpeningBookEntries = async () => {
+    const binPath = getOpeningBookFilePath();
+    const buildPath = getOpeningBookBuildFilePath();
+
+    try {
+        const buf = await fs.readFile(binPath);
+        if (buf.length >= 4 && buf.subarray(0, 4).compare(openingBookBinary.MAGIC) === 0) {
+            try {
+                const records = openingBookBinary.parseBinaryFileBuffer(buf);
+                return normalizeOpeningBookBinaryRecords(records);
+            } catch (e) {
+                console.warn(
+                    `[opening book] ${path.basename(binPath)} has OBBK magic but failed to parse (${e && e.message ? e.message : e});`
+                    + ` will try raw record stream or ${path.basename(buildPath)}.`,
+                );
+            }
+        } else if (buf.length > 0) {
+            const buildRecords = openingBookBinary.parseBuildFileBuffer(buf);
+            const normalized = normalizeOpeningBookBinaryRecords(buildRecords);
+            if (normalized.length > 0) {
+                console.warn(
+                    `[opening book] ${path.basename(binPath)} has no OBBK header; using it as raw build-format stream (${normalized.length} entries after validation).`,
+                );
+                return normalized;
+            }
+            console.warn(
+                `[opening book] ${path.basename(binPath)} is not a valid OBBK file and produced no build-format entries; trying ${path.basename(buildPath)}.`,
+            );
+        }
+    } catch (e) {
+        if (!(e && e.code === "ENOENT")) {
+            throw e;
+        }
+    }
+
+    try {
+        const buf = await fs.readFile(buildPath);
+        if (buf.length === 0) {
+            return [];
+        }
+        const records = openingBookBinary.parseBuildFileBuffer(buf);
+        return normalizeOpeningBookBinaryRecords(records);
+    } catch (e) {
+        if (!(e && e.code === "ENOENT")) {
+            throw e;
+        }
+    }
+
+    return [];
+};
+
+/**
+ * Reads `entryCount` from the opening book (OBBK header or build stream).
+ * @returns {Promise<number>} 0 if the file is missing or unreadable
+ */
+exports.getOpeningBookEntryCount = async () => {
+    const binPath = getOpeningBookFilePath();
+    const buildPath = getOpeningBookBuildFilePath();
+    const binCount = await openingBookBinary.readEntryCountFromBinaryHeader(binPath);
+    if (binCount != null) {
+        return binCount;
+    }
+    try {
+        await fs.access(binPath);
+        const fromBinBuildStream = await openingBookBinary.countBuildFormatRecordsFromPath(binPath);
+        if (fromBinBuildStream > 0) {
+            return fromBinBuildStream;
+        }
+    } catch (e) {
+        if (!(e && e.code === "ENOENT")) {
+            throw e;
+        }
+    }
+    try {
+        await fs.access(buildPath);
+        return openingBookBinary.countBuildFormatRecordsFromPath(buildPath);
+    } catch (e) {
+        if (e && e.code === "ENOENT") {
+            return 0;
+        }
+        throw e;
+    }
+};
 
 /** Not yet finished (same set used for stale cleanup and “active” counts). */
 const NON_TERMINAL_GAME_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
@@ -624,35 +757,103 @@ exports.getPGNFiles = catchAsync(async () => {
     return Array.prototype.concat(...files);
 });
 
-exports.readPGNGames = catchAsync(async (files) => {
-
-    for (let i = 0; i < files.length; i++) {
+exports.readPGNGames = catchAsync(async (files, readOptions = {}) => {
+    const onProgress = typeof readOptions.onProgress === "function" ? readOptions.onProgress : null;
+    const checkAbort = typeof readOptions.checkAbort === "function" ? readOptions.checkAbort : null;
+    lastPgnReadInterrupted = false;
+    const fileTotal = files.length;
+    let local = [];
+    for (let i = 0; i < fileTotal; i++) {
+        if (checkAbort && checkAbort()) {
+            lastPgnReadInterrupted = true;
+            break;
+        }
         console.log("Adding games from:" + files[i]);
-        const games = await pgnReader.readFile(files[i]);//, function (err, games) {      
-        pgnGames = pgnGames.concat(games);
+        const games = await pgnReader.readFile(files[i]);
+        local = local.concat(games);
         console.log(`added ${games.length} games`);
-        console.log(`total ${pgnGames.length} games`);
-
+        console.log(`total ${local.length} games`);
+        if (onProgress) {
+            onProgress({ phase: "reading", fileIndex: i + 1, fileTotal, gamesLoaded: local.length });
+        }
     }
+    pgnGames = local;
     return pgnGames;
 });
 
 
+/** @type {boolean} */
+let generateStateStopRequested = false;
+
+exports.requestGenerateStateStop = () => {
+    generateStateStopRequested = true;
+};
+
+exports.resetGenerateStateStop = () => {
+    generateStateStopRequested = false;
+};
+
+exports.isGenerateStateStopRequested = () => generateStateStopRequested;
+
+/** @type {boolean} */
+let lastPgnReadInterrupted = false;
+
+exports.wasLastPgnReadInterrupted = () => lastPgnReadInterrupted;
+
+/** @type {boolean} */
+let generateStateJobLocked = false;
+
+exports.tryAcquireGenerateStateLock = () => {
+    if (generateStateJobLocked) {
+        return false;
+    }
+    generateStateJobLocked = true;
+    return true;
+};
+
+exports.releaseGenerateStateLock = () => {
+    generateStateJobLocked = false;
+};
+
 /**
  * Replays PGN games through ChessGame (same logic as addGamesToDB).
  * When saveToDB is true, each state is persisted; when false, no DB writes (for tests).
+ * When openingBookOutputPath is set, each new unique state–move pair appends raw compact buffers to `openingBookOutputPath + ".building.bin"`, then a valid OBBK file is written to `openingBookOutputPath` via a temp file + rename (previous book unchanged if that step fails). The header entry count always matches the build stream. If you stop early with at least one record in the build file, finalize still runs so `opening-book-states.bin` is never left as raw build data only. Duplicate pairs are skipped; does not write Mongo unless saveToDB is true.
  * @param {Object[]} games - PGN game objects from readPGNGames
- * @param {{ saveToDB?: boolean }} [options] - saveToDB: persist State docs (default true)
- * @returns {Promise<void>}
+ * @param {{ saveToDB?: boolean, openingBookOutputPath?: string, onProgress?: (e: object) => void, checkAbort?: () => boolean }} [options]
+ * @returns {Promise<{ gamesCompleted: number, positionCount?: number, stopped?: boolean }|void>}
  */
 exports.replayPGNGames = catchAsync(async (games, options = {}) => {
-    const saveToDB = options.saveToDB !== false;
+    const openingBookOutputPath = options.openingBookOutputPath;
+    const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+    const checkAbort = typeof options.checkAbort === "function" ? options.checkAbort : null;
+    const saveToDB = options.saveToDB !== undefined
+        ? options.saveToDB
+        : !openingBookOutputPath;
     const totalGames = games.length;
     let gameNum = 0;
     let game;
     const movesArr = [];
+    const openingBookPairSeen = openingBookOutputPath ? new Set() : null;
+    let openingBookDuplicatePairsSkipped = 0;
+    let openingBookBuildPath = null;
+    let replayStoppedByUser = false;
 
-    for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
+    if (openingBookOutputPath) {
+        await fs.mkdir(path.dirname(openingBookOutputPath), { recursive: true });
+        openingBookBuildPath = `${openingBookOutputPath}.building.bin`;
+        await fs.writeFile(openingBookBuildPath, Buffer.alloc(0));
+    }
+
+    if (onProgress) {
+        onProgress({ phase: "replaying", current: 0, total: totalGames, gamesCompleted: 0 });
+    }
+
+    replayLoop: for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
+        if (checkAbort && checkAbort()) {
+            replayStoppedByUser = true;
+            break replayLoop;
+        }
         game = games[gameIndex];
         const gameNumber = gameIndex + 1;
         console.log(`Replay game ${gameNumber}/${totalGames}`);
@@ -662,6 +863,10 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
             chess.startNewGame();
 
             for (const pgnMove of game.moves) {
+                if (checkAbort && checkAbort()) {
+                    replayStoppedByUser = true;
+                    break replayLoop;
+                }
                 if (!chess.isResultMove(pgnMove)) {
                     const move = chess.convertPGNMove(pgnMove);
                     movesArr.push(move.moveStr);
@@ -671,12 +876,24 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
                         actual.selectedPiece = chess.letterToPiece(move.promotedTo);
                         chess.completePromotion(actual);
                     }
-                    const stateDoc = new State({
-                        state: gameStateBeforeMove,
-                        move: JSON.stringify(actual),
-                    });
+                    const moveStr = JSON.stringify(actual);
                     if (saveToDB) {
+                        const stateDoc = new State({
+                            state: gameStateBeforeMove,
+                            move: moveStr,
+                        });
                         await stateDoc.save();
+                    }
+                    if (openingBookOutputPath && openingBookPairSeen && openingBookBuildPath) {
+                        const stateBuf = gameStateCompact.encodeSavedGameStateStringToBuffer(gameStateBeforeMove);
+                        const moveBuf = gameMoveCompact.encodeMoveObjectToBuffer(actual);
+                        const pairKey = Buffer.concat([stateBuf, moveBuf]).toString("latin1");
+                        if (openingBookPairSeen.has(pairKey)) {
+                            openingBookDuplicatePairsSkipped += 1;
+                        } else {
+                            await openingBookBinary.appendBuildRecord(openingBookBuildPath, stateBuf, moveBuf);
+                            openingBookPairSeen.add(pairKey);
+                        }
                     }
                 }
 
@@ -692,14 +909,100 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
             console.log(`Failed on game:${gameNum}( ${game.eco},${game.event}, ${game.site}, ${game.round}, ${game.date}) move: ${gameMove}. ${e.stack}`);
             console.log(movesArr.join(" "));
         }
+        if (onProgress) {
+            onProgress({
+                phase: "replaying",
+                current: gameIndex + 1,
+                total: totalGames,
+                gamesCompleted: gameNum,
+            });
+        }
     }
 
-    console.log(`Replay finished. Completed ${gameNum}/${totalGames} games successfully.`);
+    if (replayStoppedByUser) {
+        console.log(`Replay stopped by user after ${gameNum}/${totalGames} games completed ok (partial).`);
+    } else {
+        console.log(`Replay finished. Completed ${gameNum}/${totalGames} games successfully.`);
+    }
     if (saveToDB) {
         console.log(gameNum + " games added");
     }
+
+    if (openingBookOutputPath && openingBookBuildPath) {
+        const entryCount = openingBookPairSeen.size;
+        let buildFileSize = 0;
+        try {
+            buildFileSize = (await fs.stat(openingBookBuildPath)).size;
+        } catch (stErr) {
+            if (!stErr || stErr.code !== "ENOENT") {
+                throw stErr;
+            }
+        }
+        /**
+         * Always finalize when the run finished normally (possibly empty book). When stopped early,
+         * finalize only if we have build data so the output is always a valid OBBK file or left unchanged.
+         */
+        const shouldFinalize = !replayStoppedByUser || entryCount > 0 || buildFileSize > 0;
+
+        let finalizedEntryCount = null;
+        if (shouldFinalize) {
+            if (onProgress) {
+                onProgress({
+                    phase: "writing",
+                    current: totalGames,
+                    total: totalGames,
+                    gamesCompleted: gameNum,
+                    message: "Writing binary opening book…",
+                });
+            }
+            finalizedEntryCount = await openingBookBinary.finalizeBinaryFile({
+                buildPath: openingBookBuildPath,
+                outputPath: openingBookOutputPath,
+                entryCount,
+                generatedAt: new Date().toISOString(),
+            });
+            try {
+                await fs.unlink(openingBookBuildPath);
+            } catch (unlinkErr) {
+                if (!unlinkErr || unlinkErr.code !== "ENOENT") {
+                    console.warn("[replayPGNGames] Could not remove build file:", openingBookBuildPath, unlinkErr.message || unlinkErr);
+                }
+            }
+            console.log(
+                `Opening book binary written: ${openingBookOutputPath} (${finalizedEntryCount} unique state–move pairs`
+                    + (openingBookDuplicatePairsSkipped ? `, ${openingBookDuplicatePairsSkipped} duplicates skipped` : "")
+                    + (replayStoppedByUser ? ", stopped early" : "")
+                    + ")",
+            );
+        } else {
+            try {
+                await fs.unlink(openingBookBuildPath);
+            } catch (unlinkErr) {
+                if (!unlinkErr || unlinkErr.code !== "ENOENT") {
+                    console.warn("[replayPGNGames] Could not remove build file:", openingBookBuildPath, unlinkErr.message || unlinkErr);
+                }
+            }
+            console.log("[replayPGNGames] Stopped before any book entries; existing opening book file unchanged.");
+        }
+        return {
+            gamesCompleted: gameNum,
+            positionCount: shouldFinalize ? finalizedEntryCount : undefined,
+            stopped: replayStoppedByUser,
+        };
+    }
+    return { gamesCompleted: gameNum, stopped: replayStoppedByUser };
 });
 
 exports.addGamesToDB = catchAsync(async (games) => {
     await exports.replayPGNGames(games, { saveToDB: true });
+});
+
+/**
+ * Same PGN replay as {@link exports.addGamesToDB}, but writes the binary opening book only (no Mongo).
+ */
+exports.addGamesToOpeningBook = catchAsync(async (games) => {
+    return await exports.replayPGNGames(games, {
+        saveToDB: false,
+        openingBookOutputPath: getOpeningBookFilePath(),
+    });
 });

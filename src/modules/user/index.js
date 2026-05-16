@@ -13,6 +13,9 @@ router.get("/logout", userController.logout);
 router.get("/validateUsername", userController.validateUsername);
 
 
+router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGenerateState);
+router.get("/admin/generate-state/stream", requiresAdmin, userController.generateStateStream);
+router.get("/admin/generate-state", requiresAdmin, userController.showGenerateStatePage);
 router.get("/admin", requiresAdmin, userController.showAdminPage);
 router.patch("/admin/users/:id", requiresAdmin, userController.updateUserAdmin);
 

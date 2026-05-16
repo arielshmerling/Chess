@@ -228,3 +228,16 @@ exports.generateState = async (req, res) => {
     await gamesManagerService.addGamesToDB(pgnGames);
     res.redirect("list");
 };
+
+/** Admin-only: replay PGNs into `data/opening-book-states.bin` (binary container); does not write Mongo. */
+exports.generateOpeningBook = async (req, res) => {
+    const files = await gamesManagerService.getPGNFiles();
+    const pgnGames = await gamesManagerService.readPGNGames(files);
+    const stats = await gamesManagerService.addGamesToOpeningBook(pgnGames);
+    res.type("json").send({
+        ok: true,
+        file: gamesManagerService.getOpeningBookFilePath(),
+        gamesCompleted: stats && stats.gamesCompleted != null ? stats.gamesCompleted : null,
+        entryCount: stats && stats.positionCount != null ? stats.positionCount : null,
+    });
+};

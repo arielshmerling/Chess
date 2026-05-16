@@ -10,6 +10,7 @@ router.get("/active-games-list", requireLogin, gameManagerController.showActiveG
 router.get("/list", requireLogin, gameManagerController.showList);
 router.delete("/list/:id", requireLogin, gameManagerController.delete);
 router.get("/generateState", requiresAdmin, gameManagerController.generateState);
+router.get("/generateOpeningBook", requiresAdmin, gameManagerController.generateOpeningBook);
 router.get("/search", requireLogin, gameManagerController.search);
 
 module.exports = router;

@@ -1,6 +1,8 @@
 /**
  * Brain 4.2 — negamax with alpha-beta pruning over the same legal-move tree as other brains.
  *
+ * Opening book: binary `opening-book-states.bin` or in-progress `opening-book-states.bin.building.bin`.
+ *
  * Edge scoring mirrors Brain 4.1: capture value on the move, first king/rook move penalties, pawn structure,
  * and rook file bonuses. Leaf scoring adds the same positional terms plus material for the side to move.
  * Mate / draw handling aligns with {@link ChessGame} flags ({@link MATE_SCORE} for terminal mate).
@@ -12,9 +14,10 @@
  * the total after each completed search.
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
-const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
+const gameStateCompact = require("./gameStateCompact");
 const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
+const gamesManagerService = require("./modules/gamesManager/service");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
@@ -23,6 +26,89 @@ const MATE_SCORE = 9_000_000_000_000_000;
 
 let chess;
 let runtimeConfig = getDefaultConfig("brain42");
+
+/** @type {Map<string, object[]>|null} compact state lookup key (latin1) → book moves */
+let openingBookByStateKey = null;
+/** @type {Promise<Map<string, object[]>>|null} */
+let openingBookLoadPromise = null;
+
+function validCompactStateLookupKey(key) {
+    try {
+        gameStateCompact.decodeLookupKeyToSavedGameStateString(key);
+        return true;
+    } catch {
+        return false;
+    }
+}
+/**
+ * Registers moves under the compact-state key for this entry.
+ * @param {Map<string, object[]>} map
+ * @param {string[]} keys
+ * @param {object} move
+ */
+function addOpeningBookKeys(map, keys, move) {
+    const filtered = keys.filter((k) => typeof k === "string" && k.length > 0);
+    if (filtered.length === 0) {
+        return;
+    }
+    let list = null;
+    for (const k of filtered) {
+        if (map.has(k)) {
+            list = map.get(k);
+            break;
+        }
+    }
+    if (!list) {
+        list = [];
+    }
+    for (const k of filtered) {
+        map.set(k, list);
+    }
+    list.push(move);
+}
+
+/**
+ * Loads {@link gamesManagerService.loadOpeningBookEntries} once; indexes by compact-state lookup key.
+ * @returns {Promise<Map<string, object[]>>}
+ */
+async function getOpeningBookByStateKey() {
+    if (openingBookByStateKey) {
+        return openingBookByStateKey;
+    }
+    if (!openingBookLoadPromise) {
+        openingBookLoadPromise = gamesManagerService
+            .loadOpeningBookEntries()
+            .then((entries) => {
+                const map = new Map();
+                for (const e of entries) {
+                    if (!e.move) {
+                        continue;
+                    }
+                    let stateKey = e.stateKey;
+                    if (stateKey && !validCompactStateLookupKey(stateKey)) {
+                        stateKey = undefined;
+                    }
+                    if (!stateKey) {
+                        continue;
+                    }
+                    addOpeningBookKeys(map, [stateKey], e.move);
+                }
+                openingBookByStateKey = map;
+                const distinctLists = new Set(map.values());
+                console.log(
+                    `${LOG_PREFIX} Opening book: ${entries.length} entries, ${distinctLists.size} distinct positions`,
+                );
+                return map;
+            })
+            .catch((err) => {
+                console.error(`${LOG_PREFIX} Opening book load failed:`, err.message || err);
+                openingBookByStateKey = new Map();
+                return openingBookByStateKey;
+            });
+    }
+    await openingBookLoadPromise;
+    return openingBookByStateKey;
+}
 
 /** Counts {@link evaluateLeafPosition} invocations per worker search; reset before each request. */
 let leafEvaluationsThisSearch = 0;
@@ -129,12 +215,10 @@ function isBookMoveStillLegal(game, move) {
 }
 
 async function tryFindMatchState(game) {
-    const gameState = game.SavedGameState;
-    const options = [];
-    const findResult = await State.find({ state: gameState });
-    for await (const doc of findResult) {
-        options.push(JSON.parse(doc.move));
-    }
+    const saved = game.SavedGameState;
+    const stateKey = gameStateCompact.encodeSavedGameStateStringToLookupKey(saved);
+    const book = await getOpeningBookByStateKey();
+    const options = book.get(stateKey) || [];
     const rand = Math.floor(Math.random() * options.length);
     return options.length > 0 ? options[rand] : null;
 }
@@ -147,6 +231,11 @@ exports.brainNextMoveFunc = async (game, options) => {
 
     const bookMove = await tryFindMatchState(game);
     if (bookMove && isBookMoveStillLegal(game, bookMove)) {
+        try {
+            console.log(`${LOG_PREFIX} Opening book hit: ${game.getSimpleNotation(bookMove)} (positions evaluated: 0)`);
+        } catch {
+            console.log(`${LOG_PREFIX} Opening book hit (positions evaluated: 0)`);
+        }
         return bookMove;
     }
 

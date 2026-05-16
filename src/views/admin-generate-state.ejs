@@ -1,0 +1,196 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<div class="home admin-page admin-generate-state-page">
+  <div class="games-section admin-games-section">
+    <div class="games-panel admin-tabbed-panel">
+      <div class="panel-header admin-panel-header">
+        <div class="panel-title-group admin-panel-title-row admin-generate-state-title-row">
+          <h2 class="panel-title">Opening book &amp; state generation</h2>
+          <a href="/admin" class="admin-generate-state-link-back">← Back to admin</a>
+        </div>
+      </div>
+      <div class="panel-body admin-panel-body admin-generate-state-body">
+        <p class="admin-generate-state-intro">
+          Replays all PGN files under the server’s games manager folder into either the <strong>State</strong> Mongo collection
+          or the local binary opening book (<code>data/opening-book-states.bin</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
+        </p>
+        <fieldset class="admin-generate-state-targets">
+          <legend class="admin-generate-state-legend">Target</legend>
+          <label class="admin-generate-state-radio-label">
+            <input type="radio" name="generate-target" value="mongo" checked>
+            <span>MongoDB — append rows to the <code>State</code> collection</span>
+          </label>
+          <label class="admin-generate-state-radio-label">
+            <input type="radio" name="generate-target" value="book">
+            <span>Binary file — write opening book (<code>opening-book-states.bin</code>)</span>
+          </label>
+        </fieldset>
+        <div class="admin-generate-state-actions">
+          <button type="button" id="btn-start-generation" class="button admin-generate-state-btn admin-generate-state-btn-start">Start generation</button>
+          <button type="button" id="btn-stop-generation" class="button admin-generate-state-btn admin-generate-state-btn-stop" disabled>Stop</button>
+        </div>
+        <div class="admin-generate-state-status" id="generate-state-status" aria-live="polite">Idle.</div>
+        <div class="admin-generate-state-progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="generate-state-progress-wrap">
+          <div class="admin-generate-state-progress-fill" id="generate-state-progress-fill"></div>
+        </div>
+        <div class="admin-generate-state-log" id="generate-state-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+(function () {
+  var statusEl = document.getElementById("generate-state-status");
+  var fillEl = document.getElementById("generate-state-progress-fill");
+  var wrapEl = document.getElementById("generate-state-progress-wrap");
+  var logEl = document.getElementById("generate-state-log");
+  var btnStart = document.getElementById("btn-start-generation");
+  var btnStop = document.getElementById("btn-stop-generation");
+  var targetInputs = document.querySelectorAll('input[name="generate-target"]');
+  var es = null;
+
+  function selectedMode() {
+    for (var i = 0; i < targetInputs.length; i++) {
+      if (targetInputs[i].checked) {
+        return targetInputs[i].value;
+      }
+    }
+    return "mongo";
+  }
+
+  function setBusy(busy) {
+    btnStart.disabled = !!busy;
+    btnStop.disabled = !busy;
+    for (var j = 0; j < targetInputs.length; j++) {
+      targetInputs[j].disabled = !!busy;
+    }
+  }
+
+  function setPct(p) {
+    var x = Math.max(0, Math.min(100, Math.round(p)));
+    fillEl.style.width = x + "%";
+    wrapEl.setAttribute("aria-valuenow", String(x));
+  }
+
+  function logLine(msg) {
+    var line = document.createElement("div");
+    line.className = "admin-generate-state-log-line";
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function stopStream() {
+    if (es) {
+      es.close();
+      es = null;
+    }
+  }
+
+  function run(mode) {
+    stopStream();
+    logEl.innerHTML = "";
+    setPct(0);
+    setBusy(true);
+    statusEl.textContent = "Starting…";
+    var url = "/admin/generate-state/stream?mode=" + encodeURIComponent(mode);
+    es = new EventSource(url);
+
+    es.onmessage = function (ev) {
+      try {
+        var data = JSON.parse(ev.data);
+        if (data.type === "start") {
+          statusEl.textContent = "Running (" + data.mode + ")…";
+          return;
+        }
+        if (data.type === "phase") {
+          statusEl.textContent = data.message || data.phase || "";
+          if (data.phase === "reading" && data.fileCount != null) {
+            logLine("Reading " + data.fileCount + " file(s)…");
+          }
+          if (data.phase === "replay" && data.totalGames != null) {
+            logLine("Replaying " + data.totalGames + " games…");
+          }
+          return;
+        }
+        if (data.type === "progress") {
+          if (data.phase === "writing") {
+            setPct(96);
+            statusEl.textContent = data.message || "Writing opening book…";
+            return;
+          }
+          if (data.segment === "reading" && data.fileTotal > 0) {
+            setPct((data.fileIndex / data.fileTotal) * 12);
+            statusEl.textContent = "Reading PGN " + data.fileIndex + " / " + data.fileTotal + " (" + (data.gamesLoaded || 0) + " games)";
+          } else if (data.segment === "replay" && data.total > 0) {
+            setPct(12 + (data.current / data.total) * 83);
+            statusEl.textContent = "Replay game " + data.current + " / " + data.total + " (completed ok: " + data.gamesCompleted + ")";
+          }
+          return;
+        }
+        if (data.type === "done") {
+          setPct(100);
+          if (data.stopped) {
+            var parts = ["Stopped."];
+            if (data.bookUnchanged) {
+              parts.push("Existing opening book was not modified.");
+            } else if (data.mode === "book" && data.entryCount != null) {
+              parts.push(data.entryCount + " position(s) in " + (data.file || "opening book") + ".");
+            }
+            if (data.cancelledBeforeRead) {
+              parts.push("Cancelled before reading PGNs.");
+            }
+            if (data.cancelledAfterRead) {
+              parts.push("Cancelled after read; replay was skipped (nothing written).");
+            }
+            if (data.mode === "mongo" && data.gamesCompleted != null) {
+              parts.push(data.gamesCompleted + " game(s) had new state rows saved.");
+            }
+            statusEl.textContent = parts.join(" ");
+          } else if (data.mode === "book") {
+            statusEl.textContent = "Done. " + (data.entryCount != null ? data.entryCount + " positions → " : "") + (data.file || "opening book");
+          } else {
+            statusEl.textContent = "Done. MongoDB State collection updated"
+              + (data.gamesCompleted != null ? " (" + data.gamesCompleted + " games replayed ok)" : "") + ".";
+          }
+          logLine(statusEl.textContent);
+          stopStream();
+          setBusy(false);
+          return;
+        }
+        if (data.type === "error") {
+          statusEl.textContent = "Error: " + (data.message || "Unknown");
+          logLine(statusEl.textContent);
+          stopStream();
+          setBusy(false);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    es.onerror = function () {
+      stopStream();
+      setBusy(false);
+      if (statusEl.textContent.indexOf("Done") === -1 && statusEl.textContent.indexOf("Stopped") === -1 && statusEl.textContent.indexOf("Error") === -1) {
+        statusEl.textContent = "Connection closed (check server logs or try again).";
+      }
+    };
+  }
+
+  btnStart.addEventListener("click", function () {
+    run(selectedMode());
+  });
+
+  btnStop.addEventListener("click", function () {
+    fetch("/admin/generate-state/stop", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    }).catch(function (err) {
+      console.error(err);
+    });
+  });
+})();
+</script>
