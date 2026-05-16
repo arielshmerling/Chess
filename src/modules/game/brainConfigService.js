@@ -38,6 +38,23 @@ const DEFAULT_CONFIGS = {
     },
     brain42: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+        specialEvaluations: {
+            /** Fraction of pawn value per doubled-pawn count unit (e.g. 0.25 ⇒ 25% of pawn value each). */
+            doublePawnPenalty: 0.25,
+            /** Advanced pawns (ranks 5–7 white, 4–2 black): bonus fraction × pawn value each (0.2 ⇒ +20%). */
+            pawnAdvancedBonus: 0.2,
+            firstKingMovePenalty: 0.1,
+            firstRookMovePenalty: 0.1,
+            /** Per extra diagonal pawn chain beyond one: −(chains−1)×penalty (default 0.5). */
+            pawnsChainCountPenalty: 0.5,
+            drawMaterialDiffThreshold: 3,
+            drawScoreWhenAhead: -5,
+            drawScoreWhenBehind: 5,
+            drawScoreWhenEven: -0.1,
+            bestOpenRookOnSeventhMultiplier: 1.25,
+            veryGoodOpenRookMultiplier: 1.125,
+            poorClosedFileRookMultiplier: 0.75,
+        },
     },
     brain5: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
@@ -73,7 +90,7 @@ function sanitizeBrainConfig(engineName, rawConfig) {
             pieceScores[key] = parsed;
         }
     }
-    if (safeEngine === "brain41") {
+    if (safeEngine === "brain41" || safeEngine === "brain42") {
         const specialEvaluations = { ...fallback.specialEvaluations };
         const doublePawnPenalty = Number(rawConfig && rawConfig.specialEvaluations
             ? rawConfig.specialEvaluations.doublePawnPenalty

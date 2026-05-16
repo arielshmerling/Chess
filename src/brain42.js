@@ -1,15 +1,15 @@
 /**
  * Brain 4.2 — negamax with alpha-beta pruning over the same legal-move tree as other brains.
  *
- * Evaluation is mostly material (sum of configured piece values for the side to move minus the opponent).
- * If {@link ChessGame#Checkmate} is set, the side to move is mated and receives score {@code -MATE_SCORE}
- * (the parent ply negates it so the mating side sees a huge win).
+ * Edge scoring mirrors Brain 4.1: capture value on the move, first king/rook move penalties, pawn structure,
+ * and rook file bonuses. Leaf scoring adds the same positional terms plus material for the side to move.
+ * Mate / draw handling aligns with {@link ChessGame} flags ({@link MATE_SCORE} for terminal mate).
  *
  * Every tentative move uses {@link withAppliedMove} so `makeMove` / `completePromotion` always pair with
  * exactly one `undo`, including when pruning breaks out of the move loop early.
  *
- * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateMaterialForSideToMove} call
- * (leaf nodes) and logs the total after each completed search.
+ * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateLeafPosition} call and logs
+ * the total after each completed search.
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { State } = require("./modules/game/model");
@@ -24,7 +24,7 @@ const MATE_SCORE = 9_000_000_000_000_000;
 let chess;
 let runtimeConfig = getDefaultConfig("brain42");
 
-/** Counts {@link evaluateMaterialForSideToMove} invocations per worker search; reset before each request. */
+/** Counts {@link evaluateLeafPosition} invocations per worker search; reset before each request. */
 let leafEvaluationsThisSearch = 0;
 
 exports.Name = "Brain 4.2";
@@ -113,11 +113,6 @@ class BrainTimeoutFallbackError extends Error {
     }
 }
 
-function getFirstLegalMove(game) {
-    const moves = collectLegalMoves(game);
-    return moves.length > 0 ? moves[0] : null;
-}
-
 function isBookMoveStillLegal(game, move) {
     if (!move || move.source == null || move.target == null) {
         return false;
@@ -195,15 +190,416 @@ function pieceValue(game, pieceType) {
     }
 }
 
-/** Material for {@link ChessGame#Turn} minus opponent (no positional terms). */
-function evaluateMaterialForSideToMove(game) {
-    leafEvaluationsThisSearch += 1;
-    if (game.Checkmate) {
-        return -MATE_SCORE;
+function specialEvaluations() {
+    return runtimeConfig.specialEvaluations || {};
+}
+
+function isCastlingKingMove(game, move) {
+    if (!move.piece || move.piece.pieceType !== game.KING) {
+        return false;
     }
-    if (game.Draw) {
+    if (move.source.row !== move.target.row) {
+        return false;
+    }
+    return Math.abs(move.target.col - move.source.col) === 2;
+}
+
+function getFirstKingRookMovePenaltyDelta(game, move, se) {
+    const kPen = Number(se.firstKingMovePenalty) || 0;
+    const rPen = Number(se.firstRookMovePenalty) || 0;
+    if (kPen === 0 && rPen === 0) {
         return 0;
     }
+    const state = game.GameState;
+    if (!state || !move.piece) {
+        return 0;
+    }
+    const wpv = state.whitePlayerView !== false;
+    const kingsideRookCol = wpv ? 7 : 0;
+    const queensideRookCol = wpv ? 0 : 7;
+    let units = 0;
+    if (kPen !== 0 && move.piece.pieceType === game.KING) {
+        const isFirst = (move.piece.color === "white" && !state.whiteKingMoved)
+            || (move.piece.color === "black" && !state.blackKingMoved);
+        if (isFirst && !isCastlingKingMove(game, move)) {
+            units += kPen;
+        }
+    }
+    if (rPen !== 0 && move.piece.pieceType === game.ROOK) {
+        const c = move.piece.color;
+        if (c === "white") {
+            if (move.source.col === kingsideRookCol && !state.kingsideWhiteRookMoved) {
+                units += rPen;
+            } else if (move.source.col === queensideRookCol && !state.queensideWhiteRookMoved) {
+                units += rPen;
+            }
+        } else if (c === "black") {
+            if (move.source.col === kingsideRookCol && !state.kingsideBlackRookMoved) {
+                units += rPen;
+            } else if (move.source.col === queensideRookCol && !state.queensideBlackRookMoved) {
+                units += rPen;
+            }
+        }
+    }
+    if (units === 0) {
+        return 0;
+    }
+    return -units;
+}
+
+function getCurrentPlayerDoubledPawnCount(game) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    const currentColor = game.Turn;
+    let doubledCount = 0;
+    for (let col = 0; col < 8; col++) {
+        let pawnsInFile = 0;
+        for (let row = 0; row < 8; row++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === game.PAWN) {
+                pawnsInFile += 1;
+            }
+        }
+        if (pawnsInFile >= 2) {
+            doubledCount += pawnsInFile;
+        }
+    }
+    return doubledCount;
+}
+
+function isAdvancedPawnRankForColor(row, color) {
+    if (color === "white") {
+        return row >= 1 && row <= 3;
+    }
+    if (color === "black") {
+        return row >= 4 && row <= 6;
+    }
+    return false;
+}
+
+function getCurrentPlayerAdvancedPawnCount(game) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    const currentColor = game.Turn;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (!piece || piece.color !== currentColor || piece.pieceType !== game.PAWN) {
+                continue;
+            }
+            if (isAdvancedPawnRankForColor(row, currentColor)) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+}
+
+function getCurrentPlayerPawnChainCount(game) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    const currentColor = game.Turn;
+    const pawns = [];
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === currentColor && piece.pieceType === game.PAWN) {
+                pawns.push({ row, col });
+            }
+        }
+    }
+    const n = pawns.length;
+    if (n === 0) {
+        return 0;
+    }
+    const parent = new Array(n);
+    for (let i = 0; i < n; i++) {
+        parent[i] = i;
+    }
+    function find(i) {
+        if (parent[i] !== i) {
+            parent[i] = find(parent[i]);
+        }
+        return parent[i];
+    }
+    function union(i, j) {
+        const ri = find(i);
+        const rj = find(j);
+        if (ri !== rj) {
+            parent[ri] = rj;
+        }
+    }
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const dr = Math.abs(pawns[i].row - pawns[j].row);
+            const dc = Math.abs(pawns[i].col - pawns[j].col);
+            if (dr === 1 && dc === 1) {
+                union(i, j);
+            }
+        }
+    }
+    const roots = new Set();
+    for (let i = 0; i < n; i++) {
+        roots.add(find(i));
+    }
+    return roots.size;
+}
+
+function getPawnChainCountEvalDelta(game, se) {
+    const p = Number(se.pawnsChainCountPenalty) || 0;
+    if (p === 0) {
+        return 0;
+    }
+    const c = getCurrentPlayerPawnChainCount(game);
+    if (c <= 1) {
+        return 0;
+    }
+    return -(c - 1) * p;
+}
+
+function isBoardFileFullyOpen(game, col) {
+    const state = game.GameState;
+    const board = state?.board;
+    if (!board) {
+        return false;
+    }
+    const pawn = game.PAWN;
+    for (let row = 0; row < 8; row++) {
+        const p = board[row][col];
+        if (p && p.pieceType === pawn) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isRookOnInvadingSeventhRowForColor(row, color) {
+    if (color === "white") {
+        return row === 1;
+    }
+    if (color === "black") {
+        return row === 6;
+    }
+    return false;
+}
+
+function getBestOpenRookSeventhBonusDelta(game, se) {
+    const raw = se.bestOpenRookOnSeventhMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 1.25;
+    if (mult <= 1) {
+        return 0;
+    }
+    const state = game.GameState;
+    const board = state?.board;
+    if (!board) {
+        return 0;
+    }
+    const side = game.Turn;
+    const rookT = game.ROOK;
+    const rookScore = pieceValue(game, rookT);
+    const extraPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (
+                piece
+                && piece.color === side
+                && piece.pieceType === rookT
+                && isRookOnInvadingSeventhRowForColor(row, side)
+                && isBoardFileFullyOpen(game, col)
+            ) {
+                count += 1;
+            }
+        }
+    }
+    return count * extraPerRook;
+}
+
+function getVeryGoodOpenFileRookBonusDelta(game, se) {
+    const raw = se.veryGoodOpenRookMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 1.125;
+    if (mult <= 1) {
+        return 0;
+    }
+    const state = game.GameState;
+    const board = state?.board;
+    if (!board) {
+        return 0;
+    }
+    const side = game.Turn;
+    const rookT = game.ROOK;
+    const rookScore = pieceValue(game, rookT);
+    const extraPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (piece && piece.color === side && piece.pieceType === rookT && isBoardFileFullyOpen(game, col)) {
+                count += 1;
+            }
+        }
+    }
+    return count * extraPerRook;
+}
+
+function isBoardFileClosedForRook(game, col) {
+    return !isBoardFileFullyOpen(game, col);
+}
+
+function getPoorClosedFileRookPenaltyDelta(game, se) {
+    const raw = se.poorClosedFileRookMultiplier;
+    const mult = Number.isFinite(Number(raw)) ? Number(raw) : 0.75;
+    if (mult >= 1) {
+        return 0;
+    }
+    const state = game.GameState;
+    const board = state?.board;
+    if (!board) {
+        return 0;
+    }
+    const side = game.Turn;
+    const rookT = game.ROOK;
+    const rookScore = pieceValue(game, rookT);
+    const deltaPerRook = (mult - 1) * rookScore;
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (piece && piece.color === side && piece.pieceType === rookT && isBoardFileClosedForRook(game, col)) {
+                count += 1;
+            }
+        }
+    }
+    if (count === 0) {
+        return 0;
+    }
+    return count * deltaPerRook;
+}
+
+/** Doubled pawns: −count × doublePawnPenalty × pawn value; advanced: +count × pawn value × pawnAdvancedBonus. */
+function getPawnEvalDelta(game, se) {
+    const dpp = Number(se.doublePawnPenalty) || 0;
+    const pab = Number(se.pawnAdvancedBonus) || 0;
+    const pv = pieceValue(game, game.PAWN);
+    return -getCurrentPlayerDoubledPawnCount(game) * dpp * pv
+        + getCurrentPlayerAdvancedPawnCount(game) * pv * pab;
+}
+
+function getTotalMaterialValueForColor(game, color) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    let total = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (piece && piece.color === color) {
+                total += pieceValue(game, piece.pieceType);
+            }
+        }
+    }
+    return total;
+}
+
+function getDrawLeafScoreForMover(game, movingPlayerColor, se) {
+    const thrRaw = Number(se.drawMaterialDiffThreshold);
+    const threshold = Number.isFinite(thrRaw) ? thrRaw : 3;
+    const opponent = movingPlayerColor === "white" ? "black" : "white";
+    const my = getTotalMaterialValueForColor(game, movingPlayerColor);
+    const op = getTotalMaterialValueForColor(game, opponent);
+    const diff = my - op;
+    if (diff >= threshold) {
+        const v = Number(se.drawScoreWhenAhead);
+        return Number.isFinite(v) ? v : -5;
+    }
+    if (diff <= -threshold) {
+        const v = Number(se.drawScoreWhenBehind);
+        return Number.isFinite(v) ? v : 5;
+    }
+    const v = Number(se.drawScoreWhenEven);
+    return Number.isFinite(v) ? v : -0.1;
+}
+
+function positionalBonusesForSideToMove(game) {
+    const se = specialEvaluations();
+    return getPawnEvalDelta(game, se)
+        + getPawnChainCountEvalDelta(game, se)
+        + getBestOpenRookSeventhBonusDelta(game, se)
+        + getVeryGoodOpenFileRookBonusDelta(game, se)
+        + getPoorClosedFileRookPenaltyDelta(game, se);
+}
+
+/** Brain 4.1-style move-local score before recursion (same board, candidate move). */
+function stateScoreForMove(game, move) {
+    const state = game.GameState;
+    const targetPiece = state.board[move.target.row][move.target.col];
+    let score = 0;
+    if (targetPiece != null) {
+        score = pieceValue(game, targetPiece.pieceType);
+    }
+    const se = specialEvaluations();
+    score += getPawnEvalDelta(game, se);
+    score += getPawnChainCountEvalDelta(game, se);
+    score += getFirstKingRookMovePenaltyDelta(game, move, se);
+    score += getBestOpenRookSeventhBonusDelta(game, se);
+    score += getVeryGoodOpenFileRookBonusDelta(game, se);
+    score += getPoorClosedFileRookPenaltyDelta(game, se);
+    return score;
+}
+
+/**
+ * Immediate score for playing `move` (promotion / mate / draw / repetition bonuses), without recursion.
+ * Uses its own make/undo so {@link withAppliedMove} can stay nested for search.
+ */
+function immediateLineScoreForMove(game, move) {
+    const movingPlayer = game.Turn;
+    let score = stateScoreForMove(game, move);
+    game.makeMove(move.source, move.target);
+    try {
+        if (move.promotion) {
+            game.completePromotion(move);
+            switch (move.selectedPiece) {
+                case game.QUEEN:
+                    score = pieceValue(game, game.QUEEN);
+                    break;
+                case game.ROOK:
+                    score = pieceValue(game, game.ROOK);
+                    break;
+                case game.KNIGHT:
+                    score = pieceValue(game, game.KNIGHT);
+                    break;
+                case game.BISHOP:
+                    score = pieceValue(game, game.BISHOP);
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (game.Checkmate) {
+            score = MATE_SCORE;
+        }
+        if (game.Draw) {
+            score = getDrawLeafScoreForMover(game, movingPlayer, specialEvaluations());
+        }
+        if (game.Moves.length > 50 && game.Check) {
+            score += 2.5;
+        }
+        return score;
+    } finally {
+        game.undo();
+    }
+}
+
+function materialDifferenceForSideToMove(game) {
     const state = game.GameState;
     if (!state?.board) {
         return 0;
@@ -228,6 +624,18 @@ function evaluateMaterialForSideToMove(game) {
     return mine - theirs;
 }
 
+/** Leaf: material + positional terms for side to move (no move-specific king/rook first penalty). */
+function evaluateLeafPosition(game) {
+    leafEvaluationsThisSearch += 1;
+    if (game.Checkmate) {
+        return -MATE_SCORE;
+    }
+    if (game.Draw) {
+        return 0;
+    }
+    return materialDifferenceForSideToMove(game) + positionalBonusesForSideToMove(game);
+}
+
 function collectLegalMoves(game) {
     let moves = [];
     for (let i = 0; i < 8; i++) {
@@ -242,6 +650,11 @@ function collectLegalMoves(game) {
         }
     }
     return moves;
+}
+
+function getFirstLegalMove(game) {
+    const moves = collectLegalMoves(game);
+    return moves.length > 0 ? moves[0] : null;
 }
 
 function orderMovesCapturesFirst(game, moves) {
@@ -278,7 +691,6 @@ function withAppliedMove(game, move, fn) {
     }
 }
 
-/** Score for the side to move when they have no legal moves. */
 function scoreTerminalNoMoves(game) {
     if (game.Checkmate || game.Check) {
         return -MATE_SCORE;
@@ -286,14 +698,9 @@ function scoreTerminalNoMoves(game) {
     return 0;
 }
 
-/**
- * Negamax with alpha-beta. Returns a score for the side to move at `game` (higher is better).
- * @param {import("./ChessGame").ChessGame} game
- * @param {number} depthRemaining half-moves left to search (0 = leaf eval only)
- */
 function negamax(game, depthRemaining, alpha, beta) {
     if (depthRemaining === 0) {
-        return evaluateMaterialForSideToMove(game);
+        return evaluateLeafPosition(game);
     }
 
     const moves = collectLegalMoves(game);
@@ -305,7 +712,8 @@ function negamax(game, depthRemaining, alpha, beta) {
     let best = -Infinity;
     for (let i = 0; i < ordered.length; i++) {
         const move = ordered[i];
-        const score = withAppliedMove(game, move, () => -negamax(game, depthRemaining - 1, -beta, -alpha));
+        const q = immediateLineScoreForMove(game, move);
+        const score = q + withAppliedMove(game, move, () => -negamax(game, depthRemaining - 1, -beta, -alpha));
         if (score > best) {
             best = score;
         }
@@ -319,10 +727,6 @@ function negamax(game, depthRemaining, alpha, beta) {
     return best;
 }
 
-/**
- * Root: pick a move maximizing negamax score after the reply subtree.
- * @returns {object|null} best legal move for {@link ChessGame#Turn}
- */
 function searchBestMoveAtRoot(game, maxDepth) {
     const moves = collectLegalMoves(game);
     if (moves.length === 0) {
@@ -337,7 +741,8 @@ function searchBestMoveAtRoot(game, maxDepth) {
 
     for (let i = 0; i < ordered.length; i++) {
         const move = ordered[i];
-        const score = withAppliedMove(game, move, () => -negamax(game, depthAfterRoot, -beta, -alpha));
+        const q = immediateLineScoreForMove(game, move);
+        const score = q + withAppliedMove(game, move, () => -negamax(game, depthAfterRoot, -beta, -alpha));
         if (!Number.isFinite(score)) {
             continue;
         }

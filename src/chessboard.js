@@ -40,32 +40,8 @@ const BOOKMARK_BRAIN_OPTIONS = [
     { value: "brain4", label: "Brain 4.0" },
 ];
 const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
+/** Piece score keys in display order; rows are only shown if the key exists in the loaded server config. */
 const BRAIN_CONFIG_PIECE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "king"];
-const BRAIN_CONFIG_DEFAULTS = {
-    brain: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
-    brain2: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
-    brain3: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 } },
-    brain4: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
-    brain41: {
-        pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
-        specialEvaluations: {
-            doublePawnPenalty: 0.25,
-            pawnAdvancedBonus: 0.2,
-            firstKingMovePenalty: 0.1,
-            firstRookMovePenalty: 0.1,
-            pawnsChainCountPenalty: 0.1,
-            drawMaterialDiffThreshold: 3,
-            drawScoreWhenAhead: -5,
-            drawScoreWhenBehind: 5,
-            drawScoreWhenEven: -0.1,
-            bestOpenRookOnSeventhMultiplier: 1.25,
-            veryGoodOpenRookMultiplier: 1.125,
-            poorClosedFileRookMultiplier: 0.75,
-        },
-    },
-    brain42: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
-    brain5: { pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 } },
-};
 
 function normalizeBookmarkEngine(engineName) {
     return BOOKMARK_BRAIN_OPTIONS.some(function (opt) { return opt.value === engineName; }) ? engineName : "brain41";
@@ -1321,81 +1297,26 @@ function setResearchConfigDirtyState(dirty) {
     if (discardBtn) {discardBtn.disabled = !dirty;}
 }
 
-function getBrainConfigDefaults(engineName) {
-    const safeEngine = normalizeBookmarkEngine(engineName || "brain41");
-    const defaults = BRAIN_CONFIG_DEFAULTS[safeEngine] || BRAIN_CONFIG_DEFAULTS.brain41;
-    return JSON.parse(JSON.stringify(defaults));
-}
-
-function getBrainConfigFieldDefs(engineName) {
-    const fields = BRAIN_CONFIG_PIECE_KEYS.map(function (key) {
-        return {
-            label: key,
-            section: "pieceScores",
-            key: key,
-        };
-    });
-    if (engineName === "brain41") {
-        fields.push({
-            label: "Double Pawn Penalty",
-            section: "specialEvaluations",
-            key: "doublePawnPenalty",
-        });
-        fields.push({
-            label: "Pawn Advanced Bonus",
-            section: "specialEvaluations",
-            key: "pawnAdvancedBonus",
-        });
-        fields.push({
-            label: "First King Move Penalty",
-            section: "specialEvaluations",
-            key: "firstKingMovePenalty",
-        });
-        fields.push({
-            label: "First Rook Move Penalty",
-            section: "specialEvaluations",
-            key: "firstRookMovePenalty",
-        });
-        fields.push({
-            label: "Pawn Chains Count Penalty",
-            section: "specialEvaluations",
-            key: "pawnsChainCountPenalty",
-        });
-        fields.push({
-            label: "Draw: material diff threshold",
-            section: "specialEvaluations",
-            key: "drawMaterialDiffThreshold",
-        });
-        fields.push({
-            label: "Draw score when ahead (material)",
-            section: "specialEvaluations",
-            key: "drawScoreWhenAhead",
-        });
-        fields.push({
-            label: "Draw score when behind (material)",
-            section: "specialEvaluations",
-            key: "drawScoreWhenBehind",
-        });
-        fields.push({
-            label: "Draw score when material even",
-            section: "specialEvaluations",
-            key: "drawScoreWhenEven",
-        });
-        fields.push({
-            label: "Best rook (open file, 7th/2nd rank) multiplier",
-            section: "specialEvaluations",
-            key: "bestOpenRookOnSeventhMultiplier",
-        });
-        fields.push({
-            label: "Very good rook (open file) multiplier",
-            section: "specialEvaluations",
-            key: "veryGoodOpenRookMultiplier",
-        });
-        fields.push({
-            label: "Poor rook (closed file) multiplier",
-            section: "specialEvaluations",
-            key: "poorClosedFileRookMultiplier",
-        });
+/**
+ * Build research table rows from the server-loaded config for the selected engine (no client-side defaults).
+ * @param {object|null|undefined} config
+ * @returns {{ label: string, section: string, key: string }[]}
+ */
+function getBrainConfigFieldDefsFromConfig(config) {
+    const fields = [];
+    const cfg = config && typeof config === "object" ? config : {};
+    const pieceScores = cfg.pieceScores && typeof cfg.pieceScores === "object" ? cfg.pieceScores : {};
+    for (let i = 0; i < BRAIN_CONFIG_PIECE_KEYS.length; i++) {
+        const key = BRAIN_CONFIG_PIECE_KEYS[i];
+        if (Object.prototype.hasOwnProperty.call(pieceScores, key)) {
+            fields.push({ label: key, section: "pieceScores", key: key });
+        }
+    }
+    const se = cfg.specialEvaluations && typeof cfg.specialEvaluations === "object" ? cfg.specialEvaluations : {};
+    const specialKeys = Object.keys(se).sort();
+    for (let j = 0; j < specialKeys.length; j++) {
+        const sk = specialKeys[j];
+        fields.push({ label: sk, section: "specialEvaluations", key: sk });
     }
     return fields;
 }
@@ -1410,7 +1331,8 @@ function renderResearchBrainConfigTable() {
         return;
     }
     tbody.innerHTML = "";
-    const fields = getBrainConfigFieldDefs(researchBrainConfigState.engine || "brain41");
+    const cfg = researchBrainConfigState.draft || researchBrainConfigState.saved || {};
+    const fields = getBrainConfigFieldDefsFromConfig(cfg);
 
     function makeFieldNameAndValueCells(field) {
         const sectionDraft = researchBrainConfigState.draft && researchBrainConfigState.draft[field.section]
@@ -1479,7 +1401,13 @@ async function loadResearchBrainConfig(engineName) {
         }
     }
     const response = await getServerInfo("/brain-config?engine=" + encodeURIComponent(safeEngine));
-    const loadedConfig = response && response.config ? response.config : getBrainConfigDefaults(safeEngine);
+    let loadedConfig;
+    if (response && response.config != null && typeof response.config === "object") {
+        loadedConfig = response.config;
+    } else {
+        console.error("[Research] /brain-config missing config for engine:", safeEngine, response);
+        loadedConfig = { pieceScores: {}, specialEvaluations: {} };
+    }
     researchBrainConfigState.saved = JSON.parse(JSON.stringify(loadedConfig));
     researchBrainConfigState.draft = JSON.parse(JSON.stringify(loadedConfig));
     renderResearchBrainConfigTable();
@@ -5467,7 +5395,7 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
         name,
         gameType: gameInfo.gameType || gameType,
         moves: strMoves,
-        engine: "brain41",
+        engine: normalizeBookmarkEngine((gameInfo && gameInfo.engine) ? gameInfo.engine : "brain41"),
         depth: 3,
     });
     bookmarks = await getBookmarks();
