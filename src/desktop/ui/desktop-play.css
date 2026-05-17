@@ -313,15 +313,18 @@ body.desktop-play-page .desktop-play-main {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--body-background, var(--darker, #293241));
 }
 
 .desktop-play-sidebar {
+  position: relative;
   width: var(--desktop-play-sidebar-width, 220px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--moves-panel-bg, #354c69);
+  transition: width 0.2s ease, min-width 0.2s ease, background 0.2s ease;
 }
 
 .desktop-play-sidebar--left {
@@ -330,6 +333,62 @@ body.desktop-play-page .desktop-play-main {
 
 .desktop-play-sidebar--right {
   border-left: 1px solid var(--desktop-play-dock-border);
+}
+
+.desktop-play-sidebar--collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+}
+
+.desktop-play-sidebar--collapsed .desktop-play-dock {
+  display: none;
+}
+
+.desktop-play-sidebar-tab--expand {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  z-index: 12;
+  width: 1.35rem;
+  height: 2.5rem;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--desktop-play-dock-border);
+  background: var(--moves-dock-title-background, var(--moves-panel-bg, #354c69));
+  color: var(--moves-dock-title-text, rgba(255, 255, 255, 0.55));
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desktop-play-sidebar-tab--expand:hover {
+  filter: brightness(1.1);
+}
+
+.desktop-play-sidebar-tab--expand[hidden] {
+  display: none !important;
+}
+
+.desktop-play-sidebar--left .desktop-play-sidebar-tab--expand {
+  right: 0;
+  transform: translate(100%, -50%);
+  border-radius: 0 4px 4px 0;
+}
+
+.desktop-play-sidebar--right .desktop-play-sidebar-tab--expand {
+  left: 0;
+  transform: translate(-100%, -50%);
+  border-radius: 4px 0 0 4px;
+}
+
+.desktop-play-sidebar--collapsed .desktop-play-sidebar-tab--expand:not([hidden]) {
+  display: inline-flex;
 }
 
 .desktop-play-dock {
@@ -341,6 +400,10 @@ body.desktop-play-page .desktop-play-main {
 
 .desktop-play-dock-title {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
   padding: 0.4rem 0.65rem;
   font-size: 0.7rem;
   font-weight: 600;
@@ -349,6 +412,44 @@ body.desktop-play-page .desktop-play-main {
   background: var(--moves-dock-title-background, var(--moves-panel-bg, #354c69));
   color: var(--moves-dock-title-text, rgba(255, 255, 255, 0.55));
   border-bottom: 1px solid var(--desktop-play-dock-border);
+}
+
+.desktop-play-dock-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-play-dock-title-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.desktop-play-dock-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desktop-play-dock-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.desktop-play-dock-toggle[hidden],
+.desktop-play-sidebar-tab--expand[hidden] {
+  display: none !important;
 }
 
 .desktop-play-moves {

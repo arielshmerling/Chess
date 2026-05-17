@@ -17,6 +17,7 @@
   <script src="/app/ui/desktop-api.js"></script>
   <script src="/app/ui/desktop-board.js"></script>
   <script src="/app/ui/desktop-board-scale.js"></script>
+  <script src="/app/ui/desktop-dock-panels.js"></script>
   <script src="/app/ui/desktop-play.js"></script>
 </head>
 <body class="desktop-shell desktop-play-page desktop-has-topbar">
@@ -53,9 +54,30 @@
       </header>
 
       <div class="desktop-play-content">
-        <aside class="desktop-play-sidebar desktop-play-sidebar--left" aria-label="Moves">
+        <aside
+          id="desktopPlaySidebarMoves"
+          class="desktop-play-sidebar desktop-play-sidebar--left"
+          aria-label="Moves"
+        >
+          <button
+            type="button"
+            class="desktop-play-sidebar-tab desktop-play-sidebar-tab--expand"
+            aria-label="Expand moves panel"
+            title="Expand moves"
+            hidden
+          >+</button>
           <section class="desktop-play-dock desktop-play-moves">
-            <div class="desktop-play-dock-title">Moves</div>
+            <div class="desktop-play-dock-title">
+              <span class="desktop-play-dock-title-text">Moves</span>
+              <span class="desktop-play-dock-title-actions">
+                <button
+                  type="button"
+                  class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse"
+                  aria-label="Collapse moves panel"
+                  title="Collapse"
+                >−</button>
+              </span>
+            </div>
             <div id="movesDiv" class="movesDiv desktop-play-panel-list desktop-play-moves-list"></div>
           </section>
         </aside>
@@ -64,9 +86,30 @@
           <div id="chessboard" class="desktop-play-board"></div>
         </main>
 
-        <aside class="desktop-play-sidebar desktop-play-sidebar--right" aria-label="Games">
+        <aside
+          id="desktopPlaySidebarGames"
+          class="desktop-play-sidebar desktop-play-sidebar--right"
+          aria-label="Games"
+        >
+          <button
+            type="button"
+            class="desktop-play-sidebar-tab desktop-play-sidebar-tab--expand"
+            aria-label="Expand games panel"
+            title="Expand games"
+            hidden
+          >+</button>
           <section class="desktop-play-dock desktop-play-games">
-            <div class="desktop-play-dock-title">Games</div>
+            <div class="desktop-play-dock-title">
+              <span class="desktop-play-dock-title-text">Games</span>
+              <span class="desktop-play-dock-title-actions">
+                <button
+                  type="button"
+                  class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse"
+                  aria-label="Collapse games panel"
+                  title="Collapse"
+                >−</button>
+              </span>
+            </div>
             <div id="gamesDiv" class="desktop-play-panel-list desktop-play-games-list"></div>
           </section>
         </aside>
