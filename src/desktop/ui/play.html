@@ -17,42 +17,55 @@
   <script src="/app/ui/desktop-board.js"></script>
   <script src="/app/ui/desktop-play.js"></script>
 </head>
-<body class="desktop-shell desktop-play-page desktop-has-topbar hide-topbar">
+<body class="desktop-shell desktop-play-page desktop-has-topbar">
   <div class="desktop-play-shell">
     <nav id="desktopPlayActions" class="desktop-play-actions" aria-label="Game actions"></nav>
-    <div class="desktop-play-layout">
-    <aside class="desktop-play-sidebar">
-      <div class="desktop-play-player desktop-play-player--opponent">
-        <div class="desktop-play-clock">
-          <span id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="20" alt=""></span>
-          <span id="blackClockTimeText" class="desktop-play-clock-text">00:00:00</span>
+
+    <div class="desktop-play-workspace">
+      <header class="desktop-play-header" id="desktopPlayHeader" aria-label="Players and clocks">
+        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">Guest vs. Opponent</p>
+
+        <div
+          id="desktopPlayHeaderBlack"
+          class="desktop-play-header-clock desktop-play-header-clock--black desktop-play-header-clock--first"
+          aria-label="Black player clock"
+        >
+          <span class="desktop-play-color-tag desktop-play-color-tag--black" aria-hidden="true">Black</span>
+          <span id="desktopPlayBlackName" class="desktop-play-header-player">Black</span>
+          <span id="blackClockTimeText" class="desktop-play-header-time">00:00:00</span>
         </div>
-        <span id="blackPlayerName" class="desktop-play-player-name">Black</span>
-      </div>
 
-      <div class="desktop-play-moves">
-        <div class="desktop-play-moves-header">Moves</div>
-        <div id="movesDiv" class="movesDiv desktop-play-moves-list"></div>
-      </div>
-
-      <div class="desktop-play-captured">
-        <div id="blackCapturedPiece" class="desktop-play-captured-row"></div>
-        <div id="whiteCapturedPiece" class="desktop-play-captured-row"></div>
-      </div>
-
-      <div class="desktop-play-player desktop-play-player--you">
-        <span id="whitePlayerName" class="desktop-play-player-name">White</span>
-        <div class="desktop-play-clock">
-          <span id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="20" alt=""></span>
-          <span id="whiteClockTimeText" class="desktop-play-clock-text">00:00:00</span>
+        <div
+          id="desktopPlayHeaderWhite"
+          class="desktop-play-header-clock desktop-play-header-clock--white"
+          aria-label="White player clock"
+        >
+          <span class="desktop-play-color-tag desktop-play-color-tag--white" aria-hidden="true">White</span>
+          <span id="desktopPlayWhiteName" class="desktop-play-header-player">White</span>
+          <span id="whiteClockTimeText" class="desktop-play-header-time">00:00:00</span>
         </div>
-      </div>
-    </aside>
+      </header>
 
-    <main class="desktop-play-main">
-      <div id="chessboard" class="desktop-play-board"></div>
-      <p id="desktopPlayStatus" class="desktop-play-status" hidden></p>
-    </main>
+      <div class="desktop-play-content">
+        <aside class="desktop-play-sidebar" aria-label="Moves">
+          <section class="desktop-play-dock desktop-play-moves">
+            <div class="desktop-play-dock-title">Moves</div>
+            <div id="movesDiv" class="movesDiv desktop-play-moves-list"></div>
+          </section>
+        </aside>
+
+        <main class="desktop-play-main">
+          <div id="chessboard" class="desktop-play-board"></div>
+        </main>
+      </div>
+
+      <footer class="desktop-play-footer" id="desktopPlayFooter" aria-label="Game status">
+        <p id="desktopPlayStatusBar" class="desktop-play-status-bar" aria-live="polite"></p>
+        <div class="desktop-play-footer-captured" aria-label="Captured pieces">
+          <div id="blackCapturedPiece" class="desktop-play-captured-row"></div>
+          <div id="whiteCapturedPiece" class="desktop-play-captured-row"></div>
+        </div>
+      </footer>
     </div>
   </div>
 </body>

@@ -20,6 +20,9 @@
     let dialogOn = false;
     let lastCheckNotifySide = null;
     let alertMode = false;
+    let headerEventMessage = null;
+    let headerEventKind = null;
+    let headerEventTimer = null;
     let animating = false;
     let redoPairAvailable = false;
     let allowUndo = true;
@@ -102,6 +105,98 @@
         }
     }
 
+    const STATUS_BAR_CLASSES = [
+        "desktop-play-status-bar--event",
+        "desktop-play-status-bar--check",
+        "desktop-play-status-bar--checkmate",
+        "desktop-play-status-bar--draw",
+        "desktop-play-status-bar--promotion",
+        "desktop-play-status-bar--info",
+        "desktop-play-status-bar--timeout",
+        "desktop-play-status-bar--error",
+    ];
+
+    function updateHeaderClockHighlight() {
+        const headerBlack = $("desktopPlayHeaderBlack");
+        const headerWhite = $("desktopPlayHeaderWhite");
+        if (!game) {
+            return;
+        }
+        const active = !game.GameOver && !headerEventMessage;
+        if (headerBlack) {
+            headerBlack.classList.toggle("desktop-play-header-clock--active", active && game.Turn === "black");
+        }
+        if (headerWhite) {
+            headerWhite.classList.toggle("desktop-play-header-clock--active", active && game.Turn === "white");
+        }
+    }
+
+    function clearHeaderEvent() {
+        if (headerEventTimer) {
+            clearTimeout(headerEventTimer);
+            headerEventTimer = null;
+        }
+        headerEventMessage = null;
+        headerEventKind = null;
+        refreshStatusBar();
+    }
+
+    function defaultStatusText() {
+        if (!game) {
+            return "";
+        }
+        if (game.GameOver) {
+            return "Game over";
+        }
+        return "Game in progress";
+    }
+
+    function refreshStatusBar() {
+        const statusEl = $("desktopPlayStatusBar");
+        if (!statusEl) {
+            return;
+        }
+        STATUS_BAR_CLASSES.forEach(function (cls) {
+            statusEl.classList.remove(cls);
+        });
+        updateHeaderClockHighlight();
+        if (headerEventMessage) {
+            statusEl.textContent = headerEventMessage;
+            statusEl.classList.add("desktop-play-status-bar--event");
+            if (headerEventKind) {
+                statusEl.classList.add("desktop-play-status-bar--" + headerEventKind);
+            }
+            return;
+        }
+        statusEl.textContent = defaultStatusText();
+    }
+
+    function updateHeaderTurn() {
+        refreshStatusBar();
+    }
+
+    function updateMatchHeader() {
+        if (!gameInfo) {
+            return;
+        }
+        const whiteName = gameInfo.whitePlayerName || "White";
+        const blackName = gameInfo.blackPlayerName || "Black";
+        const selfName = currentPlayerIsWhite ? whiteName : blackName;
+        const opponentName = currentPlayerIsWhite ? blackName : whiteName;
+        const titleEl = $("desktopPlayMatchTitle");
+        const whiteNameEl = $("desktopPlayWhiteName");
+        const blackNameEl = $("desktopPlayBlackName");
+        if (titleEl) {
+            titleEl.textContent = selfName + " vs. " + opponentName;
+        }
+        if (whiteNameEl) {
+            whiteNameEl.textContent = whiteName;
+        }
+        if (blackNameEl) {
+            blackNameEl.textContent = blackName;
+        }
+    }
+
     function switchClocks() {
         if (whiteHandle) {
             clearInterval(whiteHandle);
@@ -111,15 +206,8 @@
             clearInterval(blackHandle);
             blackHandle = null;
         }
-        const whiteTurnClock = $("whiteTurnClock");
-        const blackTurnClock = $("blackTurnClock");
+        updateHeaderTurn();
         if (game.Turn === "black") {
-            if (whiteTurnClock) {
-                whiteTurnClock.classList.add("unvisible");
-            }
-            if (blackTurnClock) {
-                blackTurnClock.classList.remove("unvisible");
-            }
             blackHandle = setInterval(function () {
                 blackTimer--;
                 const el = $("blackClockTimeText");
@@ -136,12 +224,6 @@
             }, 1000);
         }
         if (game.Turn === "white") {
-            if (blackTurnClock) {
-                blackTurnClock.classList.add("unvisible");
-            }
-            if (whiteTurnClock) {
-                whiteTurnClock.classList.remove("unvisible");
-            }
             whiteHandle = setInterval(function () {
                 whiteTimer--;
                 const el = $("whiteClockTimeText");
@@ -161,7 +243,7 @@
 
     function outOfTime() {
         const loser = game.Turn;
-        showStatus("Time's up! " + loser + " lost", 5000);
+        showStatus("Time's up! " + loser + " lost", 5000, "timeout");
         game.OutOfTime = loser;
         sendWs({
             type: "info",
@@ -174,18 +256,29 @@
         });
     }
 
-    function showStatus(message, durationMs) {
-        const el = $("desktopPlayStatus");
-        if (!el) {
+    /**
+     * Show a game event in the bottom status bar.
+     * @param {string} message
+     * @param {number} [durationMs] Auto-clear after ms; omit to keep until cleared.
+     * @param {string} [kind] check | checkmate | draw | promotion | info | timeout | error
+     */
+    function showStatus(message, durationMs, kind) {
+        if (!message) {
+            clearHeaderEvent();
             return;
         }
-        el.textContent = message || "";
-        el.hidden = !message;
-        if (message && durationMs) {
-            setTimeout(function () {
-                if (el.textContent === message) {
-                    el.hidden = true;
-                    el.textContent = "";
+        if (headerEventTimer) {
+            clearTimeout(headerEventTimer);
+            headerEventTimer = null;
+        }
+        headerEventMessage = message;
+        headerEventKind = kind || "info";
+        alertMode = headerEventKind !== "info";
+        refreshStatusBar();
+        if (durationMs) {
+            headerEventTimer = setTimeout(function () {
+                if (headerEventMessage === message) {
+                    clearHeaderEvent();
                 }
             }, durationMs);
         }
@@ -425,17 +518,18 @@
             showStatus("");
         }
 
+        updateHeaderTurn();
         updateActionButtons();
     }
 
     function onCheck(turn) {
         alertMode = true;
-        showStatus("Check", 2000);
+        showStatus("Check", 2000, "check");
     }
 
     function onCheckmate(turn) {
         alertMode = true;
-        showStatus("Checkmate! " + game.opponent(game.colorName(turn)) + " wins!", 5000);
+        showStatus("Checkmate — " + game.opponent(game.colorName(turn)) + " wins", 0, "checkmate");
         if (whiteHandle) {
             clearInterval(whiteHandle);
         }
@@ -447,7 +541,7 @@
 
     function onDraw(reason) {
         alertMode = true;
-        showStatus("Draw! " + reason, 5000);
+        showStatus("Draw — " + reason, 0, "draw");
         Board.applyDrawHighlight();
         if (whiteHandle) {
             clearInterval(whiteHandle);
@@ -467,7 +561,7 @@
         }
         lastMove = game.LastMove;
         dialogOn = true;
-        showStatus("Choose promotion piece");
+        showStatus("Choose promotion piece", 0, "promotion");
         return new Promise(function (resolve) {
             Board.showPromotionDialog(async function (selectedPiece) {
                 if (!lastMove) {
@@ -715,7 +809,7 @@
                 username: gameInfo.username,
                 isWhite: currentPlayerIsWhite,
             });
-            showStatus("Draw offer sent");
+            showStatus("Draw offer sent", 3000, "info");
             updateActionButtons();
         });
     }
@@ -815,20 +909,7 @@
 
         allowUndo = resolveAllowUndo(gameInfo);
         currentPlayerIsWhite = gameInfo.username === gameInfo.whitePlayerName;
-        const opponentName = currentPlayerIsWhite
-            ? gameInfo.blackPlayerName
-            : gameInfo.whitePlayerName;
-        const selfName = currentPlayerIsWhite
-            ? gameInfo.whitePlayerName
-            : gameInfo.blackPlayerName;
-        const oppNameEl = document.querySelector(".desktop-play-player--opponent .desktop-play-player-name");
-        const selfNameEl = document.querySelector(".desktop-play-player--you .desktop-play-player-name");
-        if (oppNameEl) {
-            oppNameEl.textContent = opponentName || "Opponent";
-        }
-        if (selfNameEl) {
-            selfNameEl.textContent = selfName || "You";
-        }
+        updateMatchHeader();
 
         game = new ChessGame();
         Board.setGame(game);
@@ -863,6 +944,7 @@
         }
 
         Board.syncFromGameState();
+        updateHeaderTurn();
         startWebSocket();
         updateActionButtons();
     }
@@ -870,7 +952,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         buildActionRail();
         startSession().catch(function (err) {
-            showStatus(err.message || "Could not load game", 0);
+            showStatus(err.message || "Could not load game", 0, "error");
             console.error(err);
         });
     });
