@@ -64,6 +64,7 @@ exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, 
     };
     list.push(bookmark);
     await writeAll(list);
+    return toClientBookmark(bookmark);
 };
 
 exports.updateBookmark = async (_userId, id, date, name, gameType, gameState, moves, engine, depth) => {

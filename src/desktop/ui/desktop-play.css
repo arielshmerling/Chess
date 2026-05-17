@@ -9,6 +9,7 @@ body.desktop-play-page {
   overflow: hidden;
   gap: 0;
   --desktop-play-rail-width: 80px;
+  --desktop-play-sidebar-width: 220px;
   --desktop-play-header-height: 50px;
   --desktop-play-footer-height: 50px;
   --desktop-play-dock-border: rgba(255, 255, 255, 0.08);
@@ -143,9 +144,10 @@ body.desktop-play-page .desktop-play-main {
 .desktop-play-header {
   flex: 0 0 var(--desktop-play-header-height);
   height: var(--desktop-play-header-height);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 1rem;
+  column-gap: 1rem;
   padding: 0 1rem;
   box-sizing: border-box;
   background: var(--play-header-background, #141414);
@@ -153,15 +155,36 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-header-match {
-  flex: 1;
+  justify-self: start;
   min-width: 0;
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.desktop-play-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  justify-self: center;
+}
+
+.desktop-play-header-datetime {
+  justify-self: end;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: inherit;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .desktop-play-header-clock {
@@ -175,10 +198,6 @@ body.desktop-play-page .desktop-play-main {
   background: var(--play-clock-background, rgba(0, 0, 0, 0.25));
   color: var(--play-clock-text, inherit);
   flex-shrink: 0;
-}
-
-.desktop-play-header-clock--first {
-  margin-left: auto;
 }
 
 .desktop-play-header-clock--active {
@@ -297,13 +316,20 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-sidebar {
-  width: 220px;
+  width: var(--desktop-play-sidebar-width, 220px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--desktop-play-dock-border);
   background: var(--moves-panel-bg, #354c69);
+}
+
+.desktop-play-sidebar--left {
+  border-right: 1px solid var(--desktop-play-dock-border);
+}
+
+.desktop-play-sidebar--right {
+  border-left: 1px solid var(--desktop-play-dock-border);
 }
 
 .desktop-play-dock {
@@ -331,7 +357,7 @@ body.desktop-play-page .desktop-play-main {
   overflow: hidden;
 }
 
-.desktop-play-moves-list {
+.desktop-play-panel-list {
   flex: 1;
   overflow-y: auto;
   padding: 0.15rem 0.2rem;
@@ -339,16 +365,36 @@ body.desktop-play-page .desktop-play-main {
   background-color: var(--moves-panel-bg, #354c69);
 }
 
-.desktop-play-page .desktop-play-moves-list.movesDiv {
+.desktop-play-page .desktop-play-panel-list.movesDiv {
   scrollbar-color: var(--textbox-background, #2a3d52) var(--moves-panel-bg, #354c69);
 }
 
-.desktop-play-page .desktop-play-moves-list .movesTable {
-  border-spacing: 0;
+.desktop-play-page .desktop-play-games-list {
+  scrollbar-color: var(--textbox-background, #2a3d52) var(--moves-panel-bg, #354c69);
 }
 
-.desktop-play-page .desktop-play-moves-list .movesTable td {
+.desktop-play-page .desktop-play-moves-list .movesTable,
+.desktop-play-page .desktop-play-games-list .gamesTable {
+  border-spacing: 0;
+  width: 100%;
+}
+
+.desktop-play-page .desktop-play-moves-list .movesTable td,
+.desktop-play-page .desktop-play-games-list .gamesTable td {
   padding: 2px 3px;
+  margin: 0;
+  border: 1px solid var(--panel-border);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.desktop-play-page .desktop-play-games-list .gamesTable .tdGame {
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .desktop-play-footer .desktop-play-captured-row {
@@ -371,7 +417,14 @@ body.desktop-play-page .desktop-play-main {
     drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
-.desktop-play-sidebar .desktop-play-dock.desktop-play-moves {
+.desktop-play-games {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.desktop-play-sidebar .desktop-play-dock.desktop-play-moves,
+.desktop-play-sidebar .desktop-play-dock.desktop-play-games {
   flex: 1;
   border-bottom: none;
 }

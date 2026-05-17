@@ -25,40 +25,51 @@
 
     <div class="desktop-play-workspace">
       <header class="desktop-play-header" id="desktopPlayHeader" aria-label="Players and clocks">
-        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">Guest vs. Opponent</p>
+        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">Player vs. Brain 4.2</p>
 
-        <div
-          id="desktopPlayHeaderBlack"
-          class="desktop-play-header-clock desktop-play-header-clock--black desktop-play-header-clock--first"
-          aria-label="Black player clock"
-        >
-          <span class="desktop-play-color-tag desktop-play-color-tag--black" aria-hidden="true">Black</span>
-          <span id="desktopPlayBlackName" class="desktop-play-header-player">Black</span>
-          <span id="blackClockTimeText" class="desktop-play-header-time">00:00:00</span>
+        <div class="desktop-play-header-center">
+          <div
+            id="desktopPlayHeaderBlack"
+            class="desktop-play-header-clock desktop-play-header-clock--black"
+            aria-label="Black player clock"
+          >
+            <span class="desktop-play-color-tag desktop-play-color-tag--black" aria-hidden="true">Black</span>
+            <span id="desktopPlayBlackName" class="desktop-play-header-player">Black</span>
+            <span id="blackClockTimeText" class="desktop-play-header-time">00:00:00</span>
+          </div>
+
+          <div
+            id="desktopPlayHeaderWhite"
+            class="desktop-play-header-clock desktop-play-header-clock--white"
+            aria-label="White player clock"
+          >
+            <span class="desktop-play-color-tag desktop-play-color-tag--white" aria-hidden="true">White</span>
+            <span id="desktopPlayWhiteName" class="desktop-play-header-player">White</span>
+            <span id="whiteClockTimeText" class="desktop-play-header-time">00:00:00</span>
+          </div>
         </div>
 
-        <div
-          id="desktopPlayHeaderWhite"
-          class="desktop-play-header-clock desktop-play-header-clock--white"
-          aria-label="White player clock"
-        >
-          <span class="desktop-play-color-tag desktop-play-color-tag--white" aria-hidden="true">White</span>
-          <span id="desktopPlayWhiteName" class="desktop-play-header-player">White</span>
-          <span id="whiteClockTimeText" class="desktop-play-header-time">00:00:00</span>
-        </div>
+        <time id="desktopPlayHeaderDateTime" class="desktop-play-header-datetime" datetime=""></time>
       </header>
 
       <div class="desktop-play-content">
-        <aside class="desktop-play-sidebar" aria-label="Moves">
+        <aside class="desktop-play-sidebar desktop-play-sidebar--left" aria-label="Moves">
           <section class="desktop-play-dock desktop-play-moves">
             <div class="desktop-play-dock-title">Moves</div>
-            <div id="movesDiv" class="movesDiv desktop-play-moves-list"></div>
+            <div id="movesDiv" class="movesDiv desktop-play-panel-list desktop-play-moves-list"></div>
           </section>
         </aside>
 
         <main class="desktop-play-main">
           <div id="chessboard" class="desktop-play-board"></div>
         </main>
+
+        <aside class="desktop-play-sidebar desktop-play-sidebar--right" aria-label="Games">
+          <section class="desktop-play-dock desktop-play-games">
+            <div class="desktop-play-dock-title">Games</div>
+            <div id="gamesDiv" class="desktop-play-panel-list desktop-play-games-list"></div>
+          </section>
+        </aside>
       </div>
 
       <footer class="desktop-play-footer" id="desktopPlayFooter" aria-label="Game status">

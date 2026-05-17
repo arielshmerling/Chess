@@ -14,8 +14,16 @@ exports.list = catchAsync(async (_req, res) => {
 exports.create = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
     const { gameState, name, gameType, moves, engine, depth } = req.body;
-    await bookmarkStore.addBookmark(userId, gameState, name, gameType, moves, engine, depth);
-    res.send('{"status":"OK"}');
+    const bookmark = await bookmarkStore.addBookmark(
+        userId,
+        gameState,
+        name,
+        gameType,
+        moves,
+        engine,
+        depth
+    );
+    res.json(bookmark);
 });
 
 exports.update = catchAsync(async (req, res) => {
