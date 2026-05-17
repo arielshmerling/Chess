@@ -52,6 +52,7 @@ function createGameInfo(game, userName, userId) {
         clientData.difficulty = game.options.difficulty;
         clientData.engine = game.options.engine;
         clientData.showAvailableMoves = game.options.showAvailableMoves !== false;
+        clientData.allowUndo = Boolean(game.options.allowUndo);
     }
     if (game.chessGame) {
         const gtl = game.chessGame.GameTimeLength;

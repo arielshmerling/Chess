@@ -49,6 +49,24 @@
                 black.checked = true;
             }
         }
+        if (last.mouse === "double") {
+            var mouseDouble = form.querySelector("input[name=mouse][value=double]");
+            if (mouseDouble) {
+                mouseDouble.checked = true;
+            }
+        }
+        if (last.showAvailableMoves === false) {
+            var showMoves = form.querySelector("input[name=showMoves]");
+            if (showMoves) {
+                showMoves.checked = false;
+            }
+        }
+        if (last.allowUndo === false) {
+            var allowUndoEl = form.querySelector("input[name=allowUndo]");
+            if (allowUndoEl) {
+                allowUndoEl.checked = false;
+            }
+        }
 
         var range = document.getElementById("difficultyRange");
         var output = document.getElementById("difficultyOut");
@@ -76,6 +94,7 @@
                 difficulty: parseInt(fd.get("difficulty"), 10) || 3,
                 mouse: fd.get("mouse") || "drag",
                 showAvailableMoves: fd.get("showMoves") === "1",
+                allowUndo: fd.get("allowUndo") === "1",
                 timeMinutes: parseInt(fd.get("timeMinutes"), 10) || 90,
             };
 

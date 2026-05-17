@@ -19,6 +19,7 @@ function parseSinglePlayerOptions(body) {
     const difficultyNum = difficulty >= 1 && difficulty <= 5 ? difficulty : 3;
     const mouse = body.mouse === "double" || body.mouse === "drag" ? body.mouse : "drag";
     const showAvailableMoves = body.showAvailableMoves !== false;
+    const allowUndo = body.allowUndo === true || body.allowUndo === "1" || body.allowUndo === 1;
     const timeMinutesParsed = parseInt(body.timeMinutes, 10);
     const timeMinutes =
         Number.isFinite(timeMinutesParsed) && timeMinutesParsed >= 1 && timeMinutesParsed <= 180
@@ -30,6 +31,7 @@ function parseSinglePlayerOptions(body) {
         difficulty: difficultyNum,
         mouse,
         showAvailableMoves,
+        allowUndo,
         timeMinutes,
         isPrivate: false,
     };
@@ -41,6 +43,8 @@ async function createSinglePlayerGame(username, userId, options, session) {
         require("../brain42").preloadOpeningBook();
     }
     const game = gameService.newGame(1, username, userId, options);
+    game.options = game.options || {};
+    game.options.allowUndo = options.allowUndo === true;
     gamesManagerService.AddGame(game);
     const gameDoc = await gameStore.assignGameIdFromStore(game);
     game.gameId = gameDoc.id;
@@ -79,6 +83,7 @@ exports.startFromQuery = catchAsync(async (req, res) => {
         difficulty: parseInt(req.query.difficulty, 10) || 3,
         mouse: req.query.mouse === "double" ? "double" : "drag",
         showAvailableMoves: req.query.showMoves !== "0",
+        allowUndo: req.query.allowUndo === "1",
         timeMinutes: parseInt(req.query.timeMinutes, 10) || 90,
         isPrivate: req.query.private === "1",
     };
@@ -120,4 +125,27 @@ exports.rematch = catchAsync(async (req, res) => {
     validate(req.body, "id");
     req.session.gameId = req.body.id;
     res.send('{"status":"OK"}');
+});
+
+/**
+ * Desktop-only: sync server SinglePlayerGame after client undo/redo (not used by web).
+ */
+exports.syncGameState = catchAsync(async (req, res) => {
+    const gameId = req.session.gameId;
+    validate({ id: gameId }, "id");
+    const game = gamesManagerService.getGameById(gameId);
+    if (!game) {
+        return res.status(404).json({ ok: false, message: "Game not found" });
+    }
+    const { state, moves, turn } = req.body || {};
+    if (!state) {
+        return res.status(400).json({ ok: false, message: "Missing state" });
+    }
+    game.load(state);
+    if (Array.isArray(moves)) {
+        game.moves = moves;
+    }
+    game.turn = turn || game.chessGame.Turn;
+    await gameStore.persistGame(game);
+    res.json({ ok: true });
 });

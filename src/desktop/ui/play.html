@@ -18,7 +18,9 @@
   <script src="/app/ui/desktop-play.js"></script>
 </head>
 <body class="desktop-shell desktop-play-page desktop-has-topbar hide-topbar">
-  <div class="desktop-play-layout">
+  <div class="desktop-play-shell">
+    <nav id="desktopPlayActions" class="desktop-play-actions" aria-label="Game actions"></nav>
+    <div class="desktop-play-layout">
     <aside class="desktop-play-sidebar">
       <div class="desktop-play-player desktop-play-player--opponent">
         <div class="desktop-play-clock">
@@ -51,8 +53,7 @@
       <div id="chessboard" class="desktop-play-board"></div>
       <p id="desktopPlayStatus" class="desktop-play-status" hidden></p>
     </main>
+    </div>
   </div>
-
-  <footer id="desktopPlayToolbar" class="desktop-play-toolbar"></footer>
 </body>
 </html>

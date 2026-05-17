@@ -96,6 +96,12 @@
         stack.appendChild(createSide(true));
         root.appendChild(stack);
         innerBoardEl = document.getElementById("innerBoard");
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "arrowsCanvas";
+        canvas.id = "arrowsCanvas";
+        root.appendChild(canvas);
+
         applyMousePreference();
     }
 
@@ -486,6 +492,9 @@
         }
         const executed = chessGame.makeMove(sourcePos, targetPos);
         syncFromGameState();
+        if (executed && executed.promotion && chessGame.GameState && chessGame.GameState.promoting) {
+            return true;
+        }
         if (onHumanMove) {
             await onHumanMove(executed);
         }
@@ -494,18 +503,30 @@
 
     function showPromotionDialog(onPick) {
         const boardRoot = document.getElementById("chessboard");
+        if (!boardRoot) {
+            return;
+        }
+        const existing = document.getElementById("cloak");
+        if (existing) {
+            existing.remove();
+        }
+        const last = chessGame.LastMove;
+        const pieceUrls = last && last.piece && last.piece.color === "black" ? BLACK_PIECES : WHITE_PIECES;
         const cloak = document.createElement("div");
-        cloak.className = "cloak";
+        cloak.className = "cloak desktop-promotion-cloak";
         cloak.id = "cloak";
+        cloak.style.visibility = "visible";
+        cloak.style.opacity = "1";
         const box = document.createElement("div");
         box.className = "promotionSelectionBox";
         box.id = "promotionSelectionBox";
         for (let i = chessGame.KNIGHT; i <= chessGame.QUEEN; i++) {
-            const piece = createPiece(WHITE_PIECES[i], false);
+            const piece = createPiece(pieceUrls[i], false);
             piece.className = "promotionPiece";
-            piece.alt = String(i);
+            piece.setAttribute("alt", String(i));
             piece.onclick = function (ev) {
-                const selected = parseInt(ev.target.alt, 10);
+                const target = ev.currentTarget;
+                const selected = parseInt(target.getAttribute("alt"), 10);
                 cloak.remove();
                 onPick(selected);
             };
@@ -515,8 +536,157 @@
         boardRoot.appendChild(cloak);
     }
 
+    function clearArrows() {
+        const canvas = document.getElementById("arrowsCanvas");
+        if (canvas) {
+            canvas.style.visibility = "hidden";
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    }
+
+    function drawArrow(ctx, fromx, fromy, tox, toy, arrowWidth, color) {
+        const headlen = arrowWidth / 2;
+        const angle = Math.atan2(toy - fromy, tox - fromx);
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(fromx, fromy);
+        ctx.lineTo(tox, toy);
+        ctx.lineWidth = arrowWidth;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tox, toy);
+        ctx.lineTo(
+            tox - headlen * Math.cos(angle - Math.PI / 6),
+            toy - headlen * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+            tox - headlen * Math.cos(angle + Math.PI / 6),
+            toy - headlen * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.lineTo(tox, toy);
+        ctx.lineTo(
+            tox - headlen * Math.cos(angle - Math.PI / 6),
+            toy - headlen * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function findLastMoveWithCoords() {
+        if (!chessGame || !chessGame.Moves) {
+            return null;
+        }
+        const moves = chessGame.Moves;
+        for (let i = moves.length - 1; i >= 0; i--) {
+            const m = moves[i];
+            if (m && m.source && m.target && m.source.row != null && m.target.row != null) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    function toggleLastMoveArrow() {
+        const last = findLastMoveWithCoords();
+        if (!last || !innerBoardEl) {
+            return false;
+        }
+        const canvas = document.getElementById("arrowsCanvas");
+        if (!canvas) {
+            return false;
+        }
+        if (canvas.style.visibility === "visible") {
+            clearArrows();
+            return false;
+        }
+        const divMoveTarget = findSquare(last.target.row, last.target.col);
+        if (!divMoveTarget) {
+            return false;
+        }
+        const squareWidth = divMoveTarget.offsetWidth;
+        canvas.style.visibility = "visible";
+        canvas.setAttribute("width", String(innerBoardEl.offsetWidth));
+        canvas.setAttribute("height", String(innerBoardEl.offsetWidth));
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let x1;
+        let y1;
+        let x2;
+        let y2;
+        if (last.whitePlayerView === chessGame.WhitePlayerView) {
+            x1 = last.source.col * squareWidth + squareWidth / 2;
+            y1 = last.source.row * squareWidth + squareWidth / 2;
+            x2 = last.target.col * squareWidth + squareWidth / 2;
+            y2 = last.target.row * squareWidth + squareWidth / 2;
+        } else {
+            x1 =
+                (chessGame.BOARD_COLUMNS - last.source.col - 1) * squareWidth + squareWidth / 2;
+            y1 = (chessGame.BOARD_ROWS - last.source.row - 1) * squareWidth + squareWidth / 2;
+            x2 =
+                (chessGame.BOARD_COLUMNS - last.target.col - 1) * squareWidth + squareWidth / 2;
+            y2 = (chessGame.BOARD_ROWS - last.target.row - 1) * squareWidth + squareWidth / 2;
+        }
+        drawArrow(ctx, x1, y1, x2, y2, innerBoardEl.offsetWidth / 40, "#33a033");
+        return true;
+    }
+
+    function flipBoard() {
+        if (!chessGame) {
+            return;
+        }
+        chessGame.WhitePlayerView = !chessGame.WhitePlayerView;
+        clearArrows();
+        updateRowOrder();
+        updateLegend();
+        syncFromGameState();
+    }
+
+    function animateUndoMove(move) {
+        return new Promise(function (resolve) {
+            const speed = 50;
+            const divMoveTarget = findSquare(move.target.row, move.target.col);
+            const img = divMoveTarget && divMoveTarget.childNodes[0];
+            if (!img) {
+                syncFromGameState();
+                resolve();
+                return;
+            }
+            const squareWidth = divMoveTarget.offsetWidth;
+            const horizontalDistance = (move.source.col - move.target.col) * squareWidth;
+            const verticalDistance = (move.source.row - move.target.row) * squareWidth;
+            const verticalSteps = verticalDistance / speed;
+            const horizontalSteps = horizontalDistance / speed;
+            let left = 0;
+            let top = 0;
+            img.style.zIndex = "2";
+            img.style.position = "absolute";
+            const interval = setInterval(function () {
+                left += horizontalSteps;
+                top += verticalSteps;
+                img.style.marginLeft = left + "px";
+                img.style.marginTop = top + "px";
+                if (
+                    Math.abs(left - horizontalDistance * 2) < 1 &&
+                    Math.abs(top - verticalDistance * 2) < 1
+                ) {
+                    clearInterval(interval);
+                    img.style.position = "relative";
+                    img.style.marginLeft = "0px";
+                    img.style.marginTop = "0px";
+                    syncFromGameState();
+                    resolve();
+                }
+            }, 2);
+        });
+    }
+
     function animateMove(move) {
         return new Promise(function (resolve, reject) {
+            clearArrows();
             const speed = 20;
             const divMoveTarget = findSquare(move.source.row, move.source.col);
             const img = divMoveTarget && divMoveTarget.childNodes[0];
@@ -569,6 +739,10 @@
         applyMousePreference: applyMousePreference,
         showPromotionDialog: showPromotionDialog,
         animateMove: animateMove,
+        animateUndoMove: animateUndoMove,
         findSquare: findSquare,
+        flipBoard: flipBoard,
+        clearArrows: clearArrows,
+        toggleLastMoveArrow: toggleLastMoveArrow,
     };
 })(window);

@@ -20,6 +20,29 @@
     let dialogOn = false;
     let lastCheckNotifySide = null;
     let alertMode = false;
+    let animating = false;
+    let redoPairAvailable = false;
+    let allowUndo = true;
+    let batchUndoRedo = false;
+
+    const ACTION_ICONS = {
+        resign:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V12M10 20V4M16 20v-6M22 20V9"/></svg>',
+        draw:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+        undo:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14H4V9l1.4 1.4 5.6-5.6 1.4 1.4-5.6 5.6H15v2H9z"/></svg>',
+        redo:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14h5V9l-1.4 1.4-5.6-5.6-1.4 1.4 5.6 5.6H9v2h6z"/></svg>',
+        lastMove:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l7-7 7 7M12 5v14"/></svg>',
+        flip:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4.5L17 1v3H5v6h2V7zm10 10H7v-3l-4 4.5L7 23v-3h12v-6h-2v4z"/></svg>',
+        newGame:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+        exit:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H5a2 2 0 00-2 2v14a2 2 0 002 2h5M14 8l5 4-5 4M11 12h8"/></svg>',
+    };
 
     function $(id) {
         return document.getElementById(id);
@@ -175,28 +198,133 @@
         }
     }
 
-    function buildToolbar() {
-        const bar = $("desktopPlayToolbar");
-        if (!bar) {
+    function resolveAllowUndo(info) {
+        if (info && info.allowUndo === true) {
+            return true;
+        }
+        if (info && info.allowUndo === false) {
+            return false;
+        }
+        try {
+            const raw = localStorage.getItem("shmerling.desktop.lastGameOptions");
+            if (raw) {
+                const last = JSON.parse(raw);
+                if (last.allowUndo === true) {
+                    return true;
+                }
+                if (last.allowUndo === false) {
+                    return false;
+                }
+            }
+        } catch (e) {
+            /* ignore */
+        }
+        return false;
+    }
+
+    function buildActionRail() {
+        const rail = $("desktopPlayActions");
+        if (!rail) {
             return;
         }
-        const buttons = [
-            { id: "resignBtn", label: "Resign", onClick: onResign },
-            { id: "drawBtn", label: "Draw", onClick: onDraw },
-            { id: "rematchBtn", label: "New game", onClick: onRematch },
-            { id: "homeBtn", label: "Home", onClick: onHome },
+        const items = [
+            { id: "resignBtn", label: "Resign", icon: "resign", onClick: onResign },
+            { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDraw },
+            { type: "spacer" },
+            { id: "undoBtn", label: "Undo", icon: "undo", onClick: onUndo },
+            { id: "redoBtn", label: "Redo", icon: "redo", onClick: onRedo },
+            { id: "lastMoveBtn", label: "Last move", icon: "lastMove", onClick: onLastMove },
+            { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
+            { type: "spacer" },
+            {
+                id: "rematchBtn",
+                label: "New game",
+                icon: "newGame",
+                onClick: onRematch,
+                accent: true,
+            },
+            { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
         ];
-        buttons.forEach(function (b) {
+        items.forEach(function (item) {
+            if (item.type === "spacer") {
+                const spacer = document.createElement("div");
+                spacer.className = "desktop-play-actions-spacer";
+                rail.appendChild(spacer);
+                return;
+            }
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.id = b.id;
-            btn.className = "desktop-btn desktop-play-toolbar-btn";
-            btn.textContent = b.label;
-            btn.addEventListener("click", b.onClick);
-            bar.appendChild(btn);
+            btn.id = item.id;
+            btn.className =
+                "desktop-play-action" + (item.accent ? " desktop-play-action--accent" : "");
+            btn.title = item.label;
+            const iconWrap = document.createElement("span");
+            iconWrap.className = "desktop-play-action-icon";
+            iconWrap.innerHTML = ACTION_ICONS[item.icon] || "";
+            const label = document.createElement("span");
+            label.className = "desktop-play-action-label";
+            label.textContent = item.label;
+            btn.appendChild(iconWrap);
+            btn.appendChild(label);
+            btn.addEventListener("click", item.onClick);
+            rail.appendChild(btn);
         });
-        setButtonDisabled("rematchBtn", true);
-        setButtonDisabled("drawBtn", true);
+        updateActionButtons();
+    }
+
+    function isHumanTurn() {
+        return (
+            (game.Turn === "white" && currentPlayerIsWhite) ||
+            (game.Turn === "black" && !currentPlayerIsWhite)
+        );
+    }
+
+    function canUndoMovePair() {
+        if (!allowUndo || !game || game.GameOver || animating || dialogOn) {
+            return false;
+        }
+        const moveCount = game.Moves ? game.Moves.length : 0;
+        return isHumanTurn() && moveCount >= 2;
+    }
+
+    function tableMovesFromGame() {
+        if (!game || !game.Moves) {
+            return [];
+        }
+        return game.Moves.map(function (m) {
+            return typeof m === "string" ? JSON.parse(m) : m;
+        });
+    }
+
+    function syncBoardFromGame() {
+        const state = game.GameState;
+        if (state) {
+            Board.drawBoard(state.board);
+            Board.updateCaptureLists(state.capturedPiecesList || []);
+        } else {
+            Board.syncFromGameState();
+        }
+    }
+
+    function updateActionButtons() {
+        if (!game) {
+            return;
+        }
+        const over = game.GameOver;
+        const hasMoves = game.Moves && game.Moves.length > 0;
+        const humanTurn = isHumanTurn();
+        const humanHasMoved = currentPlayerIsWhite
+            ? game.Moves.length >= 1
+            : game.Moves.length >= 2;
+
+        setButtonDisabled("resignBtn", over || animating);
+        setButtonDisabled("drawBtn", over || animating || !(humanTurn && humanHasMoved));
+        const undoRedoDisabled = !allowUndo || over || animating || dialogOn;
+        setButtonDisabled("undoBtn", undoRedoDisabled || !canUndoMovePair());
+        setButtonDisabled("redoBtn", undoRedoDisabled || !redoPairAvailable);
+        setButtonDisabled("lastMoveBtn", !hasMoves);
+        setButtonDisabled("flipBtn", animating);
+        setButtonDisabled("rematchBtn", !over);
     }
 
     function updateMovesTable(moves) {
@@ -246,9 +374,31 @@
         game.OnUpdate = onGameUpdate;
         game.OnPromotion = onPromotion;
         game.OnDraw = onDraw;
+        game.OnUndo = onUndoEvent;
+    }
+
+    async function onUndoEvent(moves) {
+        if (batchUndoRedo) {
+            return;
+        }
+        animating = true;
+        const move = moves && moves.length ? moves[moves.length - 1] : null;
+        if (move) {
+            Board.clearArrows();
+            await Board.animateUndoMove(move);
+        } else {
+            Board.syncFromGameState();
+        }
+        animating = false;
+        redoPairAvailable = true;
+        updateMovesTable(tableMovesFromGame());
+        updateActionButtons();
     }
 
     async function onGameUpdate(gameState) {
+        if (batchUndoRedo) {
+            return;
+        }
         Board.drawBoard(gameState.board);
         Board.updateCaptureLists(gameState.capturedPiecesList || []);
         const moves = await loadMoves();
@@ -268,19 +418,7 @@
             showStatus("");
         }
 
-        if (game.GameOver) {
-            setButtonDisabled("rematchBtn", false);
-        }
-
-        if (!game.GameOver) {
-            const humanTurn =
-                (game.Turn === "white" && currentPlayerIsWhite) ||
-                (game.Turn === "black" && !currentPlayerIsWhite);
-            const humanHasMoved = currentPlayerIsWhite
-                ? game.Moves.length >= 1
-                : game.Moves.length >= 2;
-            setButtonDisabled("drawBtn", !(humanTurn && humanHasMoved));
-        }
+        updateActionButtons();
     }
 
     function onCheck(turn) {
@@ -304,9 +442,7 @@
         if (blackHandle) {
             clearInterval(blackHandle);
         }
-        setButtonDisabled("resignBtn", true);
-        setButtonDisabled("drawBtn", true);
-        setButtonDisabled("rematchBtn", false);
+        updateActionButtons();
     }
 
     function onDraw(reason) {
@@ -318,9 +454,7 @@
         if (blackHandle) {
             clearInterval(blackHandle);
         }
-        setButtonDisabled("resignBtn", true);
-        setButtonDisabled("drawBtn", true);
-        setButtonDisabled("rematchBtn", false);
+        updateActionButtons();
     }
 
     async function onPromotion(turn) {
@@ -330,12 +464,27 @@
         if (opponentMove || autoCompletePromotion) {
             return;
         }
-        showStatus("Promotion");
+        lastMove = game.LastMove;
+        dialogOn = true;
+        showStatus("Choose promotion piece");
         return new Promise(function (resolve) {
-            Board.showPromotionDialog(function (selectedPiece) {
+            Board.showPromotionDialog(async function (selectedPiece) {
+                if (!lastMove) {
+                    dialogOn = false;
+                    showStatus("");
+                    resolve();
+                    return;
+                }
                 lastMove.selectedPiece = selectedPiece;
                 game.completePromotion(lastMove);
-                sendMove(lastMove);
+                dialogOn = false;
+                Board.syncFromGameState();
+                syncBoardFromGame();
+                redoPairAvailable = false;
+                await sendMove(lastMove);
+                switchClocks();
+                updateMovesTable(tableMovesFromGame());
+                updateActionButtons();
                 showStatus("");
                 resolve();
             });
@@ -344,16 +493,48 @@
 
     async function onHumanMove(executed) {
         lastMove = executed;
+        redoPairAvailable = false;
+        Board.clearArrows();
         switchClocks();
         await sendMove(executed);
         const moves = await loadMoves();
         updateMovesTable(moves.moves || []);
+        updateActionButtons();
     }
 
     function sendWs(message) {
         if (webSocket && webSocket.readyState === WebSocket.OPEN) {
             webSocket.send(JSON.stringify(message));
         }
+    }
+
+    function movesForServerSync() {
+        return tableMovesFromGame().map(function (m) {
+            const copy = Object.assign({}, m);
+            if (typeof copy.moveTime !== "number") {
+                copy.moveTime = copy.turn === "white" ? whiteTimer : blackTimer;
+            }
+            if (typeof copy.whiteTimer !== "number") {
+                copy.whiteTimer = whiteTimer;
+            }
+            if (typeof copy.blackTimer !== "number") {
+                copy.blackTimer = blackTimer;
+            }
+            return copy;
+        });
+    }
+
+    function syncServerGameState() {
+        if (!game || !gameInfo || !Api.post) {
+            return Promise.resolve();
+        }
+        return Api.post("/app/api/game/sync-state", {
+            state: game.GameState,
+            moves: movesForServerSync(),
+            turn: game.Turn,
+        }).catch(function (err) {
+            console.error("Failed to sync game state after undo/redo:", err);
+        });
     }
 
     async function sendMove(moveObj) {
@@ -421,6 +602,7 @@
                     game.makeMove(move.source, move.target);
                 }
                 lastMove = { source: move.source, target: move.target };
+                redoPairAvailable = false;
                 await moveAccepted(move);
                 if (typeof message.isWhite === "boolean" && typeof move.moveTime === "number") {
                     if (message.isWhite) {
@@ -433,6 +615,7 @@
                 switchClocks();
                 const moves = await loadMoves();
                 updateMovesTable(moves.moves || []);
+                updateActionButtons();
                 sendWs({
                     type: "info",
                     info: "clockSync",
@@ -453,8 +636,7 @@
                 }
             }
             if (message.type === "info" && message.info === "game over") {
-                setButtonDisabled("rematchBtn", false);
-                setButtonDisabled("resignBtn", true);
+                updateActionButtons();
             }
         };
     }
@@ -515,9 +697,7 @@
                 whiteTimer: whiteTimer,
                 blackTimer: blackTimer,
             });
-            setButtonDisabled("resignBtn", true);
-            setButtonDisabled("drawBtn", true);
-            setButtonDisabled("rematchBtn", false);
+            updateActionButtons();
         });
     }
 
@@ -535,8 +715,58 @@
                 isWhite: currentPlayerIsWhite,
             });
             showStatus("Draw offer sent");
-            setButtonDisabled("drawBtn", true);
+            updateActionButtons();
         });
+    }
+
+    async function onUndo() {
+        if (!canUndoMovePair() || $("undoBtn").disabled) {
+            return;
+        }
+        animating = true;
+        batchUndoRedo = true;
+        game.undo();
+        game.undo();
+        batchUndoRedo = false;
+        Board.clearArrows();
+        syncBoardFromGame();
+        animating = false;
+        redoPairAvailable = true;
+        updateMovesTable(tableMovesFromGame());
+        await syncServerGameState();
+        updateActionButtons();
+    }
+
+    async function onRedo() {
+        if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating) {
+            return;
+        }
+        animating = true;
+        batchUndoRedo = true;
+        game.redo();
+        game.redo();
+        batchUndoRedo = false;
+        Board.clearArrows();
+        syncBoardFromGame();
+        animating = false;
+        redoPairAvailable = false;
+        updateMovesTable(tableMovesFromGame());
+        await syncServerGameState();
+        updateActionButtons();
+    }
+
+    function onLastMove() {
+        if ($("lastMoveBtn").disabled) {
+            return;
+        }
+        Board.toggleLastMoveArrow();
+    }
+
+    function onFlip() {
+        if ($("flipBtn").disabled) {
+            return;
+        }
+        Board.flipBoard();
     }
 
     function onRematch() {
@@ -582,6 +812,7 @@
             throw new Error("Desktop play supports single-player games only");
         }
 
+        allowUndo = resolveAllowUndo(gameInfo);
         currentPlayerIsWhite = gameInfo.username === gameInfo.whitePlayerName;
         const opponentName = currentPlayerIsWhite
             ? gameInfo.blackPlayerName
@@ -632,10 +863,11 @@
 
         Board.syncFromGameState();
         startWebSocket();
+        updateActionButtons();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        buildToolbar();
+        buildActionRail();
         startSession().catch(function (err) {
             showStatus(err.message || "Could not load game", 0);
             console.error(err);

@@ -14,71 +14,85 @@
 </head>
 <body class="desktop-shell desktop-new-game-page">
   <main class="desktop-form-page">
-    <div class="desktop-form-card">
-      <a class="desktop-back" href="/app/">← Back</a>
-      <h1>New game vs AI</h1>
+    <div class="desktop-form-card desktop-form-card--new-game">
+      <header class="desktop-form-header">
+        <a class="desktop-back-btn" href="/app/">
+          <span class="desktop-back-btn-icon" aria-hidden="true">←</span>
+          <span>Back to menu</span>
+        </a>
+        <h1>New game vs AI</h1>
+      </header>
 
-      <form id="newGameForm" class="desktop-form">
-        <section class="desktop-form-section">
-          <h2 class="desktop-form-section-title">Your color</h2>
-          <div class="desktop-option-group" role="radiogroup" aria-label="Your color">
-            <label class="desktop-option-pill">
-              <input type="radio" name="color" value="white" checked>
-              <span>White</span>
-            </label>
-            <label class="desktop-option-pill">
-              <input type="radio" name="color" value="black">
-              <span>Black</span>
-            </label>
-          </div>
-        </section>
+      <form id="newGameForm" class="desktop-form desktop-form--new-game">
+        <div class="desktop-new-game-row">
+          <section class="desktop-new-game-block">
+            <h2 class="desktop-form-section-title">Your color</h2>
+            <div class="desktop-option-group desktop-option-group--equal" role="radiogroup" aria-label="Your color">
+              <label class="desktop-option-pill">
+                <input type="radio" name="color" value="white" checked>
+                <span>White</span>
+              </label>
+              <label class="desktop-option-pill">
+                <input type="radio" name="color" value="black">
+                <span>Black</span>
+              </label>
+            </div>
+          </section>
 
-        <section class="desktop-form-section">
-          <label class="desktop-field" for="engineSelect">
-            <span class="desktop-field-label">Engine</span>
+          <section class="desktop-new-game-block">
+            <h2 class="desktop-form-section-title">Mouse control</h2>
+            <div class="desktop-option-group desktop-option-group--equal" role="radiogroup" aria-label="Mouse control">
+              <label class="desktop-option-pill">
+                <input type="radio" name="mouse" value="drag" checked>
+                <span>Drag</span>
+              </label>
+              <label class="desktop-option-pill">
+                <input type="radio" name="mouse" value="double">
+                <span>Double-click</span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <section class="desktop-new-game-fields">
+          <div class="desktop-field">
+            <label class="desktop-form-section-title" for="engineSelect">Engine</label>
             <select name="engine" id="engineSelect">
               <option value="brain42">Brain 4.2</option>
               <option value="brain41">Brain 4.1</option>
             </select>
-          </label>
+          </div>
 
           <div class="desktop-field">
-            <span class="desktop-field-label">Difficulty</span>
-            <div class="desktop-slider-row">
-              <input type="range" name="difficulty" min="1" max="5" value="3" id="difficultyRange" aria-valuemin="1" aria-valuemax="5" aria-valuenow="3">
+            <span class="desktop-form-section-title" id="difficultyLabel">Difficulty</span>
+            <div class="desktop-slider-row" aria-labelledby="difficultyLabel">
+              <input type="range" name="difficulty" min="1" max="5" value="3" id="difficultyRange" class="desktop-slider--gold" aria-valuemin="1" aria-valuemax="5" aria-valuenow="3">
               <output id="difficultyOut" class="desktop-slider-value" for="difficultyRange">3</output>
             </div>
           </div>
 
-          <label class="desktop-field" for="timeMinutes">
-            <span class="desktop-field-label">Time per side (minutes)</span>
+          <div class="desktop-field">
+            <label class="desktop-form-section-title" for="timeMinutes">Time per side (minutes)</label>
             <input type="number" name="timeMinutes" id="timeMinutes" min="1" max="180" value="90">
-          </label>
-        </section>
-
-        <section class="desktop-form-section">
-          <h2 class="desktop-form-section-title">Mouse</h2>
-          <div class="desktop-option-group" role="radiogroup" aria-label="Mouse control">
-            <label class="desktop-option-pill">
-              <input type="radio" name="mouse" value="drag" checked>
-              <span>Drag</span>
-            </label>
-            <label class="desktop-option-pill">
-              <input type="radio" name="mouse" value="double">
-              <span>Double click</span>
-            </label>
           </div>
         </section>
 
-        <label class="desktop-check">
-          <input type="checkbox" name="showMoves" value="1" checked>
-          <span class="desktop-check-box" aria-hidden="true"></span>
-          <span>Show available moves</span>
-        </label>
+        <div class="desktop-form-checks">
+          <label class="desktop-check">
+            <input type="checkbox" name="showMoves" value="1" checked>
+            <span class="desktop-check-box" aria-hidden="true"></span>
+            <span>Show available moves</span>
+          </label>
+          <label class="desktop-check">
+            <input type="checkbox" name="allowUndo" value="1" checked>
+            <span class="desktop-check-box" aria-hidden="true"></span>
+            <span>Allow undo</span>
+          </label>
+        </div>
 
         <p id="newGameError" class="desktop-error" hidden></p>
 
-        <button type="submit" class="desktop-btn desktop-btn-primary desktop-btn-block" id="startBtn">Start game</button>
+        <button type="submit" class="desktop-btn desktop-btn-gold desktop-btn-block desktop-btn-start" id="startBtn">Start game</button>
       </form>
     </div>
   </main>

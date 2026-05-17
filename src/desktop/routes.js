@@ -35,6 +35,7 @@ function mountDesktopRoutes(app) {
     app.post("/applyBookmark", requireLogin, bookmarkApi.apply);
 
     app.post("/app/api/game", requireLogin, gameApi.createGame);
+    app.post("/app/api/game/sync-state", requireLogin, gameApi.syncGameState);
 
     app.use("/app/ui", express.static(UI_DIR));
     app.use("/vendor", express.static(path.join(__dirname, "..", "assets", "vendor")));
