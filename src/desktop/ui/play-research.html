@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research — Shmerling Chess</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/app/ui/app.css">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="/themes.js"></script>
+  <script src="/app/ui/desktop-theme.js"></script>
+  <script src="/app/ui/desktop-chrome.js"></script>
+  <script src="/vendor/axios.min.js"></script>
+  <script src="/ChessGame.js"></script>
+  <script src="/app/ui/desktop-chessboard-env.js"></script>
+  <script src="/chessboard.js"></script>
+  <script src="/lobby.js"></script>
+  <script src="/siteDialogs.js"></script>
+</head>
+<body class="desktop-shell desktop-research-page hide-topbar">
+  <div id="main" data-initial-game-id="" data-research-mode="true">
+    <div id="bookmarksPanel" class="bookmarksPanel">
+      <div class="panelHeader bookmarksPanel-header">Bookmarks</div>
+      <button id="addBookmarkBtn" class="button" type="button" onclick="addBookmark()">Bookmark</button>
+      <div class="bookmarksSeperator"></div>
+      <div id="bookmarksList" class="bookmarksList"></div>
+      <div class="bookmarksFooter"></div>
+    </div>
+    <div class="controlPanel">
+      <div id="blackClock" class="sideBlock clock short blackClock">
+        <div id="blackTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt=""></div>
+        <div id="blackClockTimeText">00:00:00</div>
+      </div>
+      <div id="blackPlayersInfo" class="sideBlock playerInfo short">
+        <div id="blackPlayerName">Black</div>
+      </div>
+      <div id="whiteCapturedPiece" class="sideBlock captureToolsList"></div>
+      <div>
+        <div id="movesDivContainer" class="movesDivContainer">
+          <div id="movesDivHeader" class="movesDivHeader">
+            <table class="movesTableHeader">
+              <tr><th>#</th><th>White</th><th>Black</th></tr>
+            </table>
+          </div>
+          <div id="movesDiv" class="movesDiv"></div>
+        </div>
+        <div id="gameNav" class="gameNav"></div>
+      </div>
+    </div>
+    <div class="seperator"></div>
+    <div id="chessboard"></div>
+    <div class="seperator"></div>
+    <div class="controlPanel">
+      <div id="whiteClock" class="sideBlock clock short whiteClock">
+        <div id="whiteTurnClock" class="turnClock unvisible"><img src="/images/clock.png" width="24" alt=""></div>
+        <div id="whiteClockTimeText">00:00:00</div>
+      </div>
+      <div id="whitePlayersInfo" class="sideBlock playerInfo short">
+        <div id="whitePlayerName">White</div>
+      </div>
+      <div id="blackCapturedPiece" class="sideBlock captureToolsList"></div>
+      <div class="messagesContainer">
+        <div id="messages" class="messages"></div>
+      </div>
+    </div>
+  </div>
+  <section id="options"></section>
+</body>
+</html>

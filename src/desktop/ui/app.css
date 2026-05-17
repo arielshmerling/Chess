@@ -7,7 +7,7 @@
   --desktop-card-bg: var(--panel-background, rgba(45, 60, 80, 0.92));
   --desktop-card-border: var(--panel-border, rgba(152, 193, 217, 0.35));
   accent-color: var(--desktop-accent, #5a8fb8);
-  --desktop-topbar-height: 64px;
+  --desktop-topbar-height: 51px;
 }
 
 body.desktop-has-topbar {
@@ -45,7 +45,7 @@ body.desktop-has-topbar {
   opacity: 1;
 }
 
-/* Matches centered home logo (140px wide), scaled to fit the 64px top bar */
+/* Logo size fixed; bar height is independent */
 .desktop-topbar-logo img {
   display: block;
   width: 140px;
@@ -235,7 +235,7 @@ body.desktop-has-topbar {
   font-size: 1rem;
   cursor: pointer;
   box-sizing: border-box;
-  transition: filter 0.15s, background 0.15s, border-color 0.15s;
+  transition: filter 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
 .desktop-btn-secondary {
@@ -258,6 +258,53 @@ body.desktop-has-topbar {
   filter: brightness(1.05);
 }
 
+/* Home menu — gold “Play a game” (matches king logo) */
+.desktop-btn-gold {
+  font-weight: 700;
+  color: #2a2208;
+  text-shadow: 0 1px 0 rgba(255, 248, 220, 0.45);
+  background: linear-gradient(
+    165deg,
+    #f5e6a8 0%,
+    #e0c050 28%,
+    #c9a227 55%,
+    #9a7318 100%
+  );
+  border: 2px solid #f2dc7a;
+  box-shadow:
+    0 0 24px rgba(201, 162, 39, 0.4),
+    0 3px 0 #6b5208,
+    0 6px 18px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(80, 55, 10, 0.25);
+}
+
+.desktop-btn-gold:hover {
+  background: linear-gradient(
+    165deg,
+    #fff0c4 0%,
+    #ebd06a 28%,
+    #d4af37 55%,
+    #a67c00 100%
+  );
+  border-color: #fff4c8;
+  filter: brightness(1.04);
+  box-shadow:
+    0 0 28px rgba(212, 175, 55, 0.55),
+    0 3px 0 #6b5208,
+    0 8px 22px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.desktop-btn-gold:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 0 16px rgba(201, 162, 39, 0.35),
+    0 1px 0 #6b5208,
+    0 3px 10px rgba(0, 0, 0, 0.35),
+    inset 0 2px 4px rgba(80, 55, 10, 0.2);
+}
+
 /* —— New game screen —— */
 .desktop-new-game-page .desktop-form-page {
   display: flex;
@@ -270,6 +317,11 @@ body.desktop-has-topbar {
 
 .desktop-menu-page .desktop-menu {
   min-height: calc(100vh - var(--desktop-topbar-height));
+}
+
+body.desktop-research-page.hide-topbar {
+  padding-top: var(--desktop-topbar-height);
+  box-sizing: border-box;
 }
 
 .desktop-form-card {

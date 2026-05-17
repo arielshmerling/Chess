@@ -43,8 +43,18 @@ const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
 /** Piece score keys in display order; rows are only shown if the key exists in the loaded server config. */
 const BRAIN_CONFIG_PIECE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "king"];
 
+function getBookmarkBrainOptions() {
+    if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__) {
+        return BOOKMARK_BRAIN_OPTIONS.filter(function (opt) {
+            return opt.value === "brain41" || opt.value === "brain42";
+        });
+    }
+    return BOOKMARK_BRAIN_OPTIONS;
+}
+
 function normalizeBookmarkEngine(engineName) {
-    return BOOKMARK_BRAIN_OPTIONS.some(function (opt) { return opt.value === engineName; }) ? engineName : "brain41";
+    const options = getBookmarkBrainOptions();
+    return options.some(function (opt) { return opt.value === engineName; }) ? engineName : options[0].value;
 }
 
 function normalizeBookmarkDepth(depthValue) {
@@ -53,7 +63,15 @@ function normalizeBookmarkDepth(depthValue) {
 }
 
 function isResearchScreen() {
-    return window.location.pathname === "/research";
+    const p = window.location.pathname || "";
+    if (p === "/research") {
+        return true;
+    }
+    if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__ && p === "/app/play") {
+        const mainEl = document.getElementById("main");
+        return mainEl && mainEl.getAttribute("data-research-mode") === "true";
+    }
+    return false;
 }
 
 function cleanupResearchUiForGameStart() {
@@ -357,7 +375,21 @@ const Labels = {
 
 function isPlayGamePage() {
     const p = window.location.pathname || "";
-    return p === "/game" || p === "/mobile-game";
+    if (p === "/game" || p === "/mobile-game") {
+        return true;
+    }
+    if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__ && p === "/app/play") {
+        const mainEl = document.getElementById("main");
+        return mainEl && mainEl.getAttribute("data-research-mode") === "true";
+    }
+    return false;
+}
+
+function getAppHomePath() {
+    if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__) {
+        return "/app/";
+    }
+    return "/home";
 }
 
 function isMobileGameShell() {
@@ -1267,7 +1299,7 @@ function createResearchToolbox() {
 }
 
 function getResearchConfigEngineLabel(engineName) {
-    const match = BOOKMARK_BRAIN_OPTIONS.find(function (opt) { return opt.value === engineName; });
+    const match = getBookmarkBrainOptions().find(function (opt) { return opt.value === engineName; });
     return match ? match.label : engineName;
 }
 
@@ -1480,7 +1512,7 @@ function createResearchBrainConfigPanel() {
     const engineSelect = document.createElement("select");
     engineSelect.id = "researchBrainEngineSelect";
     engineSelect.className = "research-brain-engine-select";
-    BOOKMARK_BRAIN_OPTIONS.forEach(function (opt) {
+    getBookmarkBrainOptions().forEach(function (opt) {
         const option = document.createElement("option");
         option.value = opt.value;
         option.textContent = opt.label;
@@ -4672,7 +4704,7 @@ async function backToHome() {
     if (isButtonDisabled("homeBtn")) { return; }
 
     if (researchMode || gameInfo.gameType === "Research") {
-        window.location = "/home";
+        window.location = getAppHomePath();
         return;
     }
 
@@ -4695,21 +4727,22 @@ async function backToHome() {
 };
 
 async function goBackHome() {
+    const home = getAppHomePath();
     if (researchMode || gameInfo.gameType === "Research") {
-        window.location = "/home";
+        window.location = home;
         return;
     }
     if (gameInfo.watcher || gameInfo.mode === "review") {
-        window.location = "/home";
+        window.location = home;
         return;
     }
     if (gameInfo.gameType === "OnlineGame" && game.Moves.length === 0) {
         await postServerInfo("/cancel-before-move", { gameId: gameInfo.id });
-        window.location = "/home";
+        window.location = home;
         return;
     }
     await menuResignEventHandler();
-    window.location = "/home";
+    window.location = home;
 }
 
 /** Flat SVG icons for mobile bottom bar (currentColor). */
@@ -5144,7 +5177,9 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate) {
         } else {
             const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
             if (bookmarkObj) {
-                window.location.href = "/research?bookmarkId=" + encodeURIComponent(bookmarkObj._id);
+                window.location.href = (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__)
+                    ? "/app/play?research=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id)
+                    : "/research?bookmarkId=" + encodeURIComponent(bookmarkObj._id);
             }
         }
     });
@@ -5189,7 +5224,7 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate) {
         engineSelect.className = "bookmark-engine-select";
         engineSelect.setAttribute("title", "Brain version");
         engineSelect.setAttribute("aria-label", "Brain version");
-        BOOKMARK_BRAIN_OPTIONS.forEach(function (opt) {
+        getBookmarkBrainOptions().forEach(function (opt) {
             const optionEl = document.createElement("option");
             optionEl.value = opt.value;
             optionEl.textContent = opt.label;

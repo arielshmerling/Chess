@@ -45,8 +45,13 @@ function mountDesktopRoutes(app) {
 
     app.get(["/app", "/app/"], sendUiPage("index.html"));
     app.get("/app/new-game", sendUiPage("new-game.html"));
-    app.get("/app/play", sendUiPage("play.html"));
+    app.get("/app/play", (req, res) => {
+        const page = req.query.research === "1" ? "play-research.html" : "play.html";
+        res.sendFile(path.join(UI_DIR, page));
+    });
     app.get("/app/error", sendUiPage("error.html"));
+
+    app.get("/research", (_req, res) => res.redirect("/app/play?research=1"));
 
     app.get("/desktop", (_req, res) => res.redirect("/app/"));
     app.get("/desktop/", (_req, res) => res.redirect("/app/"));

@@ -1,14 +1,105 @@
 /**
- * Shmerling — Electron main process.
+ * Shmerling Chess — Electron main process.
  */
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, Menu, nativeImage } = require("electron");
+const fs = require("fs");
 const path = require("path");
 const { fork } = require("child_process");
 
+const APP_NAME = "Shmerling Chess";
 const SERVER_ENTRY = path.join(__dirname, "..", "server-desktop.js");
+const ICON_PNG = path.join(__dirname, "build", "icon.png");
+const ICON_ICNS = path.join(__dirname, "build", "icon.icns");
+const ICON_ICO = path.join(__dirname, "build", "icon.ico");
+const FAVICON = path.join(__dirname, "..", "src", "favicon.ico");
+
 let mainWindow = null;
 let serverProcess = null;
 let serverPort = null;
+
+if (process.platform === "darwin") {
+    app.setName(APP_NAME);
+    app.on("will-finish-launching", () => {
+        app.setName(APP_NAME);
+    });
+}
+
+function resolveAppIcon() {
+    if (fs.existsSync(ICON_PNG)) {
+        return nativeImage.createFromPath(ICON_PNG);
+    }
+    if (fs.existsSync(ICON_ICO)) {
+        return nativeImage.createFromPath(ICON_ICO);
+    }
+    if (fs.existsSync(FAVICON)) {
+        return nativeImage.createFromPath(FAVICON);
+    }
+    return nativeImage.createEmpty();
+}
+
+/** Absolute path for macOS About panel (prefers .icns). */
+function resolveAboutIconPath() {
+    if (process.platform === "darwin" && fs.existsSync(ICON_ICNS)) {
+        return path.resolve(ICON_ICNS);
+    }
+    if (fs.existsSync(ICON_PNG)) {
+        return path.resolve(ICON_PNG);
+    }
+    return undefined;
+}
+
+function applyAppIcon() {
+    const icon = resolveAppIcon();
+    if (icon.isEmpty()) {
+        return;
+    }
+    if (process.platform === "darwin" && app.dock) {
+        app.dock.setIcon(icon);
+    }
+}
+
+function showAboutPanel() {
+    const iconPath = resolveAboutIconPath();
+    app.setAboutPanelOptions({
+        applicationName: APP_NAME,
+        applicationVersion: app.getVersion(),
+        version: app.getVersion(),
+        copyright: "Shmerling Chess",
+        ...(iconPath ? { iconPath } : {}),
+    });
+    app.showAboutPanel();
+}
+
+/** First menu item label = app name in the macOS menu bar. */
+function setupMacApplicationMenu() {
+    if (process.platform !== "darwin") {
+        return;
+    }
+
+    const template = [
+        {
+            label: APP_NAME,
+            submenu: [
+                {
+                    label: `About ${APP_NAME}`,
+                    click: () => showAboutPanel(),
+                },
+                { type: "separator" },
+                { role: "services" },
+                { type: "separator" },
+                { role: "hide" },
+                { role: "hideOthers" },
+                { role: "unhide" },
+                { type: "separator" },
+                { role: "quit" },
+            ],
+        },
+        { role: "editMenu" },
+        { role: "viewMenu" },
+        { role: "windowMenu" },
+    ];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
 
 function startLocalServer() {
     return new Promise((resolve, reject) => {
@@ -45,12 +136,14 @@ function startLocalServer() {
 }
 
 function createWindow() {
+    const icon = resolveAppIcon();
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 900,
         minWidth: 900,
         minHeight: 700,
-        title: "Shmerling",
+        title: APP_NAME,
+        icon: icon.isEmpty() ? undefined : icon,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
@@ -73,13 +166,14 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     try {
+        setupMacApplicationMenu();
+        applyAppIcon();
         await startLocalServer();
         createWindow();
     } catch (err) {
         console.error("[desktop] Failed to start:", err);
         app.quit();
     }
-
 });
 
 /** Quit fully when the window closes (including on macOS). */

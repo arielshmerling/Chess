@@ -6,7 +6,7 @@
 
     var TOPBAR_HTML = [
         '<header class="desktop-topbar" role="banner">',
-        '  <a href="/app/" class="desktop-topbar-logo" aria-label="Shmerling home">',
+        '  <a href="/app/" class="desktop-topbar-logo" aria-label="Shmerling Chess home">',
         '    <img src="/images/shmerling.png" alt="">',
         "  </a>",
         '  <div class="desktop-topbar-spacer"></div>',
