@@ -228,6 +228,14 @@
             return;
         }
         const items = [
+            {
+                id: "rematchBtn",
+                label: "New game",
+                icon: "newGame",
+                onClick: onRematch,
+                accent: true,
+            },
+            { type: "spacer" },
             { id: "resignBtn", label: "Resign", icon: "resign", onClick: onResign },
             { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDraw },
             { type: "spacer" },
@@ -236,13 +244,6 @@
             { id: "lastMoveBtn", label: "Last move", icon: "lastMove", onClick: onLastMove },
             { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
             { type: "spacer" },
-            {
-                id: "rematchBtn",
-                label: "New game",
-                icon: "newGame",
-                onClick: onRematch,
-                accent: true,
-            },
             { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
         ];
         items.forEach(function (item) {
@@ -404,14 +405,20 @@
         const moves = await loadMoves();
         updateMovesTable(moves.moves || []);
 
-        if (gameState.checkmate) {
+        if (gameState.draw) {
+            lastCheckNotifySide = null;
+            onDraw(gameState.drawReason || "Draw");
+            Board.applyDrawHighlight();
+        } else if (gameState.checkmate) {
             lastCheckNotifySide = null;
             onCheckmate(game.Turn);
+            Board.applyCheckedHighlight();
         } else if (gameState.check === true) {
             if (lastCheckNotifySide !== game.Turn) {
                 onCheck(game.Turn);
                 lastCheckNotifySide = game.Turn;
             }
+            Board.applyCheckedHighlight();
         } else if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
             alertMode = false;
             lastCheckNotifySide = null;
@@ -424,18 +431,11 @@
     function onCheck(turn) {
         alertMode = true;
         showStatus("Check", 2000);
-        document.querySelectorAll(".frame").forEach(function (el) {
-            el.classList.add("checkAlert");
-        });
     }
 
     function onCheckmate(turn) {
         alertMode = true;
         showStatus("Checkmate! " + game.opponent(game.colorName(turn)) + " wins!", 5000);
-        document.querySelectorAll(".frame").forEach(function (el) {
-            el.classList.remove("checkAlert");
-            el.classList.add("checkmateAlert");
-        });
         if (whiteHandle) {
             clearInterval(whiteHandle);
         }
@@ -448,6 +448,7 @@
     function onDraw(reason) {
         alertMode = true;
         showStatus("Draw! " + reason, 5000);
+        Board.applyDrawHighlight();
         if (whiteHandle) {
             clearInterval(whiteHandle);
         }

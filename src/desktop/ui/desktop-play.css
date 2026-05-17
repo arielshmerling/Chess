@@ -224,6 +224,45 @@ body.desktop-play-page .desktop-play-main {
   pointer-events: none;
 }
 
+/* Check: gold square on the threatened king (desktop only; no frame tint) */
+.desktop-play-page #innerBoard .square.king-in-check {
+  background-color: #d4af37 !important;
+  box-shadow: inset 0 0 0 2px #f2dc7a;
+}
+
+.desktop-play-page #innerBoard:not(.move-mode-double) .square.king-in-check.option,
+.desktop-play-page #innerBoard .square.king-in-check.optionSource {
+  background-color: #d4af37 !important;
+  box-shadow: inset 0 0 0 2px #f2dc7a;
+  opacity: 1;
+}
+
+/* Checkmate: red square on the mated king */
+.desktop-play-page #innerBoard .square.king-in-checkmate {
+  background-color: #b03434 !important;
+  box-shadow: inset 0 0 0 2px #e87878;
+}
+
+.desktop-play-page #innerBoard:not(.move-mode-double) .square.king-in-checkmate.option,
+.desktop-play-page #innerBoard .square.king-in-checkmate.optionSource {
+  background-color: #b03434 !important;
+  box-shadow: inset 0 0 0 2px #e87878;
+  opacity: 1;
+}
+
+/* Draw: green squares on both kings */
+.desktop-play-page #innerBoard .square.king-in-draw {
+  background-color: #5a9e52 !important;
+  box-shadow: inset 0 0 0 2px #8fd086;
+}
+
+.desktop-play-page #innerBoard:not(.move-mode-double) .square.king-in-draw.option,
+.desktop-play-page #innerBoard .square.king-in-draw.optionSource {
+  background-color: #5a9e52 !important;
+  box-shadow: inset 0 0 0 2px #8fd086;
+  opacity: 1;
+}
+
 .desktop-play-board .desktop-promotion-cloak {
   inset: 0;
   width: 100%;

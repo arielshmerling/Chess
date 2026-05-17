@@ -12,28 +12,38 @@ if (!process.env.SHMERLING_USER_DATA) {
 
 runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
 
-const { syncDesktopPathsForSharedModules } = require("./src/desktop/syncDataPaths");
-syncDesktopPathsForSharedModules();
+const { preloadOpeningBookAtStartup } = require("./src/desktop/preloadOpeningBook");
+const { applyDesktopSinglePlayerBrainPatch } = require("./src/desktop/patchSinglePlayerBrain");
 
-const app = require("./src/app.js");
-const gameManagerService = require("./src/modules/gamesManager/service.js");
+async function startDesktopServer() {
+    await preloadOpeningBookAtStartup();
+    applyDesktopSinglePlayerBrainPatch();
 
-app.setWebSocketService(gameManagerService);
-gameManagerService.setLobbyBroadcast(app.broadcastToLobby);
+    const app = require("./src/app.js");
+    const gameManagerService = require("./src/modules/gamesManager/service.js");
 
-const PORT = Number(process.env.PORT) || 0;
-const HOST = "127.0.0.1";
+    app.setWebSocketService(gameManagerService);
+    gameManagerService.setLobbyBroadcast(app.broadcastToLobby);
 
-const server = app.listen(PORT, HOST, () => {
-    const address = server.address();
-    const boundPort = typeof address === "object" && address ? address.port : PORT;
-    console.log(`[desktop] Shmerling listening on http://${HOST}:${boundPort}`);
-    if (process.send) {
-        process.send({ type: "ready", port: boundPort, host: HOST });
-    }
-});
+    const PORT = Number(process.env.PORT) || 0;
+    const HOST = "127.0.0.1";
 
-server.on("error", (err) => {
-    console.error("[desktop] Server error:", err);
+    const server = app.listen(PORT, HOST, () => {
+        const address = server.address();
+        const boundPort = typeof address === "object" && address ? address.port : PORT;
+        console.log(`[desktop] Shmerling listening on http://${HOST}:${boundPort}`);
+        if (process.send) {
+            process.send({ type: "ready", port: boundPort, host: HOST });
+        }
+    });
+
+    server.on("error", (err) => {
+        console.error("[desktop] Server error:", err);
+        process.exit(1);
+    });
+}
+
+startDesktopServer().catch((err) => {
+    console.error("[desktop] Failed to start:", err);
     process.exit(1);
 });

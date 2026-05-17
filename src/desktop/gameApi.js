@@ -39,9 +39,6 @@ function parseSinglePlayerOptions(body) {
 
 async function createSinglePlayerGame(username, userId, options, session) {
     syncDesktopPathsForSharedModules();
-    if (runtime.normalizeEngine(options.engine) === "brain42") {
-        require("../brain42").preloadOpeningBook();
-    }
     const game = gameService.newGame(1, username, userId, options);
     game.options = game.options || {};
     game.options.allowUndo = options.allowUndo === true;

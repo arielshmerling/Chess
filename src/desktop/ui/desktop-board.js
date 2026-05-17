@@ -225,7 +225,11 @@
                 }
             }
         }
-        applyCheckedHighlight();
+        if (chessGame && (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw))) {
+            applyDrawHighlight();
+        } else {
+            applyCheckedHighlight();
+        }
         if (mousePreference === "double") {
             applyMousePreference();
         }
@@ -280,7 +284,11 @@
                 guiBoard[i][j].className = "square " + (((i + j) % 2) === 0 ? "white" : "black");
             }
         }
-        applyCheckedHighlight();
+        if (chessGame && (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw))) {
+            applyDrawHighlight();
+        } else {
+            applyCheckedHighlight();
+        }
     }
 
     function applyCheckedHighlight() {
@@ -289,10 +297,16 @@
         }
         for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
             for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
-                guiBoard[i][j].classList.remove("king-in-check");
+                guiBoard[i][j].classList.remove("king-in-check", "king-in-checkmate");
             }
         }
-        if (!chessGame.Check) {
+        if (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw)) {
+            return;
+        }
+        const isCheckmate =
+            chessGame.Checkmate || (chessGame.GameState && chessGame.GameState.checkmate);
+        const isCheck = chessGame.Check || (chessGame.GameState && chessGame.GameState.check);
+        if (!isCheckmate && !isCheck) {
             return;
         }
         const stateBoard = chessGame.GameState && chessGame.GameState.board;
@@ -301,12 +315,37 @@
         }
         const kingType = chessGame.KING;
         const turn = chessGame.Turn;
+        const kingClass = isCheckmate ? "king-in-checkmate" : "king-in-check";
         for (let r = 0; r < chessGame.BOARD_ROWS; r++) {
             for (let c = 0; c < chessGame.BOARD_COLUMNS; c++) {
                 const p = stateBoard[r][c];
                 if (p && p.pieceType === kingType && p.color === turn) {
-                    guiBoard[r][c].classList.add("king-in-check");
+                    guiBoard[r][c].classList.add(kingClass);
                     return;
+                }
+            }
+        }
+    }
+
+    function applyDrawHighlight() {
+        if (!chessGame || !guiBoard[0][0]) {
+            return;
+        }
+        for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
+            for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
+                guiBoard[i][j].classList.remove("king-in-draw", "king-in-check", "king-in-checkmate");
+            }
+        }
+        const stateBoard = chessGame.GameState && chessGame.GameState.board;
+        if (!stateBoard) {
+            return;
+        }
+        const kingType = chessGame.KING;
+        for (let r = 0; r < chessGame.BOARD_ROWS; r++) {
+            for (let c = 0; c < chessGame.BOARD_COLUMNS; c++) {
+                const p = stateBoard[r][c];
+                if (p && p.pieceType === kingType) {
+                    guiBoard[r][c].classList.add("king-in-draw");
                 }
             }
         }
@@ -744,5 +783,7 @@
         flipBoard: flipBoard,
         clearArrows: clearArrows,
         toggleLastMoveArrow: toggleLastMoveArrow,
+        applyCheckedHighlight: applyCheckedHighlight,
+        applyDrawHighlight: applyDrawHighlight,
     };
 })(window);
