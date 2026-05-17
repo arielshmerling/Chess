@@ -43,6 +43,7 @@
     --lightSquare: #e0fbfc;
     --optionSquare: rgb(92, 171, 125);
     --frame: #293241;
+    --frame-forecolor: #e0fbfc;
     --body-background: #3d5a80;
 
     --table-header-bg: rgb(174, 185, 200);
@@ -932,7 +933,7 @@ body.research-mode .debug-game-id {
 
 .frame {
     background-color: var(--frame);
-
+    color: var(--frame-forecolor, var(--light));
 }
 
 .checkAlert {
@@ -1553,7 +1554,7 @@ table.movesTable th {
     color: var(--moves-header-text);
     padding: 3px;
     height: 18px;
-    background-color: var(--moves-panel-bg);
+    background-color: var(--moves-header-background, var(--moves-panel-bg));
 }
 
 

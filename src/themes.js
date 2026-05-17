@@ -71,15 +71,27 @@ const themes = {
         "--lightSquare": "#e0fbfc",
         "--optionSquare": "rgb(92, 171, 125)",
         "--frame": "#293241",
+        "--frame-forecolor": "#e0fbfc",
         "--body-background": "#3d5a80",
+        "--play-header-background": "#141414",
+        "--play-footer-background": "#141414",
 
         "--moves-panel-bg": "#354c69",
+        "--moves-dock-title-background": "#354c69",
+        "--moves-dock-title-text": "rgba(255, 255, 255, 0.55)",
         "--moves-cell-bg": "#4e829f",
         "--moves-cell-text": "rgb(233, 231, 231)",
         "--moves-cell-highlight-bg": "rgb(152, 193, 217)",
         "--moves-cell-highlight-text": "rgb(233, 231, 231)",
         "--moves-cell-selected-bg": "rgb(92, 171, 125)",
+        "--moves-header-background": "#354c69",
         "--moves-header-text": "#999999",
+        "--play-clock-background": "rgba(0, 0, 0, 0.25)",
+        "--play-clock-border": "rgba(255, 255, 255, 0.08)",
+        "--play-clock-text": "#e8e8e8",
+        "--play-clock-active-border": "rgba(212, 175, 55, 0.65)",
+        "--play-clock-active-background": "rgba(212, 175, 55, 0.12)",
+        "--play-clock-active-ring": "rgba(212, 175, 55, 0.2)",
 
         "--table-header-bg": "rgb(49, 75, 106)",
         "--table-header-text": "rgb(167 ,179, 196)",
@@ -127,14 +139,26 @@ const themes = {
         "--lightSquare": "#d9d9d9",
         "--optionSquare": "rgb(92, 171, 125)",
         "--frame": "#545454",
+        "--frame-forecolor": "#bbbbbb",
         "--body-background": "#242424",
+        "--play-header-background": "#141414",
+        "--play-footer-background": "#141414",
         "--moves-panel-bg": "#2D3134",
+        "--moves-dock-title-background": "#2D3134",
+        "--moves-dock-title-text": "rgba(255, 255, 255, 0.55)",
         "--moves-cell-bg": "#4C4C4C",
-        "--moves-cell-text": "rgb(233, 231, 231);",
+        "--moves-cell-text": "rgb(233, 231, 231)",
         "--moves-cell-highlight-bg": "#838383",
-        "--moves-cell-highlight-text": "rgb(233, 231, 231);",
+        "--moves-cell-highlight-text": "rgb(233, 231, 231)",
         "--moves-cell-selected-bg": "rgb(92, 171, 125)",
+        "--moves-header-background": "#2D3134",
         "--moves-header-text": "white",
+        "--play-clock-background": "rgba(0, 0, 0, 0.25)",
+        "--play-clock-border": "rgba(255, 255, 255, 0.08)",
+        "--play-clock-text": "#e8e8e8",
+        "--play-clock-active-border": "rgba(212, 175, 55, 0.65)",
+        "--play-clock-active-background": "rgba(212, 175, 55, 0.12)",
+        "--play-clock-active-ring": "rgba(212, 175, 55, 0.2)",
 
         "--table-header-bg": "rgb(88, 88, 88)",
         "--table-header-text": "rgb(175 ,175 ,175)",
@@ -178,6 +202,9 @@ const themes = {
         else if (theme == "dark") {
 
             setDefaultTheme(themes.darkTheme);
+        }
+        else if (theme && theme.indexOf("custom:") === 0) {
+            /* Desktop custom themes: applied by desktop-theme.js */
         }
         else {
             setDefaultTheme(themes.darkTheme);

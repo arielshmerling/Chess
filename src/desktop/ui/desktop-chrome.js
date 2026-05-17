@@ -22,7 +22,7 @@
         '        <h2 class="desktop-prefs-title" id="desktopPrefsTitle">Preferences</h2>',
         '        <section class="desktop-prefs-section">',
         '          <h3 class="desktop-prefs-section-title">Color theme</h3>',
-        '          <div class="desktop-prefs-theme" role="group" aria-label="Color theme">',
+        '          <div class="desktop-prefs-theme desktop-prefs-theme--builtin" role="group" aria-label="Built-in themes">',
         '            <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
         '              <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
         '              <span class="desktop-theme-name">Blue</span>',
@@ -32,6 +32,8 @@
         '              <span class="desktop-theme-name">Dark</span>',
         "            </button>",
         "          </div>",
+        '          <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="Saved custom themes"></div>',
+        '          <button type="button" class="desktop-btn desktop-customize-theme-btn" id="desktopCustomizeThemeBtn">Customize theme…</button>',
         "        </section>",
         "      </div>",
         "    </div>",
@@ -54,6 +56,10 @@
         initPreferencesMenu();
     }
 
+    function getCurrentThemeId() {
+        return localStorage.getItem("theme") || "blue";
+    }
+
     function initPreferencesMenu() {
         var trigger = document.getElementById("desktopPrefsTrigger");
         var panel = document.getElementById("desktopPrefsPanel");
@@ -66,6 +72,7 @@
             panel.hidden = !open;
             if (open) {
                 syncThemeButtons();
+                refreshCustomThemeList();
             }
         }
 
@@ -78,6 +85,10 @@
             if (panel.hidden) {
                 return;
             }
+            var customPanel = document.getElementById("desktopCustomThemePanel");
+            if (customPanel && !customPanel.hidden && customPanel.contains(e.target)) {
+                return;
+            }
             if (!panel.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)) {
                 setOpen(false);
             }
@@ -85,36 +96,60 @@
 
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape" && !panel.hidden) {
+                var customPanel = document.getElementById("desktopCustomThemePanel");
+                if (customPanel && !customPanel.hidden) {
+                    return;
+                }
                 setOpen(false);
                 trigger.focus();
             }
         });
 
-        var picker = panel.querySelector(".desktop-prefs-theme");
-        if (picker) {
-            picker.querySelectorAll("[data-theme]").forEach(function (btn) {
-                btn.addEventListener("click", function () {
-                    var id = btn.getAttribute("data-theme") === "dark" ? "dark" : "blue";
-                    if (typeof window.applyDesktopTheme === "function") {
-                        window.applyDesktopTheme(id);
-                    }
-                    syncThemeButtons();
-                });
+        panel.querySelectorAll(".desktop-prefs-theme--builtin [data-theme]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var id = btn.getAttribute("data-theme");
+                if (typeof window.applyDesktopTheme === "function") {
+                    window.applyDesktopTheme(id === "dark" ? "dark" : "blue");
+                }
+                syncThemeButtons();
+            });
+        });
+
+        var customizeBtn = document.getElementById("desktopCustomizeThemeBtn");
+        if (customizeBtn) {
+            customizeBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                if (window.DesktopCustomTheme && typeof window.DesktopCustomTheme.openEditor === "function") {
+                    window.DesktopCustomTheme.openEditor();
+                }
             });
         }
 
         document.addEventListener("shmerling-theme-changed", syncThemeButtons);
+        document.addEventListener("shmerling-custom-themes-changed", refreshCustomThemeList);
         syncThemeButtons();
+        refreshCustomThemeList();
+    }
+
+    function refreshCustomThemeList() {
+        var container = document.getElementById("desktopPrefsCustomThemes");
+        if (!container || !window.DesktopCustomTheme) {
+            return;
+        }
+        window.DesktopCustomTheme.renderSavedThemeButtons(container);
     }
 
     function syncThemeButtons() {
-        var picker = document.querySelector(".desktop-prefs-theme");
-        if (!picker) {
-            return;
-        }
-        var current = localStorage.getItem("theme") === "dark" ? "dark" : "blue";
-        picker.querySelectorAll("[data-theme]").forEach(function (btn) {
-            var active = btn.getAttribute("data-theme") === current;
+        var current = getCurrentThemeId();
+        document.querySelectorAll(".desktop-prefs-theme--builtin [data-theme]").forEach(function (btn) {
+            var theme = btn.getAttribute("data-theme");
+            var active = current === theme;
+            btn.setAttribute("aria-pressed", active ? "true" : "false");
+            btn.classList.toggle("is-active", active);
+        });
+        document.querySelectorAll(".desktop-prefs-theme--custom [data-theme]").forEach(function (btn) {
+            var theme = btn.getAttribute("data-theme");
+            var active = current === theme;
             btn.setAttribute("aria-pressed", active ? "true" : "false");
             btn.classList.toggle("is-active", active);
         });

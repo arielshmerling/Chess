@@ -11,7 +11,6 @@ body.desktop-play-page {
   --desktop-play-rail-width: 80px;
   --desktop-play-header-height: 50px;
   --desktop-play-footer-height: 50px;
-  --desktop-play-dock-bg: #141414;
   --desktop-play-dock-border: rgba(255, 255, 255, 0.08);
   /*
    * Scale the whole board geometry from one factor (mirrors app.css :root derivations).
@@ -149,7 +148,7 @@ body.desktop-play-page .desktop-play-main {
   gap: 1rem;
   padding: 0 1rem;
   box-sizing: border-box;
-  background: var(--desktop-play-dock-bg);
+  background: var(--play-header-background, #141414);
   border-bottom: 1px solid var(--desktop-play-dock-border);
 }
 
@@ -172,8 +171,9 @@ body.desktop-play-page .desktop-play-main {
   padding: 0 0.65rem;
   height: 34px;
   box-sizing: border-box;
-  border: 1px solid var(--desktop-play-dock-border);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--play-clock-border, rgba(255, 255, 255, 0.08));
+  background: var(--play-clock-background, rgba(0, 0, 0, 0.25));
+  color: var(--play-clock-text, inherit);
   flex-shrink: 0;
 }
 
@@ -182,9 +182,9 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-header-clock--active {
-  border-color: rgba(212, 175, 55, 0.65);
-  background: rgba(212, 175, 55, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.2);
+  border-color: var(--play-clock-active-border, rgba(212, 175, 55, 0.65));
+  background: var(--play-clock-active-background, rgba(212, 175, 55, 0.12));
+  box-shadow: inset 0 0 0 1px var(--play-clock-active-ring, rgba(212, 175, 55, 0.2));
 }
 
 .desktop-play-color-tag {
@@ -235,7 +235,7 @@ body.desktop-play-page .desktop-play-main {
   gap: 1rem;
   padding: 0 1rem;
   box-sizing: border-box;
-  background: var(--desktop-play-dock-bg);
+  background: var(--play-footer-background, #141414);
   border-top: 1px solid var(--desktop-play-dock-border);
 }
 
@@ -271,10 +271,6 @@ body.desktop-play-page .desktop-play-main {
   color: #d4af37;
 }
 
-.desktop-play-status-bar--checkmate {
-  color: #e87878;
-}
-
 .desktop-play-status-bar--draw {
   color: #8fd086;
 }
@@ -307,7 +303,7 @@ body.desktop-play-page .desktop-play-main {
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--desktop-play-dock-border);
-  background: var(--desktop-play-dock-bg);
+  background: var(--moves-panel-bg, #354c69);
 }
 
 .desktop-play-dock {
@@ -315,7 +311,6 @@ body.desktop-play-page .desktop-play-main {
   flex-direction: column;
   min-height: 0;
   border-bottom: 1px solid var(--desktop-play-dock-border);
-  background: var(--desktop-play-dock-bg);
 }
 
 .desktop-play-dock-title {
@@ -325,7 +320,8 @@ body.desktop-play-page .desktop-play-main {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.55);
+  background: var(--moves-dock-title-background, var(--moves-panel-bg, #354c69));
+  color: var(--moves-dock-title-text, rgba(255, 255, 255, 0.55));
   border-bottom: 1px solid var(--desktop-play-dock-border);
 }
 
@@ -366,10 +362,13 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-page .desktop-play-footer .desktop-play-captured-row img.captured {
-  height: 1.5rem;
+  height: 1.9rem;
   width: auto;
   margin: 0;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.45))
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.12))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .desktop-play-sidebar .desktop-play-dock.desktop-play-moves {

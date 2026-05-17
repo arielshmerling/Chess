@@ -69,6 +69,16 @@ function getSettingsFilePath() {
     return path.join(userDataRoot, "settings.json");
 }
 
+function getCustomThemesFilePath() {
+    ensureInitialized();
+    return path.join(userDataRoot, "custom-themes.json");
+}
+
+/** Shipped preset themes (edit to bundle themes with the product). */
+function getBundledCustomThemesPath() {
+    return path.join(__dirname, "..", "..", "data", "desktop-custom-themes.json");
+}
+
 function getBrainConfigDir() {
     ensureInitialized();
     return path.join(userDataRoot, "brain-config");
@@ -152,6 +162,8 @@ module.exports = {
     getBookmarksFilePath,
     getGamesDir,
     getSettingsFilePath,
+    getCustomThemesFilePath,
+    getBundledCustomThemesPath,
     getBrainConfigDir,
     resolveOpeningBookPath,
     getHomePath,

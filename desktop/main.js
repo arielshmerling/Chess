@@ -108,6 +108,7 @@ function startLocalServer() {
                 ...process.env,
                 SHMERLING_MODE: "desktop",
                 SHMERLING_USER_DATA: app.getPath("userData"),
+                SHMERLING_SYNC_CUSTOM_THEMES: app.isPackaged ? "" : "1",
                 SESSION_SECRET: process.env.SESSION_SECRET || "shmerling-desktop-local-session",
                 NODE_ENV: process.env.NODE_ENV || "production",
             },

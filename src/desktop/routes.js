@@ -5,6 +5,7 @@ const { ensureGuestSession } = require("./middleware");
 const gameApi = require("./gameApi");
 const bookmarkApi = require("./bookmarkApi");
 const brainConfigApi = require("./brainConfigApi");
+const customThemeApi = require("./customThemeApi");
 
 const UI_DIR = path.join(__dirname, "ui");
 
@@ -36,6 +37,9 @@ function mountDesktopRoutes(app) {
 
     app.post("/app/api/game", requireLogin, gameApi.createGame);
     app.post("/app/api/game/sync-state", requireLogin, gameApi.syncGameState);
+
+    app.get("/app/api/custom-themes", requireLogin, customThemeApi.get);
+    app.post("/app/api/custom-themes", requireLogin, customThemeApi.save);
 
     app.use("/app/ui", express.static(UI_DIR));
     app.use("/vendor", express.static(path.join(__dirname, "..", "assets", "vendor")));

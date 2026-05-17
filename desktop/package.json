@@ -30,6 +30,7 @@
       "../server-desktop.js",
       "../src/**/*",
       "../data/opening-book-states.bin",
+      "../data/desktop-custom-themes.json",
       "../assets/**/*",
       "!../**/*.test.js",
       "!../test/**"
