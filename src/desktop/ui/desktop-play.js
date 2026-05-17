@@ -920,6 +920,9 @@
         });
         Board.setHumanMoveHandler(onHumanMove);
         Board.mount("chessboard");
+        if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
+            window.DesktopBoardScale.refresh();
+        }
         Board.registerInput();
         registerGameEvents();
 

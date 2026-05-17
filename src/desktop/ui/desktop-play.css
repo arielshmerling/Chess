@@ -13,8 +13,8 @@ body.desktop-play-page {
   --desktop-play-footer-height: 50px;
   --desktop-play-dock-border: rgba(255, 255, 255, 0.08);
   /*
-   * Scale the whole board geometry from one factor (mirrors app.css :root derivations).
-   * Do not set max-width in vh separately — that desyncs from --total-board-height.
+   * Board scale is set by desktop-board-scale.js from the main play area size (window resize).
+   * Max 1.4 matches the previous fixed desktop size; shrinks when the window is smaller.
    */
   --board-scale: 1.4;
   --board-height: calc(440px * var(--board-scale));
@@ -392,7 +392,10 @@ body.desktop-play-page .desktop-play-main {
   position: relative;
   width: var(--total-board-height);
   max-width: 100%;
-  flex-shrink: 0;
+  max-height: 100%;
+  flex-shrink: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .desktop-play-board .arrowsCanvas {

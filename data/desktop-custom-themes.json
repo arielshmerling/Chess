@@ -63,7 +63,7 @@
         "--play-footer-background": "#8a8a8a",
         "--play-clock-background": "rgba(0, 0, 0, 0.25)",
         "--play-clock-border": "rgba(255, 255, 255, 0.08)",
-        "--play-clock-text": "#e8e8e8",
+        "--play-clock-text": "#000000",
         "--play-clock-active-border": "rgba(154, 132, 55, 0.65)",
         "--play-clock-active-background": "rgba(212, 175, 55, 0.12)",
         "--play-clock-active-ring": "rgba(212, 175, 55, 0.2)",
@@ -85,7 +85,7 @@
         "--moves-cell-highlight-text": "rgb(233, 231, 231)",
         "--moves-cell-selected-bg": "rgb(92, 171, 125)"
       },
-      "updatedAt": 1779048914758
+      "updatedAt": 1779049390550
     }
   ]
 }
