@@ -128,13 +128,16 @@ exports.rematch = catchAsync(async (req, res) => {
  * Desktop-only: sync server SinglePlayerGame after client undo/redo (not used by web).
  */
 exports.syncGameState = catchAsync(async (req, res) => {
-    const gameId = req.session.gameId;
+    const gameId = req.body && req.body.gameId != null ? req.body.gameId : req.session.gameId;
     validate({ id: gameId }, "id");
+    if (req.session) {
+        req.session.gameId = gameId;
+    }
     const game = gamesManagerService.getGameById(gameId);
     if (!game) {
         return res.status(404).json({ ok: false, message: "Game not found" });
     }
-    const { state, moves, turn } = req.body || {};
+    const { state, moves, turn, humanPlaysWhite } = req.body || {};
     if (!state) {
         return res.status(400).json({ ok: false, message: "Missing state" });
     }
@@ -143,6 +146,21 @@ exports.syncGameState = catchAsync(async (req, res) => {
         game.moves = moves;
     }
     game.turn = turn || game.chessGame.Turn;
+    if (typeof humanPlaysWhite === "boolean" && typeof game.setHumanPlaysWhite === "function") {
+        game.setHumanPlaysWhite(humanPlaysWhite);
+    }
+    if (typeof game._initialBrainMoveToken === "number") {
+        game._initialBrainMoveToken += 1;
+    }
+    let engineMove = null;
+    let engineIsWhite = null;
+    if (typeof game.scheduleBrainMoveIfAiTurn === "function") {
+        const engineResult = await game.scheduleBrainMoveIfAiTurn();
+        if (engineResult && engineResult.move) {
+            engineMove = engineResult.move;
+            engineIsWhite = engineResult.brainPlaysAsWhite;
+        }
+    }
     await gameStore.persistGame(game);
-    res.json({ ok: true });
+    res.json({ ok: true, engineMove, engineIsWhite });
 });

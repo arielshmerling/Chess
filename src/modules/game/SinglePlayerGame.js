@@ -87,27 +87,91 @@ class SinglePlayerGame extends GameBase {
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
         // When human plays black, engine plays white and must make the first move
         if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
-            this.scheduleInitialBrainMoveIfNeeded();
+            void this.scheduleInitialBrainMoveIfNeeded();
         }
+    }
+
+    setHumanPlaysWhite(humanIsWhite) {
+        if (this.mode === "review") {
+            return;
+        }
+        let human = null;
+        let ai = null;
+        if (this.whitePlayer && this.whitePlayer.userId != null) {
+            human = this.whitePlayer;
+            ai = this.blackPlayer;
+        } else if (this.blackPlayer && this.blackPlayer.userId != null) {
+            human = this.blackPlayer;
+            ai = this.whitePlayer;
+        }
+        if (!human) {
+            return;
+        }
+        const brainName = this._brainName || "Brain";
+        const humanChannel = human.channel;
+        if (!ai || ai.userId != null) {
+            ai = new Player(null, brainName);
+        }
+        if (humanIsWhite) {
+            this.whitePlayer = human;
+            this.blackPlayer = ai;
+        } else {
+            this.blackPlayer = human;
+            this.whitePlayer = ai;
+        }
+        human.channel = humanChannel;
+        if (this.whitePlayer === human) {
+            this.whitePlayer.channel = humanChannel;
+            if (this.blackPlayer) {
+                this.blackPlayer.channel = null;
+            }
+        } else if (this.blackPlayer === human) {
+            this.blackPlayer.channel = humanChannel;
+            if (this.whitePlayer) {
+                this.whitePlayer.channel = null;
+            }
+        }
+    }
+
+    scheduleBrainMoveIfAiTurn() {
+        if (this.chessGame.GameOver) {
+            return Promise.resolve(null);
+        }
+        this.turn = this.chessGame.Turn;
+        const turn = this.chessGame.Turn;
+        const aiPlaysWhite = this.whitePlayer && this.whitePlayer.userId == null;
+        const aiPlaysBlack = this.blackPlayer && this.blackPlayer.userId == null;
+        if (turn === "white" && aiPlaysWhite) {
+            return this.scheduleInitialBrainMoveIfNeeded();
+        }
+        if (turn === "black" && aiPlaysBlack) {
+            return this.makeBrainMove(false);
+        }
+        return Promise.resolve(null);
     }
 
     scheduleInitialBrainMoveIfNeeded() {
         const run = () => {
-            if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
-                void this.makeBrainMove(true);
+            if (
+                !this.chessGame.GameOver &&
+                this.chessGame.Turn === "white" &&
+                this.whitePlayer &&
+                this.whitePlayer.userId === null
+            ) {
+                return this.makeBrainMove(true);
             }
+            return Promise.resolve(null);
         };
         if (this.options.engine === "brain42") {
-            require(path.join(__dirname, "..", "..", "brain42"))
+            return require(path.join(__dirname, "..", "..", "brain42"))
                 .whenOpeningBookReady()
                 .then(run)
                 .catch((err) => {
                     console.error("[SinglePlayerGame] Opening book preload failed:", err);
-                    run();
+                    return run();
                 });
-            return;
         }
-        run();
+        return run();
     }
 
 
@@ -123,7 +187,7 @@ class SinglePlayerGame extends GameBase {
         const brainNextMoveFunc = this._brainNextMoveFunc;
         const BrainTimeoutFallbackError = this._BrainTimeoutFallbackError;
         const brainName = this._brainName;
-        if (!brainNextMoveFunc) { return; }
+        if (!brainNextMoveFunc) { return null; }
 
         const maxDepth = Math.min(5, Math.max(1, Number(this.options.difficulty) || 3));
         try {
@@ -137,13 +201,14 @@ class SinglePlayerGame extends GameBase {
             //    console.profileEnd();
 
             const move = await this.handleMove(brainPlaysAsWhite, brainMove, "brain");
-            if (move.valid) {
-                this.sendMoveToOpponenet(brainPlaysAsWhite, brainMove);
-                this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, brainMove);
+            if (move && move.valid !== false) {
+                const clientMove = this.opponentMovePayload(brainPlaysAsWhite, move);
+                this.sendMoveToOpponenet(brainPlaysAsWhite, move);
+                this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, move);
+                return { move, clientMove, brainPlaysAsWhite };
             }
-            else {
-                /* invalid brain move — no fan-out */
-            }
+            console.warn("[SinglePlayerGame] Brain move rejected by handleMove");
+            return null;
 
         } catch (err) {
             // Check if this is a timeout fallback error
@@ -164,18 +229,20 @@ class SinglePlayerGame extends GameBase {
 
                 // Execute the fallback move
                 const move = await this.handleMove(brainPlaysAsWhite, fallbackMove, "brain");
-                if (move.valid) {
-                    this.sendMoveToOpponenet(brainPlaysAsWhite, fallbackMove);
-                    this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, fallbackMove);
-                } else {
-                    const message = { type: "info", info: "move validation failed", gameId: this.gameId };
-                    this.sendMessage(message, brainPlaysAsWhite);
+                if (move && move.valid !== false) {
+                    const clientMove = this.opponentMovePayload(brainPlaysAsWhite, move);
+                    this.sendMoveToOpponenet(brainPlaysAsWhite, move);
+                    this.sendMoveToWatchers(this.gameId, brainPlaysAsWhite, move);
+                    return { move, clientMove, brainPlaysAsWhite };
                 }
+                const message = { type: "info", info: "move validation failed", gameId: this.gameId };
+                this.sendMessage(message, brainPlaysAsWhite);
             } else {
                 const message = { type: "info", info: "move validation failed", gameId: this.gameId };
                 this.sendMessage(message, brainPlaysAsWhite);
             }
         }
+        return null;
     };
 
     /** True if the human player has made at least one move (white moves first, so black has moved only when moves.length >= 2). */

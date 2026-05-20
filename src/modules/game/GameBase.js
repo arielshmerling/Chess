@@ -170,7 +170,16 @@ class GameBase {
             return moveObj;
         }
 
-        if (this.turn == moveObj.piece.color) {
+        const sideToMove = this.chessGame ? this.chessGame.Turn : this.turn;
+        if (!moveObj.piece && moveObj.source && this.chessGame) {
+            const board = this.chessGame.GameState && this.chessGame.GameState.board;
+            const src = board && board[moveObj.source.row] && board[moveObj.source.row][moveObj.source.col];
+            if (src) {
+                moveObj.piece = src;
+            }
+        }
+        if (moveObj.piece && sideToMove == moveObj.piece.color) {
+            this.turn = sideToMove;
             if (this.chessGame) {
                 if (this.chessGame.validateMove(moveObj.source, moveObj.target, this.chessGame.Turn).valid) {
                     const actual = this.chessGame.makeMove(moveObj.source, moveObj.target);
@@ -209,14 +218,19 @@ class GameBase {
         await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
     }
 
+    opponentMovePayload(isWhitePlayer, moveObj) {
+        return isWhitePlayer ? this.chessGame.flipMove(moveObj) : moveObj;
+    }
+
     sendMoveToOpponenet = (isWhitePlayer, moveObj) => {
-        const opponenetMove = isWhitePlayer ? this.chessGame.flipMove(moveObj) : moveObj;
+        const opponenetMove = this.opponentMovePayload(isWhitePlayer, moveObj);
 
         const channel = isWhitePlayer ? this.blackPlayer.channel : this.whitePlayer.channel;
         const message = {
             type: "move",
             data: opponenetMove,
             gameId: this.gameId,
+            isWhite: isWhitePlayer,
         };
 
         if (channel) { channel.send(JSON.stringify(message)); }
@@ -407,6 +421,7 @@ class GameBase {
 
     load(state) {
         this.chessGame.loadGame(JSON.stringify(state));
+        this.turn = this.chessGame.Turn;
     }
 
 

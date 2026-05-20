@@ -502,9 +502,6 @@
             if (!editingSavedId) {
                 return;
             }
-            if (!window.confirm("Delete this saved theme?")) {
-                return;
-            }
             var store = readStore();
             store.themes = store.themes.filter(function (t) {
                 return t.id !== editingSavedId;

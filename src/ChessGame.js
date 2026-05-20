@@ -652,6 +652,10 @@ class ChessGame {
             clone.target.row = this.BOARD_ROWS - 1 - move.target.row;
             clone.source.col = this.BOARD_COLUMNS - 1 - move.source.col;
             clone.source.row = this.BOARD_ROWS - 1 - move.source.row;
+            if (clone.hitSquare) {
+                clone.hitSquare.col = this.BOARD_COLUMNS - 1 - move.hitSquare.col;
+                clone.hitSquare.row = this.BOARD_ROWS - 1 - move.hitSquare.row;
+            }
         }
         return clone;
     }
@@ -663,6 +667,9 @@ class ChessGame {
         }
         if (move.target) {
             clone.target = { ...move.target };
+        }
+        if (move.hitSquare) {
+            clone.hitSquare = { ...move.hitSquare };
         }
         if (move.piece) {
             clone.piece = { ...move.piece };
@@ -957,6 +964,22 @@ class ChessGame {
 
     //private methods
 
+    #flipSquareCoords(square) {
+        if (square) {
+            square.col = this.BOARD_COLUMNS - 1 - square.col;
+            square.row = this.BOARD_ROWS - 1 - square.row;
+        }
+    }
+
+    #flipMoveCoords(move) {
+        if (!move) {
+            return;
+        }
+        this.#flipSquareCoords(move.source);
+        this.#flipSquareCoords(move.target);
+        this.#flipSquareCoords(move.hitSquare);
+    }
+
     #flipBoard() {
         const newBoard = Array.from({ length: this.BOARD_ROWS }, () => Array(this.BOARD_COLUMNS).fill(null));
         for (let i = 0; i < this.BOARD_ROWS; i++) {
@@ -965,9 +988,9 @@ class ChessGame {
             }
         }
 
-        if (this.#state.lastMove) {
-            this.#state.lastMove.target.col = this.BOARD_COLUMNS - 1 - this.#state.lastMove.target.col;
-            this.#state.lastMove.target.row = this.BOARD_ROWS - 1 - this.#state.lastMove.target.row;
+        this.#flipMoveCoords(this.#state.lastMove);
+        for (const storedMove of this.#moves) {
+            this.#flipMoveCoords(storedMove);
         }
 
         this.#state.board = newBoard;
@@ -1307,13 +1330,13 @@ class ChessGame {
 
         if (this.Turn == "black") { //"black"
             settings.forward *= -1;
-            settings.ennPassantRow += settings.forward;
         }
+        const epForward = this.Turn === "black" ? -1 : settings.forward;
 
         // En passant Left
         if (source.row == settings.ennPassantRow &&          // Pawn is on the ennPassant Row
             //this.#state.board[target.row][target.col] == null &&         // Target Square is empty
-            source.row + settings.forward == target.row &&   // Target is one row ahead
+            source.row + epForward == target.row &&   // Target is one row ahead
             source.col - 1 == target.col &&                  // Target is one column to the left
             this.#state.board[source.row][source.col - 1] != null &&     // Square to the left isn't empty, and
             this.#state.board[source.row][source.col - 1].color == this.opponent(this.Turn) && // occupied by an opponent piece
@@ -1333,7 +1356,7 @@ class ChessGame {
         // En passant Right
         if (source.row == settings.ennPassantRow &&
             //this.#state.board[target.row][target.col] == null &&
-            source.row + settings.forward == target.row &&
+            source.row + epForward == target.row &&
             source.col + 1 == target.col &&
             this.#state.board[source.row][source.col + 1] != null &&
             this.#state.board[source.row][source.col + 1].color == this.opponent(this.Turn) &&
@@ -1344,7 +1367,7 @@ class ChessGame {
             this.#state.lastMove.target.col == source.col + 1
 
         ) {
-            move.capturedPiece = this.#state.board[source.row][source.col + 1];
+            move.capturedPiece = this.#state.board[this.#state.lastMove.target.row][this.#state.lastMove.target.col];
             move.hitSquare = { row: source.row, col: source.col + 1 };
             move.ennPassant = true;
             return true;
@@ -1388,8 +1411,8 @@ class ChessGame {
 
         if (this.Turn == "black") { //"black"
             settings.forward *= -1;
-            settings.ennPassantRow += settings.forward;
         }
+        const epForward = this.Turn === "black" ? -1 : settings.forward;
 
         // General Move  - One step forward, same column, no piece in target Square
         if (source.row + settings.forward == target.row &&
@@ -1422,27 +1445,29 @@ class ChessGame {
 
         // En passant Left
         if (source.row == settings.ennPassantRow && this.#state.board[target.row][target.col] == null &&
-            source.row + settings.forward == target.row &&
+            source.row + epForward == target.row &&
             source.col - 1 == target.col &&
             this.#state.board[source.row][source.col - 1] != null &&
             this.#state.board[source.row][source.col - 1].color == this.opponent(color) &&
             this.#state.lastMove.piece.pieceType == this.PAWN &&
             this.#state.lastMove.piece.color == this.opponent(color) &&
             this.#state.lastMove.target.row == settings.ennPassantRow &&
-            this.#state.lastMove.target.col == source.col - 1
+            this.#state.lastMove.target.col == source.col - 1 &&
+            Math.abs(this.#state.lastMove.source.row - this.#state.lastMove.target.row) == 2
 
         ) { return true; }
 
         // En passant Right
         if (source.row == settings.ennPassantRow && this.#state.board[target.row][target.col] == null &&
-            source.row + settings.forward == target.row &&
+            source.row + epForward == target.row &&
             source.col + 1 == target.col &&
             this.#state.board[source.row][source.col + 1] != null &&
             this.#state.board[source.row][source.col + 1].color == this.opponent(color) &&
             this.#state.lastMove.piece.pieceType == this.PAWN &&
             this.#state.lastMove.piece.color == this.opponent(color) &&
             this.#state.lastMove.target.row == settings.ennPassantRow &&
-            this.#state.lastMove.target.col == source.col + 1
+            this.#state.lastMove.target.col == source.col + 1 &&
+            Math.abs(this.#state.lastMove.source.row - this.#state.lastMove.target.row) == 2
         ) { return true; }
 
         return false;

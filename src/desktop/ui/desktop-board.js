@@ -46,6 +46,17 @@
     let showAvailableMoves = true;
     let mousePreference = "drag";
     let onHumanMove = null;
+    let setupModeActive = false;
+    let setupGetSelection = null;
+    let setupDraggingFrom = null;
+    let setupClickHandler = null;
+    let setupMouseDownHandler = null;
+    let setupMouseUpHandler = null;
+    let boardAnimating = false;
+    let activeMoveAnimationInterval = null;
+    let animatingMoveImg = null;
+
+    const MOVE_ANIM_INTERVAL_MS = 2;
 
     function setGame(chessGameInstance) {
         chessGame = chessGameInstance;
@@ -58,6 +69,17 @@
         }
         updateRowOrder();
         updateLegend();
+        refreshHumanPieceInput();
+    }
+
+    /** Which side the human plays (does not flip the board; use flipBoard for orientation). */
+    function setHumanColor(isWhite) {
+        currentPlayerIsWhite = !!isWhite;
+        refreshHumanPieceInput();
+    }
+
+    function refreshHumanPieceInput() {
+        applyMousePreference();
     }
 
     function setPreferences(opts) {
@@ -211,9 +233,96 @@
         return img;
     }
 
+    function resetPieceImgStyles(img) {
+        if (!img) {
+            return;
+        }
+        img.style.position = "";
+        img.style.left = "";
+        img.style.top = "";
+        img.style.marginLeft = "";
+        img.style.marginTop = "";
+        img.style.zIndex = "";
+    }
+
+    function cancelMoveAnimation() {
+        if (activeMoveAnimationInterval != null) {
+            clearInterval(activeMoveAnimationInterval);
+            activeMoveAnimationInterval = null;
+        }
+        if (animatingMoveImg) {
+            resetPieceImgStyles(animatingMoveImg);
+            animatingMoveImg = null;
+        }
+        boardAnimating = false;
+    }
+
+    function cancelActiveDrag() {
+        drag = false;
+        document.onmousemove = null;
+        if (draggedImage) {
+            resetPieceImgStyles(draggedImage);
+            draggedImage.style.cursor = "";
+            draggedImage = null;
+        }
+    }
+
+    function pieceMatchesSquareCell(cell, piece) {
+        const img = cell && cell.querySelector("img");
+        if (!piece) {
+            return !img;
+        }
+        if (!img) {
+            return false;
+        }
+        const url = getImageUrl(piece);
+        if (!url) {
+            return false;
+        }
+        return img.src.indexOf(url) !== -1;
+    }
+
+    function patchBoardFromState(board) {
+        if (!board || !guiBoard[0][0]) {
+            return;
+        }
+        for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
+            for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
+                const div = guiBoard[i][j];
+                if (pieceMatchesSquareCell(div, board[i][j])) {
+                    continue;
+                }
+                div.innerHTML = "";
+                const url = getImageUrl(board[i][j]);
+                if (url) {
+                    div.appendChild(createPiece(url, isPieceDraggable(board[i][j])));
+                }
+            }
+        }
+        if (chessGame && (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw))) {
+            applyDrawHighlight();
+        } else {
+            applyCheckedHighlight();
+        }
+        if (mousePreference === "double" && !setupModeActive) {
+            applyMousePreference();
+        }
+        if (setupModeActive) {
+            document.querySelectorAll("#innerBoard .square img").forEach(function (imgEl) {
+                imgEl.className = "nondraggable";
+            });
+        }
+    }
+
     function drawBoard(board) {
         if (!board || !guiBoard[0][0]) {
             return;
+        }
+        if (activeMoveAnimationInterval != null) {
+            cancelMoveAnimation();
+        } else if (animatingMoveImg) {
+            resetPieceImgStyles(animatingMoveImg);
+            animatingMoveImg = null;
         }
         for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
             for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
@@ -230,19 +339,25 @@
         } else {
             applyCheckedHighlight();
         }
-        if (mousePreference === "double") {
+        if (mousePreference === "double" && !setupModeActive) {
             applyMousePreference();
+        }
+        if (setupModeActive) {
+            document.querySelectorAll("#innerBoard .square img").forEach(function (img) {
+                img.className = "nondraggable";
+            });
         }
     }
 
     function isPieceDraggable(piece) {
-        if (!piece || chessGame.GameOver) {
+        if (setupModeActive || !piece || chessGame.GameOver) {
             return false;
         }
-        if (currentPlayerIsWhite && piece.color === "black") {
+        const humanColor = currentPlayerIsWhite ? "white" : "black";
+        if (piece.color !== humanColor) {
             return false;
         }
-        if (!currentPlayerIsWhite && piece.color === "white") {
+        if (chessGame.Turn !== humanColor) {
             return false;
         }
         return true;
@@ -351,12 +466,21 @@
         }
     }
 
-    function syncFromGameState() {
+    function syncFromGameState(options) {
+        options = options || {};
         const state = chessGame.GameState;
         if (state && state.board) {
-            drawBoard(state.board);
+            if (options.softPatch) {
+                patchBoardFromState(state.board);
+            } else {
+                drawBoard(state.board);
+            }
             updateCaptureLists(state.capturedPiecesList || []);
         }
+    }
+
+    function clearBoardAnimating() {
+        boardAnimating = false;
     }
 
     function findPositionFromDrag() {
@@ -372,7 +496,179 @@
         };
     }
 
+    function mutateSetupBoard(mutator) {
+        if (!chessGame || !chessGame.GameState) {
+            return;
+        }
+        const state = JSON.parse(JSON.stringify(chessGame.GameState));
+        mutator(state);
+        if (global.DesktopPositionSetup && global.DesktopPositionSetup.syncKingRookFlagsFromBoard) {
+            global.DesktopPositionSetup.syncKingRookFlagsFromBoard(state, chessGame);
+        }
+        chessGame.loadGame(JSON.stringify(state));
+        syncFromGameState();
+    }
+
+    function teardownSetupInput() {
+        if (innerBoardEl && setupClickHandler) {
+            innerBoardEl.removeEventListener("click", setupClickHandler);
+        }
+        if (innerBoardEl && setupMouseDownHandler) {
+            innerBoardEl.removeEventListener("mousedown", setupMouseDownHandler);
+        }
+        if (setupMouseUpHandler) {
+            document.removeEventListener("mouseup", setupMouseUpHandler);
+        }
+        setupClickHandler = null;
+        setupMouseDownHandler = null;
+        setupMouseUpHandler = null;
+        setupDraggingFrom = null;
+        document.body.classList.remove("research-dragging");
+    }
+
+    function registerSetupInput() {
+        innerBoardEl = document.getElementById("innerBoard");
+        if (!innerBoardEl) {
+            return;
+        }
+        teardownSetupInput();
+
+        setupClickHandler = function (ev) {
+            if (!setupModeActive || !setupGetSelection) {
+                return;
+            }
+            const selection = setupGetSelection();
+            if (selection && selection.mode === "select") {
+                return;
+            }
+            const square = ev.target.closest(".square");
+            if (!square) {
+                return;
+            }
+            const row = parseInt(square.getAttribute("data-row"), 10);
+            const col = parseInt(square.getAttribute("data-col"), 10);
+            if (isNaN(row) || isNaN(col)) {
+                return;
+            }
+            mutateSetupBoard(function (state) {
+                if (selection && selection.mode === "eraser") {
+                    state.board[row][col] = null;
+                } else if (
+                    selection &&
+                    selection.mode !== "select" &&
+                    selection.color &&
+                    typeof selection.pieceType === "number"
+                ) {
+                    state.board[row][col] = {
+                        color: selection.color,
+                        pieceType: selection.pieceType,
+                    };
+                }
+            });
+        };
+
+        setupMouseDownHandler = function (ev) {
+            if (!setupModeActive || !setupGetSelection) {
+                return;
+            }
+            if (setupGetSelection().mode !== "select") {
+                return;
+            }
+            const square = ev.target.closest(".square");
+            if (!square) {
+                return;
+            }
+            const row = parseInt(square.getAttribute("data-row"), 10);
+            const col = parseInt(square.getAttribute("data-col"), 10);
+            if (isNaN(row) || isNaN(col)) {
+                return;
+            }
+            const state = chessGame.GameState;
+            if (!state.board[row][col]) {
+                return;
+            }
+            if (ev.preventDefault) {
+                ev.preventDefault();
+            }
+            setupDraggingFrom = { row: row, col: col };
+            document.body.classList.add("research-dragging");
+        };
+
+        setupMouseUpHandler = function (ev) {
+            if (!setupDraggingFrom) {
+                return;
+            }
+            const inner = innerBoardEl;
+            if (!inner) {
+                setupDraggingFrom = null;
+                document.body.classList.remove("research-dragging");
+                return;
+            }
+            const boardImgs = inner.querySelectorAll(".square img");
+            boardImgs.forEach(function (img) {
+                img.style.pointerEvents = "none";
+            });
+            const targetEl = document.elementFromPoint(ev.clientX, ev.clientY);
+            boardImgs.forEach(function (img) {
+                img.style.pointerEvents = "";
+            });
+            const targetSquare =
+                targetEl && targetEl.closest ? targetEl.closest(".square") : null;
+            if (targetSquare && inner.contains(targetSquare)) {
+                const targetRow = parseInt(targetSquare.getAttribute("data-row"), 10);
+                const targetCol = parseInt(targetSquare.getAttribute("data-col"), 10);
+                const sr = setupDraggingFrom.row;
+                const sc = setupDraggingFrom.col;
+                if (
+                    !isNaN(targetRow) &&
+                    !isNaN(targetCol) &&
+                    (targetRow !== sr || targetCol !== sc)
+                ) {
+                    mutateSetupBoard(function (state) {
+                        state.board[targetRow][targetCol] = state.board[sr][sc];
+                        state.board[sr][sc] = null;
+                    });
+                }
+            }
+            setupDraggingFrom = null;
+            document.body.classList.remove("research-dragging");
+        };
+
+        innerBoardEl.addEventListener("click", setupClickHandler);
+        innerBoardEl.addEventListener("mousedown", setupMouseDownHandler);
+        document.addEventListener("mouseup", setupMouseUpHandler);
+    }
+
+    function setSetupMode(active, options) {
+        options = options || {};
+        setupModeActive = !!active;
+        setupGetSelection = options.getSelection || null;
+        if (active) {
+            drag = false;
+            document.onmousedown = null;
+            document.onmouseup = null;
+            document.onmousemove = null;
+            if (innerBoardEl) {
+                innerBoardEl.removeEventListener("click", onBoardClick);
+            }
+            registerSetupInput();
+            if (options.onCursorUpdate) {
+                options.onCursorUpdate();
+            }
+        } else {
+            teardownSetupInput();
+            innerBoardEl = document.getElementById("innerBoard");
+            if (innerBoardEl) {
+                innerBoardEl.removeAttribute("data-research-cursor");
+            }
+            registerInput();
+        }
+    }
+
     function registerInput() {
+        if (setupModeActive) {
+            return;
+        }
         document.onmousedown = startDrag;
         document.onmouseup = stopDrag;
         if (innerBoardEl) {
@@ -382,7 +678,7 @@
     }
 
     function applyMousePreference() {
-        if (!innerBoardEl) {
+        if (!innerBoardEl || setupModeActive) {
             return;
         }
         innerBoardEl.removeEventListener("click", onBoardClick);
@@ -397,16 +693,16 @@
             innerBoardEl.classList.remove("move-mode-double");
             document.querySelectorAll("#innerBoard .square img").forEach(function (img) {
                 const pieceColor = img.src.indexOf("white") !== -1 ? "white" : "black";
-                const ours =
-                    (currentPlayerIsWhite && pieceColor === "white") ||
-                    (!currentPlayerIsWhite && pieceColor === "black");
+                const humanColor = currentPlayerIsWhite ? "white" : "black";
+                const ourTurn = chessGame && chessGame.Turn === humanColor;
+                const ours = ourTurn && pieceColor === humanColor;
                 img.className = ours ? "draggable" : "nondraggable";
             });
         }
     }
 
     function startDrag(e) {
-        if (mousePreference !== "drag" || chessGame.GameOver) {
+        if (setupModeActive || mousePreference !== "drag" || chessGame.GameOver) {
             return;
         }
         draggedImage = e.target;
@@ -466,13 +762,16 @@
                 draggedImage.style.top = "0px";
                 draggedImage.style.zIndex = "0";
             }
+            cancelActiveDrag();
+        } else {
+            cancelActiveDrag();
         }
         document.onmousemove = null;
         resetSquareColors();
     }
 
     async function onBoardClick(e) {
-        if (mousePreference !== "double" || chessGame.GameOver) {
+        if (setupModeActive || mousePreference !== "double" || chessGame.GameOver) {
             return;
         }
         const square = e.target.closest(".square");
@@ -524,13 +823,32 @@
         resetSquareColors();
     }
 
+    function buildAnimMoveFromValidation(moveObj, sourcePos, targetPos) {
+        const animMove = {
+            source: { row: sourcePos.row, col: sourcePos.col },
+            target: { row: targetPos.row, col: targetPos.col },
+            piece: moveObj.piece,
+        };
+        if (moveObj.ennPassant && moveObj.hitSquare) {
+            animMove.ennPassant = true;
+            animMove.hitSquare = moveObj.hitSquare;
+        }
+        return animMove;
+    }
+
     async function tryHumanMove(sourcePos, targetPos) {
         const moveObj = chessGame.validateMove(sourcePos, targetPos, chessGame.Turn);
         if (!moveObj.valid) {
             return false;
         }
-        const executed = chessGame.makeMove(sourcePos, targetPos);
-        syncFromGameState();
+        let executed;
+        try {
+            executed = chessGame.makeMove(sourcePos, targetPos);
+            syncFromGameState();
+            refreshHumanPieceInput();
+        } finally {
+            clearBoardAnimating();
+        }
         if (executed && executed.promotion && chessGame.GameState && chessGame.GameState.promoting) {
             return true;
         }
@@ -685,88 +1003,127 @@
     }
 
     function animateUndoMove(move) {
+        cancelMoveAnimation();
+        boardAnimating = true;
         return new Promise(function (resolve) {
             const speed = 50;
+            clearArrows();
             const divMoveTarget = findSquare(move.target.row, move.target.col);
             const img = divMoveTarget && divMoveTarget.childNodes[0];
             if (!img) {
                 syncFromGameState();
+                boardAnimating = false;
                 resolve();
                 return;
             }
             const squareWidth = divMoveTarget.offsetWidth;
+            const squareHeight = divMoveTarget.offsetWidth;
             const horizontalDistance = (move.source.col - move.target.col) * squareWidth;
-            const verticalDistance = (move.source.row - move.target.row) * squareWidth;
-            const verticalSteps = verticalDistance / speed;
+            const verticallDistance = (move.source.row - move.target.row) * squareHeight;
+            const verticalSteps = verticallDistance / speed;
             const horizontalSteps = horizontalDistance / speed;
             let left = 0;
             let top = 0;
+            animatingMoveImg = img;
             img.style.zIndex = "2";
             img.style.position = "absolute";
-            const interval = setInterval(function () {
+            activeMoveAnimationInterval = setInterval(function () {
                 left += horizontalSteps;
                 top += verticalSteps;
                 img.style.marginLeft = left + "px";
                 img.style.marginTop = top + "px";
                 if (
                     Math.abs(left - horizontalDistance * 2) < 1 &&
-                    Math.abs(top - verticalDistance * 2) < 1
+                    Math.abs(top - verticallDistance * 2) < 1
                 ) {
-                    clearInterval(interval);
+                    clearInterval(activeMoveAnimationInterval);
+                    activeMoveAnimationInterval = null;
                     img.style.position = "relative";
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
+                    animatingMoveImg = null;
                     syncFromGameState();
+                    boardAnimating = false;
                     resolve();
                 }
-            }, 2);
+            }, MOVE_ANIM_INTERVAL_MS);
         });
     }
 
+    /** Matches web chessboard.js animateMove (speed 20, 2× distance, 2ms interval). */
     function animateMove(move) {
+        cancelMoveAnimation();
         return new Promise(function (resolve, reject) {
-            clearArrows();
+            boardAnimating = true;
             const speed = 20;
+
+            if (!move) {
+                boardAnimating = false;
+                reject(new Error("error"));
+                return;
+            }
+
+            clearArrows();
+
+            if (move.ennPassant && move.hitSquare) {
+                const capturedSquare = findSquare(move.hitSquare.row, move.hitSquare.col);
+                if (capturedSquare) {
+                    capturedSquare.innerHTML = "";
+                }
+            }
+
             const divMoveTarget = findSquare(move.source.row, move.source.col);
             const img = divMoveTarget && divMoveTarget.childNodes[0];
             if (!img) {
                 syncFromGameState();
-                reject();
+                boardAnimating = false;
+                reject(new Error("no piece"));
                 return;
             }
+
             const squareWidth = divMoveTarget.offsetWidth;
             const squareHeight = divMoveTarget.offsetWidth;
             const horizontalDistance = (move.target.col - move.source.col) * squareWidth;
-            const verticalDistance = (move.target.row - move.source.row) * squareHeight;
-            const verticalSteps = verticalDistance / speed;
+            const verticallDistance = (move.target.row - move.source.row) * squareHeight;
+            const verticalSteps = verticallDistance / speed;
             const horizontalSteps = horizontalDistance / speed;
+
             let left = 0;
             let top = 0;
+
+            animatingMoveImg = img;
             img.style.zIndex = "2";
             img.style.position = "absolute";
-            const interval = setInterval(function () {
+
+            activeMoveAnimationInterval = setInterval(function () {
                 left += horizontalSteps;
                 top += verticalSteps;
                 img.style.marginLeft = left + "px";
                 img.style.marginTop = top + "px";
+
                 if (
                     Math.abs(left - horizontalDistance * 2) < 1 &&
-                    Math.abs(top - verticalDistance * 2) < 1
+                    Math.abs(top - verticallDistance * 2) < 1
                 ) {
-                    clearInterval(interval);
+                    clearInterval(activeMoveAnimationInterval);
+                    activeMoveAnimationInterval = null;
                     img.style.position = "relative";
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
+                    animatingMoveImg = null;
                     syncFromGameState();
+                    boardAnimating = false;
                     resolve();
                 }
-            }, 2);
+            }, MOVE_ANIM_INTERVAL_MS);
         });
     }
 
     global.DesktopBoard = {
         setGame: setGame,
         setPlayerView: setPlayerView,
+        setHumanColor: setHumanColor,
+        refreshHumanPieceInput: refreshHumanPieceInput,
         setPreferences: setPreferences,
         setHumanMoveHandler: setHumanMoveHandler,
         mount: mount,
@@ -785,5 +1142,11 @@
         toggleLastMoveArrow: toggleLastMoveArrow,
         applyCheckedHighlight: applyCheckedHighlight,
         applyDrawHighlight: applyDrawHighlight,
+        setSetupMode: setSetupMode,
+        mutateSetupBoard: mutateSetupBoard,
+        isBoardAnimating: function () {
+            return boardAnimating;
+        },
+        clearBoardAnimating: clearBoardAnimating,
     };
 })(window);

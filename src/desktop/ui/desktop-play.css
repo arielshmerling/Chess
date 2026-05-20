@@ -398,6 +398,10 @@ body.desktop-play-page .desktop-play-main {
   border-bottom: 1px solid var(--desktop-play-dock-border);
 }
 
+.desktop-play-dock[hidden] {
+  display: none !important;
+}
+
 .desktop-play-dock-title {
   flex-shrink: 0;
   display: flex;
@@ -460,42 +464,215 @@ body.desktop-play-page .desktop-play-main {
 
 .desktop-play-panel-list {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  margin: 0;
   padding: 0.15rem 0.2rem;
   font-size: 0.85rem;
   background-color: var(--moves-panel-bg, #354c69);
+  border: none;
+  box-sizing: border-box;
 }
 
-.desktop-play-page .desktop-play-panel-list.movesDiv {
-  scrollbar-color: var(--textbox-background, #2a3d52) var(--moves-panel-bg, #354c69);
-}
-
-.desktop-play-page .desktop-play-games-list {
-  scrollbar-color: var(--textbox-background, #2a3d52) var(--moves-panel-bg, #354c69);
-}
-
-.desktop-play-page .desktop-play-moves-list .movesTable,
-.desktop-play-page .desktop-play-games-list .gamesTable {
-  border-spacing: 0;
-  width: 100%;
-}
-
-.desktop-play-page .desktop-play-moves-list .movesTable td,
-.desktop-play-page .desktop-play-games-list .gamesTable td {
-  padding: 2px 3px;
+.desktop-play-page .desktop-play-panel-list.movesDiv,
+.desktop-play-page .desktop-play-panel-list.desktop-play-games-list {
+  height: auto;
   margin: 0;
-  border: 1px solid var(--panel-border);
+  border: none;
+  scrollbar-color: var(--textbox-background, #2a3d52) var(--moves-panel-bg, #354c69);
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable {
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-spacing: 0;
+  border-collapse: separate;
+  max-height: none;
+  border-radius: 0;
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable tr {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border: none;
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable td,
+.desktop-play-page .desktop-play-games-list .desktop-play-saved-game {
+  font-family: inherit;
   font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
 }
 
-.desktop-play-page .desktop-play-games-list .gamesTable .tdGame {
-  width: 100%;
-  text-align: left;
-  white-space: nowrap;
+.desktop-play-page .desktop-play-moves-list table.movesTable td {
+  padding: 2px 3px;
+  margin: 0;
+  border: 1px solid var(--panel-border);
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable .tdNum {
+  width: 14%;
+  max-width: none;
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable .tdMove {
+  width: 43%;
+}
+
+/* Saved games accordion (Rename / Delete / Load) */
+.desktop-play-page .desktop-play-games-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.desktop-play-page .desktop-play-saved-game {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background-color: var(--moves-cell-bg, rgba(0, 0, 0, 0.2));
+  color: var(--moves-cell-text, inherit);
+  overflow: hidden;
+}
+
+.desktop-play-page .desktop-play-saved-game-row {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 6px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.desktop-play-page .desktop-play-saved-game-row:hover {
+  background-color: var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.06));
+}
+
+.desktop-play-page .desktop-play-saved-game-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.desktop-play-page .desktop-play-saved-game-rename-input {
+  box-sizing: border-box;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 4px;
+  font: inherit;
+  color: inherit;
+  background: var(--textbox-background, rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}
+
+.desktop-play-page .desktop-play-saved-game-details {
+  display: none;
+  box-sizing: border-box;
+  padding: 6px;
+  border-top: 1px solid var(--panel-border);
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+.desktop-play-page .desktop-play-saved-game.expanded .desktop-play-saved-game-details {
+  display: block;
+}
+
+.desktop-play-page .desktop-play-saved-game-meta {
+  margin: 0 0 6px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  opacity: 0.85;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn {
+  margin: 0;
+  min-width: 26px;
+  min-height: 26px;
+  width: 26px;
+  height: 26px;
+  padding: 2px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  background-image: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: none;
+  filter: none;
+  text-shadow: none;
+  transform: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn svg {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  filter: none;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn:hover {
+  background: var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.12));
+  background-image: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn:active {
+  background: var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.18));
+  background-image: none;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn:focus {
+  outline: none;
+}
+
+.desktop-play-page .desktop-play-saved-game-actions .desktop-play-saved-game-icon-btn:focus-visible {
+  outline: 1px solid var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.35));
+  outline-offset: 1px;
 }
 
 .desktop-play-footer .desktop-play-captured-row {
@@ -530,6 +707,309 @@ body.desktop-play-page .desktop-play-main {
   border-bottom: none;
 }
 
+.desktop-play-sidebar-stacks {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Game mode: hide entire Pieces dock (title + content). */
+.desktop-play-sidebar:not(.desktop-play-sidebar--position-setup) .desktop-play-setup {
+  display: none !important;
+}
+
+/* Position setup: hide entire Moves dock (title + content). */
+.desktop-play-sidebar--position-setup .desktop-play-moves {
+  display: none !important;
+}
+
+.desktop-play-sidebar--position-setup .desktop-play-sidebar-stacks .desktop-play-setup {
+  flex: 1;
+  min-height: 0;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desktop-play-sidebar--position-setup .desktop-play-dock-toggle--collapse-moves {
+  display: none !important;
+}
+
+.desktop-play-sidebar:not(.desktop-play-sidebar--position-setup) .desktop-play-dock-toggle--collapse-setup {
+  display: none !important;
+}
+
+.desktop-play-sidebar--position-setup {
+  --desktop-play-sidebar-width: 248px;
+}
+
+.desktop-play-setup-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.4rem 0.35rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.desktop-play-setup-main {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.25rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.desktop-play-setup-pieces-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.desktop-play-setup-columns {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.desktop-play-setup-separator {
+  flex-shrink: 0;
+  height: 0;
+  margin: 0.45rem 0 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.desktop-play-setup-options {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-bottom: 0.15rem;
+}
+
+.desktop-play-setup-option-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.desktop-play-setup-option-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--semiLight, rgba(255, 255, 255, 0.55));
+}
+
+.desktop-play-setup-toggle-group {
+  display: flex;
+  flex-direction: row;
+  gap: 0.25rem;
+}
+
+.desktop-play-setup-toggle {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.desktop-play-setup-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.desktop-play-setup-toggle.selected {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(152, 193, 217, 0.55);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+}
+
+.desktop-play-setup-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-play-setup-column--controls {
+  flex: 0 0 auto;
+  min-width: 2.75rem;
+  padding-left: 0.2rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  justify-content: flex-start;
+}
+
+.desktop-play-setup-piece,
+.desktop-play-setup-eraser,
+.desktop-play-setup-select,
+.desktop-play-setup-reset,
+.desktop-play-setup-default,
+.desktop-play-setup-save,
+.desktop-play-setup-validate,
+.desktop-play-setup-play {
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--semiLight, #98c1d9);
+  flex-shrink: 0;
+}
+
+.desktop-play-setup-piece {
+  width: 100%;
+  max-width: 3.35rem;
+}
+
+.desktop-play-setup-piece img {
+  width: 2.9rem;
+  height: 2.9rem;
+  object-fit: contain;
+  display: block;
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.45))
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.12))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  transition: filter 0.15s ease;
+}
+
+.desktop-play-setup-piece:hover img {
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.65))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.22))
+    drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
+.desktop-play-setup-piece.selected img {
+  filter:
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 10px rgba(152, 193, 217, 0.45))
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.2))
+    drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
+.desktop-play-setup-piece:hover,
+.desktop-play-setup-eraser:hover,
+.desktop-play-setup-select:hover,
+.desktop-play-setup-reset:hover,
+.desktop-play-setup-default:hover,
+.desktop-play-setup-save:hover,
+.desktop-play-setup-validate:hover,
+.desktop-play-setup-play:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.desktop-play-setup-piece.selected,
+.desktop-play-setup-eraser.selected,
+.desktop-play-setup-select.selected {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(152, 193, 217, 0.55);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
+}
+
+.desktop-play-setup-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.desktop-play-setup-eraser,
+.desktop-play-setup-select,
+.desktop-play-setup-reset,
+.desktop-play-setup-default {
+  width: 2.35rem;
+  min-width: 2.35rem;
+  height: 2.35rem;
+  min-height: 2.35rem;
+  box-sizing: border-box;
+}
+
+.desktop-play-setup-eraser svg,
+.desktop-play-setup-select svg,
+.desktop-play-setup-reset svg,
+.desktop-play-setup-default svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+}
+
+.desktop-play-setup-reset:hover {
+  background: rgba(200, 80, 80, 0.3);
+}
+
+.desktop-play-setup-default:hover {
+  background: rgba(100, 180, 100, 0.25);
+}
+
+.desktop-play-setup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.desktop-play-setup-save,
+.desktop-play-setup-validate,
+.desktop-play-setup-play {
+  width: 100%;
+  min-width: 2.35rem;
+  height: 2.35rem;
+  min-height: 2.35rem;
+  box-sizing: border-box;
+}
+
+.desktop-play-setup-save svg,
+.desktop-play-setup-validate svg,
+.desktop-play-setup-play svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+}
+
+.desktop-play-setup-save:hover {
+  background: rgba(100, 160, 220, 0.28);
+}
+
+.desktop-play-setup-validate:hover {
+  background: rgba(120, 170, 120, 0.28);
+}
+
+.desktop-play-setup-play:hover {
+  background: rgba(100, 180, 100, 0.28);
+}
+
+.desktop-play-action--active {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
 .desktop-play-main {
   flex: 1;
   display: flex;
@@ -554,6 +1034,12 @@ body.desktop-play-page .desktop-play-main {
 
 .desktop-play-board .arrowsCanvas {
   pointer-events: none;
+}
+
+/* Clip animated pieces to the board (web relies on post-animate sync; desktop animates in place). */
+.desktop-play-page #innerBoard.squares {
+  overflow: hidden;
+  position: relative;
 }
 
 /* Check: gold square on the threatened king (desktop only; no frame tint) */
@@ -644,8 +1130,52 @@ body.desktop-play-page .desktop-play-main {
   color: inherit;
 }
 
+.desktop-play-dialog-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.desktop-play-dialog--alert .desktop-play-dialog-actions {
+  justify-content: center;
+}
+
 .desktop-play-dialog p {
   margin: 0 0 1rem;
+}
+
+.desktop-play-dialog-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--semiLight, rgba(255, 255, 255, 0.65));
+}
+
+.desktop-play-dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  color: inherit;
+  background: var(--textbox-background, rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.2));
+  border-radius: 4px;
+}
+
+.desktop-play-dialog-input:focus {
+  outline: 1px solid var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.35));
+  outline-offset: 1px;
+}
+
+.desktop-play-dialog-error {
+  margin: -0.35rem 0 0.75rem;
+  font-size: 0.8rem;
+  color: #e87878;
+}
+
+.desktop-play-dialog-error[hidden] {
+  display: none;
 }
 
 .desktop-play-dialog-actions {

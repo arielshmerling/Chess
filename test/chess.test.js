@@ -321,6 +321,62 @@ describe('Pawn Can Move Two Steps Forward on Start', () => {
     });
 })
 
+describe("En passant", () => {
+    function play(game, source, target) {
+        const move = game.validateMove(source, target, game.Turn);
+        assert.equal(move.valid, true, move.reason || "move should be valid");
+        return game.makeMove(source, target);
+    }
+
+    it("white captures en passant after black double push", () => {
+        game.startNewGame(true);
+        play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+        play(game, { row: 1, col: 4 }, { row: 2, col: 4 });
+        play(game, { row: 4, col: 4 }, { row: 3, col: 4 });
+        play(game, { row: 1, col: 3 }, { row: 3, col: 3 });
+        const ep = play(game, { row: 3, col: 4 }, { row: 2, col: 3 });
+        assert.equal(ep.ennPassant, true);
+        assert.equal(ep.hitSquare.row, 3);
+        assert.equal(ep.hitSquare.col, 3);
+        assert.equal(game.GameState.board[3][3], null);
+        assert.equal(game.GameState.board[2][3].color, "white");
+    });
+
+    it("white captures en passant on the queen side (axb6)", () => {
+        game.startNewGame(true);
+        play(game, { row: 6, col: 0 }, { row: 4, col: 0 });
+        play(game, { row: 1, col: 0 }, { row: 2, col: 0 });
+        play(game, { row: 4, col: 0 }, { row: 3, col: 0 });
+        play(game, { row: 1, col: 1 }, { row: 3, col: 1 });
+        const ep = play(game, { row: 3, col: 0 }, { row: 2, col: 1 });
+        assert.equal(ep.ennPassant, true);
+        assert.equal(game.GameState.board[3][1], null);
+    });
+
+    it("flipMove flips en passant hit square", () => {
+        game.startNewGame(true);
+        play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+        play(game, { row: 1, col: 4 }, { row: 2, col: 4 });
+        play(game, { row: 4, col: 4 }, { row: 3, col: 4 });
+        play(game, { row: 1, col: 3 }, { row: 3, col: 3 });
+        const ep = play(game, { row: 3, col: 4 }, { row: 2, col: 3 });
+        const flipped = game.flipMove(ep);
+        assert.equal(flipped.hitSquare.row, 4);
+        assert.equal(flipped.hitSquare.col, 4);
+    });
+
+    it("en passant still works after flipping the board mid-game", () => {
+        game.startNewGame(true);
+        play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+        play(game, { row: 1, col: 4 }, { row: 2, col: 4 });
+        play(game, { row: 4, col: 4 }, { row: 3, col: 4 });
+        game.WhitePlayerView = false;
+        play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+        const ep = play(game, { row: 4, col: 3 }, { row: 5, col: 4 });
+        assert.equal(ep.ennPassant, true);
+    });
+})
+
 describe("Pawn Can't Move two Steps Forward in not on start", () => {
     it("White Pawn Can't Move two Steps Forward in not on start", () => {
         //Arrange

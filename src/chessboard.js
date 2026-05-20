@@ -2817,8 +2817,8 @@ function checkEventHandler(turn) {
 
 async function checkmateEventHandler(turn) {
     alertMode = true;
-    displayMessage(`Checkmate! ${game.opponent(game.colorName(turn))} wins!`, 5000);
-    const playerName = game.colorName(turn) == "Black" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+    displayMessage(`Checkmate! ${game.colorName(turn)} wins!`, 5000);
+    const playerName = game.colorName(turn) === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
     log(playerName, "Checkmate!");
     const frame = document.getElementsByClassName("frame");
     for (const el of frame) {

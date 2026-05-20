@@ -734,11 +734,19 @@ function getDrawLeafScoreForMover(localChess, movingPlayerColor, specialEvaluati
 }
 
 async function tryFindMatchState(game) {
+    if (process.env.SHMERLING_MODE === "desktop") {
+        return null;
+    }
     const gameState = game.SavedGameState;
     const options = [];
-    const findResult = await State.find({ state: gameState });
-    for await (const doc of findResult) {
-        options.push(JSON.parse(doc.move));
+    try {
+        const findResult = await State.find({ state: gameState });
+        for await (const doc of findResult) {
+            options.push(JSON.parse(doc.move));
+        }
+    } catch (err) {
+        console.warn("[brain41] opening book lookup skipped:", err.message);
+        return null;
     }
     const rand = Math.floor(Math.random() * options.length);
     if (options.length > 0) {
