@@ -1118,15 +1118,19 @@ body.desktop-play-page .desktop-play-main {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
 }
 
 .desktop-play-dialog {
-  min-width: 280px;
-  max-width: 90vw;
-  padding: 1.25rem;
+  min-width: min(22rem, 92vw);
+  max-width: 92vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.75rem 1.5rem;
   border-radius: 10px;
-  background: var(--desktop-card-bg, #2d3134);
-  border: 1px solid var(--desktop-card-border, rgba(255, 255, 255, 0.15));
+  background: var(--panel-bg, #1e2430);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   color: inherit;
 }
 
@@ -1140,8 +1144,15 @@ body.desktop-play-page .desktop-play-main {
   justify-content: center;
 }
 
-.desktop-play-dialog p {
+.desktop-play-dialog p,
+.desktop-play-dialog-message {
   margin: 0 0 1rem;
+  line-height: 1.45;
+}
+
+.desktop-play-dialog--confirm .desktop-play-dialog-message,
+.desktop-play-dialog--alert .desktop-play-dialog-message {
+  margin-bottom: 1.25rem;
 }
 
 .desktop-play-dialog-label {
@@ -1182,4 +1193,9 @@ body.desktop-play-page .desktop-play-main {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.desktop-play-dialog--new-game .desktop-play-dialog-actions {
+  margin-top: 0.75rem;
 }

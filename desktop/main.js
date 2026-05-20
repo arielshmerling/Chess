@@ -1,10 +1,12 @@
 /**
  * Shmerling Chess — Electron main process.
  */
-const { app, BrowserWindow, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, Menu, nativeImage, ipcMain } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const { fork } = require("child_process");
+
+const PRELOAD_PATH = path.join(__dirname, "preload.js");
 
 const APP_NAME = "Shmerling Chess";
 const SERVER_ENTRY = path.join(__dirname, "..", "server-desktop.js");
@@ -136,6 +138,23 @@ function startLocalServer() {
     });
 }
 
+function initDesktopBrainIpc() {
+    process.env.SHMERLING_MODE = "desktop";
+    process.env.SHMERLING_USER_DATA = app.getPath("userData");
+    const runtime = require("../src/desktop/runtime");
+    const { computeMove } = require("../src/desktop/desktopBrainService");
+    const { preloadOpeningBookAtStartup } = require("../src/desktop/preloadOpeningBook");
+
+    runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
+    preloadOpeningBookAtStartup().catch((err) => {
+        console.error("[desktop] Opening book preload in main:", err);
+    });
+
+    ipcMain.handle("brain:computeMove", async (_event, payload) => {
+        return computeMove(payload);
+    });
+}
+
 function createWindow() {
     const icon = resolveAppIcon();
     mainWindow = new BrowserWindow({
@@ -148,6 +167,7 @@ function createWindow() {
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
+            preload: PRELOAD_PATH,
         },
     });
 
@@ -169,6 +189,7 @@ app.whenReady().then(async () => {
     try {
         setupMacApplicationMenu();
         applyAppIcon();
+        initDesktopBrainIpc();
         await startLocalServer();
         createWindow();
     } catch (err) {

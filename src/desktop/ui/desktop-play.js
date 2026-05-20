@@ -1,5 +1,6 @@
 /**
- * Desktop single-player chess session (decoupled from chessboard.js).
+ * Desktop single-player chess — local ChessGame + in-process brain (Electron IPC).
+ * No WebSocket or server-side game session.
  */
 (function () {
     "use strict";
@@ -10,9 +11,14 @@
     const PositionValidation = window.DesktopPositionValidation;
 
     let game = null;
-    let gameInfo = null;
+    const Settings = window.DesktopGameSettings;
+    const Engine = window.DesktopEngine;
+    const Dialog = window.DesktopDialog;
+    const NewGameDialog = window.DesktopNewGameDialog;
+
+    let session = null;
+    let gameActive = false;
     let currentPlayerIsWhite = true;
-    let webSocket = null;
     let whiteTimer = 0;
     let blackTimer = 0;
     let whiteHandle = null;
@@ -64,6 +70,15 @@
         return document.getElementById(id);
     }
 
+    /** Let the browser paint (clear move highlights) before heavy work. */
+    function yieldForPaint() {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(resolve);
+            });
+        });
+    }
+
     function timerToText(timer) {
         const d = new Date(1970, 0, 1);
         d.setSeconds(timer);
@@ -71,8 +86,8 @@
     }
 
     function initialClockSeconds() {
-        if (typeof gameInfo.gameTimeMinutes === "number" && gameInfo.gameTimeMinutes >= 1) {
-            return Math.round(gameInfo.gameTimeMinutes * 60);
+        if (session && typeof session.gameTimeMinutes === "number" && session.gameTimeMinutes >= 1) {
+            return Math.round(session.gameTimeMinutes * 60);
         }
         return 90 * 60;
     }
@@ -88,8 +103,10 @@
         }
         whiteTimer = initialClockSeconds();
         blackTimer =
-            typeof gameInfo.blackTimer === "number" && gameInfo.blackTimer > 0
-                ? gameInfo.blackTimer
+            session &&
+            typeof session.blackTimer === "number" &&
+            session.blackTimer > 0
+                ? session.blackTimer
                 : whiteTimer;
         const whiteClock = $("whiteClockTimeText");
         const blackClock = $("blackClockTimeText");
@@ -158,6 +175,9 @@
         if (!game) {
             return "";
         }
+        if (!gameActive && !positionSetupMode) {
+            return "Choose New game or Position setup from the sidebar";
+        }
         if (game.GameOver) {
             return "Game over";
         }
@@ -188,41 +208,14 @@
         refreshStatusBar();
     }
 
-    function isResearchPlayPage() {
-        try {
-            return new URLSearchParams(window.location.search).get("research") === "1";
-        } catch {
-            return false;
-        }
-    }
-
     function formatSessionTypeLabel() {
         if (positionSetupMode) {
             return "Position Setup";
         }
-        if (isResearchPlayPage()) {
-            return "Research";
+        if (!gameActive && !positionSetupMode) {
+            return "Ready to play";
         }
-        if (!gameInfo) {
-            return "In Game";
-        }
-        if (gameInfo.watcher) {
-            return "Watching";
-        }
-        if (gameInfo.mode === "review") {
-            return "Review";
-        }
-        switch (gameInfo.gameType) {
-            case "PracticeGame":
-                return "Position Setup";
-            case "OnlineGame":
-                return "In Game";
-            case "Research":
-                return "Research";
-            case "SinglePlayerGame":
-            default:
-                return "In Game";
-        }
+        return "In Game";
     }
 
     function updateHeaderDateTime() {
@@ -247,11 +240,11 @@
     }
 
     function updateMatchHeader() {
-        if (!gameInfo) {
+        if (!session) {
             return;
         }
-        const whiteName = gameInfo.whitePlayerName || "White";
-        const blackName = gameInfo.blackPlayerName || "Black";
+        const whiteName = session.whitePlayerName || "White";
+        const blackName = session.blackPlayerName || "Black";
         const titleEl = $("desktopPlayMatchTitle");
         const whiteNameEl = $("desktopPlayWhiteName");
         const blackNameEl = $("desktopPlayBlackName");
@@ -314,15 +307,7 @@
         const loser = game.Turn;
         showStatus("Time's up! " + loser + " lost", 5000, "timeout");
         game.OutOfTime = loser;
-        sendWs({
-            type: "info",
-            info: "outOfTime",
-            gameId: gameInfo.id,
-            userId: gameInfo.userId,
-            username: gameInfo.username,
-            isWhite: currentPlayerIsWhite,
-            loser: loser,
-        });
+        updateActionButtons();
     }
 
     /**
@@ -630,24 +615,10 @@
                 showStatus("Engine to move…", 0, "info");
             }
         }
-        let syncResult = null;
-        try {
-            syncResult = await syncServerGameState({
-                humanPlaysWhite: currentPlayerIsWhite,
-                throwOnError: true,
-            });
-        } catch (err) {
-            showStatus(err.message || "Could not start game on server", 0, "error");
-            updateActionButtons();
-            return;
-        }
-        if (syncResult && syncResult.engineMove) {
-            const applied = await applyEngineMoveFromSync(syncResult.engineMove);
-            if (!applied) {
-                showStatus("Engine move could not be applied", 0, "error");
-                updateActionButtons();
-                return;
-            }
+        gameActive = true;
+        document.body.classList.add("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(true);
         }
         updateActionButtons();
         if (isHumanTurn()) {
@@ -655,18 +626,13 @@
             if (!game.GameOver) {
                 switchClocks();
             }
-        } else if (isAiTurn()) {
-            showStatus("Engine to move…", 0, "info");
         } else {
-            showStatus("Playing from custom position", 3000, "info");
+            await runEngineMove();
         }
     }
 
     function canUsePositionSetup() {
         if (!game) {
-            return false;
-        }
-        if (gameInfo && gameInfo.watcher) {
             return false;
         }
         if (game.GameOver) {
@@ -683,6 +649,10 @@
         }
         if (positionSetupMode) {
             exitPositionSetupMode(true);
+            return;
+        }
+        if (!gameActive && !positionSetupMode) {
+            beginPositionSetupFromMenu();
             return;
         }
         if (!canUsePositionSetup()) {
@@ -791,6 +761,18 @@
         if (!game) {
             return;
         }
+        if (!gameActive && !positionSetupMode) {
+            setButtonDisabled("resignBtn", true);
+            setButtonDisabled("drawBtn", true);
+            setButtonDisabled("undoBtn", true);
+            setButtonDisabled("redoBtn", true);
+            setButtonDisabled("lastMoveBtn", true);
+            setButtonDisabled("saveBtn", true);
+            setButtonDisabled("rematchBtn", animating || dialogOn);
+            setButtonDisabled("positionSetupBtn", animating || dialogOn);
+            setButtonDisabled("flipBtn", true);
+            return;
+        }
         const over = game.GameOver;
         const hasMoves = game.Moves && game.Moves.length > 0;
         const humanTurn = isHumanTurn();
@@ -818,7 +800,7 @@
         setButtonDisabled("lastMoveBtn", !hasMoves);
         setButtonDisabled("flipBtn", animating);
         setButtonDisabled("saveBtn", !game || animating || dialogOn);
-        setButtonDisabled("rematchBtn", !over);
+        setButtonDisabled("rematchBtn", animating || dialogOn);
     }
 
     function formatSaveGameName() {
@@ -843,96 +825,17 @@
         if (dialogOn) {
             return;
         }
-        dialogOn = true;
-        const defaultName = formatPositionSetupSaveName();
-
-        const overlay = document.createElement("div");
-        overlay.className = "desktop-play-dialog-overlay";
-
-        const panel = document.createElement("div");
-        panel.className = "desktop-play-dialog desktop-play-dialog--prompt";
-
-        const heading = document.createElement("h3");
-        heading.className = "desktop-play-dialog-title";
-        heading.textContent = "Save position";
-        panel.appendChild(heading);
-
-        const label = document.createElement("label");
-        label.className = "desktop-play-dialog-label";
-        label.textContent = "Position name";
-        label.setAttribute("for", "desktopPositionSaveNameInput");
-        panel.appendChild(label);
-
-        const input = document.createElement("input");
-        input.type = "text";
-        input.id = "desktopPositionSaveNameInput";
-        input.className = "desktop-play-dialog-input";
-        input.value = defaultName;
-        input.setAttribute("autocomplete", "off");
-        input.setAttribute("spellcheck", "false");
-        panel.appendChild(input);
-
-        const errorEl = document.createElement("p");
-        errorEl.className = "desktop-play-dialog-error";
-        errorEl.hidden = true;
-        panel.appendChild(errorEl);
-
-        const actions = document.createElement("div");
-        actions.className = "desktop-play-dialog-actions";
-
-        const saveBtn = document.createElement("button");
-        saveBtn.type = "button";
-        saveBtn.className = "desktop-btn desktop-btn-primary";
-        saveBtn.textContent = "Save";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.type = "button";
-        cancelBtn.className = "desktop-btn";
-        cancelBtn.textContent = "Cancel";
-
-        function closeDialog() {
-            overlay.remove();
-            dialogOn = false;
-        }
-
-        function submit() {
-            const trimmed = input.value.trim();
-            if (!trimmed) {
-                errorEl.textContent = "Please enter a name.";
-                errorEl.hidden = false;
-                input.focus();
-                input.select();
-                return;
-            }
-            closeDialog();
-            onSave(trimmed);
-        }
-
-        saveBtn.addEventListener("click", submit);
-        cancelBtn.addEventListener("click", closeDialog);
-        input.addEventListener("keydown", function (ev) {
-            if (ev.key === "Enter") {
-                ev.preventDefault();
-                submit();
-            } else if (ev.key === "Escape") {
-                ev.preventDefault();
-                closeDialog();
-            } else if (!errorEl.hidden) {
-                errorEl.hidden = true;
-            }
+        Dialog.prompt({
+            title: "Save position",
+            label: "Position name",
+            defaultValue: formatPositionSetupSaveName(),
+            confirmLabel: "Save",
+            onSubmit: onSave,
         });
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(saveBtn);
-        panel.appendChild(actions);
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
-        input.focus();
-        input.select();
     }
 
     async function saveSetupPositionWithName(name) {
-        if (!game || !gameInfo || !Api.post) {
+        if (!game || !session || !Api.post) {
             return;
         }
         const state = game.GameState;
@@ -944,12 +847,12 @@
             const bookmark = await Api.post("/bookmark", {
                 gameState: state,
                 name: name,
-                gameType: gameInfo.gameType || "SinglePlayerGame",
+                gameType: "SinglePlayerGame",
                 moves: [],
-                engine: gameInfo.engine || "brain42",
+                engine: session.engine || "brain42",
                 depth:
-                    typeof gameInfo.difficulty === "number" && gameInfo.difficulty >= 1
-                        ? gameInfo.difficulty
+                    typeof session.difficulty === "number" && session.difficulty >= 1
+                        ? session.difficulty
                         : 3,
             });
             if (bookmark && bookmark._id) {
@@ -968,7 +871,7 @@
     }
 
     function saveSetupPosition() {
-        if (!game || !gameInfo || !Api.post) {
+        if (!game || !session || !Api.post) {
             return;
         }
         if (!validatePositionSetup("save")) {
@@ -1164,7 +1067,7 @@
             await Api.post("/updateBookmark", {
                 id: entry._id || entry.id,
                 name: trimmed,
-                gameType: entry.gameType || gameInfo.gameType || "SinglePlayerGame",
+                gameType: entry.gameType || "SinglePlayerGame",
                 date: entry.date || new Date(),
             });
             entry.name = trimmed;
@@ -1211,22 +1114,18 @@
     }
 
     async function loadSavedGame(bookmarkId) {
-        if (!game || !gameInfo || animating || dialogOn) {
+        if (!game || !session || animating || dialogOn) {
             return;
         }
         const entry = savedGames.find(function (b) {
             return savedGameId(b) === String(bookmarkId);
         });
-        if (!entry || !Api.post) {
+        if (!entry) {
             return;
         }
         animating = true;
         updateActionButtons();
         try {
-            await Api.post("/applyBookmark", {
-                gameId: gameInfo.id,
-                bookarkId: entry._id || entry.id,
-            });
             const stateStr =
                 typeof entry.state === "string" ? entry.state : JSON.stringify(entry.state);
             const parsedMoves = parseSavedGameMoves(entry);
@@ -1245,7 +1144,11 @@
                 Board.updateCaptureLists(game.GameState.capturedPiecesList);
             }
             updateMovesTable(movesForMovesTable(parsedMoves));
-            await syncServerGameState();
+            gameActive = true;
+            document.body.classList.add("desktop-play-has-active-game");
+            if (Board.setHumanPlayEnabled) {
+                Board.setHumanPlayEnabled(true);
+            }
             updateHeaderTurn();
             updateActionButtons();
             showStatus("Game loaded", 2000, "info");
@@ -1375,7 +1278,7 @@
     }
 
     async function onSaveGame() {
-        if (!game || !gameInfo || animating || dialogOn) {
+        if (!game || !session || animating || dialogOn) {
             return;
         }
         const state = game.GameState;
@@ -1388,12 +1291,12 @@
             const bookmark = await Api.post("/bookmark", {
                 gameState: state,
                 name: formatSaveGameName(),
-                gameType: gameInfo.gameType || "SinglePlayerGame",
+                gameType: "SinglePlayerGame",
                 moves: bookmarkMovesPayload(),
-                engine: gameInfo.engine || "brain42",
+                engine: session.engine || "brain42",
                 depth:
-                    typeof gameInfo.difficulty === "number" && gameInfo.difficulty >= 1
-                        ? gameInfo.difficulty
+                    typeof session.difficulty === "number" && session.difficulty >= 1
+                        ? session.difficulty
                         : 3,
             });
             if (bookmark && bookmark._id) {
@@ -1443,19 +1346,6 @@
         movesDiv.scrollTop = movesDiv.scrollHeight;
     }
 
-    async function loadGameInfo() {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get("id");
-        if (!id) {
-            throw new Error("No game id");
-        }
-        return Api.get("/gameInfo?id=" + encodeURIComponent(id));
-    }
-
-    async function loadMoves() {
-        return Api.get("/gameMoves");
-    }
-
     function registerGameEvents() {
         game.OnUpdate = onGameUpdate;
         game.OnPromotion = onPromotion;
@@ -1492,8 +1382,7 @@
         if (positionSetupMode) {
             return;
         }
-        const moves = await loadMoves();
-        updateMovesTable(moves.moves || []);
+        updateMovesTable(tableMovesFromGame());
 
         if (gameState.draw) {
             lastCheckNotifySide = null;
@@ -1550,13 +1439,7 @@
         updateActionButtons();
     }
 
-    function adjustIncomingNetworkMoveForBoardView(move, moverIsWhite) {
-        if (!move || !game || typeof game.flipMove !== "function") {
-            return move;
-        }
-        if (moverIsWhite === true) {
-            return game.flipMove(move);
-        }
+    function adjustIncomingNetworkMoveForBoardView(move) {
         return move;
     }
 
@@ -1582,45 +1465,17 @@
         return false;
     }
 
-    async function applyEngineMoveFromSync(engineMove) {
-        if (!engineMove || !engineMove.source || !engineMove.target) {
-            return false;
+    function parseServerMoves(moves) {
+        if (!Array.isArray(moves)) {
+            return [];
         }
-        if (networkMoveAlreadyApplied(engineMove)) {
-            Board.syncFromGameState();
-            updateActionButtons();
-            return true;
-        }
-        animating = true;
-        updateActionButtons();
-        try {
-            const applied = await applyNetworkMove(engineMove);
-            if (!applied) {
-                return false;
-            }
-            lastMove = game.LastMove || {
-                source: engineMove.source,
-                target: engineMove.target,
-            };
-            redoPairAvailable = false;
-            updateMovesTable(tableMovesFromGame());
-            updateHeaderTurn();
-            if (Board.refreshHumanPieceInput) {
-                Board.refreshHumanPieceInput();
-            }
-            if (!game.GameOver && isHumanTurn()) {
-                switchClocks();
-                showStatus("", 0, "info");
-            }
-            return true;
-        } finally {
-            animating = false;
-            updateActionButtons();
-        }
+        return moves.map(function (m) {
+            return typeof m === "string" ? JSON.parse(m) : m;
+        });
     }
 
-    async function applyNetworkMove(move, moverIsWhite) {
-        const adjusted = adjustIncomingNetworkMoveForBoardView(move, moverIsWhite);
+    async function applyEngineMove(move) {
+        const adjusted = adjustIncomingNetworkMoveForBoardView(move);
         if (!adjusted) {
             return false;
         }
@@ -1654,7 +1509,110 @@
                 Board.clearBoardAnimating();
             }
         }
+        lastMove = game.LastMove || lastMove;
+        updateMovesTable(tableMovesFromGame());
+        updateHeaderTurn();
         return true;
+    }
+
+    async function runEngineMove() {
+        if (!game || !session || !Engine || game.GameOver || !isAiTurn() || positionSetupMode) {
+            return;
+        }
+        if (animating || dialogOn) {
+            return;
+        }
+        if (Board.resetSquareColors) {
+            Board.resetSquareColors();
+        }
+        await yieldForPaint();
+        animating = true;
+        showStatus("Engine thinking…", 0, "info");
+        try {
+            const move = await Engine.computeMove({
+                gameState: game.GameState,
+                engine: session.engine,
+                difficulty: session.difficulty,
+            });
+            if (!move) {
+                showStatus("Engine could not find a move", 0, "error");
+                return;
+            }
+            if (move.promotion && move.selectedPiece == null) {
+                move.selectedPiece = game.QUEEN;
+            }
+            const applied = await applyEngineMove(move);
+            if (!applied) {
+                showStatus("Engine move could not be applied", 0, "error");
+                return;
+            }
+            switchClocks();
+            if (isHumanTurn()) {
+                showStatus("", 0, "info");
+            }
+        } catch (err) {
+            console.error(err);
+            showStatus(err.message || "Engine error", 0, "error");
+        } finally {
+            animating = false;
+            if (Board.refreshHumanPieceInput) {
+                Board.refreshHumanPieceInput();
+            }
+            updateActionButtons();
+        }
+    }
+
+    function applySessionSettings(opts) {
+        session = Settings.buildSession(opts);
+        allowUndo = resolveAllowUndo(session);
+        currentPlayerIsWhite = opts.color !== "black";
+        Board.setPlayerView(currentPlayerIsWhite);
+        if (Board.setHumanColor) {
+            Board.setHumanColor(currentPlayerIsWhite);
+        }
+        Board.setPreferences({
+            mouse: session.mousePreference || "drag",
+            showAvailableMoves: session.showAvailableMoves !== false,
+        });
+        updateMatchHeader();
+    }
+
+    async function beginNewGame(opts) {
+        applySessionSettings(opts);
+        game.startNewGame(currentPlayerIsWhite);
+        resetClocks();
+        redoPairAvailable = false;
+        lastCheckNotifySide = null;
+        alertMode = false;
+        Board.clearArrows();
+        Board.syncFromGameState();
+        updateMovesTable([]);
+        updateHeaderTurn();
+        gameActive = true;
+        document.body.classList.add("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(true);
+        }
+        updateActionButtons();
+        if (!game.GameOver && !isHumanTurn()) {
+            await runEngineMove();
+        } else if (!game.GameOver) {
+            switchClocks();
+            showStatus("Your move", 2000, "info");
+        }
+    }
+
+    function beginPositionSetupFromMenu() {
+        const opts = Settings.loadLastOptions();
+        applySessionSettings(opts);
+        game.startNewGame(currentPlayerIsWhite);
+        resetClocks();
+        redoPairAvailable = false;
+        Board.syncFromGameState();
+        updateMovesTable([]);
+        updateHeaderTurn();
+        gameActive = false;
+        enterPositionSetupMode();
     }
 
     async function onPromotion(turn) {
@@ -1669,11 +1627,11 @@
         showStatus("Choose promotion piece", 0, "promotion");
         return new Promise(function (resolve) {
             Board.showPromotionDialog(async function (selectedPiece) {
+                let runBrainAfter = false;
                 try {
                     const pending = game.LastMove;
                     if (!pending || !pending.promotion) {
                         showStatus("");
-                        resolve();
                         return;
                     }
                     if (
@@ -1682,7 +1640,6 @@
                         selectedPiece > game.QUEEN
                     ) {
                         showStatus("Invalid promotion piece", 0, "error");
-                        resolve();
                         return;
                     }
                     pending.selectedPiece = selectedPiece;
@@ -1691,11 +1648,11 @@
                     Board.syncFromGameState();
                     syncBoardFromGame();
                     redoPairAvailable = false;
-                    await sendMove(pending);
                     switchClocks();
                     updateMovesTable(tableMovesFromGame());
-                    updateActionButtons();
+                    updateHeaderTurn();
                     showStatus("");
+                    runBrainAfter = !game.GameOver && isAiTurn();
                 } catch (err) {
                     console.error(err);
                     showStatus(err.message || "Promotion failed", 0, "error");
@@ -1705,196 +1662,37 @@
                     updateActionButtons();
                     resolve();
                 }
+                if (runBrainAfter) {
+                    await runEngineMove();
+                }
             });
         });
     }
 
     async function onHumanMove(executed) {
+        if (!gameActive || positionSetupMode) {
+            return;
+        }
         lastMove = executed;
         redoPairAvailable = false;
         Board.clearArrows();
+        if (Board.resetSquareColors) {
+            Board.resetSquareColors();
+        }
         switchClocks();
-        await sendMove(executed);
-        const moves = await loadMoves();
-        updateMovesTable(moves.moves || []);
+        updateMovesTable(tableMovesFromGame());
+        updateHeaderTurn();
         updateActionButtons();
-    }
-
-    function sendWs(message) {
-        if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-            webSocket.send(JSON.stringify(message));
+        if (!game.GameOver && isAiTurn()) {
+            await yieldForPaint();
+            await runEngineMove();
         }
-    }
-
-    function movesForServerSync() {
-        return tableMovesFromGame().map(function (m) {
-            const copy = Object.assign({}, m);
-            if (typeof copy.moveTime !== "number") {
-                copy.moveTime = copy.turn === "white" ? whiteTimer : blackTimer;
-            }
-            if (typeof copy.whiteTimer !== "number") {
-                copy.whiteTimer = whiteTimer;
-            }
-            if (typeof copy.blackTimer !== "number") {
-                copy.blackTimer = blackTimer;
-            }
-            return copy;
-        });
-    }
-
-    function syncServerGameState(options) {
-        options = options || {};
-        if (!game || !gameInfo || !Api.post) {
-            return Promise.resolve();
-        }
-        const body = {
-            gameId: gameInfo.id,
-            state: game.GameState,
-            moves: movesForServerSync(),
-            turn: game.Turn,
-        };
-        if (typeof options.humanPlaysWhite === "boolean") {
-            body.humanPlaysWhite = options.humanPlaysWhite;
-        }
-        return Api.post("/app/api/game/sync-state", body)
-            .then(function (res) {
-                if (res && res.ok === false) {
-                    throw new Error(res.message || "Could not sync game state");
-                }
-                return res;
-            })
-            .catch(function (err) {
-                if (options.throwOnError) {
-                    throw err;
-                }
-                console.error("Failed to sync game state:", err);
-            });
-    }
-
-    async function sendMove(moveObj) {
-        const payload = adjustOutgoingNetworkMoveForBoardView(moveObj);
-        payload.moveTime = currentPlayerIsWhite ? whiteTimer : blackTimer;
-        payload.whiteTimer = whiteTimer;
-        payload.blackTimer = blackTimer;
-        sendWs({
-            type: "move",
-            data: payload,
-            gameId: gameInfo.id,
-            username: gameInfo.username,
-            isWhite: currentPlayerIsWhite,
-        });
-    }
-
-    async function moveAccepted(move) {
-        const moveStr = move && move.moveStr != null ? move.moveStr : "";
-        sendWs({
-            type: "info",
-            info: "move accepted",
-            gameId: gameInfo.id,
-            userId: gameInfo.userId,
-            username: gameInfo.username,
-            isWhite: currentPlayerIsWhite,
-            moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
-            moveStr: moveStr,
-            whiteTimer: whiteTimer,
-            blackTimer: blackTimer,
-        });
-    }
-
-    function startWebSocket() {
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        webSocket = new WebSocket(protocol + "//" + window.location.host + "/ws", "protocolOne");
-        webSocket.onopen = function () {
-            sendWs({
-                type: "connection",
-                data: {
-                    username: gameInfo.username,
-                    isWhite: currentPlayerIsWhite,
-                    gameId: gameInfo.id,
-                    creatorId: gameInfo.creatorId,
-                    userId: gameInfo.userId,
-                },
-            });
-        };
-        webSocket.onmessage = async function (event) {
-            const message = JSON.parse(event.data);
-            if (positionSetupMode && message.type === "move") {
-                return;
-            }
-            if (message.type === "move") {
-                if (game.GameOver) {
-                    const moves = await loadMoves();
-                    updateMovesTable(moves.moves || []);
-                    return;
-                }
-                const move = adjustIncomingNetworkMoveForBoardView(
-                    message.data,
-                    message.isWhite,
-                );
-                if (!move) {
-                    return;
-                }
-                if (move.promotion && !move.selectedPiece) {
-                    return;
-                }
-                const applied = await applyNetworkMove(move, message.isWhite);
-                if (!applied) {
-                    return;
-                }
-                lastMove = game.LastMove || {
-                    source: move.source,
-                    target: move.target,
-                };
-                redoPairAvailable = false;
-                await moveAccepted(move);
-                if (typeof message.isWhite === "boolean" && typeof move.moveTime === "number") {
-                    if (message.isWhite) {
-                        whiteTimer = move.moveTime;
-                    } else {
-                        blackTimer = move.moveTime;
-                    }
-                    updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
-                }
-                switchClocks();
-                if (Board.refreshHumanPieceInput) {
-                    Board.refreshHumanPieceInput();
-                }
-                if (isHumanTurn()) {
-                    showStatus("", 0, "info");
-                }
-                const moves = await loadMoves();
-                updateMovesTable(moves.moves || []);
-                updateActionButtons();
-                sendWs({
-                    type: "info",
-                    info: "clockSync",
-                    gameId: gameInfo.id,
-                    whiteTimer: whiteTimer,
-                    blackTimer: blackTimer,
-                });
-            }
-            if (message.type === "clockSync") {
-                if (
-                    typeof message.whiteTimer === "number" &&
-                    typeof message.blackTimer === "number"
-                ) {
-                    whiteTimer = message.whiteTimer;
-                    blackTimer = message.blackTimer;
-                    updateTimersFromInfo(message);
-                    switchClocks();
-                }
-            }
-            if (message.type === "info" && message.info === "game over") {
-                updateActionButtons();
-            }
-        };
     }
 
     function showPositionValidationAlert(text) {
         if (dialogOn) {
             return;
         }
-        dialogOn = true;
         const raw = String(text);
         const idx = raw.indexOf("\n\n");
         let title = "Invalid position";
@@ -1903,32 +1701,7 @@
             title = raw.slice(0, idx).trim().replace(/:\s*$/, "");
             body = raw.slice(idx + 2).trim();
         }
-        const overlay = document.createElement("div");
-        overlay.className = "desktop-play-dialog-overlay";
-        const panel = document.createElement("div");
-        panel.className = "desktop-play-dialog desktop-play-dialog--alert";
-        const heading = document.createElement("h3");
-        heading.className = "desktop-play-dialog-title";
-        heading.textContent = title;
-        panel.appendChild(heading);
-        const p = document.createElement("p");
-        p.textContent = body;
-        panel.appendChild(p);
-        const actions = document.createElement("div");
-        actions.className = "desktop-play-dialog-actions";
-        const ok = document.createElement("button");
-        ok.type = "button";
-        ok.className = "desktop-btn desktop-btn-primary";
-        ok.textContent = "OK";
-        ok.addEventListener("click", function () {
-            overlay.remove();
-            dialogOn = false;
-        });
-        actions.appendChild(ok);
-        panel.appendChild(actions);
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
-        ok.focus();
+        Dialog.alert({ title: title, message: body });
     }
 
     function validatePositionSetup(purpose) {
@@ -1943,62 +1716,29 @@
         return true;
     }
 
-    function confirmDialog(text, onYes) {
+    function confirmDialog(title, message, onYes) {
         if (dialogOn) {
             return;
         }
-        dialogOn = true;
-        const overlay = document.createElement("div");
-        overlay.className = "desktop-play-dialog-overlay";
-        const panel = document.createElement("div");
-        panel.className = "desktop-play-dialog";
-        const p = document.createElement("p");
-        p.textContent = text;
-        panel.appendChild(p);
-        const actions = document.createElement("div");
-        actions.className = "desktop-play-dialog-actions";
-        const yes = document.createElement("button");
-        yes.type = "button";
-        yes.className = "desktop-btn desktop-btn-primary";
-        yes.textContent = "Yes";
-        const no = document.createElement("button");
-        no.type = "button";
-        no.className = "desktop-btn";
-        no.textContent = "No";
-        yes.addEventListener("click", function () {
-            overlay.remove();
-            dialogOn = false;
-            onYes();
+        if (typeof message === "function") {
+            onYes = message;
+            message = title;
+            title = "Confirm";
+        }
+        Dialog.confirm({
+            title: title,
+            message: message,
+            onConfirm: onYes,
         });
-        no.addEventListener("click", function () {
-            overlay.remove();
-            dialogOn = false;
-        });
-        actions.appendChild(yes);
-        actions.appendChild(no);
-        panel.appendChild(actions);
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
     }
 
     function onResign() {
         if (game.GameOver) {
             return;
         }
-        confirmDialog("Resign this game?", async function () {
+        confirmDialog("Resign this game?", "You will lose the game.", function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
-            sendWs({
-                type: "info",
-                info: "resign",
-                gameId: gameInfo.id,
-                userId: gameInfo.userId,
-                username: gameInfo.username,
-                isWhite: currentPlayerIsWhite,
-                moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
-                whiteTimer: whiteTimer,
-                blackTimer: blackTimer,
-            });
             updateActionButtons();
         });
     }
@@ -2007,17 +1747,9 @@
         if (game.GameOver || $("drawBtn").disabled) {
             return;
         }
-        confirmDialog("Offer a draw?", function () {
-            sendWs({
-                type: "info",
-                info: "offer draw",
-                gameId: gameInfo.id,
-                userId: gameInfo.userId,
-                username: gameInfo.username,
-                isWhite: currentPlayerIsWhite,
-            });
-            showStatus("Draw offer sent", 3000, "info");
-            updateActionButtons();
+        Dialog.alert({
+            title: "Draw offer",
+            message: "Draw offers are not available when playing against the engine.",
         });
     }
 
@@ -2035,7 +1767,6 @@
         animating = false;
         redoPairAvailable = true;
         updateMovesTable(tableMovesFromGame());
-        await syncServerGameState();
         updateActionButtons();
     }
 
@@ -2053,7 +1784,6 @@
         animating = false;
         redoPairAvailable = false;
         updateMovesTable(tableMovesFromGame());
-        await syncServerGameState();
         updateActionButtons();
     }
 
@@ -2072,17 +1802,18 @@
     }
 
     function onRematch() {
-        if (!game.GameOver) {
-            return;
+        if (NewGameDialog && typeof NewGameDialog.show === "function") {
+            NewGameDialog.show(beginNewGame);
         }
-        window.location.href = "/app/new-game";
     }
 
     function onHome() {
         if (positionSetupMode) {
             exitPositionSetupMode(true);
+            resetToIdleScreen();
+            return;
         }
-        if (game.GameOver) {
+        if (!gameActive) {
             window.location.href = "/app/";
             return;
         }
@@ -2090,44 +1821,59 @@
             ? game.Moves.length >= 1
             : game.Moves.length >= 2;
         if (!humanHasMoved) {
-            window.location.href = "/app/";
+            resetToIdleScreen();
             return;
         }
-        confirmDialog("Leave and resign?", function () {
+        confirmDialog("Leave game?", "Your game will be resigned.", function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
-            sendWs({
-                type: "info",
-                info: "resign",
-                gameId: gameInfo.id,
-                userId: gameInfo.userId,
-                username: gameInfo.username,
-                isWhite: currentPlayerIsWhite,
-                moveTime: currentPlayerIsWhite ? whiteTimer : blackTimer,
-                whiteTimer: whiteTimer,
-                blackTimer: blackTimer,
-            });
-            window.location.href = "/app/";
+            resetToIdleScreen();
         });
     }
 
-    async function startSession() {
-        gameInfo = await loadGameInfo();
-        if (gameInfo.gameType !== "SinglePlayerGame") {
-            throw new Error("Desktop play supports single-player games only");
+    function resetToIdleScreen() {
+        if (positionSetupMode) {
+            Board.setSetupMode(false);
+            setPositionSetupUi(false);
         }
-
-        allowUndo = resolveAllowUndo(gameInfo);
-        currentPlayerIsWhite = gameInfo.username === gameInfo.whitePlayerName;
+        gameActive = false;
+        positionSetupSnapshot = null;
+        document.body.classList.remove("desktop-play-has-active-game");
+        if (whiteHandle) {
+            clearInterval(whiteHandle);
+            whiteHandle = null;
+        }
+        if (blackHandle) {
+            clearInterval(blackHandle);
+            blackHandle = null;
+        }
+        session = null;
+        alertMode = false;
+        clearHeaderEvent();
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(false);
+        }
+        if (Board.clearKingHighlights) {
+            Board.clearKingHighlights();
+        }
+        game.startNewGame(true);
+        Board.syncFromGameState();
+        updateMovesTable([]);
         updateMatchHeader();
+        updateHeaderTurn();
+        showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+        updateActionButtons();
+    }
+
+    async function startSession() {
         await loadSavedGames();
 
         game = new ChessGame();
         Board.setGame(game);
-        Board.setPlayerView(currentPlayerIsWhite);
+        Board.setPlayerView(true);
         Board.setPreferences({
-            mouse: gameInfo.mousePreference || "drag",
-            showAvailableMoves: gameInfo.showAvailableMoves !== false,
+            mouse: "drag",
+            showAvailableMoves: true,
         });
         Board.setHumanMoveHandler(onHumanMove);
         Board.mount("chessboard");
@@ -2135,35 +1881,26 @@
             window.DesktopBoardScale.refresh();
         }
         Board.registerInput();
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(false);
+        }
         registerGameEvents();
 
-        if (gameInfo.gameState) {
-            game.loadGame(JSON.stringify(gameInfo.gameState));
-            const movesData = await loadMoves();
-            let tableMoves = movesData.moves || [];
-            if (tableMoves.length > 0) {
-                tableMoves = tableMoves.map(function (m) {
-                    return typeof m === "string" ? JSON.parse(m) : m;
-                });
-                game.loadMoves(tableMoves);
-            }
-            updateMovesTable(tableMoves);
-            updateTimersFromInfo(gameInfo);
-            switchClocks();
-        } else {
-            game.startNewGame(currentPlayerIsWhite);
-            const movesData = await loadMoves();
-            updateMovesTable(movesData.moves || []);
-            resetClocks();
-        }
-
+        game.startNewGame(true);
         Board.syncFromGameState();
+        updateMovesTable([]);
         updateHeaderTurn();
-        startWebSocket();
+        updateMatchHeader();
+        showStatus("Choose New game or Position setup from the sidebar", 0, "info");
         updateActionButtons();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        if (Dialog && Dialog.setLockHandlers) {
+            Dialog.setLockHandlers(function (locked) {
+                dialogOn = locked;
+            });
+        }
         buildActionRail();
         startHeaderDateTime();
         startSession().catch(function (err) {

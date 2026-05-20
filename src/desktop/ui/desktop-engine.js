@@ -1,0 +1,15 @@
+/**
+ * Desktop AI — calls Electron main process (no WebSocket).
+ */
+(function () {
+    "use strict";
+
+    async function computeMove(opts) {
+        if (window.shmerling && typeof window.shmerling.invoke === "function") {
+            return window.shmerling.invoke("brain:computeMove", opts);
+        }
+        throw new Error("Desktop engine is not available. Restart the Shmerling Chess app.");
+    }
+
+    window.DesktopEngine = { computeMove };
+})();

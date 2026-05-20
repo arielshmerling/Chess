@@ -2,7 +2,6 @@ const path = require("path");
 const express = require("express");
 const { requireLogin } = require("../utils");
 const { ensureGuestSession } = require("./middleware");
-const gameApi = require("./gameApi");
 const bookmarkApi = require("./bookmarkApi");
 const brainConfigApi = require("./brainConfigApi");
 const customThemeApi = require("./customThemeApi");
@@ -16,30 +15,19 @@ function sendUiPage(filename) {
 }
 
 /**
- * Desktop-only UI and JSON API. Web routes are not mounted when SHMERLING_MODE=desktop.
+ * Desktop-only UI and JSON API. Game play is in-process (Electron IPC), not HTTP/WS.
  * @param {import("express").Application} app
  */
 function mountDesktopRoutes(app) {
     app.use(ensureGuestSession);
 
-    app.get("/gameInfo", requireLogin, gameApi.getGameInfo);
-    app.get("/gameMoves", requireLogin, gameApi.getGameMoves);
-    app.get("/game", requireLogin, gameApi.startFromQuery);
     app.get("/brain-config", requireLogin, brainConfigApi.get);
     app.post("/brain-config", requireLogin, brainConfigApi.save);
-    app.post("/rematch", requireLogin, gameApi.rematch);
 
     app.get("/bookmark", requireLogin, bookmarkApi.list);
     app.post("/bookmark", requireLogin, bookmarkApi.create);
     app.post("/updateBookmark", requireLogin, bookmarkApi.update);
     app.post("/deleteBookmark", requireLogin, bookmarkApi.remove);
-    app.post("/applyBookmark", requireLogin, bookmarkApi.apply);
-
-    app.post("/app/api/game", requireLogin, gameApi.createGame);
-    app.post("/app/api/game/sync-state", requireLogin, gameApi.syncGameState);
-
-    app.get("/app/api/custom-themes", requireLogin, customThemeApi.get);
-    app.post("/app/api/custom-themes", requireLogin, customThemeApi.save);
 
     app.use("/app/ui", express.static(UI_DIR));
     app.use("/vendor", express.static(path.join(__dirname, "..", "assets", "vendor")));
@@ -49,14 +37,17 @@ function mountDesktopRoutes(app) {
     });
 
     app.get(["/app", "/app/"], sendUiPage("index.html"));
-    app.get("/app/new-game", sendUiPage("new-game.html"));
-    app.get("/app/play", (req, res) => {
-        const page = req.query.research === "1" ? "play-research.html" : "play.html";
-        res.sendFile(path.join(UI_DIR, page));
-    });
+    app.get("/app/new-game", (_req, res) => res.redirect(302, "/app/play"));
+    app.get("/app/play", sendUiPage("play.html"));
     app.get("/app/error", sendUiPage("error.html"));
 
-    app.get("/research", (_req, res) => res.redirect("/app/play?research=1"));
+    app.get("/research", (_req, res) => res.redirect(302, "/app/play"));
+    app.get("/game", (_req, res) => res.redirect(302, "/app/play"));
+    app.get("/gameInfo", (_req, res) => res.redirect(302, "/app/play"));
+    app.get("/gameMoves", (_req, res) => res.redirect(302, "/app/play"));
+
+    app.get("/app/api/custom-themes", requireLogin, customThemeApi.get);
+    app.post("/app/api/custom-themes", requireLogin, customThemeApi.save);
 
     app.get("/desktop", (_req, res) => res.redirect("/app/"));
     app.get("/desktop/", (_req, res) => res.redirect("/app/"));

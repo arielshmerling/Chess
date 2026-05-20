@@ -1,5 +1,6 @@
 /**
  * Shmerling desktop local server (no MongoDB). Started by Electron main process.
+ * Serves static UI + bookmarks/themes APIs. Game + brain run in-process via Electron IPC.
  */
 process.env.SHMERLING_MODE = "desktop";
 
@@ -13,17 +14,11 @@ if (!process.env.SHMERLING_USER_DATA) {
 runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
 
 const { preloadOpeningBookAtStartup } = require("./src/desktop/preloadOpeningBook");
-const { applyDesktopSinglePlayerBrainPatch } = require("./src/desktop/patchSinglePlayerBrain");
 
 async function startDesktopServer() {
     await preloadOpeningBookAtStartup();
-    applyDesktopSinglePlayerBrainPatch();
 
     const app = require("./src/app.js");
-    const gameManagerService = require("./src/modules/gamesManager/service.js");
-
-    app.setWebSocketService(gameManagerService);
-    gameManagerService.setLobbyBroadcast(app.broadcastToLobby);
 
     const PORT = Number(process.env.PORT) || 0;
     const HOST = "127.0.0.1";

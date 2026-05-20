@@ -101,6 +101,9 @@ exports.getGameInfo = catchAsync(async (req, res) => {
     if (!game) {
         return res.redirect("/app/");
     }
+    if (req.session) {
+        req.session.gameId = gameId;
+    }
     if (game.status === "reJoining") {
         game.status = "in progress";
         await gameStore.persistGame(game);
@@ -110,9 +113,12 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 });
 
 exports.getGameMoves = catchAsync(async (req, res) => {
-    const gameId = req.session.gameId;
+    const gameId = req.query.id || req.session.gameId;
     if (!gameId) {
         return res.redirect("/app/");
+    }
+    if (req.session) {
+        req.session.gameId = gameId;
     }
     const movesObj = await gamesManagerService.findGameMoves(gameId);
     res.send(movesObj);
@@ -149,18 +155,14 @@ exports.syncGameState = catchAsync(async (req, res) => {
     if (typeof humanPlaysWhite === "boolean" && typeof game.setHumanPlaysWhite === "function") {
         game.setHumanPlaysWhite(humanPlaysWhite);
     }
-    if (typeof game._initialBrainMoveToken === "number") {
-        game._initialBrainMoveToken += 1;
-    }
-    let engineMove = null;
-    let engineIsWhite = null;
     if (typeof game.scheduleBrainMoveIfAiTurn === "function") {
-        const engineResult = await game.scheduleBrainMoveIfAiTurn();
-        if (engineResult && engineResult.move) {
-            engineMove = engineResult.move;
-            engineIsWhite = engineResult.brainPlaysAsWhite;
-        }
+        await game.scheduleBrainMoveIfAiTurn();
     }
     await gameStore.persistGame(game);
-    res.json({ ok: true, engineMove, engineIsWhite });
+    res.json({
+        ok: true,
+        state: game.chessGame.GameState,
+        moves: game.moves,
+        turn: game.chessGame.Turn,
+    });
 });
