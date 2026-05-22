@@ -1,5 +1,5 @@
 {
-  "activeTheme": "custom:custom-mp9z5drk",
+  "activeTheme": "custom:custom-mp9zer1t",
   "themes": [
     {
       "id": "custom-mp9z5drk",
@@ -99,7 +99,7 @@
         "--panel-border": "#b9bcc0",
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
-        "--textbox-background": "#98c1d9",
+        "--textbox-background": "#43738e",
         "--textbox-forecolor": "#787878",
         "--moves-panel-bg": "#b9bcc0",
         "--moves-dock-title-background": "#354c69",
@@ -137,7 +137,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1779323896328
+      "updatedAt": 1779417491798
     },
     {
       "id": "custom-mpa8c3z4",

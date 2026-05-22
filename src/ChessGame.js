@@ -910,6 +910,45 @@ class ChessGame {
         return "white";
     }
 
+    /**
+     * Re-evaluate check, checkmate, and draw for the current position without playing a move.
+     * Uses the same logic as after {@link makeMove} ({@link #analyzeGameStatus}).
+     *
+     * @returns {{ check: boolean, checkmate: boolean, draw: boolean, drawReason: string }}
+     */
+    evaluate() {
+        if (!Array.isArray(this.#state.capturedPiecesList)) {
+            this.#state.capturedPiecesList = [];
+        }
+
+        this.#state.check = false;
+        this.#state.checkmate = false;
+        this.#state.draw = false;
+        this.#state.drawReason = "";
+
+        const threateningColor = this.opponent(this.Turn);
+        this.#analyzeGameStatus({
+            valid: true,
+            source: { row: 0, col: 0 },
+            target: { row: 0, col: 0 },
+            piece: { color: threateningColor, pieceType: this.PAWN },
+            promotion: false,
+            ennPassant: false,
+            capturedPiece: null,
+            hitSquare: null,
+            turn: threateningColor,
+            castling: false,
+            whitePlayerView: this.WhitePlayerView,
+        });
+
+        return {
+            check: !!this.#state.check,
+            checkmate: !!this.#state.checkmate,
+            draw: !!this.#state.draw,
+            drawReason: this.#state.drawReason || "",
+        };
+    }
+
     colorName(color) {
         if (color == "white") { return "White"; }
         else if (color == "black") { return "Black"; }

@@ -159,6 +159,24 @@ describe("Checkmate rules", () => {
     });
 });
 
+describe("evaluate()", () => {
+    it("recomputes check for the side to move without playing a move", () => {
+        const g = new ChessGame(true);
+        g.loadGame(initalState);
+        const start = g.evaluate();
+        assert.equal(start.check, false);
+        assert.equal(start.checkmate, false);
+        assert.equal(g.Check, false);
+
+        const state = `{"board":[[{"color":"black","pieceType":4},{"color":"black","pieceType":2},{"color":"black","pieceType":3},{"color":"black","pieceType":5},{"color":"black","pieceType":1},{"color":"black","pieceType":3},null,{"color":"black","pieceType":4}],[{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},null,null,null,{"color":"black","pieceType":0},{"color":"black","pieceType":0}],[null,null,null,null,{"color":"black","pieceType":2},{"color":"black","pieceType":0},null,null],[null,null,null,{"color":"black","pieceType":0},null,null,null,null],[{"color":"white","pieceType":3},null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},null,null,{"color":"white","pieceType":0},{"color":"white","pieceType":0}],[{"color":"white","pieceType":4},{"color":"white","pieceType":2},{"color":"white","pieceType":3},{"color":"white","pieceType":5},{"color":"white","pieceType":1},null,{"color":"white","pieceType":2},{"color":"white","pieceType":4}]],"turn":"black","capturedPiecesList":[],"check":false,"checkmate":false,"draw":false,"drawReason":"","whiteKingMoved":false,"blackKingMoved":false,"queensideWhiteRookMoved":false,"queensideBlackRookMoved":false,"kingsideWhiteRookMoved":false,"kingsideBlackRookMoved":false,"whitePlayerView":true,"fiftyMovesCounter":1,"promoting":false}`
+        g.loadGame(state);
+        const result = g.evaluate();
+        assert.equal(result.check, true);
+        assert.equal(g.Check, true);
+        assert.equal(g.GameState.check, true);
+    });
+});
+
 describe('Verify Cant Make A Move After Checkmate', () => {
     it('Verify Cant Make A Move After Checkmate', () => {
         const state = `{"board":[[{"color":"black","pieceType":4},{"color":"black","pieceType":2},{"color":"black","pieceType":3},{"color":"black","pieceType":5},{"color":"black","pieceType":1},{"color":"black","pieceType":3},null,{"color":"black","pieceType":4}],[{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},null,null,null,{"color":"black","pieceType":0},{"color":"black","pieceType":0}],[null,null,null,null,{"color":"black","pieceType":2},{"color":"black","pieceType":0},null,null],[null,null,null,{"color":"black","pieceType":0},null,null,null,null],[{"color":"white","pieceType":3},null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},{"color":"white","pieceType":0},null,null,{"color":"white","pieceType":0},{"color":"white","pieceType":0}],[{"color":"white","pieceType":4},{"color":"white","pieceType":2},{"color":"white","pieceType":3},{"color":"white","pieceType":5},{"color":"white","pieceType":1},null,{"color":"white","pieceType":2},{"color":"white","pieceType":4}]],"turn": "black","capturedPiecesList":[{"color":"white","pieceType":0},{"color":"black","pieceType":0},{"color":"white","pieceType":0}],"algebricNotation":"","check":true,"checkmate":true,"draw":false,"whiteKingMoved":false,"blackKingMoved":false,"queensideWhiteRookMoved":false,"queensideBlackRookMoved":false,"kingsideWhiteRookMoved":false,"kingsideBlackRookMoved":false,"whitePlayerView":true,"fiftyMovesCounter":1,"promoting":false,"lastMove":{"valid":true,"source":{"row":5,"col":1},"target":{"row":4,"col":0},"piece":{"color":"white","pieceType":3},"promotion":false,"ennPassant":false,"capturedPiece":null,"hitSquare":null,"turn":"white","castling":false,"check":true}}`

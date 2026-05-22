@@ -269,138 +269,16 @@
         });
     }
 
-    function findKingSquare(board, color, kingType) {
-        if (!board || !Array.isArray(board)) {
-            return null;
-        }
-        for (let r = 0; r < board.length; r++) {
-            const row = board[r];
-            if (!row || !Array.isArray(row)) {
-                continue;
-            }
-            for (let c = 0; c < row.length; c++) {
-                const cell = row[c];
-                if (
-                    cell &&
-                    cell.color === color &&
-                    cell.pieceType === kingType
-                ) {
-                    return { row: r, col: c };
-                }
-            }
-        }
-        return null;
-    }
-
-    function isKingAttacked(game, kingColor) {
-        if (!game || !game.GameState || !game.opponent) {
-            return false;
-        }
-        const kingSquare = findKingSquare(
-            game.GameState.board,
-            kingColor,
-            game.KING,
-        );
-        if (!kingSquare) {
-            return false;
-        }
-        const attacker = game.opponent(kingColor);
-        const rows = typeof game.BOARD_ROWS === "number" ? game.BOARD_ROWS : 8;
-        const cols = typeof game.BOARD_COLUMNS === "number" ? game.BOARD_COLUMNS : 8;
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                const move = game.validateMove(
-                    game.square(i, j),
-                    kingSquare,
-                    attacker,
-                );
-                if (move && move.valid) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    function sideHasLegalMove(game, color) {
-        const rows = typeof game.BOARD_ROWS === "number" ? game.BOARD_ROWS : 8;
-        const cols = typeof game.BOARD_COLUMNS === "number" ? game.BOARD_COLUMNS : 8;
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                for (let i2 = 0; i2 < rows; i2++) {
-                    for (let j2 = 0; j2 < cols; j2++) {
-                        const move = game.validateMove(
-                            game.square(i, j),
-                            game.square(i2, j2),
-                            color,
-                        );
-                        if (move && move.valid) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    function withClearedStatusFlags(game, fn) {
-        const snapshot = JSON.stringify(game.GameState);
-        const cleared = JSON.parse(snapshot);
-        cleared.check = false;
-        cleared.checkmate = false;
-        cleared.draw = false;
-        cleared.drawReason = "";
-        game.loadGame(JSON.stringify(cleared));
-        try {
-            return fn();
-        } finally {
-            game.loadGame(snapshot);
-        }
-    }
-
     function syncStatusFlagsFromGame() {
         if (!chessGame || !chessGame.GameState) {
             return;
         }
-        const state = chessGame.GameState;
-        const toMove = state.turn === "black" ? "black" : "white";
-        const analyzed = withClearedStatusFlags(chessGame, function () {
-            return {
-                inCheck: isKingAttacked(chessGame, toMove),
-                hasMoves: sideHasLegalMove(chessGame, toMove),
-            };
-        });
-        const inCheck = analyzed.inCheck;
-        const hasMoves = analyzed.hasMoves;
-
-        let checkmate = false;
-        let draw = false;
-        let drawReason = "";
-
-        if (inCheck && !hasMoves) {
-            checkmate = true;
-        } else if (!inCheck && !hasMoves) {
-            draw = true;
-            drawReason = "Stalemate";
-        } else if (state.fiftyMovesCounter >= 50) {
-            draw = true;
-            drawReason = "50 Moves";
-        }
-
-        if (!global.DesktopBoard || !global.DesktopBoard.mutateSetupBoard) {
+        if (typeof chessGame.evaluate !== "function") {
             refreshFlagCheckboxes();
             return;
         }
-        global.DesktopBoard.mutateSetupBoard(
-            function (s) {
-                s.check = inCheck;
-                s.checkmate = checkmate;
-                s.draw = draw;
-                s.drawReason = drawReason;
-            },
-            { skipKingRookSync: true },
-        );
+        chessGame.evaluate();
+        refreshFlagCheckboxes();
     }
 
     function applySetupFlag(key, uiChecked, isCastling) {
