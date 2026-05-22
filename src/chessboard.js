@@ -1110,10 +1110,6 @@ function researchSyncKingRookFlagsFromBoard(state) {
     state.queensideWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, qsCol, "white", ROOK);
     state.kingsideBlackRookMoved = !researchIsRookOnSquare(b, blackRow, ksCol, "black", ROOK);
     state.queensideBlackRookMoved = !researchIsRookOnSquare(b, blackRow, qsCol, "black", ROOK);
-    state.farWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, 0, "white", ROOK);
-    state.nearWhiteRookMoved = !researchIsRookOnSquare(b, whiteRow, 7, "white", ROOK);
-    state.farBlackRookMoved = !researchIsRookOnSquare(b, blackRow, 0, "black", ROOK);
-    state.nearBlackRookMoved = !researchIsRookOnSquare(b, blackRow, 7, "black", ROOK);
 }
 
 function initResearchMode() {

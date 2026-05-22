@@ -26,10 +26,6 @@ class ChessGameState {
     outOfTime = "";
     whiteKingMoved = false;
     blackKingMoved = false;
-    farWhiteRookMoved = false;
-    farBlackRookMoved = false;
-    nearWhiteRookMoved = false;
-    nearBlackRookMoved = false;
     whitePlayerView = false;
     fiftyMovesCounter = 0;
 }

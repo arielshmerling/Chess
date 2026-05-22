@@ -31,10 +31,6 @@ const ENCODED_CORE_KEYS = new Set([
     "queensideWhiteRookMoved",
     "kingsideBlackRookMoved",
     "queensideBlackRookMoved",
-    "farWhiteRookMoved",
-    "nearWhiteRookMoved",
-    "farBlackRookMoved",
-    "nearBlackRookMoved",
 ]);
 
 function encodeBoardCell(cell) {
@@ -118,11 +114,7 @@ function encodeSavedGameStateStringToBuffer(savedGameStateStr) {
     const flags2 = (obj.kingsideWhiteRookMoved ? 1 : 0)
         | (obj.queensideWhiteRookMoved ? 2 : 0)
         | (obj.kingsideBlackRookMoved ? 4 : 0)
-        | (obj.queensideBlackRookMoved ? 8 : 0)
-        | (obj.farWhiteRookMoved ? 16 : 0)
-        | (obj.nearWhiteRookMoved ? 32 : 0)
-        | (obj.farBlackRookMoved ? 64 : 0)
-        | (obj.nearBlackRookMoved ? 128 : 0);
+        | (obj.queensideBlackRookMoved ? 8 : 0);
 
     const drawReason = String(obj.drawReason ?? "");
     const resigned = String(obj.resigned ?? "");
@@ -246,10 +238,6 @@ function decodeBufferToSavedGameStateString(buf) {
         queensideWhiteRookMoved: !!(flags2 & 2),
         kingsideBlackRookMoved: !!(flags2 & 4),
         queensideBlackRookMoved: !!(flags2 & 8),
-        farWhiteRookMoved: !!(flags2 & 16),
-        nearWhiteRookMoved: !!(flags2 & 32),
-        farBlackRookMoved: !!(flags2 & 64),
-        nearBlackRookMoved: !!(flags2 & 128),
     };
 
     return JSON.stringify(Object.assign(core, extrasParsed));
