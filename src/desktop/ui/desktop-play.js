@@ -506,6 +506,9 @@
         const wv = game.GameState && game.GameState.whitePlayerView !== false;
         game.startNewGame(wv);
         Board.syncFromGameState();
+        if (Board.mutateSetupBoard) {
+            Board.mutateSetupBoard(function () {}, {});
+        }
     }
 
     function updateSetupCursor() {
@@ -719,7 +722,9 @@
             Board.syncFromGameState();
         }
         syncGameRunPanelOptions();
-        if (Setup && Setup.refreshFlagCheckboxes) {
+        if (Board.mutateSetupBoard) {
+            Board.mutateSetupBoard(function () {}, {});
+        } else if (Setup && Setup.refreshFlagCheckboxes) {
             Setup.refreshFlagCheckboxes();
         }
         showStatus("Position setup — place pieces on the board", 0, "info");

@@ -143,25 +143,12 @@
             return;
         }
         const b = state.board;
-        function syncCastlingMoved(key, slot) {
-            if (!isPieceOnHomeSquare(b, slot)) {
-                state[key] = true;
-            }
-        }
-        syncCastlingMoved("whiteKingMoved", homes.whiteKingMoved);
-        syncCastlingMoved("blackKingMoved", homes.blackKingMoved);
-        if (!isPieceOnHomeSquare(b, homes.nearWhiteRookMoved)) {
-            state.kingsideWhiteRookMoved = true;
-        }
-        if (!isPieceOnHomeSquare(b, homes.farWhiteRookMoved)) {
-            state.queensideWhiteRookMoved = true;
-        }
-        if (!isPieceOnHomeSquare(b, homes.nearBlackRookMoved)) {
-            state.kingsideBlackRookMoved = true;
-        }
-        if (!isPieceOnHomeSquare(b, homes.farBlackRookMoved)) {
-            state.queensideBlackRookMoved = true;
-        }
+        state.whiteKingMoved = !isPieceOnHomeSquare(b, homes.whiteKingMoved);
+        state.blackKingMoved = !isPieceOnHomeSquare(b, homes.blackKingMoved);
+        state.kingsideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.nearWhiteRookMoved);
+        state.queensideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.farWhiteRookMoved);
+        state.kingsideBlackRookMoved = !isPieceOnHomeSquare(b, homes.nearBlackRookMoved);
+        state.queensideBlackRookMoved = !isPieceOnHomeSquare(b, homes.farBlackRookMoved);
         syncNearFarFromCastlingRookFlags(state);
     }
 
@@ -629,7 +616,11 @@
 
         const flagsSection = createFlagsSection();
         container.appendChild(flagsSection);
-        refreshFlagCheckboxes();
+        if (global.DesktopBoard && global.DesktopBoard.mutateSetupBoard) {
+            global.DesktopBoard.mutateSetupBoard(function () {}, {});
+        } else {
+            refreshFlagCheckboxes();
+        }
 
         const whitePawnBtn = whiteCol.querySelector(
             '.desktop-play-setup-piece[data-color="white"][data-piece="' + chessGame.PAWN + '"]',
