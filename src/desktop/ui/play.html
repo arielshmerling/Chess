@@ -11,6 +11,7 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <script src="/ChessGame.js"></script>
   <script src="/themes.js"></script>
+  <script src="/app/ui/desktop-theme-keys.js"></script>
   <script src="/app/ui/desktop-custom-theme.js"></script>
   <script src="/app/ui/desktop-theme.js"></script>
   <script src="/app/ui/desktop-chrome.js"></script>
@@ -23,6 +24,7 @@
   <script src="/app/ui/desktop-board-scale.js"></script>
   <script src="/app/ui/desktop-dock-panels.js"></script>
   <script src="/app/ui/desktop-position-setup.js"></script>
+  <script src="/app/ui/desktop-game-run.js"></script>
   <script src="/app/ui/desktop-position-validation.js"></script>
   <script src="/app/ui/desktop-play.js"></script>
 </head>
@@ -32,7 +34,7 @@
 
     <div class="desktop-play-workspace">
       <header class="desktop-play-header" id="desktopPlayHeader" aria-label="Players and clocks">
-        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">In Game</p>
+        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">Game Mode</p>
 
         <div class="desktop-play-header-center">
           <div
@@ -56,7 +58,9 @@
           </div>
         </div>
 
-        <time id="desktopPlayHeaderDateTime" class="desktop-play-header-datetime" datetime=""></time>
+        <div id="desktopPlayHeaderRun" class="desktop-play-header-run" aria-label="Start game from loaded position">
+          <div id="desktopPlayGameRun"></div>
+        </div>
       </header>
 
       <div class="desktop-play-content">
@@ -109,7 +113,10 @@
         </aside>
 
         <main class="desktop-play-main">
-          <div id="chessboard" class="desktop-play-board"></div>
+          <div class="desktop-play-board-area">
+            <div id="chessboard" class="desktop-play-board"></div>
+            <p id="desktopPlayGameId" class="desktop-play-game-id" hidden aria-label="Game ID"></p>
+          </div>
         </main>
 
         <aside

@@ -62,7 +62,7 @@ function mergeStores(bundled, user) {
 async function readAll() {
     const bundled = await readBundledStore();
     const user = await readUserStore();
-    return mergeStores(bundled, user);
+    return normalizeStore(mergeStores(bundled, user));
 }
 
 function shouldSyncThemesToRepo() {

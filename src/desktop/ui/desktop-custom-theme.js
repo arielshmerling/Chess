@@ -7,65 +7,9 @@
     var STORAGE_KEY = "shmerling.desktop.customThemes";
     var PANEL_POS_KEY = "shmerling.desktop.customThemePanelPos";
 
-    /** CSS variables used by desktop UI (app shell, play, new-game, research). */
-    var THEME_GROUPS = [
-        {
-            label: "Palette",
-            keys: ["--darker", "--dark", "--semiDark", "--semiLight", "--light"],
-        },
-        {
-            label: "Board",
-            keys: [
-                "--body-background",
-                "--darkSquare",
-                "--lightSquare",
-                "--optionSquare",
-                "--frame",
-                "--frame-forecolor",
-            ],
-        },
-        {
-            label: "Play layout",
-            keys: [
-                "--play-header-background",
-                "--play-footer-background",
-                "--play-clock-background",
-                "--play-clock-border",
-                "--play-clock-text",
-                "--play-clock-active-border",
-                "--play-clock-active-background",
-                "--play-clock-active-ring",
-                "--turnClock",
-            ],
-        },
-        {
-            label: "Panels",
-            keys: ["--panel-background", "--panel-border"],
-        },
-        {
-            label: "Buttons",
-            keys: ["--button-background", "--button-forecolor"],
-        },
-        {
-            label: "Text fields",
-            keys: ["--textbox-background", "--textbox-forecolor"],
-        },
-        {
-            label: "Moves list",
-            keys: [
-                "--moves-panel-bg",
-                "--moves-dock-title-background",
-                "--moves-dock-title-text",
-                "--moves-header-background",
-                "--moves-header-text",
-                "--moves-cell-bg",
-                "--moves-cell-text",
-                "--moves-cell-highlight-bg",
-                "--moves-cell-highlight-text",
-                "--moves-cell-selected-bg",
-            ],
-        },
-    ];
+    var THEME_KEYS = window.DesktopThemeKeys || {};
+    var THEME_GROUPS = THEME_KEYS.THEME_GROUPS || [];
+    var THEME_VAR_KEYS = THEME_KEYS.THEME_VAR_KEYS || [];
 
     var panelEl = null;
     var draftVars = null;
@@ -82,6 +26,9 @@
     });
 
     function allThemeKeys() {
+        if (THEME_VAR_KEYS.length) {
+            return THEME_VAR_KEYS.slice();
+        }
         var keys = [];
         THEME_GROUPS.forEach(function (g) {
             g.keys.forEach(function (k) {
@@ -131,7 +78,14 @@
             .then(function (data) {
                 if (data && Array.isArray(data.themes)) {
                     cachedStore.activeTheme = data.activeTheme || cachedStore.activeTheme;
-                    cachedStore.themes = data.themes;
+                    cachedStore.themes = data.themes.map(function (t) {
+                        return {
+                            id: t.id,
+                            name: t.name,
+                            vars: completeThemeVarsClient(t.vars, "blue"),
+                            updatedAt: t.updatedAt,
+                        };
+                    });
                     syncLocalStorageCache();
                 }
             });
@@ -147,7 +101,7 @@
                     return {
                         id: t.id,
                         name: t.name,
-                        vars: mergeThemeVars(t.vars, "blue"),
+                        vars: completeThemeVarsClient(t.vars, "blue"),
                         updatedAt: t.updatedAt,
                     };
                 });
@@ -184,7 +138,7 @@
                         return {
                             id: t.id,
                             name: t.name || "Custom theme",
-                            vars: mergeThemeVars(t.vars, "blue"),
+                            vars: completeThemeVarsClient(t.vars, "blue"),
                             updatedAt: t.updatedAt || Date.now(),
                         };
                     });
@@ -227,7 +181,7 @@
                     return {
                         id: t.id,
                         name: t.name,
-                        vars: mergeThemeVars(t.vars, "blue"),
+                        vars: completeThemeVarsClient(t.vars, "blue"),
                         updatedAt: t.updatedAt,
                     };
                 });
@@ -290,7 +244,7 @@
                 return {
                     id: store.themes[i].id,
                     name: store.themes[i].name,
-                    vars: mergeThemeVars(store.themes[i].vars, "blue"),
+                    vars: completeThemeVarsClient(store.themes[i].vars, "blue"),
                     updatedAt: store.themes[i].updatedAt,
                 };
             }
@@ -419,13 +373,16 @@
         var base = getBuiltinThemeVars(fallback);
         var out = {};
         allThemeKeys().forEach(function (k) {
-            if (overlay && overlay[k] != null && String(overlay[k]).trim() !== "") {
-                out[k] = overlay[k];
-            } else {
-                out[k] = base[k] != null ? base[k] : "";
-            }
+            var fromOverlay =
+                overlay && overlay[k] != null && String(overlay[k]).trim() !== "";
+            out[k] = fromOverlay ? overlay[k] : base[k] != null ? base[k] : "";
         });
         return normalizeThemeVars(out);
+    }
+
+    /** Match server themeSchema.completeThemeVars so saves include every key. */
+    function completeThemeVarsClient(overlay, fallbackThemeId) {
+        return mergeThemeVars(overlay, fallbackThemeId);
     }
 
     function completeDraftVars() {
@@ -435,7 +392,7 @@
         } else if (editingSavedId) {
             fallback = "blue";
         }
-        return mergeThemeVars(draftVars, fallback);
+        return completeThemeVarsClient(draftVars, fallback);
     }
 
     function labelForKey(key) {
@@ -861,10 +818,19 @@
         if (!found) {
             store.themes.push(entry);
         }
-        writeStore(store).then(function () {
+        writeStore(store)
+            .then(function () {
             editingSavedId = id;
+            var saved = getThemeById(id);
+            if (saved && saved.vars) {
+                draftVars = cloneVars(saved.vars);
+                referenceVars = cloneVars(saved.vars);
+            }
             if (typeof window.applyDesktopTheme === "function") {
                 window.applyDesktopTheme("custom:" + id);
+            } else if (saved && saved.vars) {
+                applyVars(saved.vars);
+                setActiveTheme("custom:" + id);
             } else {
                 applyVars(draftVars);
                 setActiveTheme("custom:" + id);
@@ -874,7 +840,11 @@
             populateLoadSelect();
             document.getElementById("desktopCustomThemeDelete").hidden = false;
             refreshSavedThemesInPrefs();
-        });
+        })
+            .catch(function (err) {
+                console.error(err);
+                window.alert("Could not save theme. Try again.");
+            });
     }
 
     function refreshSavedThemesInPrefs() {

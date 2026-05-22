@@ -41,20 +41,44 @@
     let chessGame = null;
     let panelRoot = null;
     let selected = { color: "white", pieceType: 0 };
-    let onApplyBoard = null;
     let onSavePosition = null;
     let onValidatePosition = null;
     let onClearBoard = null;
     let onDefaultBoard = null;
     let onSelectTool = null;
-    let onTurnChange = null;
-    let onHumanColorChange = null;
-    let setupTurn = "white";
-    let setupHumanIsWhite = true;
-    let turnToggleWhite = null;
-    let turnToggleBlack = null;
-    let humanToggleWhite = null;
-    let humanToggleBlack = null;
+    let flagsRoot = null;
+    let flagInputs = {};
+    const SETUP_FLAG_DEFS = [
+        { key: "check", label: "Check" },
+        { key: "checkmate", label: "Checkmate" },
+        { key: "draw", label: "Draw" },
+        { key: "whiteKingMoved", label: "White king moved" },
+        { key: "blackKingMoved", label: "Black king moved" },
+        { key: "nearWhiteRookMoved", label: "White kingside rook moved" },
+        { key: "farWhiteRookMoved", label: "White queenside rook moved" },
+        { key: "nearBlackRookMoved", label: "Black kingside rook moved" },
+        { key: "farBlackRookMoved", label: "Black queenside rook moved" },
+    ];
+
+    function mirrorNearFarRookFlagsToCastling(state) {
+        if (!state) {
+            return;
+        }
+        state.kingsideWhiteRookMoved = !!state.nearWhiteRookMoved;
+        state.queensideWhiteRookMoved = !!state.farWhiteRookMoved;
+        state.kingsideBlackRookMoved = !!state.nearBlackRookMoved;
+        state.queensideBlackRookMoved = !!state.farBlackRookMoved;
+    }
+
+    function syncNearFarFromCastlingRookFlags(state) {
+        if (!state) {
+            return;
+        }
+        state.nearWhiteRookMoved = !!state.kingsideWhiteRookMoved;
+        state.farWhiteRookMoved = !!state.queensideWhiteRookMoved;
+        state.nearBlackRookMoved = !!state.kingsideBlackRookMoved;
+        state.farBlackRookMoved = !!state.queensideBlackRookMoved;
+    }
 
     function isKingOnSquare(board, row, col, color, kingType) {
         const p = board[row] && board[row][col];
@@ -107,10 +131,7 @@
         state.queensideWhiteRookMoved = !isRookOnSquare(b, whiteRow, qsCol, "white", ROOK);
         state.kingsideBlackRookMoved = !isRookOnSquare(b, blackRow, ksCol, "black", ROOK);
         state.queensideBlackRookMoved = !isRookOnSquare(b, blackRow, qsCol, "black", ROOK);
-        state.farWhiteRookMoved = !isRookOnSquare(b, whiteRow, 0, "white", ROOK);
-        state.nearWhiteRookMoved = !isRookOnSquare(b, whiteRow, 7, "white", ROOK);
-        state.farBlackRookMoved = !isRookOnSquare(b, blackRow, 0, "black", ROOK);
-        state.nearBlackRookMoved = !isRookOnSquare(b, blackRow, 7, "black", ROOK);
+        syncNearFarFromCastlingRookFlags(state);
     }
 
     function toolSelector() {
@@ -179,68 +200,81 @@
         return btn;
     }
 
-    function updateTogglePair(whiteBtn, blackBtn, isWhiteSelected) {
-        if (whiteBtn) {
-            whiteBtn.classList.toggle("selected", isWhiteSelected);
-            whiteBtn.setAttribute("aria-pressed", isWhiteSelected ? "true" : "false");
+    function refreshFlagCheckboxes() {
+        if (!chessGame || !chessGame.GameState || !flagsRoot) {
+            return;
         }
-        if (blackBtn) {
-            blackBtn.classList.toggle("selected", !isWhiteSelected);
-            blackBtn.setAttribute("aria-pressed", !isWhiteSelected ? "true" : "false");
+        const state = chessGame.GameState;
+        SETUP_FLAG_DEFS.forEach(function (def) {
+            const input = flagInputs[def.key];
+            if (input) {
+                input.checked = !!state[def.key];
+            }
+        });
+    }
+
+    function applySetupFlag(key, value) {
+        if (!chessGame || !global.DesktopBoard || !global.DesktopBoard.mutateSetupBoard) {
+            return;
         }
+        global.DesktopBoard.mutateSetupBoard(
+            function (state) {
+                state[key] = !!value;
+                if (
+                    key === "nearWhiteRookMoved" ||
+                    key === "farWhiteRookMoved" ||
+                    key === "nearBlackRookMoved" ||
+                    key === "farBlackRookMoved"
+                ) {
+                    mirrorNearFarRookFlagsToCastling(state);
+                }
+            },
+            { skipKingRookSync: true },
+        );
     }
 
-    function setTurnSelection(turn) {
-        setupTurn = turn === "black" ? "black" : "white";
-        updateTogglePair(turnToggleWhite, turnToggleBlack, setupTurn === "white");
-    }
+    function createFlagsSection() {
+        const section = document.createElement("div");
+        section.className = "desktop-play-setup-flags";
+        flagsRoot = section;
+        flagInputs = {};
 
-    function setHumanColorSelection(isWhite) {
-        setupHumanIsWhite = !!isWhite;
-        updateTogglePair(humanToggleWhite, humanToggleBlack, setupHumanIsWhite);
-    }
+        const heading = document.createElement("span");
+        heading.className = "desktop-play-setup-flags-heading";
+        heading.textContent = "Position flags";
+        section.appendChild(heading);
 
-    function createColorToggle(labelText, initialWhite, onPick, btnOut) {
-        const row = document.createElement("div");
-        row.className = "desktop-play-setup-option-row";
+        const grid = document.createElement("div");
+        grid.className = "desktop-play-setup-flags-grid";
 
-        const label = document.createElement("span");
-        label.className = "desktop-play-setup-option-label";
-        label.textContent = labelText;
-        row.appendChild(label);
+        SETUP_FLAG_DEFS.forEach(function (def) {
+            const label = document.createElement("label");
+            label.className = "desktop-check desktop-play-setup-flag";
 
-        const group = document.createElement("div");
-        group.className = "desktop-play-setup-toggle-group";
-        group.setAttribute("role", "group");
-        group.setAttribute("aria-label", labelText);
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = false;
+            input.addEventListener("change", function () {
+                applySetupFlag(def.key, input.checked);
+            });
 
-        const whiteBtn = document.createElement("button");
-        whiteBtn.type = "button";
-        whiteBtn.className = "desktop-play-setup-toggle";
-        whiteBtn.textContent = "White";
-        whiteBtn.addEventListener("click", function () {
-            onPick(true);
+            const box = document.createElement("span");
+            box.className = "desktop-check-box";
+            box.setAttribute("aria-hidden", "true");
+
+            const text = document.createElement("span");
+            text.className = "desktop-play-setup-flag-text";
+            text.textContent = def.label;
+
+            label.appendChild(input);
+            label.appendChild(box);
+            label.appendChild(text);
+            grid.appendChild(label);
+            flagInputs[def.key] = input;
         });
 
-        const blackBtn = document.createElement("button");
-        blackBtn.type = "button";
-        blackBtn.className = "desktop-play-setup-toggle";
-        blackBtn.textContent = "Black";
-        blackBtn.addEventListener("click", function () {
-            onPick(false);
-        });
-
-        group.appendChild(whiteBtn);
-        group.appendChild(blackBtn);
-        row.appendChild(group);
-
-        if (btnOut) {
-            btnOut.white = whiteBtn;
-            btnOut.black = blackBtn;
-        }
-
-        updateTogglePair(whiteBtn, blackBtn, initialWhite);
-        return row;
+        section.appendChild(grid);
+        return section;
     }
 
     function createToolButton(className, title, svg, onClick) {
@@ -259,26 +293,16 @@
     function mountPanel(container, options) {
         options = options || {};
         chessGame = options.game;
-        onApplyBoard = options.onApplyBoard || null;
         onSavePosition = options.onSavePosition || null;
         onValidatePosition = options.onValidatePosition || null;
         onClearBoard = options.onClearBoard || null;
         onDefaultBoard = options.onDefaultBoard || null;
         onSelectTool = options.onSelectTool || null;
-        onTurnChange = options.onTurnChange || null;
-        onHumanColorChange = options.onHumanColorChange || null;
-        setupTurn =
-            options.initialTurn === "black" || options.initialTurn === "white"
-                ? options.initialTurn
-                : "white";
-        setupHumanIsWhite = options.initialHumanIsWhite !== false;
 
         container.innerHTML = "";
         panelRoot = container;
-        turnToggleWhite = null;
-        turnToggleBlack = null;
-        humanToggleWhite = null;
-        humanToggleBlack = null;
+        flagsRoot = null;
+        flagInputs = {};
 
         const pieceOrder = [
             chessGame.KING,
@@ -375,20 +399,8 @@
                 }
             },
         );
-        const playBtn = createToolButton(
-            "desktop-play-setup-play",
-            "Play from position",
-            SVG.play,
-            function () {
-                if (onApplyBoard) {
-                    onApplyBoard();
-                }
-            },
-        );
-
         actions.appendChild(saveBtn);
         actions.appendChild(validateBtn);
-        actions.appendChild(playBtn);
         controlsCol.appendChild(actions);
 
         const mainRow = document.createElement("div");
@@ -403,56 +415,13 @@
         columnsWrap.appendChild(blackCol);
         piecesBlock.appendChild(columnsWrap);
 
-        const separator = document.createElement("div");
-        separator.className = "desktop-play-setup-separator";
-        separator.setAttribute("aria-hidden", "true");
-        piecesBlock.appendChild(separator);
-
-        const optionsSection = document.createElement("div");
-        optionsSection.className = "desktop-play-setup-options";
-
-        const turnBtns = {};
-        optionsSection.appendChild(
-            createColorToggle(
-                "Turn to move",
-                setupTurn === "white",
-                function (isWhite) {
-                    const next = isWhite ? "white" : "black";
-                    setTurnSelection(next);
-                    if (onTurnChange) {
-                        onTurnChange(next);
-                    }
-                },
-                turnBtns,
-            ),
-        );
-        turnToggleWhite = turnBtns.white;
-        turnToggleBlack = turnBtns.black;
-
-        const humanBtns = {};
-        const humanRow = createColorToggle(
-            "You play as",
-            setupHumanIsWhite,
-            function (isWhite) {
-                setHumanColorSelection(isWhite);
-                if (onHumanColorChange) {
-                    onHumanColorChange(isWhite);
-                }
-            },
-            humanBtns,
-        );
-        humanRow.setAttribute(
-            "title",
-            "Which color you play — the engine plays the other side (does not flip the board)",
-        );
-        optionsSection.appendChild(humanRow);
-        humanToggleWhite = humanBtns.white;
-        humanToggleBlack = humanBtns.black;
-
-        piecesBlock.appendChild(optionsSection);
         mainRow.appendChild(piecesBlock);
         mainRow.appendChild(controlsCol);
         container.appendChild(mainRow);
+
+        const flagsSection = createFlagsSection();
+        container.appendChild(flagsSection);
+        refreshFlagCheckboxes();
 
         const whitePawnBtn = whiteCol.querySelector(
             '.desktop-play-setup-piece[data-color="white"][data-piece="' + chessGame.PAWN + '"]',
@@ -482,23 +451,6 @@
         }
     }
 
-    function syncSetupOptions(opts) {
-        opts = opts || {};
-        if (opts.turn === "black" || opts.turn === "white") {
-            setTurnSelection(opts.turn);
-        }
-        if (typeof opts.humanIsWhite === "boolean") {
-            setHumanColorSelection(opts.humanIsWhite);
-        }
-    }
-
-    function getSetupOptions() {
-        return {
-            turn: setupTurn,
-            humanIsWhite: setupHumanIsWhite,
-        };
-    }
-
     global.DesktopPositionSetup = {
         mountPanel: mountPanel,
         getSelection: getSelection,
@@ -506,10 +458,7 @@
         resetDefaultSelection: resetDefaultSelection,
         syncKingRookFlagsFromBoard: syncKingRookFlagsFromBoard,
         applySetupCursor: applySetupCursor,
-        getSetupOptions: getSetupOptions,
-        syncSetupOptions: syncSetupOptions,
-        setTurnSelection: setTurnSelection,
-        setHumanColorSelection: setHumanColorSelection,
+        refreshFlagCheckboxes: refreshFlagCheckboxes,
         WHITE_PIECES: WHITE_PIECES,
         BLACK_PIECES: BLACK_PIECES,
     };

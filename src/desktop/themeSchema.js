@@ -3,47 +3,9 @@
  * Only variables referenced by the desktop app are stored in custom themes.
  */
 
+const path = require("path");
 const { blueTheme, darkTheme } = require("./builtinThemes");
-
-/** Keep in sync with THEME_GROUPS in desktop-custom-theme.js */
-const THEME_VAR_KEYS = [
-    "--darker",
-    "--dark",
-    "--semiDark",
-    "--semiLight",
-    "--light",
-    "--body-background",
-    "--darkSquare",
-    "--lightSquare",
-    "--optionSquare",
-    "--frame",
-    "--frame-forecolor",
-    "--play-header-background",
-    "--play-footer-background",
-    "--play-clock-background",
-    "--play-clock-border",
-    "--play-clock-text",
-    "--play-clock-active-border",
-    "--play-clock-active-background",
-    "--play-clock-active-ring",
-    "--turnClock",
-    "--panel-background",
-    "--panel-border",
-    "--button-background",
-    "--button-forecolor",
-    "--textbox-background",
-    "--textbox-forecolor",
-    "--moves-panel-bg",
-    "--moves-dock-title-background",
-    "--moves-dock-title-text",
-    "--moves-header-background",
-    "--moves-header-text",
-    "--moves-cell-bg",
-    "--moves-cell-text",
-    "--moves-cell-highlight-bg",
-    "--moves-cell-highlight-text",
-    "--moves-cell-selected-bg",
-];
+const { THEME_VAR_KEYS } = require(path.join(__dirname, "ui", "desktop-theme-keys"));
 
 function sanitizeThemeVarValue(value) {
     if (typeof value !== "string") {

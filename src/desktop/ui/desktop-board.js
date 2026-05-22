@@ -504,17 +504,28 @@
         };
     }
 
-    function mutateSetupBoard(mutator) {
+    function mutateSetupBoard(mutator, options) {
+        options = options || {};
         if (!chessGame || !chessGame.GameState) {
             return;
         }
         const state = JSON.parse(JSON.stringify(chessGame.GameState));
         mutator(state);
-        if (global.DesktopPositionSetup && global.DesktopPositionSetup.syncKingRookFlagsFromBoard) {
+        if (
+            !options.skipKingRookSync &&
+            global.DesktopPositionSetup &&
+            global.DesktopPositionSetup.syncKingRookFlagsFromBoard
+        ) {
             global.DesktopPositionSetup.syncKingRookFlagsFromBoard(state, chessGame);
         }
         chessGame.loadGame(JSON.stringify(state));
         syncFromGameState();
+        if (
+            global.DesktopPositionSetup &&
+            global.DesktopPositionSetup.refreshFlagCheckboxes
+        ) {
+            global.DesktopPositionSetup.refreshFlagCheckboxes();
+        }
     }
 
     function deleteSetupPieceAt(row, col) {
