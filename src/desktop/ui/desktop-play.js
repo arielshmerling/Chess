@@ -1926,6 +1926,9 @@
         if (!PositionValidation || !PositionValidation.getMessage || !game) {
             return true;
         }
+        if (positionSetupMode && Setup && Setup.syncStatusFlagsFromGame) {
+            Setup.syncStatusFlagsFromGame();
+        }
         const err = PositionValidation.getMessage(game, purpose);
         if (err) {
             showPositionValidationAlert(err);

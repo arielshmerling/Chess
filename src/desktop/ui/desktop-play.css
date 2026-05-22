@@ -222,13 +222,6 @@ body.desktop-play-page .desktop-play-main {
   height: 1.2rem;
   min-width: 1.2rem;
   min-height: 1.2rem;
-  border-width: 1.5px;
-}
-
-.desktop-play-header-run .desktop-play-game-run-swatch.selected {
-  box-shadow:
-    0 0 0 1.5px var(--gold-btn-border, #d4af37),
-    0 0 6px var(--gold-btn-glow, rgba(201, 162, 39, 0.45));
 }
 
 .desktop-play-header-run .desktop-play-game-run-play {
@@ -928,6 +921,26 @@ body.desktop-play-page .desktop-play-main {
   min-width: 0;
 }
 
+.desktop-play-setup-flag--status {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.desktop-play-setup-flag--status .desktop-check-box {
+  opacity: 0.75;
+}
+
+.desktop-play-setup-flag--castling-locked {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.desktop-play-setup-flag--castling-locked .desktop-check-box {
+  opacity: 0.55;
+}
+
 .desktop-play-game-run {
   display: flex;
   align-items: flex-start;
@@ -995,7 +1008,7 @@ body.desktop-play-page .desktop-play-main {
   min-width: 1.65rem;
   min-height: 1.65rem;
   padding: 0;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 2px;
   background: transparent;
   cursor: pointer;
@@ -1011,13 +1024,11 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-game-run-swatch.selected {
-  border-color: var(--gold-btn-border, #d4af37);
-  box-shadow:
-    0 0 0 2px var(--gold-btn-border, #d4af37),
-    0 0 8px var(--gold-btn-glow, rgba(201, 162, 39, 0.55));
+  border: 1px solid var(--frame, #293241);
+  box-shadow: none;
 }
 
-.desktop-play-game-run-swatch:hover {
+.desktop-play-game-run-swatch:hover:not(.selected) {
   border-color: rgba(255, 255, 255, 0.45);
 }
 

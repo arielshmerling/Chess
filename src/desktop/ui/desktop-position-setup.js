@@ -48,16 +48,18 @@
     let onSelectTool = null;
     let flagsRoot = null;
     let flagInputs = {};
+    const STATUS_FLAG_KEYS = ["check", "checkmate", "draw"];
+
     const SETUP_FLAG_DEFS = [
-        { key: "check", label: "Check" },
-        { key: "checkmate", label: "Checkmate" },
-        { key: "draw", label: "Draw" },
-        { key: "whiteKingMoved", label: "White king moved" },
-        { key: "blackKingMoved", label: "Black king moved" },
-        { key: "nearWhiteRookMoved", label: "White kingside rook moved" },
-        { key: "farWhiteRookMoved", label: "White queenside rook moved" },
-        { key: "nearBlackRookMoved", label: "Black kingside rook moved" },
-        { key: "farBlackRookMoved", label: "Black queenside rook moved" },
+        { key: "check", label: "Check", status: true },
+        { key: "checkmate", label: "Checkmate", status: true },
+        { key: "draw", label: "Draw", status: true },
+        { key: "whiteKingMoved", label: "White king moved", castling: true },
+        { key: "blackKingMoved", label: "Black king moved", castling: true },
+        { key: "nearWhiteRookMoved", label: "White kingside rook moved", castling: true },
+        { key: "farWhiteRookMoved", label: "White queenside rook moved", castling: true },
+        { key: "nearBlackRookMoved", label: "Black kingside rook moved", castling: true },
+        { key: "farBlackRookMoved", label: "Black queenside rook moved", castling: true },
     ];
 
     function mirrorNearFarRookFlagsToCastling(state) {
@@ -80,23 +82,10 @@
         state.farBlackRookMoved = !!state.queensideBlackRookMoved;
     }
 
-    function isKingOnSquare(board, row, col, color, kingType) {
-        const p = board[row] && board[row][col];
-        return !!(p && p.color === color && p.pieceType === kingType);
-    }
-
-    function isRookOnSquare(board, row, col, color, rookType) {
-        const p = board[row] && board[row][col];
-        return !!(p && p.color === color && p.pieceType === rookType);
-    }
-
-    function syncKingRookFlagsFromBoard(state, game) {
+    function getCastlingHomeSlots(state, game) {
         if (!state || !state.board || !game) {
-            return;
+            return null;
         }
-        const KING = game.KING;
-        const ROOK = game.ROOK;
-        const b = state.board;
         const wv = state.whitePlayerView !== false;
         let whiteRow;
         let blackRow;
@@ -125,12 +114,54 @@
             ksCol = 0;
             qsCol = 7;
         }
-        state.whiteKingMoved = !isKingOnSquare(b, wKingR, wKingC, "white", KING);
-        state.blackKingMoved = !isKingOnSquare(b, bKingR, bKingC, "black", KING);
-        state.kingsideWhiteRookMoved = !isRookOnSquare(b, whiteRow, ksCol, "white", ROOK);
-        state.queensideWhiteRookMoved = !isRookOnSquare(b, whiteRow, qsCol, "white", ROOK);
-        state.kingsideBlackRookMoved = !isRookOnSquare(b, blackRow, ksCol, "black", ROOK);
-        state.queensideBlackRookMoved = !isRookOnSquare(b, blackRow, qsCol, "black", ROOK);
+        const KING = game.KING;
+        const ROOK = game.ROOK;
+        return {
+            whiteKingMoved: { row: wKingR, col: wKingC, color: "white", pieceType: KING },
+            blackKingMoved: { row: bKingR, col: bKingC, color: "black", pieceType: KING },
+            nearWhiteRookMoved: { row: whiteRow, col: ksCol, color: "white", pieceType: ROOK },
+            farWhiteRookMoved: { row: whiteRow, col: qsCol, color: "white", pieceType: ROOK },
+            nearBlackRookMoved: { row: blackRow, col: ksCol, color: "black", pieceType: ROOK },
+            farBlackRookMoved: { row: blackRow, col: qsCol, color: "black", pieceType: ROOK },
+        };
+    }
+
+    function isPieceOnHomeSquare(board, slot) {
+        if (!board || !slot) {
+            return false;
+        }
+        const p = board[slot.row] && board[slot.row][slot.col];
+        return !!(p && p.color === slot.color && p.pieceType === slot.pieceType);
+    }
+
+    function syncKingRookFlagsFromBoard(state, game) {
+        if (!state || !state.board || !game) {
+            return;
+        }
+        const homes = getCastlingHomeSlots(state, game);
+        if (!homes) {
+            return;
+        }
+        const b = state.board;
+        function syncCastlingMoved(key, slot) {
+            if (!isPieceOnHomeSquare(b, slot)) {
+                state[key] = true;
+            }
+        }
+        syncCastlingMoved("whiteKingMoved", homes.whiteKingMoved);
+        syncCastlingMoved("blackKingMoved", homes.blackKingMoved);
+        if (!isPieceOnHomeSquare(b, homes.nearWhiteRookMoved)) {
+            state.kingsideWhiteRookMoved = true;
+        }
+        if (!isPieceOnHomeSquare(b, homes.farWhiteRookMoved)) {
+            state.queensideWhiteRookMoved = true;
+        }
+        if (!isPieceOnHomeSquare(b, homes.nearBlackRookMoved)) {
+            state.kingsideBlackRookMoved = true;
+        }
+        if (!isPieceOnHomeSquare(b, homes.farBlackRookMoved)) {
+            state.queensideBlackRookMoved = true;
+        }
         syncNearFarFromCastlingRookFlags(state);
     }
 
@@ -205,21 +236,193 @@
             return;
         }
         const state = chessGame.GameState;
+        const homes = getCastlingHomeSlots(state, chessGame);
+
         SETUP_FLAG_DEFS.forEach(function (def) {
             const input = flagInputs[def.key];
-            if (input) {
+            const label = input && input.closest(".desktop-play-setup-flag");
+            if (!input) {
+                return;
+            }
+
+            if (def.status) {
                 input.checked = !!state[def.key];
+                input.disabled = true;
+                if (label) {
+                    label.classList.add("desktop-play-setup-flag--status");
+                    label.classList.remove("desktop-play-setup-flag--castling-locked");
+                }
+                return;
+            }
+
+            if (label) {
+                label.classList.remove("desktop-play-setup-flag--status");
+            }
+
+            if (!def.castling || !homes) {
+                input.checked = !!state[def.key];
+                input.disabled = false;
+                if (label) {
+                    label.classList.remove("desktop-play-setup-flag--castling-locked");
+                }
+                return;
+            }
+
+            const slot = homes[def.key];
+            const onHome = isPieceOnHomeSquare(state.board, slot);
+            input.disabled = !onHome;
+            input.checked = onHome ? !state[def.key] : false;
+            if (label) {
+                label.classList.toggle("desktop-play-setup-flag--castling-locked", !onHome);
             }
         });
     }
 
-    function applySetupFlag(key, value) {
-        if (!chessGame || !global.DesktopBoard || !global.DesktopBoard.mutateSetupBoard) {
+    function findKingSquare(board, color, kingType) {
+        if (!board || !Array.isArray(board)) {
+            return null;
+        }
+        for (let r = 0; r < board.length; r++) {
+            const row = board[r];
+            if (!row || !Array.isArray(row)) {
+                continue;
+            }
+            for (let c = 0; c < row.length; c++) {
+                const cell = row[c];
+                if (
+                    cell &&
+                    cell.color === color &&
+                    cell.pieceType === kingType
+                ) {
+                    return { row: r, col: c };
+                }
+            }
+        }
+        return null;
+    }
+
+    function isKingAttacked(game, kingColor) {
+        if (!game || !game.GameState || !game.opponent) {
+            return false;
+        }
+        const kingSquare = findKingSquare(
+            game.GameState.board,
+            kingColor,
+            game.KING,
+        );
+        if (!kingSquare) {
+            return false;
+        }
+        const attacker = game.opponent(kingColor);
+        const rows = typeof game.BOARD_ROWS === "number" ? game.BOARD_ROWS : 8;
+        const cols = typeof game.BOARD_COLUMNS === "number" ? game.BOARD_COLUMNS : 8;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const move = game.validateMove(
+                    game.square(i, j),
+                    kingSquare,
+                    attacker,
+                );
+                if (move && move.valid) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function sideHasLegalMove(game, color) {
+        const rows = typeof game.BOARD_ROWS === "number" ? game.BOARD_ROWS : 8;
+        const cols = typeof game.BOARD_COLUMNS === "number" ? game.BOARD_COLUMNS : 8;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                for (let i2 = 0; i2 < rows; i2++) {
+                    for (let j2 = 0; j2 < cols; j2++) {
+                        const move = game.validateMove(
+                            game.square(i, j),
+                            game.square(i2, j2),
+                            color,
+                        );
+                        if (move && move.valid) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function withClearedStatusFlags(game, fn) {
+        const snapshot = JSON.stringify(game.GameState);
+        const cleared = JSON.parse(snapshot);
+        cleared.check = false;
+        cleared.checkmate = false;
+        cleared.draw = false;
+        cleared.drawReason = "";
+        game.loadGame(JSON.stringify(cleared));
+        try {
+            return fn();
+        } finally {
+            game.loadGame(snapshot);
+        }
+    }
+
+    function syncStatusFlagsFromGame() {
+        if (!chessGame || !chessGame.GameState) {
+            return;
+        }
+        const state = chessGame.GameState;
+        const toMove = state.turn === "black" ? "black" : "white";
+        const analyzed = withClearedStatusFlags(chessGame, function () {
+            return {
+                inCheck: isKingAttacked(chessGame, toMove),
+                hasMoves: sideHasLegalMove(chessGame, toMove),
+            };
+        });
+        const inCheck = analyzed.inCheck;
+        const hasMoves = analyzed.hasMoves;
+
+        let checkmate = false;
+        let draw = false;
+        let drawReason = "";
+
+        if (inCheck && !hasMoves) {
+            checkmate = true;
+        } else if (!inCheck && !hasMoves) {
+            draw = true;
+            drawReason = "Stalemate";
+        } else if (state.fiftyMovesCounter >= 50) {
+            draw = true;
+            drawReason = "50 Moves";
+        }
+
+        if (!global.DesktopBoard || !global.DesktopBoard.mutateSetupBoard) {
+            refreshFlagCheckboxes();
             return;
         }
         global.DesktopBoard.mutateSetupBoard(
+            function (s) {
+                s.check = inCheck;
+                s.checkmate = checkmate;
+                s.draw = draw;
+                s.drawReason = drawReason;
+            },
+            { skipKingRookSync: true },
+        );
+    }
+
+    function applySetupFlag(key, uiChecked, isCastling) {
+        if (STATUS_FLAG_KEYS.indexOf(key) !== -1) {
+            return;
+        }
+        if (!chessGame || !global.DesktopBoard || !global.DesktopBoard.mutateSetupBoard) {
+            return;
+        }
+        const stateValue = isCastling ? !uiChecked : !!uiChecked;
+        global.DesktopBoard.mutateSetupBoard(
             function (state) {
-                state[key] = !!value;
+                state[key] = stateValue;
                 if (
                     key === "nearWhiteRookMoved" ||
                     key === "farWhiteRookMoved" ||
@@ -254,9 +457,14 @@
             const input = document.createElement("input");
             input.type = "checkbox";
             input.checked = false;
-            input.addEventListener("change", function () {
-                applySetupFlag(def.key, input.checked);
-            });
+            if (def.status) {
+                input.disabled = true;
+                label.classList.add("desktop-play-setup-flag--status");
+            } else {
+                input.addEventListener("change", function () {
+                    applySetupFlag(def.key, input.checked, !!def.castling);
+                });
+            }
 
             const box = document.createElement("span");
             box.className = "desktop-check-box";
@@ -459,6 +667,7 @@
         syncKingRookFlagsFromBoard: syncKingRookFlagsFromBoard,
         applySetupCursor: applySetupCursor,
         refreshFlagCheckboxes: refreshFlagCheckboxes,
+        syncStatusFlagsFromGame: syncStatusFlagsFromGame,
         WHITE_PIECES: WHITE_PIECES,
         BLACK_PIECES: BLACK_PIECES,
     };
