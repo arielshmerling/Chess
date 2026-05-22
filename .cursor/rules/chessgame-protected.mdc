@@ -1,0 +1,16 @@
+---
+description: Do not modify ChessGame.js unless Ariel explicitly requests it
+globs: src/ChessGame.js
+alwaysApply: false
+---
+
+# ChessGame.js — protected file
+
+**Do not edit `src/ChessGame.js` unless Ariel gives a specific, explicit instruction to change that file.**
+
+This includes fixes, refactors, en passant logic, board-flip behavior, and related test-driven changes. If another task would require touching `ChessGame.js`:
+
+1. Explain why and what would change.
+2. Wait for explicit approval before editing.
+
+Other files (`chessboard.js`, tests, desktop UI, etc.) may still be changed when appropriate.
