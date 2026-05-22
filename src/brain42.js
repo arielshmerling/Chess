@@ -226,15 +226,33 @@ function tryFindMatchState(game) {
     const saved = game.SavedGameState;
     const stateKey = gameStateCompact.encodeSavedGameStateStringToLookupKey(saved);
     const options = openingBookByStateKey.get(stateKey) || [];
-    const rand = Math.floor(Math.random() * options.length);
-    return options.length > 0 ? options[rand] : null;
+    if (options.length === 0) {
+        return null;
+    }
+    for (let i = 0; i < options.length; i++) {
+        const candidate = options[i];
+        if (isBookMoveStillLegal(game, candidate) && withAppliedMove(game, candidate, () => game.Checkmate)) {
+            return candidate;
+        }
+    }
+    const legal = options.filter((m) => isBookMoveStillLegal(game, m));
+    const pool = legal.length > 0 ? legal : options;
+    return pool[Math.floor(Math.random() * pool.length)];
 }
 
 exports.brainNextMoveFunc = async (game, options) => {
     runtimeConfig = sanitizeBrainConfig("brain42", options?.config || {});
     const state = game.GameState;
+    if (!Array.isArray(state.capturedPiecesList)) {
+        state.capturedPiecesList = [];
+    }
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
+
+    const mateNow = findImmediateMatingMove(game, collectLegalMoves(game));
+    if (mateNow) {
+        return mateNow;
+    }
 
     const bookMove = tryFindMatchState(game);
     if (bookMove && isBookMoveStillLegal(game, bookMove)) {
@@ -788,10 +806,22 @@ function withAppliedMove(game, move, fn) {
 }
 
 function scoreTerminalNoMoves(game) {
-    if (game.Checkmate || game.Check) {
+    if (game.Checkmate) {
         return -MATE_SCORE;
     }
     return 0;
+}
+
+/** If any legal move mates immediately, return it (do not search past checkmate). */
+function findImmediateMatingMove(game, moves) {
+    for (let i = 0; i < moves.length; i++) {
+        const move = moves[i];
+        const mates = withAppliedMove(game, move, () => game.Checkmate);
+        if (mates) {
+            return move;
+        }
+    }
+    return null;
 }
 
 function negamax(game, depthRemaining, alpha, beta) {
@@ -828,6 +858,11 @@ function searchBestMoveAtRoot(game, maxDepth) {
     if (moves.length === 0) {
         return null;
     }
+    const mateNow = findImmediateMatingMove(game, moves);
+    if (mateNow) {
+        mateNow.score = MATE_SCORE;
+        return mateNow;
+    }
     const ordered = orderMovesCapturesFirst(game, moves);
     const depthAfterRoot = Math.max(0, maxDepth - 1);
     let alpha = -Infinity;
@@ -847,7 +882,17 @@ function searchBestMoveAtRoot(game, maxDepth) {
             tiedBest.length = 0;
             tiedBest.push(move);
         } else if (score === bestScore) {
-            tiedBest.push(move);
+            const q = immediateLineScoreForMove(game, move);
+            const prevQ =
+                tiedBest.length > 0
+                    ? immediateLineScoreForMove(game, tiedBest[0])
+                    : -Infinity;
+            if (q > prevQ) {
+                tiedBest.length = 0;
+                tiedBest.push(move);
+            } else if (q === prevQ) {
+                tiedBest.push(move);
+            }
         }
         if (score > alpha) {
             alpha = score;
@@ -886,6 +931,9 @@ if (!isMainThread) {
         try {
             leafEvaluationsThisSearch = 0;
             chess.loadGame(gameState);
+            if (!Array.isArray(chess.GameState.capturedPiecesList)) {
+                chess.GameState.capturedPiecesList = [];
+            }
             chess.SearchMode = true;
             const move = searchBestMoveAtRoot(chess, maxDepth);
             chess.SearchMode = false;

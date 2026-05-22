@@ -11,7 +11,7 @@ body.desktop-play-page {
   --desktop-play-rail-width: 80px;
   --desktop-play-sidebar-width: 220px;
   --desktop-play-header-height: 64px;
-  --desktop-play-footer-height: 50px;
+  --desktop-play-footer-height: 58px;
   --desktop-play-dock-border: rgba(255, 255, 255, 0.08);
   /*
    * Board scale is set by desktop-board-scale.js from the main play area size (window resize).
@@ -20,7 +20,8 @@ body.desktop-play-page {
   --board-scale: 1.4;
   --board-height: calc(440px * var(--board-scale));
   --square-size: calc(var(--board-height) / 8) !important;
-  --captured-piece-size: calc(var(--square-size) / 1.3);
+  --captured-piece-size: calc(var(--square-size) / 1.05);
+  --desktop-play-captured-piece-height: calc(var(--desktop-play-footer-height) - 12px);
   --total-board-height: calc(var(--board-height) + 40px);
   --sideboxes-width: calc(var(--square-size) / 1.3 * 5);
   --promotion-box-size: calc(var(--square-size) * 4);
@@ -778,7 +779,7 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-page .desktop-play-footer .desktop-play-captured-row img.captured {
-  height: 1.9rem;
+  height: var(--desktop-play-captured-piece-height);
   width: auto;
   margin: 0;
   filter:
