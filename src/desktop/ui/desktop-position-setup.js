@@ -60,31 +60,11 @@
         { key: "draw", label: "Draw", status: true },
         { key: "whiteKingMoved", label: "White king moved", castling: true },
         { key: "blackKingMoved", label: "Black king moved", castling: true },
-        { key: "nearWhiteRookMoved", label: "White kingside rook moved", castling: true },
-        { key: "farWhiteRookMoved", label: "White queenside rook moved", castling: true },
-        { key: "nearBlackRookMoved", label: "Black kingside rook moved", castling: true },
-        { key: "farBlackRookMoved", label: "Black queenside rook moved", castling: true },
+        { key: "kingsideWhiteRookMoved", label: "White kingside rook moved", castling: true },
+        { key: "queensideWhiteRookMoved", label: "White queenside rook moved", castling: true },
+        { key: "kingsideBlackRookMoved", label: "Black kingside rook moved", castling: true },
+        { key: "queensideBlackRookMoved", label: "Black queenside rook moved", castling: true },
     ];
-
-    function mirrorNearFarRookFlagsToCastling(state) {
-        if (!state) {
-            return;
-        }
-        state.kingsideWhiteRookMoved = !!state.nearWhiteRookMoved;
-        state.queensideWhiteRookMoved = !!state.farWhiteRookMoved;
-        state.kingsideBlackRookMoved = !!state.nearBlackRookMoved;
-        state.queensideBlackRookMoved = !!state.farBlackRookMoved;
-    }
-
-    function syncNearFarFromCastlingRookFlags(state) {
-        if (!state) {
-            return;
-        }
-        state.nearWhiteRookMoved = !!state.kingsideWhiteRookMoved;
-        state.farWhiteRookMoved = !!state.queensideWhiteRookMoved;
-        state.nearBlackRookMoved = !!state.kingsideBlackRookMoved;
-        state.farBlackRookMoved = !!state.queensideBlackRookMoved;
-    }
 
     function getCastlingHomeSlots(state, game) {
         if (!state || !state.board || !game) {
@@ -123,10 +103,10 @@
         return {
             whiteKingMoved: { row: wKingR, col: wKingC, color: "white", pieceType: KING },
             blackKingMoved: { row: bKingR, col: bKingC, color: "black", pieceType: KING },
-            nearWhiteRookMoved: { row: whiteRow, col: ksCol, color: "white", pieceType: ROOK },
-            farWhiteRookMoved: { row: whiteRow, col: qsCol, color: "white", pieceType: ROOK },
-            nearBlackRookMoved: { row: blackRow, col: ksCol, color: "black", pieceType: ROOK },
-            farBlackRookMoved: { row: blackRow, col: qsCol, color: "black", pieceType: ROOK },
+            kingsideWhiteRookMoved: { row: whiteRow, col: ksCol, color: "white", pieceType: ROOK },
+            queensideWhiteRookMoved: { row: whiteRow, col: qsCol, color: "white", pieceType: ROOK },
+            kingsideBlackRookMoved: { row: blackRow, col: ksCol, color: "black", pieceType: ROOK },
+            queensideBlackRookMoved: { row: blackRow, col: qsCol, color: "black", pieceType: ROOK },
         };
     }
 
@@ -149,11 +129,10 @@
         const b = state.board;
         state.whiteKingMoved = !isPieceOnHomeSquare(b, homes.whiteKingMoved);
         state.blackKingMoved = !isPieceOnHomeSquare(b, homes.blackKingMoved);
-        state.kingsideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.nearWhiteRookMoved);
-        state.queensideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.farWhiteRookMoved);
-        state.kingsideBlackRookMoved = !isPieceOnHomeSquare(b, homes.nearBlackRookMoved);
-        state.queensideBlackRookMoved = !isPieceOnHomeSquare(b, homes.farBlackRookMoved);
-        syncNearFarFromCastlingRookFlags(state);
+        state.kingsideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.kingsideWhiteRookMoved);
+        state.queensideWhiteRookMoved = !isPieceOnHomeSquare(b, homes.queensideWhiteRookMoved);
+        state.kingsideBlackRookMoved = !isPieceOnHomeSquare(b, homes.kingsideBlackRookMoved);
+        state.queensideBlackRookMoved = !isPieceOnHomeSquare(b, homes.queensideBlackRookMoved);
     }
 
     function toolSelector() {
@@ -292,14 +271,6 @@
         global.DesktopBoard.mutateSetupBoard(
             function (state) {
                 state[key] = stateValue;
-                if (
-                    key === "nearWhiteRookMoved" ||
-                    key === "farWhiteRookMoved" ||
-                    key === "nearBlackRookMoved" ||
-                    key === "farBlackRookMoved"
-                ) {
-                    mirrorNearFarRookFlagsToCastling(state);
-                }
             },
             { skipKingRookSync: true },
         );

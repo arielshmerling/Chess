@@ -25,7 +25,8 @@ describe("Heavy tests (long execution)", () => {
      * Full replay logic (getPGNFiles + readPGNGames + replayPGNGames with saveToDB: false).
      * Executes all games and moves like addGamesToDB but never calls State.save(); verifies no errors.
      */
-    it("replays all PGN games without saving to DB (no errors during execution)", async () => {
+    it("replays all PGN games without saving to DB (no errors during execution)", async function () {
+        this.timeout(600000);
         const files = await gamesManagerService.getPGNFiles();
         assert.ok(Array.isArray(files), "getPGNFiles should return an array");
 
