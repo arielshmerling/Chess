@@ -29,6 +29,13 @@
         }
     }
 
+    function appendSwatchSelectionDot(btn) {
+        const dot = document.createElement("span");
+        dot.className = "desktop-play-game-run-swatch-dot";
+        dot.setAttribute("aria-hidden", "true");
+        btn.appendChild(dot);
+    }
+
     function createSwatchToggle(labelText, initialWhite, onPick, btnOut) {
         const row = document.createElement("div");
         row.className = "desktop-play-game-run-row";
@@ -49,6 +56,7 @@
             "desktop-play-game-run-swatch desktop-play-game-run-swatch--white";
         whiteBtn.title = "White";
         whiteBtn.setAttribute("aria-label", "White");
+        appendSwatchSelectionDot(whiteBtn);
         whiteBtn.addEventListener("click", function () {
             onPick(true);
         });
@@ -59,6 +67,7 @@
             "desktop-play-game-run-swatch desktop-play-game-run-swatch--black";
         blackBtn.title = "Black";
         blackBtn.setAttribute("aria-label", "Black");
+        appendSwatchSelectionDot(blackBtn);
         blackBtn.addEventListener("click", function () {
             onPick(false);
         });
@@ -199,5 +208,7 @@
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
+        createSwatchRow: createSwatchToggle,
+        updateSwatchPair: updateSwatchPair,
     };
 })(window);

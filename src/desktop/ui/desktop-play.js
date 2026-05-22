@@ -39,6 +39,7 @@
     let savedGames = [];
     let expandedSavedGameId = null;
     let lastLoadedSavedGameId = null;
+    let editingSavedGameId = null;
     let renamingSavedGameId = null;
     let positionSetupMode = false;
     let positionSetupSnapshot = null;
@@ -443,14 +444,23 @@
         }
         const next = turn === "black" ? "black" : "white";
         if (positionSetupMode) {
-            Board.mutateSetupBoard(function (state) {
-                state.turn = next;
-            });
+            Board.mutateSetupBoard(
+                function (state) {
+                    state.turn = next;
+                },
+                { skipKingRookSync: true },
+            );
+            if (Setup && Setup.syncStatusFlagsFromGame) {
+                Setup.syncStatusFlagsFromGame();
+            }
         } else if (!gameActive && boardHasPieces()) {
             const state = JSON.parse(JSON.stringify(game.GameState));
             state.turn = next;
             game.loadGame(JSON.stringify(state));
             Board.syncFromGameState();
+        }
+        if (Setup && Setup.syncTurnSelection) {
+            Setup.syncTurnSelection(next);
         }
         updateHeaderTurn();
     }
@@ -553,6 +563,22 @@
         }
     }
 
+    function setGameRunPanelVisible(visible) {
+        const el = $("desktopPlayHeaderRun");
+        if (!el) {
+            return;
+        }
+        el.classList.toggle("desktop-play-header-run--hidden", !visible);
+        el.setAttribute("aria-hidden", visible ? "false" : "true");
+    }
+
+    function updateGameRunPanelVisibility() {
+        const show =
+            positionSetupMode ||
+            (!gameActive && !!lastLoadedSavedGameId && boardHasPieces());
+        setGameRunPanelVisible(show);
+    }
+
     function ensureGameRunPanel() {
         if (gameRunPanelMounted || !GameRun) {
             return;
@@ -569,6 +595,7 @@
             onComputerColorChange: applySetupComputerColor,
         });
         gameRunPanelMounted = true;
+        setGameRunPanelVisible(false);
     }
 
     function syncGameRunPanelOptions() {
@@ -666,6 +693,8 @@
             Board.setHumanPlayEnabled(true);
         }
         updateActionButtons();
+        editingSavedGameId = null;
+        updateGameRunPanelVisibility();
         if (!game.GameOver && isHumanTurn()) {
             switchClocks();
             showStatus("Your move", 2000, "info");
@@ -692,6 +721,7 @@
             onSavePosition: saveSetupPosition,
             onValidatePosition: validateSetupPosition,
             onSelectTool: updateSetupCursor,
+            onTurnChange: applySetupTurn,
         });
         positionSetupPanelMounted = true;
     }
@@ -716,12 +746,18 @@
             updateSetupCursor();
         }
         const moveCount = game.Moves ? game.Moves.length : 0;
-        if (moveCount === 0 && !game.GameOver) {
+        if (moveCount === 0 && !game.GameOver && !boardHasPieces()) {
             clearSetupBoard();
         } else {
             Board.syncFromGameState();
         }
         syncGameRunPanelOptions();
+        updateGameRunPanelVisibility();
+        if (Setup && Setup.syncTurnSelection) {
+            const setupTurn =
+                game.GameState && game.GameState.turn === "black" ? "black" : "white";
+            Setup.syncTurnSelection(setupTurn);
+        }
         if (Board.mutateSetupBoard) {
             Board.mutateSetupBoard(function () {}, {});
         } else if (Setup && Setup.refreshFlagCheckboxes) {
@@ -737,9 +773,11 @@
         showStatus("");
         if (restore && positionSetupSnapshot) {
             restorePositionSetupSnapshot();
+            editingSavedGameId = null;
         } else {
             positionSetupSnapshot = null;
         }
+        updateGameRunPanelVisibility();
         updateActionButtons();
     }
 
@@ -798,6 +836,8 @@
             Board.setHumanPlayEnabled(true);
         }
         updateActionButtons();
+        editingSavedGameId = null;
+        updateGameRunPanelVisibility();
         if (isHumanTurn()) {
             showStatus("Playing from custom position", 3000, "info");
             if (!game.GameOver) {
@@ -1011,6 +1051,32 @@
         });
     }
 
+    function bookmarkPayloadFromCurrentState(name, moves) {
+        const state = game.GameState;
+        return {
+            gameState: state,
+            name: name,
+            gameType: "SinglePlayerGame",
+            moves: moves || [],
+            engine: session.engine || "brain42",
+            depth:
+                typeof session.difficulty === "number" && session.difficulty >= 1
+                    ? session.difficulty
+                    : 3,
+        };
+    }
+
+    function mergeBookmarkIntoList(bookmark) {
+        if (bookmark && bookmark._id) {
+            savedGames = savedGames.filter(function (b) {
+                return String(b._id) !== String(bookmark._id);
+            });
+            savedGames.unshift(bookmark);
+        } else {
+            return loadSavedGames();
+        }
+    }
+
     async function saveSetupPositionWithName(name) {
         if (!game || !session || !Api.post) {
             return;
@@ -1021,29 +1087,64 @@
             return;
         }
         try {
-            const bookmark = await Api.post("/bookmark", {
-                gameState: state,
-                name: name,
-                gameType: "SinglePlayerGame",
+            const bookmark = await Api.post(
+                "/bookmark",
+                bookmarkPayloadFromCurrentState(name, []),
+            );
+            await mergeBookmarkIntoList(bookmark);
+            renderSavedGamesList();
+            showStatus("Position saved", 2500, "info");
+        } catch (err) {
+            showStatus(err.message || "Could not save position", 0, "error");
+        }
+    }
+
+    async function saveSetupPositionUpdateExisting() {
+        if (!game || !session || !Api.post || !editingSavedGameId) {
+            return;
+        }
+        const entry = savedGames.find(function (b) {
+            return savedGameId(b) === String(editingSavedGameId);
+        });
+        if (!entry) {
+            showStatus("Saved position not found", 0, "error");
+            editingSavedGameId = null;
+            return;
+        }
+        if (!validatePositionSetup("save")) {
+            return;
+        }
+        if (!game.GameState) {
+            showStatus("Nothing to save", 2000, "error");
+            return;
+        }
+        try {
+            await Api.post("/updateBookmark", {
+                id: entry._id || entry.id,
+                name: entry.name || "Saved game",
+                gameType: entry.gameType || "SinglePlayerGame",
+                gameState: game.GameState,
                 moves: [],
                 engine: session.engine || "brain42",
                 depth:
                     typeof session.difficulty === "number" && session.difficulty >= 1
                         ? session.difficulty
                         : 3,
+                date: entry.date || new Date(),
             });
-            if (bookmark && bookmark._id) {
-                savedGames = savedGames.filter(function (b) {
-                    return String(b._id) !== String(bookmark._id);
-                });
-                savedGames.unshift(bookmark);
-            } else {
-                await loadSavedGames();
-            }
+            entry.state = JSON.stringify(game.GameState);
+            entry.moves = [];
+            entry.engine = session.engine || "brain42";
+            entry.depth =
+                typeof session.difficulty === "number" && session.difficulty >= 1
+                    ? session.difficulty
+                    : 3;
+            lastLoadedSavedGameId = savedGameId(entry);
             renderSavedGamesList();
-            showStatus("Position saved", 2500, "info");
+            syncGameRunPanelOptions();
+            showStatus("Position updated", 2500, "info");
         } catch (err) {
-            showStatus(err.message || "Could not save position", 0, "error");
+            showStatus(err.message || "Could not update position", 0, "error");
         }
     }
 
@@ -1056,6 +1157,10 @@
         }
         if (!game.GameState) {
             showStatus("Nothing to save", 2000, "error");
+            return;
+        }
+        if (editingSavedGameId) {
+            saveSetupPositionUpdateExisting();
             return;
         }
         showPositionSaveNameDialog(function (name) {
@@ -1192,11 +1297,50 @@
         return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
     }
 
+    function savedGameStateFromEntry(entry) {
+        if (!entry) {
+            return null;
+        }
+        let raw = entry.state != null ? entry.state : entry.gameState;
+        if (raw == null) {
+            return null;
+        }
+        if (typeof raw === "string") {
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return null;
+            }
+        }
+        if (typeof raw === "object") {
+            return raw;
+        }
+        return null;
+    }
+
+    function savedGameTurnFromEntry(entry) {
+        const gs = savedGameStateFromEntry(entry);
+        if (!gs || (gs.turn !== "white" && gs.turn !== "black")) {
+            return null;
+        }
+        return gs.turn;
+    }
+
+    function formatSavedGameTurn(entry) {
+        const turn = savedGameTurnFromEntry(entry);
+        if (!turn) {
+            return "Next move: —";
+        }
+        return "Next move: " + (turn === "white" ? "White" : "Black");
+    }
+
     const SAVED_GAME_ACTION_ICONS = {
+        edit:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
         delete:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
         rename:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>',
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
         load:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
         expand:
@@ -1291,11 +1435,62 @@
             if (renamingSavedGameId === String(bookmarkId)) {
                 renamingSavedGameId = null;
             }
+            if (editingSavedGameId === String(bookmarkId)) {
+                editingSavedGameId = null;
+            }
+            if (lastLoadedSavedGameId === String(bookmarkId)) {
+                lastLoadedSavedGameId = null;
+            }
             renderSavedGamesList();
+            updateGameRunPanelVisibility();
             showStatus("Game deleted", 2000, "info");
         } catch (err) {
             showStatus(err.message || "Could not delete game", 0, "error");
         }
+    }
+
+    function applyBookmarkEntryToBoard(entry) {
+        const baseOpts = Settings.loadLastOptions();
+        applySessionSettings({
+            color: baseOpts.color,
+            engine: entry.engine || baseOpts.engine,
+            difficulty:
+                typeof entry.depth === "number" && entry.depth >= 1
+                    ? entry.depth
+                    : baseOpts.difficulty,
+            mouse: baseOpts.mouse,
+            showAvailableMoves: baseOpts.showAvailableMoves,
+            allowUndo: baseOpts.allowUndo,
+            timeMinutes: baseOpts.timeMinutes,
+        });
+        const raw = entry.state != null ? entry.state : entry.gameState;
+        const stateStr =
+            typeof raw === "string" ? raw : JSON.stringify(raw || {});
+        const parsedMoves = parseSavedGameMoves(entry);
+        game.loadGame(stateStr);
+        if (parsedMoves.length) {
+            game.loadMoves(parsedMoves);
+        } else {
+            game.loadMoves([]);
+        }
+        redoPairAvailable = false;
+        lastCheckNotifySide = null;
+        alertMode = false;
+        headerEventMessage = null;
+        headerEventKind = null;
+        Board.clearArrows();
+        Board.syncFromGameState();
+        if (game.GameState && game.GameState.capturedPiecesList) {
+            Board.updateCaptureLists(game.GameState.capturedPiecesList);
+        }
+        updateMovesTable(movesForMovesTable(parsedMoves));
+        pauseClocksForSetup();
+        gameActive = false;
+        document.body.classList.remove("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(false);
+        }
+        updateHeaderTurn();
     }
 
     async function loadSavedGame(bookmarkId) {
@@ -1314,48 +1509,12 @@
             if (positionSetupMode) {
                 exitPositionSetupMode(false);
             }
-            const baseOpts = Settings.loadLastOptions();
-            applySessionSettings({
-                color: baseOpts.color,
-                engine: entry.engine || baseOpts.engine,
-                difficulty:
-                    typeof entry.depth === "number" && entry.depth >= 1
-                        ? entry.depth
-                        : baseOpts.difficulty,
-                mouse: baseOpts.mouse,
-                showAvailableMoves: baseOpts.showAvailableMoves,
-                allowUndo: baseOpts.allowUndo,
-                timeMinutes: baseOpts.timeMinutes,
-            });
-            const stateStr =
-                typeof entry.state === "string" ? entry.state : JSON.stringify(entry.state);
-            const parsedMoves = parseSavedGameMoves(entry);
-            game.loadGame(stateStr);
-            if (parsedMoves.length) {
-                game.loadMoves(parsedMoves);
-            }
-            redoPairAvailable = false;
-            lastCheckNotifySide = null;
-            alertMode = false;
-            headerEventMessage = null;
-            headerEventKind = null;
-            Board.clearArrows();
-            Board.syncFromGameState();
-            if (game.GameState && game.GameState.capturedPiecesList) {
-                Board.updateCaptureLists(game.GameState.capturedPiecesList);
-            }
-            updateMovesTable(movesForMovesTable(parsedMoves));
-            pauseClocksForSetup();
-            gameActive = false;
-            document.body.classList.remove("desktop-play-has-active-game");
-            if (Board.setHumanPlayEnabled) {
-                Board.setHumanPlayEnabled(false);
-            }
-            updateHeaderTurn();
-            updateActionButtons();
+            applyBookmarkEntryToBoard(entry);
             lastLoadedSavedGameId = String(bookmarkId);
+            editingSavedGameId = null;
             setCurrentGameId(null);
             syncGameRunPanelOptions();
+            updateGameRunPanelVisibility();
             showStatus(
                 "Position loaded — set next move and computer color in the header, then press Play",
                 0,
@@ -1363,6 +1522,37 @@
             );
         } catch (err) {
             showStatus(err.message || "Could not load saved game", 0, "error");
+        } finally {
+            animating = false;
+            updateActionButtons();
+        }
+    }
+
+    async function editSavedGame(bookmarkId) {
+        if (!game || animating || dialogOn) {
+            return;
+        }
+        const entry = savedGames.find(function (b) {
+            return savedGameId(b) === String(bookmarkId);
+        });
+        if (!entry) {
+            return;
+        }
+        animating = true;
+        updateActionButtons();
+        try {
+            if (positionSetupMode) {
+                exitPositionSetupMode(false);
+            }
+            applyBookmarkEntryToBoard(entry);
+            lastLoadedSavedGameId = String(bookmarkId);
+            editingSavedGameId = String(bookmarkId);
+            expandedSavedGameId = String(bookmarkId);
+            setCurrentGameId(null);
+            enterPositionSetupMode();
+            showStatus("Editing position — Save to update this bookmark", 0, "info");
+        } catch (err) {
+            showStatus(err.message || "Could not open position for editing", 0, "error");
         } finally {
             animating = false;
             updateActionButtons();
@@ -1443,6 +1633,11 @@
         const details = document.createElement("div");
         details.className = "desktop-play-saved-game-details";
 
+        const turnLine = document.createElement("div");
+        turnLine.className = "desktop-play-saved-game-turn";
+        turnLine.textContent = formatSavedGameTurn(entry);
+        details.appendChild(turnLine);
+
         const meta = document.createElement("div");
         meta.className = "desktop-play-saved-game-meta";
         meta.textContent = formatSavedGameDate(entry.date);
@@ -1450,6 +1645,11 @@
 
         const actions = document.createElement("div");
         actions.className = "desktop-play-saved-game-actions";
+        actions.appendChild(
+            createSavedGameIconButton("Edit position", "edit", function () {
+                editSavedGame(id);
+            }),
+        );
         actions.appendChild(
             createSavedGameIconButton("Delete saved game", "delete", function () {
                 deleteSavedGame(id);
@@ -1816,8 +2016,11 @@
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
         }
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
         updateActionButtons();
         syncGameRunPanelOptions();
+        updateGameRunPanelVisibility();
         if (!game.GameOver && !isHumanTurn()) {
             await runEngineMove();
         } else if (!game.GameOver) {
@@ -1829,6 +2032,8 @@
     function beginPositionSetupFromMenu() {
         const opts = Settings.loadLastOptions();
         applySessionSettings(opts);
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
         syncEmptyBoard();
         resetClocks();
         redoPairAvailable = false;
@@ -2075,8 +2280,11 @@
         }
         session = null;
         setCurrentGameId(null);
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
         alertMode = false;
         clearHeaderEvent();
+        updateGameRunPanelVisibility();
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(false);
         }

@@ -189,6 +189,10 @@ body.desktop-play-page .desktop-play-main {
   margin-right: 0.15rem;
 }
 
+.desktop-play-header-run.desktop-play-header-run--hidden {
+  display: none;
+}
+
 .desktop-play-header-run #desktopPlayGameRun {
   min-width: 0;
 }
@@ -684,6 +688,14 @@ body.desktop-play-page .desktop-play-main {
   display: block;
 }
 
+.desktop-play-page .desktop-play-saved-game-turn {
+  margin: 0 0 4px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+}
+
 .desktop-play-page .desktop-play-saved-game-meta {
   margin: 0 0 6px;
   font-family: inherit;
@@ -866,6 +878,18 @@ body.desktop-play-page .desktop-play-main {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.desktop-play-setup-turn {
+  flex-shrink: 0;
+  width: 100%;
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.desktop-play-setup-turn .desktop-play-game-run-row {
+  width: 100%;
+}
+
 .desktop-play-setup-flags {
   flex-shrink: 0;
   width: 100%;
@@ -1003,6 +1027,7 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-game-run-swatch {
+  position: relative;
   width: 1.65rem;
   height: 1.65rem;
   min-width: 1.65rem;
@@ -1013,6 +1038,25 @@ body.desktop-play-page .desktop-play-main {
   background: transparent;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+.desktop-play-game-run-swatch-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin: -0.21rem 0 0 -0.21rem;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.desktop-play-game-run-swatch.selected .desktop-play-game-run-swatch-dot {
+  opacity: 1;
+  background: var(--optionSquare, rgb(92, 171, 125));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .desktop-play-game-run-swatch--white {

@@ -46,6 +46,10 @@
     let onClearBoard = null;
     let onDefaultBoard = null;
     let onSelectTool = null;
+    let onTurnChange = null;
+    let setupTurn = "white";
+    let turnSwatchWhite = null;
+    let turnSwatchBlack = null;
     let flagsRoot = null;
     let flagInputs = {};
     const STATUS_FLAG_KEYS = ["check", "checkmate", "draw"];
@@ -423,6 +427,50 @@
         );
     }
 
+    function setSetupTurnSelection(turn) {
+        setupTurn = turn === "black" ? "black" : "white";
+        if (
+            global.DesktopGameRun &&
+            global.DesktopGameRun.updateSwatchPair
+        ) {
+            global.DesktopGameRun.updateSwatchPair(
+                turnSwatchWhite,
+                turnSwatchBlack,
+                setupTurn === "white",
+            );
+        }
+    }
+
+    function syncTurnSelection(turn) {
+        setSetupTurnSelection(turn);
+    }
+
+    function createTurnSection() {
+        const section = document.createElement("div");
+        section.className = "desktop-play-setup-turn";
+
+        if (global.DesktopGameRun && global.DesktopGameRun.createSwatchRow) {
+            const turnBtns = {};
+            const row = global.DesktopGameRun.createSwatchRow(
+                "Turn",
+                setupTurn === "white",
+                function (isWhite) {
+                    const next = isWhite ? "white" : "black";
+                    setSetupTurnSelection(next);
+                    if (onTurnChange) {
+                        onTurnChange(next);
+                    }
+                },
+                turnBtns,
+            );
+            turnSwatchWhite = turnBtns.white;
+            turnSwatchBlack = turnBtns.black;
+            section.appendChild(row);
+        }
+
+        return section;
+    }
+
     function createFlagsSection() {
         const section = document.createElement("div");
         section.className = "desktop-play-setup-flags";
@@ -493,8 +541,17 @@
         onClearBoard = options.onClearBoard || null;
         onDefaultBoard = options.onDefaultBoard || null;
         onSelectTool = options.onSelectTool || null;
+        onTurnChange = options.onTurnChange || null;
+        setupTurn =
+            options.initialTurn === "black" || options.initialTurn === "white"
+                ? options.initialTurn
+                : chessGame && chessGame.GameState && chessGame.GameState.turn === "black"
+                  ? "black"
+                  : "white";
 
         container.innerHTML = "";
+        turnSwatchWhite = null;
+        turnSwatchBlack = null;
         panelRoot = container;
         flagsRoot = null;
         flagInputs = {};
@@ -614,6 +671,8 @@
         mainRow.appendChild(controlsCol);
         container.appendChild(mainRow);
 
+        container.appendChild(createTurnSection());
+
         const flagsSection = createFlagsSection();
         container.appendChild(flagsSection);
         if (global.DesktopBoard && global.DesktopBoard.mutateSetupBoard) {
@@ -659,6 +718,7 @@
         applySetupCursor: applySetupCursor,
         refreshFlagCheckboxes: refreshFlagCheckboxes,
         syncStatusFlagsFromGame: syncStatusFlagsFromGame,
+        syncTurnSelection: syncTurnSelection,
         WHITE_PIECES: WHITE_PIECES,
         BLACK_PIECES: BLACK_PIECES,
     };
