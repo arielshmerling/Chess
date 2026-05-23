@@ -43,6 +43,7 @@
     let renamingSavedGameId = null;
     let positionSetupMode = false;
     let positionSetupSnapshot = null;
+    let playSessionReady = false;
     let positionSetupPanelMounted = false;
     let gameRunPanelMounted = false;
     let currentGameId = null;
@@ -662,7 +663,7 @@
             GameRun && GameRun.getOptions
                 ? GameRun.getOptions()
                 : { turn: "white", humanIsWhite: currentPlayerIsWhite };
-        const state = JSON.parse(JSON.stringify(game.GameState));
+        const state = cloneSetupStateForPlay();
         state.turn = setupOpts.turn === "black" ? "black" : "white";
         state.gameOver = false;
         state.promoting = false;
@@ -727,12 +728,16 @@
     }
 
     function enterPositionSetupMode() {
+        if (!game || !game.GameState) {
+            showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
+            return;
+        }
+        setPositionSetupUi(true);
         setCurrentGameId(null);
         positionSetupSnapshot = capturePositionSetupSnapshot();
         pauseClocksForSetup();
         Board.clearArrows();
         expandMovesSidebar();
-        setPositionSetupUi(true);
         ensurePositionSetupPanel();
         Board.setSetupMode(true, {
             getSelection: function () {
@@ -802,7 +807,7 @@
             GameRun && GameRun.getOptions
                 ? GameRun.getOptions()
                 : { turn: "white", humanIsWhite: currentPlayerIsWhite };
-        const state = JSON.parse(JSON.stringify(game.GameState));
+        const state = cloneSetupStateForPlay();
         state.turn = setupOpts.turn === "black" ? "black" : "white";
         state.gameOver = false;
         state.promoting = false;
@@ -862,6 +867,10 @@
     function onPositionSetupToggle() {
         const btn = $("positionSetupBtn");
         if (btn && btn.disabled) {
+            return;
+        }
+        if (!playSessionReady || !game) {
+            showStatus("Board is still loading…", 2500, "info");
             return;
         }
         if (positionSetupMode) {
@@ -975,7 +984,9 @@
     }
 
     function updateActionButtons() {
-        if (!game) {
+        if (!game || !playSessionReady) {
+            setButtonDisabled("positionSetupBtn", true);
+            setButtonDisabled("rematchBtn", true);
             return;
         }
         if (!gameActive && !positionSetupMode) {
@@ -2030,6 +2041,10 @@
     }
 
     function beginPositionSetupFromMenu() {
+        if (!game) {
+            showStatus("Board is still loading…", 2500, "info");
+            return;
+        }
         const opts = Settings.loadLastOptions();
         applySessionSettings(opts);
         lastLoadedSavedGameId = null;
@@ -2132,12 +2147,46 @@
         Dialog.alert({ title: title, message: body });
     }
 
+    function clearSetupEngineFlags(state) {
+        if (!state) {
+            return;
+        }
+        state.check = false;
+        state.checkmate = false;
+        state.draw = false;
+        state.drawReason = "";
+    }
+
+    /** ChessGame pawn validation reads lastMove.piece; custom setups often omit lastMove. */
+    function ensurePlayableLastMove(state) {
+        if (!state || !game || (state.lastMove && state.lastMove.piece)) {
+            return;
+        }
+        const turn = state.turn === "black" ? "black" : "white";
+        state.lastMove = {
+            valid: true,
+            source: { row: 0, col: 0 },
+            target: { row: 0, col: 0 },
+            piece: { color: turn, pieceType: game.KING },
+            promotion: false,
+            ennPassant: false,
+            capturedPiece: null,
+            hitSquare: null,
+            turn: turn,
+            castling: false,
+        };
+    }
+
+    function cloneSetupStateForPlay() {
+        const state = JSON.parse(JSON.stringify(game.GameState));
+        clearSetupEngineFlags(state);
+        ensurePlayableLastMove(state);
+        return state;
+    }
+
     function validatePositionSetup(purpose) {
         if (!PositionValidation || !PositionValidation.getMessage || !game) {
             return true;
-        }
-        if (positionSetupMode && Setup && Setup.syncStatusFlagsFromGame) {
-            Setup.syncStatusFlagsFromGame();
         }
         const err = PositionValidation.getMessage(game, purpose);
         if (err) {
@@ -2301,6 +2350,7 @@
     }
 
     async function startSession() {
+        playSessionReady = false;
         await loadSavedGames();
 
         game = new ChessGame();
@@ -2327,6 +2377,7 @@
         updateHeaderTurn();
         updateMatchHeader();
         showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+        playSessionReady = true;
         updateActionButtons();
     }
 

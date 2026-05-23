@@ -83,6 +83,10 @@
         chessGame = chessGameInstance;
     }
 
+    function getGame() {
+        return chessGame;
+    }
+
     function setPlayerView(isWhite) {
         currentPlayerIsWhite = !!isWhite;
         if (chessGame) {
@@ -541,6 +545,11 @@
         chessGame.loadGame(JSON.stringify(state));
         syncFromGameState();
         if (
+            global.DesktopPositionSetup &&
+            global.DesktopPositionSetup.syncStatusFlagsFromGame
+        ) {
+            global.DesktopPositionSetup.syncStatusFlagsFromGame();
+        } else if (
             global.DesktopPositionSetup &&
             global.DesktopPositionSetup.refreshFlagCheckboxes
         ) {
@@ -1226,6 +1235,7 @@
 
     global.DesktopBoard = {
         setGame: setGame,
+        getGame: getGame,
         setPlayerView: setPlayerView,
         setHumanColor: setHumanColor,
         refreshHumanPieceInput: refreshHumanPieceInput,

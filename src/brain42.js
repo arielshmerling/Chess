@@ -809,11 +809,30 @@ function evaluateLeafPosition(game) {
 }
 
 function collectLegalMoves(game) {
+    const state = game.GameState;
+    if (!state || !state.board) {
+        return [];
+    }
+    const turn = game.Turn;
     let moves = [];
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
+    for (let i = 0; i < game.BOARD_ROWS; i++) {
+        const row = state.board[i];
+        if (!row) {
+            continue;
+        }
+        for (let j = 0; j < game.BOARD_COLUMNS; j++) {
+            const piece = row[j];
+            if (!piece || piece.color !== turn) {
+                continue;
+            }
             const source = game.square(i, j);
-            const options = game.possibleMoves(source);
+            let options;
+            try {
+                options = game.possibleMoves(source);
+            } catch (err) {
+                console.error("[Brain4.2] possibleMoves failed at", i, j, err);
+                continue;
+            }
             if (options.length > 0) {
                 for (const move of options) {
                     moves = moves.concat(move);

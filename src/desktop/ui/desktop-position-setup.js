@@ -237,6 +237,33 @@
         return btn;
     }
 
+    function positionHasBothKings(state, game) {
+        if (!state || !state.board || !game) {
+            return false;
+        }
+        let whiteKing = false;
+        let blackKing = false;
+        const kingType = game.KING;
+        for (let row = 0; row < game.BOARD_ROWS; row++) {
+            const line = state.board[row];
+            if (!line) {
+                continue;
+            }
+            for (let col = 0; col < game.BOARD_COLUMNS; col++) {
+                const piece = line[col];
+                if (!piece || piece.pieceType !== kingType) {
+                    continue;
+                }
+                if (piece.color === "white") {
+                    whiteKing = true;
+                } else if (piece.color === "black") {
+                    blackKing = true;
+                }
+            }
+        }
+        return whiteKing && blackKing;
+    }
+
     function refreshFlagCheckboxes() {
         if (!chessGame || !chessGame.GameState || !flagsRoot) {
             return;
@@ -285,10 +312,23 @@
     }
 
     function syncStatusFlagsFromGame() {
+        if (
+            global.DesktopBoard &&
+            typeof global.DesktopBoard.getGame === "function"
+        ) {
+            const boardGame = global.DesktopBoard.getGame();
+            if (boardGame) {
+                chessGame = boardGame;
+            }
+        }
         if (!chessGame || !chessGame.GameState) {
             return;
         }
         if (typeof chessGame.evaluate !== "function") {
+            refreshFlagCheckboxes();
+            return;
+        }
+        if (!positionHasBothKings(chessGame.GameState, chessGame)) {
             refreshFlagCheckboxes();
             return;
         }
