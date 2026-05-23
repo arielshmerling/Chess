@@ -86,13 +86,13 @@ function getBrainConfigDir() {
 
 /** Bundled opening book in the repo / Electron resources. */
 function getBundledOpeningBookPath() {
-    return path.join(__dirname, "..", "..", "data", "opening-book-states.bin");
+    return path.join(__dirname, "..", "..", "data", "opening-book-states.json");
 }
 
 /** Writable copy in userData (used for reads when present). */
 function getUserOpeningBookPath() {
     ensureInitialized();
-    return path.join(userDataRoot, "opening-book-states.bin");
+    return path.join(userDataRoot, "opening-book-states.json");
 }
 
 /**
@@ -111,7 +111,7 @@ function seedOpeningBookIfMissing() {
     if (!userDataRoot) {
         return;
     }
-    const dest = path.join(userDataRoot, "opening-book-states.bin");
+    const dest = path.join(userDataRoot, "opening-book-states.json");
     if (fs.existsSync(dest)) {
         return;
     }
@@ -165,6 +165,8 @@ module.exports = {
     getCustomThemesFilePath,
     getBundledCustomThemesPath,
     getBrainConfigDir,
+    getBundledOpeningBookPath,
+    getUserOpeningBookPath,
     resolveOpeningBookPath,
     getHomePath,
     normalizeEngine,

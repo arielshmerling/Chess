@@ -229,7 +229,7 @@ exports.generateState = async (req, res) => {
     res.redirect("list");
 };
 
-/** Admin-only: replay PGNs into `data/opening-book-states.bin` (binary container); does not write Mongo. */
+/** Admin-only: replay PGNs into `data/opening-book-states.json`; does not write Mongo. */
 exports.generateOpeningBook = async (req, res) => {
     const files = await gamesManagerService.getPGNFiles();
     const pgnGames = await gamesManagerService.readPGNGames(files);

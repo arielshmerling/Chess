@@ -2,36 +2,17 @@
  * Compact binary encoding of {@link ChessGame}'s stripped snapshot (same information as {@link ChessGame#SavedGameState}:
  * JSON text after removing capturedPiecesList, lastMove, fiftyMovesCounter).
  *
- * On disk in the opening book, the buffer is stored raw (length-prefixed). In-memory maps use
- * {@link compactStateBufferToLookupKey} (latin1 string, same byte length as the buffer).
+ * v2 (encode): `SC` + 0x02, 64 board bytes, 2 flag bytes — position + castling + game-result flags only.
+ * v1 (decode only): legacy layout with UTF-8 strings and extension JSON.
  *
- * v1 layout: magic bytes `SC` + 0x01 (State Compact v1), 64 board bytes, 2 flag bytes,
- * 3 length-prefixed UTF-8 strings,
- * UInt32 extension length + optional UTF-8 JSON object (sorted keys) for any other enumerable fields.
+ * Not stored in the book key: drawReason, resigned, outOfTime, whitePlayerView (decode supplies defaults).
  */
 
-/** ASCII `SC` + version 1 — identifies a state-compact buffer (not the opening-book `OBBK` wrapper). */
-const STATE_COMPACT_MAGIC = Buffer.from([0x53, 0x43, 0x01]);
+/** ASCII `SC` + version 2 — current state-compact format. */
+const STATE_COMPACT_MAGIC_V2 = Buffer.from([0x53, 0x43, 0x02]);
+const STATE_COMPACT_MAGIC_V1 = Buffer.from([0x53, 0x43, 0x01]);
 
-/** Keys written in the fixed binary section (not placed in the extension JSON). */
-const ENCODED_CORE_KEYS = new Set([
-    "board",
-    "turn",
-    "check",
-    "checkmate",
-    "draw",
-    "drawReason",
-    "resigned",
-    "outOfTime",
-    "whiteKingMoved",
-    "blackKingMoved",
-    "whitePlayerView",
-    "promoting",
-    "kingsideWhiteRookMoved",
-    "queensideWhiteRookMoved",
-    "kingsideBlackRookMoved",
-    "queensideBlackRookMoved",
-]);
+const STATE_V2_BODY_LENGTH = 64 + 2;
 
 function encodeBoardCell(cell) {
     if (cell == null) {
@@ -61,15 +42,54 @@ function decodeBoardCell(byte) {
     throw new Error("gameStateCompact: invalid board cell encoding");
 }
 
-function writeU32(n) {
-    const b = Buffer.alloc(4);
-    b.writeUInt32BE(n >>> 0);
-    return b;
+function readU32Payload(buf, readOffset, label) {
+    if (readOffset + 4 > buf.length) {
+        throw new Error(`gameStateCompact: truncated (${label} len)`);
+    }
+    const payloadByteLength = buf.readUInt32BE(readOffset);
+    readOffset += 4;
+    if (readOffset + payloadByteLength > buf.length) {
+        throw new Error(`gameStateCompact: truncated (${label} bytes)`);
+    }
+    const text = buf.toString("utf8", readOffset, readOffset + payloadByteLength);
+    return { text, nextOffset: readOffset + payloadByteLength };
 }
 
-function writeUtf8Payload(str) {
-    const u = Buffer.from(str, "utf8");
-    return Buffer.concat([writeU32(u.length), u]);
+function flagsToCoreObject(board, flags1, flags2) {
+    return {
+        board,
+        turn: flags1 & 1 ? "black" : "white",
+        check: !!(flags1 & 4),
+        checkmate: !!(flags1 & 8),
+        draw: !!(flags1 & 16),
+        drawReason: "",
+        resigned: "",
+        outOfTime: "",
+        whiteKingMoved: !!(flags1 & 32),
+        blackKingMoved: !!(flags1 & 64),
+        whitePlayerView: true,
+        promoting: !!(flags1 & 128),
+        kingsideWhiteRookMoved: !!(flags2 & 1),
+        queensideWhiteRookMoved: !!(flags2 & 2),
+        kingsideBlackRookMoved: !!(flags2 & 4),
+        queensideBlackRookMoved: !!(flags2 & 8),
+    };
+}
+
+function buildFlagsFromObject(obj) {
+    const turnBlack = obj.turn === "black";
+    const flags1 = (turnBlack ? 1 : 0)
+        | (obj.check ? 4 : 0)
+        | (obj.checkmate ? 8 : 0)
+        | (obj.draw ? 16 : 0)
+        | (obj.whiteKingMoved ? 32 : 0)
+        | (obj.blackKingMoved ? 64 : 0)
+        | (obj.promoting ? 128 : 0);
+    const flags2 = (obj.kingsideWhiteRookMoved ? 1 : 0)
+        | (obj.queensideWhiteRookMoved ? 2 : 0)
+        | (obj.kingsideBlackRookMoved ? 4 : 0)
+        | (obj.queensideBlackRookMoved ? 8 : 0);
+    return { flags1: flags1 & 0xff, flags2: flags2 & 0xff };
 }
 
 /**
@@ -100,72 +120,16 @@ function encodeSavedGameStateStringToBuffer(savedGameStateStr) {
             boardBuf[bi++] = encodeBoardCell(row[c]);
         }
     }
-
-    const turnBlack = obj.turn === "black";
-    const flags1 = (turnBlack ? 1 : 0)
-        | (obj.whitePlayerView ? 2 : 0)
-        | (obj.check ? 4 : 0)
-        | (obj.checkmate ? 8 : 0)
-        | (obj.draw ? 16 : 0)
-        | (obj.whiteKingMoved ? 32 : 0)
-        | (obj.blackKingMoved ? 64 : 0)
-        | (obj.promoting ? 128 : 0);
-
-    const flags2 = (obj.kingsideWhiteRookMoved ? 1 : 0)
-        | (obj.queensideWhiteRookMoved ? 2 : 0)
-        | (obj.kingsideBlackRookMoved ? 4 : 0)
-        | (obj.queensideBlackRookMoved ? 8 : 0);
-
-    const drawReason = String(obj.drawReason ?? "");
-    const resigned = String(obj.resigned ?? "");
-    const outOfTime = String(obj.outOfTime ?? "");
-
-    const extras = {};
-    for (const k of Object.keys(obj)) {
-        if (!ENCODED_CORE_KEYS.has(k)) {
-            extras[k] = obj[k];
-        }
-    }
-    let extBuf = Buffer.alloc(0);
-    const extraKeys = Object.keys(extras).sort();
-    if (extraKeys.length > 0) {
-        const sortedExtras = {};
-        for (const k of extraKeys) {
-            sortedExtras[k] = extras[k];
-        }
-        extBuf = Buffer.from(JSON.stringify(sortedExtras), "utf8");
-    }
-
-    const flagsBuf = Buffer.from([flags1 & 0xff, flags2 & 0xff]);
-
+    const { flags1, flags2 } = buildFlagsFromObject(obj);
     return Buffer.concat([
-        STATE_COMPACT_MAGIC,
+        STATE_COMPACT_MAGIC_V2,
         boardBuf,
-        flagsBuf,
-        writeUtf8Payload(drawReason),
-        writeUtf8Payload(resigned),
-        writeUtf8Payload(outOfTime),
-        writeU32(extBuf.length),
-        extBuf,
+        Buffer.from([flags1, flags2]),
     ]);
 }
 
-/**
- * @param {Buffer} buf
- * @returns {string} JSON text suitable for {@link ChessGame#loadGame}
- */
-function decodeBufferToSavedGameStateString(buf) {
-    let readOffset = 0;
-    if (!buf || buf.length < 3) {
-        throw new Error("gameStateCompact: buffer too small");
-    }
-    if (buf[readOffset] !== 0x53 || buf[readOffset + 1] !== 0x43 || buf[readOffset + 2] !== 0x01) {
-        throw new Error("gameStateCompact: bad magic");
-    }
-    readOffset += 3;
-    if (buf.length < readOffset + 64 + 2) {
-        throw new Error("gameStateCompact: truncated header");
-    }
+function decodeV1Buffer(buf) {
+    let readOffset = 3;
     const board = [];
     for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
         const row = [];
@@ -177,23 +141,12 @@ function decodeBufferToSavedGameStateString(buf) {
     const flags1 = buf[readOffset++];
     const flags2 = buf[readOffset++];
 
-    function readUtf8Payload(label) {
-        if (readOffset + 4 > buf.length) {
-            throw new Error(`gameStateCompact: truncated (${label} len)`);
-        }
-        const payloadByteLength = buf.readUInt32BE(readOffset);
-        readOffset += 4;
-        if (readOffset + payloadByteLength > buf.length) {
-            throw new Error(`gameStateCompact: truncated (${label} bytes)`);
-        }
-        const text = buf.toString("utf8", readOffset, readOffset + payloadByteLength);
-        readOffset += payloadByteLength;
-        return text;
-    }
-
-    const drawReason = readUtf8Payload("drawReason");
-    const resigned = readUtf8Payload("resigned");
-    const outOfTime = readUtf8Payload("outOfTime");
+    const drawReason = readU32Payload(buf, readOffset, "drawReason");
+    readOffset = drawReason.nextOffset;
+    const resigned = readU32Payload(buf, readOffset, "resigned");
+    readOffset = resigned.nextOffset;
+    const outOfTime = readU32Payload(buf, readOffset, "outOfTime");
+    readOffset = outOfTime.nextOffset;
 
     if (readOffset + 4 > buf.length) {
         throw new Error("gameStateCompact: truncated extension length");
@@ -203,44 +156,53 @@ function decodeBufferToSavedGameStateString(buf) {
     if (readOffset + extensionByteLength > buf.length) {
         throw new Error("gameStateCompact: truncated extension body");
     }
-    let extrasParsed = {};
-    if (extensionByteLength > 0) {
-        const extensionJson = buf.toString("utf8", readOffset, readOffset + extensionByteLength);
-        readOffset += extensionByteLength;
-        try {
-            extrasParsed = JSON.parse(extensionJson);
-        } catch (e) {
-            throw new Error(`gameStateCompact: extension JSON invalid: ${e.message}`);
-        }
-        if (!extrasParsed || typeof extrasParsed !== "object") {
-            throw new Error("gameStateCompact: extension must be a JSON object");
-        }
-    }
+    readOffset += extensionByteLength;
 
     if (readOffset !== buf.length) {
         throw new Error("gameStateCompact: trailing bytes");
     }
 
-    const core = {
-        board,
-        turn: flags1 & 1 ? "black" : "white",
-        check: !!(flags1 & 4),
-        checkmate: !!(flags1 & 8),
-        draw: !!(flags1 & 16),
-        drawReason,
-        resigned,
-        outOfTime,
-        whiteKingMoved: !!(flags1 & 32),
-        blackKingMoved: !!(flags1 & 64),
-        whitePlayerView: !!(flags1 & 2),
-        promoting: !!(flags1 & 128),
-        kingsideWhiteRookMoved: !!(flags2 & 1),
-        queensideWhiteRookMoved: !!(flags2 & 2),
-        kingsideBlackRookMoved: !!(flags2 & 4),
-        queensideBlackRookMoved: !!(flags2 & 8),
-    };
+    const core = flagsToCoreObject(board, flags1, flags2);
+    core.drawReason = drawReason.text;
+    core.resigned = resigned.text;
+    core.outOfTime = outOfTime.text;
+    core.whitePlayerView = !!(flags1 & 2);
+    return JSON.stringify(core);
+}
 
-    return JSON.stringify(Object.assign(core, extrasParsed));
+function decodeV2Buffer(buf) {
+    if (buf.length !== STATE_COMPACT_MAGIC_V2.length + STATE_V2_BODY_LENGTH) {
+        throw new Error("gameStateCompact: v2 buffer wrong size");
+    }
+    let readOffset = STATE_COMPACT_MAGIC_V2.length;
+    const board = [];
+    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+        const row = [];
+        for (let colIndex = 0; colIndex < 8; colIndex++) {
+            row.push(decodeBoardCell(buf[readOffset++]));
+        }
+        board.push(row);
+    }
+    const flags1 = buf[readOffset++];
+    const flags2 = buf[readOffset++];
+    return JSON.stringify(flagsToCoreObject(board, flags1, flags2));
+}
+
+/**
+ * @param {Buffer} buf
+ * @returns {string} JSON text suitable for {@link ChessGame#loadGame}
+ */
+function decodeBufferToSavedGameStateString(buf) {
+    if (!buf || buf.length < 3) {
+        throw new Error("gameStateCompact: buffer too small");
+    }
+    if (buf[0] === 0x53 && buf[1] === 0x43 && buf[2] === 0x02) {
+        return decodeV2Buffer(buf);
+    }
+    if (buf[0] === 0x53 && buf[1] === 0x43 && buf[2] === 0x01) {
+        return decodeV1Buffer(buf);
+    }
+    throw new Error("gameStateCompact: bad magic");
 }
 
 /**
@@ -277,7 +239,6 @@ function decodeLookupKeyToSavedGameStateString(key) {
 }
 
 module.exports = {
-    ENCODED_CORE_KEYS,
     encodeBoardCell,
     decodeBoardCell,
     encodeSavedGameStateStringToBuffer,

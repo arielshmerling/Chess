@@ -12,7 +12,7 @@
       <div class="panel-body admin-panel-body admin-generate-state-body">
         <p class="admin-generate-state-intro">
           Replays all PGN files under the server’s games manager folder into either the <strong>State</strong> Mongo collection
-          or the local binary opening book (<code>data/opening-book-states.bin</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
+          or the local JSON opening book (<code>data/opening-book-states.json</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
         </p>
         <fieldset class="admin-generate-state-targets">
           <legend class="admin-generate-state-legend">Target</legend>
@@ -22,7 +22,7 @@
           </label>
           <label class="admin-generate-state-radio-label">
             <input type="radio" name="generate-target" value="book">
-            <span>Binary file — write opening book (<code>opening-book-states.bin</code>)</span>
+            <span>JSON file — write opening book (<code>opening-book-states.json</code>)</span>
           </label>
         </fieldset>
         <div class="admin-generate-state-actions">

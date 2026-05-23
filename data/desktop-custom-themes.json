@@ -1,5 +1,5 @@
 {
-  "activeTheme": "blue",
+  "activeTheme": "custom:custom-mp9z5drk",
   "themes": [
     {
       "id": "custom-mp9z5drk",
@@ -148,7 +148,7 @@
         "--semiDark": "#9ca08d",
         "--semiLight": "#737472",
         "--light": "#e8e9d8",
-        "--body-background": "#9a9889",
+        "--body-background": "#eeebd8",
         "--darkSquare": "#bdc1ae",
         "--lightSquare": "#e8e9d8",
         "--optionSquare": "#9ca08d",
@@ -165,19 +165,19 @@
         "--play-game-id-text": "#6d6e45",
         "--turnClock": "invert(1)",
         "--panel-background": "#4e829f",
-        "--panel-border": "#76785e",
+        "--panel-border": "#f1f2ee",
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
         "--textbox-background": "#737373",
         "--textbox-forecolor": "#807f5b",
-        "--moves-panel-bg": "#b7b8ad",
-        "--moves-dock-title-background": "#717463",
-        "--moves-dock-title-text": "rgba(255, 255, 255, 0.55)",
+        "--moves-panel-bg": "#e1e2d5",
+        "--moves-dock-title-background": "#d0d0c2",
+        "--moves-dock-title-text": "rgba(34, 32, 32, 0.55)",
         "--moves-header-background": "#000000",
         "--moves-header-text": "#999999",
-        "--moves-cell-bg": "#9a9b87",
+        "--moves-cell-bg": "#ffffff",
         "--moves-cell-text": "#000000",
-        "--moves-cell-highlight-bg": "#7f806f",
+        "--moves-cell-highlight-bg": "#8c8c87",
         "--moves-cell-highlight-text": "rgb(233, 231, 231)",
         "--moves-cell-selected-bg": "rgb(92, 171, 125)",
         "--gold-btn-text": "#2a2208",
@@ -206,7 +206,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1779419499181
+      "updatedAt": 1779541040911
     }
   ]
 }

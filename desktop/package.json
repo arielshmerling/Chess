@@ -29,7 +29,7 @@
       "build/icon.icns",
       "../server-desktop.js",
       "../src/**/*",
-      "../data/opening-book-states.bin",
+      "../data/opening-book-states.json",
       "../data/desktop-custom-themes.json",
       "../assets/**/*",
       "!../**/*.test.js",
@@ -37,8 +37,8 @@
     ],
     "extraResources": [
       {
-        "from": "../data/opening-book-states.bin",
-        "to": "data/opening-book-states.bin"
+        "from": "../data/opening-book-states.json",
+        "to": "data/opening-book-states.json"
       }
     ],
     "mac": {

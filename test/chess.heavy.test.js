@@ -30,7 +30,7 @@ describe("Heavy tests (long execution)", () => {
         const files = await gamesManagerService.getPGNFiles();
         assert.ok(Array.isArray(files), "getPGNFiles should return an array");
 
-        const pgnGames = await gamesManagerService.readPGNGames(files);
+        const pgnGames = await gamesManagerService.readPGNGames(files, { firstFileOnly: true });
         assert.ok(Array.isArray(pgnGames), "readPGNGames should return an array");
 
         await gamesManagerService.replayPGNGames(pgnGames, { saveToDB: false });

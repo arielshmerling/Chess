@@ -16,7 +16,7 @@
  *     u32 moveByteLength BE, move bytes
  *   }
  *
- * State/move payloads use {@link gameStateCompact} / {@link gameMoveCompact} (each has its own magic).
+ * State/move payloads use {@link gameStateCompact} v2 / {@link gameMoveCompact} v2 (v1 still decodes for old books).
  */
 
 const fs = require("fs").promises;
