@@ -323,19 +323,19 @@ async function syncReconnectTimeoutFromServer() {
     }
 }
 
-const WhitePawnUrl = "images/3409_white-pawn.png";
-const WhiteRookUrl = "images/3406_white-rook.png";
-const WhiteBishopUrl = "images/3407_white-bishop.png";
-const WhiteKnightUrl = "images/3408_white-knight.png";
-const WhiteKingUrl = "images/3404_white-king.png";
-const WhiteQueenUrl = "images/3405_white-queen.png";
+const WhitePawnUrl = "images/white-pawn.png";
+const WhiteRookUrl = "images/white-rook.png";
+const WhiteBishopUrl = "images/white-bishop.png";
+const WhiteKnightUrl = "images/white-knight.png";
+const WhiteKingUrl = "images/white-king.png";
+const WhiteQueenUrl = "images/white-queen.png";
 
-const BlackPawnUrl = "images/3403_black-pawn.png";
-const BlackRookUrl = "images/3400_black-rook.png";
-const BlackBishopUrl = "images/3401_black-bishop.png";
-const BlackKnightUrl = "images/3402_black-knight.png";
-const BlackKingUrl = "images/3398_black-king.png";
-const BlackQueenUrl = "images/3399_black-queen.png";
+const BlackPawnUrl = "images/black-pawn.png";
+const BlackRookUrl = "images/black-rook.png";
+const BlackBishopUrl = "images/black-bishop.png";
+const BlackKnightUrl = "images/black-knight.png";
+const BlackKingUrl = "images/black-king.png";
+const BlackQueenUrl = "images/black-queen.png";
 
 
 const whitePiecesURL = [WhitePawnUrl, WhiteKingUrl, WhiteKnightUrl, WhiteBishopUrl, WhiteRookUrl, WhiteQueenUrl];

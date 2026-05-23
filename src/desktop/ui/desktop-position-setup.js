@@ -5,20 +5,20 @@
     "use strict";
 
     const WHITE_PIECES = [
-        "images/3409_white-pawn.png",
-        "images/3404_white-king.png",
-        "images/3408_white-knight.png",
-        "images/3407_white-bishop.png",
-        "images/3406_white-rook.png",
-        "images/3405_white-queen.png",
+        "images/white-pawn.png",
+        "images/white-king.png",
+        "images/white-knight.png",
+        "images/white-bishop.png",
+        "images/white-rook.png",
+        "images/white-queen.png",
     ];
     const BLACK_PIECES = [
-        "images/3403_black-pawn.png",
-        "images/3398_black-king.png",
-        "images/3402_black-knight.png",
-        "images/3401_black-bishop.png",
-        "images/3400_black-rook.png",
-        "images/3399_black-queen.png",
+        "images/black-pawn.png",
+        "images/black-king.png",
+        "images/black-knight.png",
+        "images/black-bishop.png",
+        "images/black-rook.png",
+        "images/black-queen.png",
     ];
 
     const SVG = {
