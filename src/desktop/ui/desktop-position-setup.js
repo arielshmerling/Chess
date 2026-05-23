@@ -264,6 +264,25 @@
         return whiteKing && blackKing;
     }
 
+    function clearStatusFlagsOnState(state) {
+        if (!state) {
+            return;
+        }
+        state.check = false;
+        state.checkmate = false;
+        state.draw = false;
+        state.drawReason = "";
+    }
+
+    /** Position setup is not a continuation of a game — don't inherit halfmove clock. */
+    function prepareStateForSetupEval(state) {
+        if (!state) {
+            return;
+        }
+        state.fiftyMovesCounter = 0;
+        state.promoting = false;
+    }
+
     function refreshFlagCheckboxes() {
         if (!chessGame || !chessGame.GameState || !flagsRoot) {
             return;
@@ -328,10 +347,13 @@
             refreshFlagCheckboxes();
             return;
         }
-        if (!positionHasBothKings(chessGame.GameState, chessGame)) {
+        const state = chessGame.GameState;
+        if (!positionHasBothKings(state, chessGame)) {
+            clearStatusFlagsOnState(state);
             refreshFlagCheckboxes();
             return;
         }
+        prepareStateForSetupEval(state);
         chessGame.evaluate();
         refreshFlagCheckboxes();
     }

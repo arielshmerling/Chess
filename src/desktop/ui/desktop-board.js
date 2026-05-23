@@ -535,6 +535,7 @@
         }
         const state = JSON.parse(JSON.stringify(chessGame.GameState));
         mutator(state);
+        state.fiftyMovesCounter = 0;
         if (
             !options.skipKingRookSync &&
             global.DesktopPositionSetup &&
