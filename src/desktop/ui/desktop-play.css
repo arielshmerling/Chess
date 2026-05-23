@@ -941,6 +941,14 @@ body.desktop-play-page .desktop-play-main {
   border-color: var(--gold-btn-border, var(--desktop-accent, #c9a227));
 }
 
+.desktop-play-setup-flag .desktop-check input:checked + .desktop-check-box::after {
+  left: 0.24rem;
+  top: 0.11rem;
+  width: 0.22rem;
+  height: 0.4rem;
+  border-width: 0 1.5px 1.5px 0;
+}
+
 .desktop-play-setup-flag-text {
   flex: 1;
   min-width: 0;

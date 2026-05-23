@@ -30,7 +30,7 @@
         if (!file) {
             return null;
         }
-        return "images/pieces/" + setId + "/" + color + "-" + file + ".png";
+        return "/images/pieces/" + setId + "/" + color + "-" + file + ".png";
     }
 
     function getUrlsForSet(setId) {
@@ -42,6 +42,34 @@
             black.push(piecePath(id, "black", i));
         }
         return { white: white, black: black };
+    }
+
+    function isDesktopApp() {
+        if (typeof window === "undefined" || !window.location) {
+            return false;
+        }
+        return window.location.pathname.indexOf("/app") === 0;
+    }
+
+    function rememberActiveSetId(setId) {
+        try {
+            localStorage.setItem(STORAGE_KEY, setId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    function persistPieceSetToServer(setId) {
+        if (!isDesktopApp()) {
+            return;
+        }
+        fetch("/app/api/ui-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pieceSet: setId }),
+        }).catch(function () {
+            /* ignore */
+        });
     }
 
     function getActiveSetId() {
@@ -56,19 +84,61 @@
         return DEFAULT_SET_ID;
     }
 
-    function setActiveSetId(setId) {
-        const id = getSetById(setId).id;
-        try {
-            localStorage.setItem(STORAGE_KEY, id);
-        } catch {
-            /* ignore */
+    function notifyPieceSetChanged(setId) {
+        if (typeof document === "undefined") {
+            return;
         }
         document.dispatchEvent(
             new CustomEvent("shmerling-piece-set-changed", {
-                detail: { setId: id },
+                detail: { setId: setId },
             })
         );
+    }
+
+    function setActiveSetId(setId) {
+        const id = getSetById(setId).id;
+        rememberActiveSetId(id);
+        persistPieceSetToServer(id);
+        notifyPieceSetChanged(id);
         return id;
+    }
+
+    function loadPieceSetFromServer() {
+        if (!isDesktopApp()) {
+            return Promise.resolve(null);
+        }
+        return fetch("/app/api/ui-settings")
+            .then(function (res) {
+                if (!res.ok) {
+                    return null;
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data || !data.pieceSet) {
+                    return null;
+                }
+                const id = getSetById(data.pieceSet).id;
+                return id === data.pieceSet ? id : null;
+            })
+            .catch(function () {
+                return null;
+            });
+    }
+
+    let bootStarted = false;
+
+    function bootActivePieceSet() {
+        if (bootStarted || typeof document === "undefined") {
+            return;
+        }
+        bootStarted = true;
+
+        loadPieceSetFromServer().then(function (serverSetId) {
+            const setId = serverSetId || getActiveSetId();
+            rememberActiveSetId(setId);
+            notifyPieceSetChanged(setId);
+        });
     }
 
     function getActiveUrls() {
@@ -147,5 +217,14 @@
         getActiveUrls: getActiveUrls,
         renderPieceSetButtons: renderPieceSetButtons,
         syncPieceSetButtons: syncPieceSetButtons,
+        bootActivePieceSet: bootActivePieceSet,
     };
+
+    if (typeof document !== "undefined") {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", bootActivePieceSet);
+        } else {
+            bootActivePieceSet();
+        }
+    }
 })(typeof window !== "undefined" ? window : global);

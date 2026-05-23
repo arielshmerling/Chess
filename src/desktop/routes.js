@@ -5,6 +5,7 @@ const { ensureGuestSession } = require("./middleware");
 const bookmarkApi = require("./bookmarkApi");
 const brainConfigApi = require("./brainConfigApi");
 const customThemeApi = require("./customThemeApi");
+const uiSettingsApi = require("./uiSettingsApi");
 
 const UI_DIR = path.join(__dirname, "ui");
 
@@ -48,6 +49,9 @@ function mountDesktopRoutes(app) {
 
     app.get("/app/api/custom-themes", requireLogin, customThemeApi.get);
     app.post("/app/api/custom-themes", requireLogin, customThemeApi.save);
+
+    app.get("/app/api/ui-settings", requireLogin, uiSettingsApi.get);
+    app.post("/app/api/ui-settings", requireLogin, uiSettingsApi.save);
 
     app.get("/desktop", (_req, res) => res.redirect("/app/"));
     app.get("/desktop/", (_req, res) => res.redirect("/app/"));

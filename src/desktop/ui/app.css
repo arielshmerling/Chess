@@ -825,12 +825,12 @@ body.desktop-research-page.hide-topbar {
 .desktop-check input:checked + .desktop-check-box::after {
   content: "";
   position: absolute;
-  left: 0.32rem;
-  top: 0.12rem;
-  width: 0.35rem;
-  height: 0.6rem;
+  left: 0.3rem;
+  top: 0.14rem;
+  width: 0.28rem;
+  height: 0.48rem;
   border: solid #fff;
-  border-width: 0 2px 2px 0;
+  border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
 
