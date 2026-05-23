@@ -20,9 +20,9 @@
         '      <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
         '        aria-labelledby="desktopPrefsTitle" hidden>',
         '        <h2 class="desktop-prefs-title" id="desktopPrefsTitle">Preferences</h2>',
-        '        <section class="desktop-prefs-section">',
+        '        <section class="desktop-prefs-section desktop-prefs-section--theme">',
         '          <h3 class="desktop-prefs-section-title">Color theme</h3>',
-        '          <div class="desktop-prefs-theme desktop-prefs-theme--builtin" role="group" aria-label="Built-in themes">',
+        '          <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="Built-in themes">',
         '            <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
         '              <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
         '              <span class="desktop-theme-name">Blue</span>',
@@ -33,7 +33,11 @@
         "            </button>",
         "          </div>",
         '          <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="Saved custom themes"></div>',
-        '          <button type="button" class="desktop-btn desktop-customize-theme-btn" id="desktopCustomizeThemeBtn">Customize theme…</button>',
+        '          <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">Customize theme…</button>',
+        "        </section>",
+        '        <section class="desktop-prefs-section desktop-prefs-section--pieces">',
+        '          <h3 class="desktop-prefs-section-title">Piece set</h3>',
+        '          <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="Piece sets"></div>',
         "        </section>",
         "      </div>",
         "    </div>",
@@ -73,6 +77,7 @@
             if (open) {
                 syncThemeButtons();
                 refreshCustomThemeList();
+                refreshPieceSetButtons();
             }
         }
 
@@ -127,8 +132,22 @@
 
         document.addEventListener("shmerling-theme-changed", syncThemeButtons);
         document.addEventListener("shmerling-custom-themes-changed", refreshCustomThemeList);
+        document.addEventListener("shmerling-piece-set-changed", refreshPieceSetButtons);
         syncThemeButtons();
         refreshCustomThemeList();
+        refreshPieceSetButtons();
+    }
+
+    function refreshPieceSetButtons() {
+        var container = document.getElementById("desktopPrefsPieceSets");
+        if (!container || !window.ShmerlingPieceSets) {
+            return;
+        }
+        if (!container.childElementCount) {
+            window.ShmerlingPieceSets.renderPieceSetButtons(container);
+        } else {
+            window.ShmerlingPieceSets.syncPieceSetButtons(container);
+        }
     }
 
     function refreshCustomThemeList() {

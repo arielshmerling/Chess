@@ -4,22 +4,37 @@
 (function () {
     "use strict";
 
-    var WHITE_URLS = [
-        "images/white-pawn.png",
-        "images/white-king.png",
-        "images/white-knight.png",
-        "images/white-bishop.png",
-        "images/white-rook.png",
-        "images/white-queen.png",
-    ];
-    var BLACK_URLS = [
-        "images/black-pawn.png",
-        "images/black-king.png",
-        "images/black-knight.png",
-        "images/black-bishop.png",
-        "images/black-rook.png",
-        "images/black-queen.png",
-    ];
+    var WHITE_URLS = [];
+    var BLACK_URLS = [];
+
+    function syncPieceUrlArrays() {
+        if (window.ShmerlingPieceSets && typeof window.ShmerlingPieceSets.getActiveUrls === "function") {
+            var urls = window.ShmerlingPieceSets.getActiveUrls();
+            WHITE_URLS = urls.white;
+            BLACK_URLS = urls.black;
+            return;
+        }
+        WHITE_URLS = [
+            "images/white-pawn.png",
+            "images/white-king.png",
+            "images/white-knight.png",
+            "images/white-bishop.png",
+            "images/white-rook.png",
+            "images/white-queen.png",
+        ];
+        BLACK_URLS = [
+            "images/black-pawn.png",
+            "images/black-king.png",
+            "images/black-knight.png",
+            "images/black-bishop.png",
+            "images/black-rook.png",
+            "images/black-queen.png",
+        ];
+    }
+
+    syncPieceUrlArrays();
+
+    document.addEventListener("shmerling-piece-set-changed", syncPieceUrlArrays);
 
     function pieceUrl(piece) {
         if (!piece) {

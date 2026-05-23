@@ -4,22 +4,42 @@
 (function (global) {
     "use strict";
 
-    const WHITE_PIECES = [
-        "images/white-pawn.png",
-        "images/white-king.png",
-        "images/white-knight.png",
-        "images/white-bishop.png",
-        "images/white-rook.png",
-        "images/white-queen.png",
-    ];
-    const BLACK_PIECES = [
-        "images/black-pawn.png",
-        "images/black-king.png",
-        "images/black-knight.png",
-        "images/black-bishop.png",
-        "images/black-rook.png",
-        "images/black-queen.png",
-    ];
+    let WHITE_PIECES = [];
+    let BLACK_PIECES = [];
+
+    function syncPieceUrlArrays() {
+        if (window.ShmerlingPieceSets && typeof window.ShmerlingPieceSets.getActiveUrls === "function") {
+            const urls = window.ShmerlingPieceSets.getActiveUrls();
+            WHITE_PIECES = urls.white;
+            BLACK_PIECES = urls.black;
+            return;
+        }
+        WHITE_PIECES = [
+            "images/white-pawn.png",
+            "images/white-king.png",
+            "images/white-knight.png",
+            "images/white-bishop.png",
+            "images/white-rook.png",
+            "images/white-queen.png",
+        ];
+        BLACK_PIECES = [
+            "images/black-pawn.png",
+            "images/black-king.png",
+            "images/black-knight.png",
+            "images/black-bishop.png",
+            "images/black-rook.png",
+            "images/black-queen.png",
+        ];
+    }
+
+    syncPieceUrlArrays();
+
+    document.addEventListener("shmerling-piece-set-changed", function () {
+        syncPieceUrlArrays();
+        if (chessGame && chessGame.GameState && chessGame.GameState.board) {
+            drawBoard(chessGame.GameState.board);
+        }
+    });
 
     const guiBoard = [
         [null, null, null, null, null, null, null, null],

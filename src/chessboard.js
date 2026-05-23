@@ -337,9 +337,26 @@ const BlackKnightUrl = "images/black-knight.png";
 const BlackKingUrl = "images/black-king.png";
 const BlackQueenUrl = "images/black-queen.png";
 
+let whitePiecesURL = [WhitePawnUrl, WhiteKingUrl, WhiteKnightUrl, WhiteBishopUrl, WhiteRookUrl, WhiteQueenUrl];
+let blackPiecesURL = [BlackPawnUrl, BlackKingUrl, BlackKnightUrl, BlackBishopUrl, BlackRookUrl, BlackQueenUrl];
 
-const whitePiecesURL = [WhitePawnUrl, WhiteKingUrl, WhiteKnightUrl, WhiteBishopUrl, WhiteRookUrl, WhiteQueenUrl];
-const blackPiecesURL = [BlackPawnUrl, BlackKingUrl, BlackKnightUrl, BlackBishopUrl, BlackRookUrl, BlackQueenUrl];
+function syncWebPieceUrlArrays() {
+    if (typeof ShmerlingPieceSets !== "undefined" && ShmerlingPieceSets.getActiveUrls) {
+        const urls = ShmerlingPieceSets.getActiveUrls();
+        whitePiecesURL = urls.white;
+        blackPiecesURL = urls.black;
+    }
+}
+
+syncWebPieceUrlArrays();
+
+document.addEventListener("shmerling-piece-set-changed", function () {
+    syncWebPieceUrlArrays();
+    const state = typeof chess !== "undefined" && chess && chess.GameState ? chess.GameState : null;
+    if (state && state.board) {
+        drawBoard(state.board);
+    }
+});
 
 
 const guiBoard = [

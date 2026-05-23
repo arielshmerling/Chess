@@ -4,22 +4,58 @@
 (function (global) {
     "use strict";
 
-    const WHITE_PIECES = [
-        "images/white-pawn.png",
-        "images/white-king.png",
-        "images/white-knight.png",
-        "images/white-bishop.png",
-        "images/white-rook.png",
-        "images/white-queen.png",
-    ];
-    const BLACK_PIECES = [
-        "images/black-pawn.png",
-        "images/black-king.png",
-        "images/black-knight.png",
-        "images/black-bishop.png",
-        "images/black-rook.png",
-        "images/black-queen.png",
-    ];
+    let WHITE_PIECES = [];
+    let BLACK_PIECES = [];
+
+    function syncPieceUrlArrays() {
+        if (global.ShmerlingPieceSets && typeof global.ShmerlingPieceSets.getActiveUrls === "function") {
+            const urls = global.ShmerlingPieceSets.getActiveUrls();
+            WHITE_PIECES = urls.white;
+            BLACK_PIECES = urls.black;
+            return;
+        }
+        WHITE_PIECES = [
+            "images/white-pawn.png",
+            "images/white-king.png",
+            "images/white-knight.png",
+            "images/white-bishop.png",
+            "images/white-rook.png",
+            "images/white-queen.png",
+        ];
+        BLACK_PIECES = [
+            "images/black-pawn.png",
+            "images/black-king.png",
+            "images/black-knight.png",
+            "images/black-bishop.png",
+            "images/black-rook.png",
+            "images/black-queen.png",
+        ];
+    }
+
+    syncPieceUrlArrays();
+
+    document.addEventListener("shmerling-piece-set-changed", function () {
+        syncPieceUrlArrays();
+        refreshPiecePaletteImages();
+    });
+
+    function refreshPiecePaletteImages() {
+        if (!panelRoot) {
+            return;
+        }
+        panelRoot.querySelectorAll(".desktop-play-setup-piece").forEach(function (btn) {
+            const img = btn.querySelector("img");
+            if (!img) {
+                return;
+            }
+            const color = btn.getAttribute("data-color");
+            const pieceType = parseInt(btn.getAttribute("data-piece"), 10);
+            if (!color || Number.isNaN(pieceType)) {
+                return;
+            }
+            img.src = color === "white" ? WHITE_PIECES[pieceType] : BLACK_PIECES[pieceType];
+        });
+    }
 
     const SVG = {
         eraser:
