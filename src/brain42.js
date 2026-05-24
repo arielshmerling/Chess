@@ -953,54 +953,24 @@ function getSquareRookPositionalBreakdown(game, row, col, se, perspectiveColor) 
     return breakdown;
 }
 
-function buildPositionSummaryBreakdown(game, se) {
-    const side = game.Turn;
-    const opponent = opponentColor(side);
-    const material = roundEvalScore(materialDifferenceForSideToMove(game));
-    const summary = [{ label: "Material difference", value: material }];
-
-    [side, opponent].forEach((color) => {
-        const sign = color === side ? 1 : -1;
-        const labelPrefix = color === "white" ? "White" : "Black";
-        const pawnParts = getPawnEvalDeltaPartsForColor(game, color, se);
-        const chainCount = getPawnChainCountForColor(game, color);
-        const chainPenalty = getPawnChainPenaltyForColor(game, color, se);
-        const seventhBonus = withEvalTurn(game, color, () => getBestOpenRookSeventhBonusDelta(game, se));
-        const openFileBonus = withEvalTurn(game, color, () => getVeryGoodOpenFileRookBonusDelta(game, se));
-        const closedFilePenalty = withEvalTurn(game, color, () => getPoorClosedFileRookPenaltyDelta(game, se));
-
-        summary.push({
-            label: `${labelPrefix} pawn chains found`,
-            value: 0,
-            text: String(chainCount),
-        });
-        if (pawnParts.doubled !== 0) {
-            summary.push({ label: `${labelPrefix} doubled pawns`, value: roundEvalScore(sign * pawnParts.doubled) });
-        }
-        if (pawnParts.advanced !== 0) {
-            summary.push({ label: `${labelPrefix} advanced pawns`, value: roundEvalScore(sign * pawnParts.advanced) });
-        }
-        if (chainPenalty !== 0) {
-            summary.push({ label: `${labelPrefix} pawn chain penalty`, value: roundEvalScore(sign * chainPenalty) });
-        }
-        if (seventhBonus !== 0) {
-            summary.push({ label: `${labelPrefix} rook on 7th rank`, value: roundEvalScore(sign * seventhBonus) });
-        }
-        if (openFileBonus !== 0) {
-            summary.push({ label: `${labelPrefix} open file rooks`, value: roundEvalScore(sign * openFileBonus) });
-        }
-        if (closedFilePenalty !== 0) {
-            summary.push({ label: `${labelPrefix} closed file rooks`, value: roundEvalScore(sign * closedFilePenalty) });
+/** Status-bar tooltip: per-color piece score total and pawn chain count. */
+function buildPositionSummaryBreakdown(game, squares) {
+    const totals = { white: 0, black: 0 };
+    (squares || []).forEach((sq) => {
+        const color = sq.piece && sq.piece.color;
+        if (color === "white" || color === "black") {
+            totals[color] += sq.score;
         }
     });
-
-    const positionalDelta = roundEvalScore(
-        positionalScoreForColor(game, side) - positionalScoreForColor(game, opponent),
-    );
-    if (positionalDelta !== 0) {
-        summary.push({ label: "Net positional difference", value: positionalDelta });
-    }
-    return summary;
+    return ["white", "black"].map((color) => {
+        const chainCount = getPawnChainCountForColor(game, color);
+        const chainWord = chainCount === 1 ? "chain" : "chains";
+        return {
+            label: color === "white" ? "White" : "Black",
+            value: roundEvalScore(totals[color]),
+            text: `${chainCount} pawn ${chainWord}`,
+        };
+    });
 }
 
 /**
@@ -1073,7 +1043,7 @@ function evaluatePositionDisplay(game, options) {
         total,
         sideToMove: side,
         terminal,
-        summary: buildPositionSummaryBreakdown(game, se),
+        summary: buildPositionSummaryBreakdown(game, squares),
         squares,
     };
 }

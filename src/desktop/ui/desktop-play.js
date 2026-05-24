@@ -813,10 +813,11 @@
     }
 
     function formatEvaluationSummaryTooltip(summary, totalText) {
-        if (!summary || !summary.length) {
-            return "";
-        }
-        const lines = summary.map(function (item) {
+        const lines = (summary || []).map(function (item) {
+            if (item.text != null && Number.isFinite(item.value)) {
+                const sign = item.value > 0 ? "+" : "";
+                return item.label + ": " + sign + item.value + " (" + item.text + ")";
+            }
             if (item.text != null) {
                 return item.label + ": " + item.text;
             }
