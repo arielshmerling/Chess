@@ -54,7 +54,7 @@ function ensureOpeningBookReady(engineName) {
  */
 async function computeMove(opts) {
     ensureRuntime();
-    const { gameState, engine = "brain42", difficulty = 3 } = opts || {};
+    const { gameState, engine = "brain42", difficulty = 3, pliesPlayed } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
     }
@@ -74,7 +74,11 @@ async function computeMove(opts) {
 
     let brainMove;
     try {
-        brainMove = await loaded.brainNextMoveFunc(chessGame, { maxDepth, config });
+        brainMove = await loaded.brainNextMoveFunc(chessGame, {
+            maxDepth,
+            config,
+            pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
+        });
     } catch (err) {
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
             brainMove = err.fallbackMove;
@@ -114,7 +118,7 @@ async function computeMove(opts) {
  */
 async function evaluatePosition(opts) {
     ensureRuntime();
-    const { gameState, engine = "brain42" } = opts || {};
+    const { gameState, engine = "brain42", pliesPlayed } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
     }
@@ -132,7 +136,10 @@ async function evaluatePosition(opts) {
     const config = brainConfigService.loadBrainConfig(engine);
     if (engine === "brain42") {
         const brain42 = require("../brain42");
-        return brain42.evaluatePositionDisplay(chessGame, { config });
+        return brain42.evaluatePositionDisplay(chessGame, {
+            config,
+            pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
+        });
     }
 
     throw new Error(`Evaluation display is not supported for engine "${engine}"`);

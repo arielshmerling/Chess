@@ -890,6 +890,7 @@
             const result = await Engine.evaluatePosition({
                 gameState: state,
                 engine: (session && session.engine) || "brain42",
+                pliesPlayed: game.Moves ? game.Moves.length : 0,
             });
             if (Board && Board.showEvaluationOverlay) {
                 Board.showEvaluationOverlay(result);
@@ -2135,6 +2136,7 @@
                 gameState: game.GameState,
                 engine: session.engine,
                 difficulty: session.difficulty,
+                pliesPlayed: game.Moves ? game.Moves.length : 0,
             });
             if (!move) {
                 showStatus("Engine could not find a move", 0, "error");

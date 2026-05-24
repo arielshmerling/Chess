@@ -25,7 +25,93 @@ const LOG_PREFIX = "[Brain4.2]";
 const MATE_SCORE = 9_000_000_000_000_000;
 
 let chess;
-let runtimeConfig = getDefaultConfig("brain42");
+let brain42FullConfig = getDefaultConfig("brain42");
+/** Plies already played before the current search root (worker loadGame clears Moves). */
+let brain42RootPliesPlayed = 0;
+let runtimeConfig = { pieceScores: {}, specialEvaluations: {} };
+
+function countPiecesForColor(game, color) {
+    const state = game && game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    let count = 0;
+    for (let row = 0; row < game.BOARD_ROWS; row++) {
+        const boardRow = state.board[row];
+        if (!boardRow) {
+            continue;
+        }
+        for (let col = 0; col < game.BOARD_COLUMNS; col++) {
+            const piece = boardRow[col];
+            if (piece && piece.color === color) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+}
+
+function detectBrain42Phase(fullConfig, game, pliesPlayed) {
+    const gp = (fullConfig && fullConfig.gamePhase) || {};
+    const endMax = Number.isFinite(gp.endGameOpponentMaxPieces) ? gp.endGameOpponentMaxPieces : 8;
+    const midAfter = Number.isFinite(gp.midGameAfterMoves) ? gp.midGameAfterMoves : 10;
+    const plies = Number.isFinite(pliesPlayed) ? Math.max(0, Math.floor(pliesPlayed)) : 0;
+
+    if (game && game.GameState?.board) {
+        const opponent = opponentColor(game.Turn);
+        const oppPieces = countPiecesForColor(game, opponent);
+        const totalPieces =
+            countPiecesForColor(game, "white") + countPiecesForColor(game, "black");
+        if (totalPieces > 0 && oppPieces <= endMax) {
+            return "endGame";
+        }
+    }
+
+    if (Math.floor(plies / 2) >= midAfter) {
+        return "midGame";
+    }
+    return "startGame";
+}
+
+function resolveBrain42ActivePhaseSettings(fullConfig, game, pliesPlayed) {
+    const phase = detectBrain42Phase(fullConfig, game, pliesPlayed);
+    const phaseSettings = (fullConfig && fullConfig[phase]) || (fullConfig && fullConfig.startGame) || {};
+    return {
+        phase,
+        pieceScores: phaseSettings.pieceScores || {},
+        specialEvaluations: phaseSettings.specialEvaluations || {},
+    };
+}
+
+function setBrain42SearchContext(fullConfig, rootPliesPlayed) {
+    brain42FullConfig = sanitizeBrainConfig("brain42", fullConfig || {});
+    brain42RootPliesPlayed = Number.isFinite(rootPliesPlayed)
+        ? Math.max(0, Math.floor(rootPliesPlayed))
+        : 0;
+}
+
+function currentSearchPliesPlayed(game) {
+    return brain42RootPliesPlayed + (game && game.Moves ? game.Moves.length : 0);
+}
+
+/** Applies pieceScores / specialEvaluations for the active game phase on runtimeConfig. */
+function applyRuntimeConfigForGame(game) {
+    const pliesPlayed = currentSearchPliesPlayed(game);
+    const active = resolveBrain42ActivePhaseSettings(brain42FullConfig, game, pliesPlayed);
+    runtimeConfig = {
+        pieceScores: active.pieceScores,
+        specialEvaluations: active.specialEvaluations,
+    };
+    return active.phase;
+}
+
+(function initBrain42RuntimeConfig() {
+    const active = resolveBrain42ActivePhaseSettings(brain42FullConfig, null, 0);
+    runtimeConfig = {
+        pieceScores: active.pieceScores,
+        specialEvaluations: active.specialEvaluations,
+    };
+})();
 
 /** @type {Map<string, object[]>|null} compact state lookup key → book moves */
 let openingBookByStateKey = null;
@@ -170,7 +256,7 @@ function getOrCreateWorker() {
     return persistentWorker;
 }
 
-function createWorkerPromise(strState, maxDepth, config) {
+function createWorkerPromise(strState, maxDepth, config, pliesPlayed) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
@@ -189,7 +275,13 @@ function createWorkerPromise(strState, maxDepth, config) {
         }, 120000);
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
-        worker.postMessage({ requestId, gameState: strState, maxDepth: depthLimit, config });
+        worker.postMessage({
+            requestId,
+            gameState: strState,
+            maxDepth: depthLimit,
+            config,
+            pliesPlayed,
+        });
     });
 }
 
@@ -301,7 +393,10 @@ function tryFindMatchState(game) {
 }
 
 exports.brainNextMoveFunc = async (game, options) => {
-    runtimeConfig = sanitizeBrainConfig("brain42", options?.config || {});
+    const pliesPlayed = options?.pliesPlayed ?? (game.Moves ? game.Moves.length : 0);
+    setBrain42SearchContext(options?.config || {}, pliesPlayed);
+    const phase = applyRuntimeConfigForGame(game);
+    console.log(`${LOG_PREFIX} Game phase: ${phase} (plies=${pliesPlayed})`);
     const state = game.GameState;
     if (!Array.isArray(state.capturedPiecesList)) {
         state.capturedPiecesList = [];
@@ -323,11 +418,11 @@ exports.brainNextMoveFunc = async (game, options) => {
     }
 
     try {
-        return await createWorkerPromise(strState, maxDepth, runtimeConfig);
+        return await createWorkerPromise(strState, maxDepth, brain42FullConfig, pliesPlayed);
     } catch (err) {
         console.warn(`${LOG_PREFIX} First worker attempt failed: ${err.message}`);
         try {
-            return await createWorkerPromise(strState, maxDepth, runtimeConfig);
+            return await createWorkerPromise(strState, maxDepth, brain42FullConfig, pliesPlayed);
         } catch {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
@@ -714,6 +809,7 @@ function stateScoreForMove(game, move) {
  * Uses its own make/undo so {@link withAppliedMove} can stay nested for search.
  */
 function immediateLineScoreForMove(game, move) {
+    applyRuntimeConfigForGame(game);
     const movingPlayer = game.Turn;
     let score = stateScoreForMove(game, move);
     game.makeMove(move.source, move.target);
@@ -779,6 +875,7 @@ function materialDifferenceForSideToMove(game) {
 
 /** Leaf: material + positional terms for side to move (no move-specific king/rook first penalty). */
 function evaluateLeafPosition(game) {
+    applyRuntimeConfigForGame(game);
     leafEvaluationsThisSearch += 1;
     if (game.Checkmate) {
         return -MATE_SCORE;
@@ -986,9 +1083,10 @@ function buildPositionSummaryBreakdown(game, squares) {
  * }}
  */
 function evaluatePositionDisplay(game, options) {
-    if (options?.config) {
-        runtimeConfig = sanitizeBrainConfig("brain42", options.config);
-    }
+    const pliesPlayed = options?.pliesPlayed ?? (game.Moves ? game.Moves.length : 0);
+    setBrain42SearchContext(options?.config || brain42FullConfig, pliesPlayed);
+    const phase = applyRuntimeConfigForGame(game);
+    console.log(`${LOG_PREFIX} Display eval phase: ${phase} (plies=${pliesPlayed})`);
     const se = specialEvaluations();
     const side = game.Turn;
     let total;
@@ -1049,6 +1147,9 @@ function evaluatePositionDisplay(game, options) {
 }
 
 exports.evaluatePositionDisplay = evaluatePositionDisplay;
+exports.detectBrain42Phase = detectBrain42Phase;
+exports.countPiecesForColor = countPiecesForColor;
+exports.resolveBrain42ActivePhaseSettings = resolveBrain42ActivePhaseSettings;
 
 function collectLegalMoves(game) {
     const state = game.GameState;
@@ -1144,6 +1245,7 @@ function findImmediateMatingMove(game, moves) {
 }
 
 function negamax(game, depthRemaining, alpha, beta) {
+    applyRuntimeConfigForGame(game);
     if (depthRemaining === 0) {
         return evaluateLeafPosition(game);
     }
@@ -1234,7 +1336,7 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
-        const { requestId, gameState, maxDepth: requestMaxDepth, config } = request;
+        const { requestId, gameState, maxDepth: requestMaxDepth, config, pliesPlayed } = request;
 
         if (!requestId || !gameState) {
             console.error(`${LOG_PREFIX} Worker received invalid request`, request);
@@ -1243,9 +1345,8 @@ if (!isMainThread) {
         }
 
         const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
-        runtimeConfig = sanitizeBrainConfig("brain42", config || {});
+        setBrain42SearchContext(config || {}, pliesPlayed ?? 0);
         const startTime = Date.now();
-        console.log(`${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}`);
 
         try {
             leafEvaluationsThisSearch = 0;
@@ -1253,6 +1354,11 @@ if (!isMainThread) {
             if (!Array.isArray(chess.GameState.capturedPiecesList)) {
                 chess.GameState.capturedPiecesList = [];
             }
+            const phase = applyRuntimeConfigForGame(chess);
+            console.log(
+                `${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}, phase=${phase}, `
+                    + `plies=${currentSearchPliesPlayed(chess)}`,
+            );
             chess.SearchMode = true;
             const move = searchBestMoveAtRoot(chess, maxDepth);
             chess.SearchMode = false;

@@ -37,23 +37,62 @@ const DEFAULT_CONFIGS = {
         },
     },
     brain42: {
-        pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
-        specialEvaluations: {
-            /** Fraction of pawn value per doubled-pawn count unit (e.g. 0.25 ⇒ 25% of pawn value each). */
-            doublePawnPenalty: 0.25,
-            /** Advanced pawns (ranks 5–7 white, 4–2 black): bonus fraction × pawn value each (0.2 ⇒ +20%). */
-            pawnAdvancedBonus: 0.2,
-            firstKingMovePenalty: 0.1,
-            firstRookMovePenalty: 0.1,
-            /** Per extra diagonal pawn chain beyond one: −(chains−1)×penalty (default 0.5). */
-            pawnsChainCountPenalty: 0.5,
-            drawMaterialDiffThreshold: 3,
-            drawScoreWhenAhead: -5,
-            drawScoreWhenBehind: 5,
-            drawScoreWhenEven: -0.1,
-            bestOpenRookOnSeventhMultiplier: 1.25,
-            veryGoodOpenRookMultiplier: 1.125,
-            poorClosedFileRookMultiplier: 0.75,
+        gamePhase: {
+            /** Switch to midGame after this many full moves (both sides). */
+            midGameAfterMoves: 10,
+            /** Switch to endGame when the opponent has at most this many pieces on the board. */
+            endGameOpponentMaxPieces: 8,
+        },
+        startGame: {
+            pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+            specialEvaluations: {
+                doublePawnPenalty: 0.25,
+                pawnAdvancedBonus: 0.2,
+                firstKingMovePenalty: 0.1,
+                firstRookMovePenalty: 0.1,
+                pawnsChainCountPenalty: 0.5,
+                drawMaterialDiffThreshold: 3,
+                drawScoreWhenAhead: -5,
+                drawScoreWhenBehind: 5,
+                drawScoreWhenEven: -0.1,
+                bestOpenRookOnSeventhMultiplier: 1.25,
+                veryGoodOpenRookMultiplier: 1.125,
+                poorClosedFileRookMultiplier: 0.75,
+            },
+        },
+        midGame: {
+            pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+            specialEvaluations: {
+                doublePawnPenalty: 0.25,
+                pawnAdvancedBonus: 0.2,
+                firstKingMovePenalty: 0.1,
+                firstRookMovePenalty: 0.1,
+                pawnsChainCountPenalty: 0.5,
+                drawMaterialDiffThreshold: 3,
+                drawScoreWhenAhead: -5,
+                drawScoreWhenBehind: 5,
+                drawScoreWhenEven: -0.1,
+                bestOpenRookOnSeventhMultiplier: 1.25,
+                veryGoodOpenRookMultiplier: 1.125,
+                poorClosedFileRookMultiplier: 0.75,
+            },
+        },
+        endGame: {
+            pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
+            specialEvaluations: {
+                doublePawnPenalty: 0.25,
+                pawnAdvancedBonus: 0.2,
+                firstKingMovePenalty: 0.1,
+                firstRookMovePenalty: 0.1,
+                pawnsChainCountPenalty: 0.5,
+                drawMaterialDiffThreshold: 3,
+                drawScoreWhenAhead: -5,
+                drawScoreWhenBehind: 5,
+                drawScoreWhenEven: -0.1,
+                bestOpenRookOnSeventhMultiplier: 1.25,
+                veryGoodOpenRookMultiplier: 1.125,
+                poorClosedFileRookMultiplier: 0.75,
+            },
         },
     },
     brain5: {
@@ -79,10 +118,117 @@ function getDefaultConfig(engineName) {
     return JSON.parse(JSON.stringify(DEFAULT_CONFIGS[safeEngine]));
 }
 
+function sanitizeBrain41StylePhaseSettings(fallbackPhase, rawPhase) {
+    const pieceScores = { ...fallbackPhase.pieceScores };
+    const inputPieceScores = rawPhase && rawPhase.pieceScores ? rawPhase.pieceScores : {};
+    for (const key of SCORE_KEYS) {
+        const parsed = Number(inputPieceScores[key]);
+        if (Number.isFinite(parsed)) {
+            pieceScores[key] = parsed;
+        }
+    }
+    const specialEvaluations = { ...fallbackPhase.specialEvaluations };
+    const rawSe = rawPhase && rawPhase.specialEvaluations ? rawPhase.specialEvaluations : {};
+    const doublePawnPenalty = Number(rawSe.doublePawnPenalty ?? specialEvaluations.doublePawnPenalty);
+    if (Number.isFinite(doublePawnPenalty)) {
+        specialEvaluations.doublePawnPenalty = doublePawnPenalty;
+    }
+    const pawnAdvancedBonus = Number(rawSe.pawnAdvancedBonus ?? specialEvaluations.pawnAdvancedBonus);
+    if (Number.isFinite(pawnAdvancedBonus)) {
+        specialEvaluations.pawnAdvancedBonus = pawnAdvancedBonus;
+    }
+    const firstKingMovePenalty = Number(rawSe.firstKingMovePenalty ?? specialEvaluations.firstKingMovePenalty);
+    if (Number.isFinite(firstKingMovePenalty)) {
+        specialEvaluations.firstKingMovePenalty = firstKingMovePenalty;
+    }
+    const firstRookMovePenalty = Number(rawSe.firstRookMovePenalty ?? specialEvaluations.firstRookMovePenalty);
+    if (Number.isFinite(firstRookMovePenalty)) {
+        specialEvaluations.firstRookMovePenalty = firstRookMovePenalty;
+    }
+    const pawnsChainCountPenalty = Number(rawSe.pawnsChainCountPenalty ?? specialEvaluations.pawnsChainCountPenalty);
+    if (Number.isFinite(pawnsChainCountPenalty)) {
+        specialEvaluations.pawnsChainCountPenalty = pawnsChainCountPenalty;
+    }
+    const drawMaterialDiffThreshold = Number(
+        rawSe.drawMaterialDiffThreshold ?? specialEvaluations.drawMaterialDiffThreshold,
+    );
+    if (Number.isFinite(drawMaterialDiffThreshold)) {
+        specialEvaluations.drawMaterialDiffThreshold = drawMaterialDiffThreshold;
+    }
+    const drawScoreWhenAhead = Number(rawSe.drawScoreWhenAhead ?? specialEvaluations.drawScoreWhenAhead);
+    if (Number.isFinite(drawScoreWhenAhead)) {
+        specialEvaluations.drawScoreWhenAhead = drawScoreWhenAhead;
+    }
+    const drawScoreWhenBehind = Number(rawSe.drawScoreWhenBehind ?? specialEvaluations.drawScoreWhenBehind);
+    if (Number.isFinite(drawScoreWhenBehind)) {
+        specialEvaluations.drawScoreWhenBehind = drawScoreWhenBehind;
+    }
+    const drawScoreWhenEven = Number(rawSe.drawScoreWhenEven ?? specialEvaluations.drawScoreWhenEven);
+    if (Number.isFinite(drawScoreWhenEven)) {
+        specialEvaluations.drawScoreWhenEven = drawScoreWhenEven;
+    }
+    const bestOpenRookOnSeventhMultiplier = Number(
+        rawSe.bestOpenRookOnSeventhMultiplier ?? specialEvaluations.bestOpenRookOnSeventhMultiplier,
+    );
+    if (Number.isFinite(bestOpenRookOnSeventhMultiplier)) {
+        specialEvaluations.bestOpenRookOnSeventhMultiplier = bestOpenRookOnSeventhMultiplier;
+    }
+    const veryGoodOpenRookMultiplier = Number(
+        rawSe.veryGoodOpenRookMultiplier ?? specialEvaluations.veryGoodOpenRookMultiplier,
+    );
+    if (Number.isFinite(veryGoodOpenRookMultiplier)) {
+        specialEvaluations.veryGoodOpenRookMultiplier = veryGoodOpenRookMultiplier;
+    }
+    const poorClosedFileRookMultiplier = Number(
+        rawSe.poorClosedFileRookMultiplier ?? specialEvaluations.poorClosedFileRookMultiplier,
+    );
+    if (Number.isFinite(poorClosedFileRookMultiplier)) {
+        specialEvaluations.poorClosedFileRookMultiplier = poorClosedFileRookMultiplier;
+    }
+    return { pieceScores, specialEvaluations };
+}
+
+function sanitizeBrain42Config(rawConfig) {
+    const fallback = getDefaultConfig("brain42");
+    let raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
+    if (raw.pieceScores && !raw.startGame) {
+        raw = {
+            ...raw,
+            startGame: {
+                pieceScores: raw.pieceScores,
+                specialEvaluations: raw.specialEvaluations,
+            },
+        };
+    }
+    const fbPhase = fallback.gamePhase || {};
+    const rawPhase = raw.gamePhase || {};
+    const midMoves = Number(rawPhase.midGameAfterMoves ?? fbPhase.midGameAfterMoves);
+    const endPieces = Number(rawPhase.endGameOpponentMaxPieces ?? fbPhase.endGameOpponentMaxPieces);
+    const gamePhase = {
+        midGameAfterMoves: Number.isFinite(midMoves) ? midMoves : 10,
+        endGameOpponentMaxPieces: Number.isFinite(endPieces) ? endPieces : 8,
+    };
+    const startFallback = fallback.startGame || fallback;
+    const startRaw = raw.startGame || startFallback;
+    const startGame = sanitizeBrain41StylePhaseSettings(startFallback, startRaw);
+    const midGame = sanitizeBrain41StylePhaseSettings(
+        fallback.midGame || startFallback,
+        raw.midGame || startRaw,
+    );
+    const endGame = sanitizeBrain41StylePhaseSettings(
+        fallback.endGame || startFallback,
+        raw.endGame || startRaw,
+    );
+    return { gamePhase, startGame, midGame, endGame };
+}
+
 function sanitizeBrainConfig(engineName, rawConfig) {
     const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
+    if (safeEngine === "brain42") {
+        return sanitizeBrain42Config(rawConfig);
+    }
     const fallback = getDefaultConfig(safeEngine);
-    const pieceScores = fallback.pieceScores;
+    const pieceScores = { ...fallback.pieceScores };
     const inputPieceScores = rawConfig && rawConfig.pieceScores ? rawConfig.pieceScores : {};
     for (const key of SCORE_KEYS) {
         const parsed = Number(inputPieceScores[key]);
@@ -90,81 +236,8 @@ function sanitizeBrainConfig(engineName, rawConfig) {
             pieceScores[key] = parsed;
         }
     }
-    if (safeEngine === "brain41" || safeEngine === "brain42") {
-        const specialEvaluations = { ...fallback.specialEvaluations };
-        const doublePawnPenalty = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.doublePawnPenalty
-            : specialEvaluations.doublePawnPenalty);
-        if (Number.isFinite(doublePawnPenalty)) {
-            specialEvaluations.doublePawnPenalty = doublePawnPenalty;
-        }
-        const pawnAdvancedBonus = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.pawnAdvancedBonus
-            : specialEvaluations.pawnAdvancedBonus);
-        if (Number.isFinite(pawnAdvancedBonus)) {
-            specialEvaluations.pawnAdvancedBonus = pawnAdvancedBonus;
-        }
-        const firstKingMovePenalty = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.firstKingMovePenalty
-            : specialEvaluations.firstKingMovePenalty);
-        if (Number.isFinite(firstKingMovePenalty)) {
-            specialEvaluations.firstKingMovePenalty = firstKingMovePenalty;
-        }
-        const firstRookMovePenalty = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.firstRookMovePenalty
-            : specialEvaluations.firstRookMovePenalty);
-        if (Number.isFinite(firstRookMovePenalty)) {
-            specialEvaluations.firstRookMovePenalty = firstRookMovePenalty;
-        }
-        const pawnsChainCountPenalty = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.pawnsChainCountPenalty
-            : specialEvaluations.pawnsChainCountPenalty);
-        if (Number.isFinite(pawnsChainCountPenalty)) {
-            specialEvaluations.pawnsChainCountPenalty = pawnsChainCountPenalty;
-        }
-        const drawMaterialDiffThreshold = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.drawMaterialDiffThreshold
-            : specialEvaluations.drawMaterialDiffThreshold);
-        if (Number.isFinite(drawMaterialDiffThreshold)) {
-            specialEvaluations.drawMaterialDiffThreshold = drawMaterialDiffThreshold;
-        }
-        const drawScoreWhenAhead = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.drawScoreWhenAhead
-            : specialEvaluations.drawScoreWhenAhead);
-        if (Number.isFinite(drawScoreWhenAhead)) {
-            specialEvaluations.drawScoreWhenAhead = drawScoreWhenAhead;
-        }
-        const drawScoreWhenBehind = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.drawScoreWhenBehind
-            : specialEvaluations.drawScoreWhenBehind);
-        if (Number.isFinite(drawScoreWhenBehind)) {
-            specialEvaluations.drawScoreWhenBehind = drawScoreWhenBehind;
-        }
-        const drawScoreWhenEven = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.drawScoreWhenEven
-            : specialEvaluations.drawScoreWhenEven);
-        if (Number.isFinite(drawScoreWhenEven)) {
-            specialEvaluations.drawScoreWhenEven = drawScoreWhenEven;
-        }
-        const bestOpenRookOnSeventhMultiplier = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.bestOpenRookOnSeventhMultiplier
-            : specialEvaluations.bestOpenRookOnSeventhMultiplier);
-        if (Number.isFinite(bestOpenRookOnSeventhMultiplier)) {
-            specialEvaluations.bestOpenRookOnSeventhMultiplier = bestOpenRookOnSeventhMultiplier;
-        }
-        const veryGoodOpenRookMultiplier = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.veryGoodOpenRookMultiplier
-            : specialEvaluations.veryGoodOpenRookMultiplier);
-        if (Number.isFinite(veryGoodOpenRookMultiplier)) {
-            specialEvaluations.veryGoodOpenRookMultiplier = veryGoodOpenRookMultiplier;
-        }
-        const poorClosedFileRookMultiplier = Number(rawConfig && rawConfig.specialEvaluations
-            ? rawConfig.specialEvaluations.poorClosedFileRookMultiplier
-            : specialEvaluations.poorClosedFileRookMultiplier);
-        if (Number.isFinite(poorClosedFileRookMultiplier)) {
-            specialEvaluations.poorClosedFileRookMultiplier = poorClosedFileRookMultiplier;
-        }
-        return { pieceScores, specialEvaluations };
+    if (safeEngine === "brain41") {
+        return sanitizeBrain41StylePhaseSettings(fallback, rawConfig);
     }
     return { pieceScores };
 }
@@ -206,4 +279,5 @@ module.exports = {
     loadBrainConfig,
     saveBrainConfig,
     sanitizeBrainConfig,
+    sanitizeBrain42Config,
 };
