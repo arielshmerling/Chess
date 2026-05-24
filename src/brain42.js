@@ -339,6 +339,13 @@ function logOpeningBookOptions(game, options) {
     console.log(`${LOG_PREFIX} Opening book options: ${pgns.join(", ")}`);
 }
 
+function logTiedBestMoveOptions(game, options, bestScore) {
+    const pgns = options.map((m) => bookMovePgn(game, m));
+    console.log(
+        `${LOG_PREFIX} Equal best score ${bestScore}; ${options.length} move(s), picking randomly: ${pgns.join(", ")}`,
+    );
+}
+
 function pickWeightedBookMove(options) {
     if (options.length === 0) {
         return null;
@@ -1440,7 +1447,13 @@ function searchBestMoveAtRoot(game, maxDepth) {
     if (tiedBest.length === 0) {
         return ordered[0];
     }
+    if (tiedBest.length > 1) {
+        logTiedBestMoveOptions(game, tiedBest, bestScore);
+    }
     const pick = tiedBest[Math.floor(Math.random() * tiedBest.length)];
+    if (tiedBest.length > 1) {
+        console.log(`${LOG_PREFIX} Random pick among ties: ${bookMovePgn(game, pick)}`);
+    }
     pick.score = bestScore;
     return pick;
 }
