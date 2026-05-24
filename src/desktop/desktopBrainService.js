@@ -108,4 +108,34 @@ async function computeMove(opts) {
     };
 }
 
-module.exports = { computeMove, ensureRuntime };
+/**
+ * @param {{ gameState: object, engine?: string }} opts
+ * @returns {Promise<object>} evaluation breakdown for UI display
+ */
+async function evaluatePosition(opts) {
+    ensureRuntime();
+    const { gameState, engine = "brain42" } = opts || {};
+    if (!gameState) {
+        throw new Error("Missing game state");
+    }
+
+    const chessGame = new ChessGame(true);
+    chessGame.loadGame(JSON.stringify(gameState));
+    if (typeof chessGame.evaluate === "function") {
+        try {
+            chessGame.evaluate();
+        } catch {
+            // Custom setups may be incomplete (e.g. missing kings).
+        }
+    }
+
+    const config = brainConfigService.loadBrainConfig(engine);
+    if (engine === "brain42") {
+        const brain42 = require("../brain42");
+        return brain42.evaluatePositionDisplay(chessGame, { config });
+    }
+
+    throw new Error(`Evaluation display is not supported for engine "${engine}"`);
+}
+
+module.exports = { computeMove, evaluatePosition, ensureRuntime };

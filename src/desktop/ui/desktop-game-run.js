@@ -7,16 +7,24 @@
     const SVG_PLAY =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
 
+    const SVG_EVAL =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 13h10"/></svg>';
+
     let panelRoot = null;
     let runTurn = "white";
     let runComputerIsWhite = false;
     let onPlay = null;
+    let onDisplayEvaluation = null;
     let onTurnChange = null;
     let onComputerColorChange = null;
     let turnSwatchWhite = null;
     let turnSwatchBlack = null;
     let computerSwatchWhite = null;
     let computerSwatchBlack = null;
+    let evalBtnEl = null;
+
+    const EVAL_BUTTON_DEFAULT_TITLE =
+        "Display evaluation (Ctrl+E) — score each piece and show the total in the status bar";
 
     function updateSwatchPair(whiteBtn, blackBtn, isWhiteSelected) {
         if (whiteBtn) {
@@ -112,6 +120,7 @@
     function mount(container, options) {
         options = options || {};
         onPlay = options.onPlay || null;
+        onDisplayEvaluation = options.onDisplayEvaluation || null;
         onTurnChange = options.onTurnChange || null;
         onComputerColorChange =
             options.onComputerColorChange || options.onHumanColorChange || null;
@@ -168,6 +177,25 @@
 
         container.appendChild(controls);
 
+        const actions = document.createElement("div");
+        actions.className = "desktop-play-game-run-actions";
+
+        const evalBtn = document.createElement("button");
+        evalBtn.type = "button";
+        evalBtn.className = "desktop-play-game-run-eval";
+        evalBtn.setAttribute(
+            "title",
+            EVAL_BUTTON_DEFAULT_TITLE,
+        );
+        evalBtn.setAttribute("aria-label", "Display evaluation");
+        evalBtn.innerHTML = SVG_EVAL;
+        evalBtnEl = evalBtn;
+        evalBtn.addEventListener("click", function () {
+            if (onDisplayEvaluation) {
+                onDisplayEvaluation();
+            }
+        });
+
         const playBtn = document.createElement("button");
         playBtn.type = "button";
         playBtn.className = "desktop-play-game-run-play";
@@ -179,7 +207,10 @@
                 onPlay();
             }
         });
-        container.appendChild(playBtn);
+
+        actions.appendChild(evalBtn);
+        actions.appendChild(playBtn);
+        container.appendChild(actions);
     }
 
     function syncOptions(opts) {
@@ -202,12 +233,34 @@
         };
     }
 
+    function setEvaluationSummaryTooltip(summary, totalText) {
+        if (!evalBtnEl) {
+            return;
+        }
+        if (!summary || !summary.length) {
+            evalBtnEl.setAttribute("title", EVAL_BUTTON_DEFAULT_TITLE);
+            return;
+        }
+        const lines = summary.map(function (item) {
+            if (item.text != null) {
+                return item.label + ": " + item.text;
+            }
+            const sign = item.value > 0 ? "+" : "";
+            return item.label + ": " + sign + item.value;
+        });
+        if (totalText) {
+            lines.push("Total: " + totalText);
+        }
+        evalBtnEl.setAttribute("title", lines.join("\n"));
+    }
+
     global.DesktopGameRun = {
         mount: mount,
         getOptions: getOptions,
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
+        setEvaluationSummaryTooltip: setEvaluationSummaryTooltip,
         createSwatchRow: createSwatchToggle,
         updateSwatchPair: updateSwatchPair,
     };

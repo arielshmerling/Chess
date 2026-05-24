@@ -808,6 +808,297 @@ function evaluateLeafPosition(game) {
     return materialDifferenceForSideToMove(game) + positionalBonusesForSideToMove(game);
 }
 
+function roundEvalScore(value) {
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+    return Math.round(value * 100) / 100;
+}
+
+function pieceLabel(game, pieceType) {
+    switch (pieceType) {
+        case game.PAWN:
+            return "Pawn";
+        case game.ROOK:
+            return "Rook";
+        case game.KNIGHT:
+            return "Knight";
+        case game.BISHOP:
+            return "Bishop";
+        case game.QUEEN:
+            return "Queen";
+        case game.KING:
+            return "King";
+        default:
+            return "Piece";
+    }
+}
+
+function opponentColor(color) {
+    return color === "white" ? "black" : "white";
+}
+
+function withEvalTurn(game, color, fn) {
+    const state = game.GameState;
+    const prev = state ? state.turn : null;
+    if (state) {
+        state.turn = color;
+    }
+    try {
+        return fn();
+    } finally {
+        if (state) {
+            state.turn = prev;
+        }
+    }
+}
+
+function countPawnsInFileForColor(game, col, color) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    let count = 0;
+    for (let row = 0; row < 8; row++) {
+        const piece = state.board[row][col];
+        if (piece && piece.color === color && piece.pieceType === game.PAWN) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+function getPawnEvalDeltaParts(game, se) {
+    const dpp = Number(se.doublePawnPenalty) || 0;
+    const pab = Number(se.pawnAdvancedBonus) || 0;
+    const pv = pieceValue(game, game.PAWN);
+    return {
+        doubled: -getCurrentPlayerDoubledPawnCount(game) * dpp * pv,
+        advanced: getCurrentPlayerAdvancedPawnCount(game) * pv * pab,
+    };
+}
+
+function getPawnEvalDeltaPartsForColor(game, color, se) {
+    return withEvalTurn(game, color, () => getPawnEvalDeltaParts(game, se));
+}
+
+function getPawnChainCountForColor(game, color) {
+    return withEvalTurn(game, color, () => getCurrentPlayerPawnChainCount(game));
+}
+
+function getPawnChainPenaltyForColor(game, color, se) {
+    return withEvalTurn(game, color, () => getPawnChainCountEvalDelta(game, se));
+}
+
+function positionalScoreForColor(game, color) {
+    return withEvalTurn(game, color, () => positionalBonusesForSideToMove(game));
+}
+
+function signedForPerspective(value, pieceColor, perspectiveColor) {
+    return pieceColor === perspectiveColor ? value : -value;
+}
+
+function getSquarePawnPositionalBreakdown(game, row, col, se, perspectiveColor) {
+    const state = game.GameState;
+    const piece = state?.board?.[row]?.[col];
+    const breakdown = [];
+    if (!piece || piece.pieceType !== game.PAWN) {
+        return breakdown;
+    }
+    const dpp = Number(se.doublePawnPenalty) || 0;
+    if (dpp !== 0 && countPawnsInFileForColor(game, col, piece.color) >= 2) {
+        const penalty = -dpp * pieceValue(game, game.PAWN);
+        breakdown.push({
+            label: piece.color === perspectiveColor ? "Doubled pawn penalty" : "Opponent doubled pawn penalty",
+            value: roundEvalScore(signedForPerspective(penalty, piece.color, perspectiveColor)),
+        });
+    }
+    const pab = Number(se.pawnAdvancedBonus) || 0;
+    if (pab !== 0 && isAdvancedPawnRankForColor(row, piece.color)) {
+        const bonus = pieceValue(game, game.PAWN) * pab;
+        breakdown.push({
+            label: piece.color === perspectiveColor ? "Advanced pawn bonus" : "Opponent advanced pawn bonus",
+            value: roundEvalScore(signedForPerspective(bonus, piece.color, perspectiveColor)),
+        });
+    }
+    return breakdown;
+}
+
+function getSquareRookPositionalBreakdown(game, row, col, se, perspectiveColor) {
+    const state = game.GameState;
+    const piece = state?.board?.[row]?.[col];
+    const breakdown = [];
+    if (!piece || piece.pieceType !== game.ROOK) {
+        return breakdown;
+    }
+    const rookScore = pieceValue(game, game.ROOK);
+    const openFile = isBoardFileFullyOpen(game, col);
+    if (openFile) {
+        const openMult = Number.isFinite(Number(se.veryGoodOpenRookMultiplier))
+            ? Number(se.veryGoodOpenRookMultiplier)
+            : 1.125;
+        if (openMult > 1) {
+            const bonus = (openMult - 1) * rookScore;
+            breakdown.push({
+                label: piece.color === perspectiveColor ? "Open file rook bonus" : "Opponent open file rook bonus",
+                value: roundEvalScore(signedForPerspective(bonus, piece.color, perspectiveColor)),
+            });
+        }
+        const seventhMult = Number.isFinite(Number(se.bestOpenRookOnSeventhMultiplier))
+            ? Number(se.bestOpenRookOnSeventhMultiplier)
+            : 1.25;
+        if (
+            seventhMult > 1
+            && isRookOnInvadingSeventhRowForColor(row, piece.color)
+        ) {
+            const bonus = (seventhMult - 1) * rookScore;
+            breakdown.push({
+                label: piece.color === perspectiveColor ? "Rook on 7th rank bonus" : "Opponent rook on 7th rank bonus",
+                value: roundEvalScore(signedForPerspective(bonus, piece.color, perspectiveColor)),
+            });
+        }
+    } else {
+        const closedMult = Number.isFinite(Number(se.poorClosedFileRookMultiplier))
+            ? Number(se.poorClosedFileRookMultiplier)
+            : 0.75;
+        if (closedMult < 1) {
+            const penalty = (closedMult - 1) * rookScore;
+            breakdown.push({
+                label: piece.color === perspectiveColor ? "Closed file rook penalty" : "Opponent closed file rook penalty",
+                value: roundEvalScore(signedForPerspective(penalty, piece.color, perspectiveColor)),
+            });
+        }
+    }
+    return breakdown;
+}
+
+function buildPositionSummaryBreakdown(game, se) {
+    const side = game.Turn;
+    const opponent = opponentColor(side);
+    const material = roundEvalScore(materialDifferenceForSideToMove(game));
+    const summary = [{ label: "Material difference", value: material }];
+
+    [side, opponent].forEach((color) => {
+        const sign = color === side ? 1 : -1;
+        const labelPrefix = color === "white" ? "White" : "Black";
+        const pawnParts = getPawnEvalDeltaPartsForColor(game, color, se);
+        const chainCount = getPawnChainCountForColor(game, color);
+        const chainPenalty = getPawnChainPenaltyForColor(game, color, se);
+        const seventhBonus = withEvalTurn(game, color, () => getBestOpenRookSeventhBonusDelta(game, se));
+        const openFileBonus = withEvalTurn(game, color, () => getVeryGoodOpenFileRookBonusDelta(game, se));
+        const closedFilePenalty = withEvalTurn(game, color, () => getPoorClosedFileRookPenaltyDelta(game, se));
+
+        summary.push({
+            label: `${labelPrefix} pawn chains found`,
+            value: 0,
+            text: String(chainCount),
+        });
+        if (pawnParts.doubled !== 0) {
+            summary.push({ label: `${labelPrefix} doubled pawns`, value: roundEvalScore(sign * pawnParts.doubled) });
+        }
+        if (pawnParts.advanced !== 0) {
+            summary.push({ label: `${labelPrefix} advanced pawns`, value: roundEvalScore(sign * pawnParts.advanced) });
+        }
+        if (chainPenalty !== 0) {
+            summary.push({ label: `${labelPrefix} pawn chain penalty`, value: roundEvalScore(sign * chainPenalty) });
+        }
+        if (seventhBonus !== 0) {
+            summary.push({ label: `${labelPrefix} rook on 7th rank`, value: roundEvalScore(sign * seventhBonus) });
+        }
+        if (openFileBonus !== 0) {
+            summary.push({ label: `${labelPrefix} open file rooks`, value: roundEvalScore(sign * openFileBonus) });
+        }
+        if (closedFilePenalty !== 0) {
+            summary.push({ label: `${labelPrefix} closed file rooks`, value: roundEvalScore(sign * closedFilePenalty) });
+        }
+    });
+
+    const positionalDelta = roundEvalScore(
+        positionalScoreForColor(game, side) - positionalScoreForColor(game, opponent),
+    );
+    if (positionalDelta !== 0) {
+        summary.push({ label: "Net positional difference", value: positionalDelta });
+    }
+    return summary;
+}
+
+/**
+ * Static position evaluation for UI display (material + positional terms for side to move).
+ * @param {import("./ChessGame").ChessGame} game
+ * @param {{ config?: object }} [options]
+ * @returns {{
+ *   total: number,
+ *   sideToMove: string,
+ *   terminal: string|null,
+ *   summary: { label: string, value: number }[],
+ *   squares: { row: number, col: number, piece: { color: string, pieceType: number }, score: number, breakdown: { label: string, value: number }[] }[]
+ * }}
+ */
+function evaluatePositionDisplay(game, options) {
+    if (options?.config) {
+        runtimeConfig = sanitizeBrainConfig("brain42", options.config);
+    }
+    const se = specialEvaluations();
+    const side = game.Turn;
+    let total;
+    let terminal = null;
+    if (game.Checkmate) {
+        total = -MATE_SCORE;
+        terminal = "checkmate";
+    } else if (game.Draw) {
+        total = 0;
+        terminal = "draw";
+    } else {
+        total = materialDifferenceForSideToMove(game)
+            + positionalScoreForColor(game, side)
+            - positionalScoreForColor(game, opponentColor(side));
+    }
+    total = roundEvalScore(total);
+
+    const squares = [];
+    const state = game.GameState;
+    if (state?.board) {
+        for (let row = 0; row < game.BOARD_ROWS; row++) {
+            for (let col = 0; col < game.BOARD_COLUMNS; col++) {
+                const piece = state.board[row][col];
+                if (!piece) {
+                    continue;
+                }
+                const isMine = piece.color === side;
+                const materialValue = pieceValue(game, piece.pieceType);
+                const signedMaterial = isMine ? materialValue : -materialValue;
+                const breakdown = [
+                    {
+                        label: `${pieceLabel(game, piece.pieceType)} material`,
+                        value: roundEvalScore(signedMaterial),
+                    },
+                ];
+                breakdown.push(...getSquarePawnPositionalBreakdown(game, row, col, se, side));
+                breakdown.push(...getSquareRookPositionalBreakdown(game, row, col, se, side));
+                let score = breakdown.reduce((sum, item) => sum + item.value, 0);
+                score = roundEvalScore(score);
+                squares.push({
+                    row,
+                    col,
+                    piece: { color: piece.color, pieceType: piece.pieceType },
+                    score,
+                    breakdown,
+                });
+            }
+        }
+    }
+
+    return {
+        total,
+        sideToMove: side,
+        terminal,
+        summary: buildPositionSummaryBreakdown(game, se),
+        squares,
+    };
+}
+
+exports.evaluatePositionDisplay = evaluatePositionDisplay;
+
 function collectLegalMoves(game) {
     const state = game.GameState;
     if (!state || !state.board) {

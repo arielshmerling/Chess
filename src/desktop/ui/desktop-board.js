@@ -76,8 +76,74 @@
     let boardAnimating = false;
     let activeMoveAnimationInterval = null;
     let animatingMoveImg = null;
+    let evaluationOverlayData = null;
 
     const MOVE_ANIM_INTERVAL_MS = 2;
+
+    function formatEvalOverlayScore(value) {
+        if (!Number.isFinite(value)) {
+            return "?";
+        }
+        if (Math.abs(value) >= 1000) {
+            return String(Math.round(value));
+        }
+        const rounded = Math.round(value * 100) / 100;
+        if (Number.isInteger(rounded)) {
+            return rounded > 0 ? "+" + String(rounded) : String(rounded);
+        }
+        const text = rounded.toFixed(2).replace(/\.?0+$/, "");
+        return rounded > 0 ? "+" + text : text;
+    }
+
+    function buildEvalBreakdownTooltip(breakdown, score) {
+        const lines = (breakdown || []).map(function (item) {
+            return item.label + ": " + formatEvalOverlayScore(item.value);
+        });
+        lines.push("Square total: " + formatEvalOverlayScore(score));
+        return lines.join("\n");
+    }
+
+    function removeEvaluationLabels() {
+        if (!guiBoard[0] || !guiBoard[0][0]) {
+            return;
+        }
+        for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
+            for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
+                const labels = guiBoard[i][j].querySelectorAll(".desktop-board-eval-score");
+                labels.forEach(function (el) {
+                    el.remove();
+                });
+            }
+        }
+    }
+
+    function applyEvaluationOverlay() {
+        removeEvaluationLabels();
+        if (!evaluationOverlayData || !evaluationOverlayData.squares || !guiBoard[0] || !guiBoard[0][0]) {
+            return;
+        }
+        evaluationOverlayData.squares.forEach(function (sq) {
+            const div = guiBoard[sq.row] && guiBoard[sq.row][sq.col];
+            if (!div) {
+                return;
+            }
+            const label = document.createElement("span");
+            label.className = "desktop-board-eval-score";
+            label.textContent = formatEvalOverlayScore(sq.score);
+            label.setAttribute("title", buildEvalBreakdownTooltip(sq.breakdown, sq.score));
+            div.appendChild(label);
+        });
+    }
+
+    function showEvaluationOverlay(data) {
+        evaluationOverlayData = data || null;
+        applyEvaluationOverlay();
+    }
+
+    function clearEvaluationOverlay() {
+        evaluationOverlayData = null;
+        removeEvaluationLabels();
+    }
 
     function setGame(chessGameInstance) {
         chessGame = chessGameInstance;
@@ -336,6 +402,7 @@
         if (setupModeActive) {
             applySetupPieceDraggability();
         }
+        applyEvaluationOverlay();
     }
 
     function drawBoard(board) {
@@ -365,6 +432,7 @@
         if (setupModeActive) {
             applySetupPieceDraggability();
         }
+        applyEvaluationOverlay();
     }
 
     function isPieceDraggable(piece) {
@@ -530,6 +598,7 @@
 
     function mutateSetupBoard(mutator, options) {
         options = options || {};
+        clearEvaluationOverlay();
         if (!chessGame || !chessGame.GameState) {
             return;
         }
@@ -1262,6 +1331,8 @@
         clearKingHighlights: clearKingHighlights,
         setSetupMode: setSetupMode,
         mutateSetupBoard: mutateSetupBoard,
+        showEvaluationOverlay: showEvaluationOverlay,
+        clearEvaluationOverlay: clearEvaluationOverlay,
         isBoardAnimating: function () {
             return boardAnimating;
         },

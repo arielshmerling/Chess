@@ -592,6 +592,7 @@
             initialTurn: game && game.Turn ? game.Turn : "white",
             initialComputerIsWhite: !currentPlayerIsWhite,
             onPlay: runGameFromPanel,
+            onDisplayEvaluation: displayPositionEvaluation,
             onTurnChange: applySetupTurn,
             onComputerColorChange: applySetupComputerColor,
         });
@@ -774,6 +775,7 @@
 
     function exitPositionSetupMode(restore) {
         Board.setSetupMode(false);
+        clearDisplayedEvaluation();
         setPositionSetupUi(false);
         showStatus("");
         if (restore && positionSetupSnapshot) {
@@ -784,6 +786,111 @@
         }
         updateGameRunPanelVisibility();
         updateActionButtons();
+    }
+
+    function formatEvaluationTotalText(result) {
+        if (!result) {
+            return "";
+        }
+        if (result.terminal === "checkmate") {
+            return "Checkmate";
+        }
+        if (result.terminal === "draw") {
+            return "Draw (0)";
+        }
+        const value = result.total;
+        if (!Number.isFinite(value)) {
+            return "?";
+        }
+        if (Math.abs(value) >= 1000) {
+            return String(Math.round(value));
+        }
+        const rounded = Math.round(value * 100) / 100;
+        if (Number.isInteger(rounded)) {
+            return (rounded > 0 ? "+" : "") + String(rounded);
+        }
+        const text = rounded.toFixed(2).replace(/\.?0+$/, "");
+        return (rounded > 0 ? "+" : "") + text;
+    }
+
+    function clearDisplayedEvaluation() {
+        if (Board && Board.clearEvaluationOverlay) {
+            Board.clearEvaluationOverlay();
+        }
+        if (GameRun && GameRun.setEvaluationSummaryTooltip) {
+            GameRun.setEvaluationSummaryTooltip(null);
+        }
+    }
+
+    async function displayPositionEvaluation() {
+        if (!game || !game.GameState) {
+            showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
+            return;
+        }
+        if (animating) {
+            showStatus("Wait for the current move to finish before evaluating", 2500, "info");
+            return;
+        }
+        if (!validatePositionSetup("play")) {
+            clearDisplayedEvaluation();
+            return;
+        }
+        if (!Engine || typeof Engine.evaluatePosition !== "function") {
+            showStatus("Evaluation is not available. Restart the Shmerling Chess app.", 0, "error");
+            return;
+        }
+        const state = JSON.parse(JSON.stringify(game.GameState));
+        state.fiftyMovesCounter = 0;
+        state.promoting = false;
+        const useGameRunTurn =
+            positionSetupMode ||
+            (!gameActive && !!lastLoadedSavedGameId && boardHasPieces());
+        const setupOpts =
+            useGameRunTurn && GameRun && GameRun.getOptions
+                ? GameRun.getOptions()
+                : { turn: game.Turn || "white" };
+        state.turn = setupOpts.turn === "black" ? "black" : "white";
+        try {
+            showStatus("Evaluating position…", 0, "info");
+            const result = await Engine.evaluatePosition({
+                gameState: state,
+                engine: (session && session.engine) || "brain42",
+            });
+            if (Board && Board.showEvaluationOverlay) {
+                Board.showEvaluationOverlay(result);
+            }
+            const sideLabel = result.sideToMove === "black" ? "Black" : "White";
+            const scoreText = formatEvaluationTotalText(result);
+            showStatus("Evaluation (" + sideLabel + " to move): " + scoreText, 0, "info");
+            if (GameRun && GameRun.setEvaluationSummaryTooltip) {
+                GameRun.setEvaluationSummaryTooltip(result.summary, scoreText);
+            }
+        } catch (err) {
+            if (Board && Board.clearEvaluationOverlay) {
+                Board.clearEvaluationOverlay();
+            }
+            if (GameRun && GameRun.setEvaluationSummaryTooltip) {
+                GameRun.setEvaluationSummaryTooltip(null);
+            }
+            showStatus(err.message || "Evaluation failed", 0, "error");
+        }
+    }
+
+    function shouldIgnoreShortcutTarget(target) {
+        if (!target || !target.closest) {
+            return false;
+        }
+        return !!target.closest("input, textarea, select, [contenteditable='true']");
+    }
+
+    function handleKeyboardShortcuts(ev) {
+        if (shouldIgnoreShortcutTarget(ev.target)) {
+            return;
+        }
+        if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key && ev.key.toLowerCase() === "e") {
+            ev.preventDefault();
+            displayPositionEvaluation();
+        }
     }
 
     function validateSetupPosition() {
@@ -823,6 +930,7 @@
         updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
         redoPairAvailable = false;
         positionSetupSnapshot = null;
+        clearDisplayedEvaluation();
         exitPositionSetupMode(false);
         Board.syncFromGameState();
         updateMatchHeader();
@@ -1911,6 +2019,7 @@
         if (!adjusted) {
             return false;
         }
+        clearDisplayedEvaluation();
         if (adjusted.promotion && adjusted.selectedPiece == null) {
             return false;
         }
@@ -2014,6 +2123,7 @@
         applySessionSettings(opts);
         assignNewGameId();
         game.startNewGame(currentPlayerIsWhite);
+        clearDisplayedEvaluation();
         resetClocks();
         redoPairAvailable = false;
         lastCheckNotifySide = null;
@@ -2116,6 +2226,7 @@
         if (!gameActive || positionSetupMode) {
             return;
         }
+        clearDisplayedEvaluation();
         lastMove = executed;
         redoPairAvailable = false;
         Board.clearArrows();
@@ -2237,6 +2348,7 @@
         if (!canUndoMovePair() || $("undoBtn").disabled) {
             return;
         }
+        clearDisplayedEvaluation();
         animating = true;
         batchUndoRedo = true;
         game.undo();
@@ -2254,6 +2366,7 @@
         if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating) {
             return;
         }
+        clearDisplayedEvaluation();
         animating = true;
         batchUndoRedo = true;
         game.redo();
@@ -2382,6 +2495,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("keydown", handleKeyboardShortcuts);
         if (Dialog && Dialog.setLockHandlers) {
             Dialog.setLockHandlers(function (locked) {
                 dialogOn = locked;

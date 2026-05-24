@@ -142,7 +142,7 @@ function initDesktopBrainIpc() {
     process.env.SHMERLING_MODE = "desktop";
     process.env.SHMERLING_USER_DATA = app.getPath("userData");
     const runtime = require("../src/desktop/runtime");
-    const { computeMove } = require("../src/desktop/desktopBrainService");
+    const { computeMove, evaluatePosition } = require("../src/desktop/desktopBrainService");
     const { preloadOpeningBookAtStartup } = require("../src/desktop/preloadOpeningBook");
 
     runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
@@ -152,6 +152,10 @@ function initDesktopBrainIpc() {
 
     ipcMain.handle("brain:computeMove", async (_event, payload) => {
         return computeMove(payload);
+    });
+
+    ipcMain.handle("brain:evaluatePosition", async (_event, payload) => {
+        return evaluatePosition(payload);
     });
 }
 
