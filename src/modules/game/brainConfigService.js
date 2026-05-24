@@ -3,6 +3,31 @@ const path = require("path");
 
 const CONFIG_DIR = path.join(__dirname, "..", "..", "config", "brains");
 
+const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+const DEFAULT_BRAIN42_PAWN_FILE_VALUES = {
+    openingMidGame: {
+        a: 0.75,
+        b: 1,
+        c: 1.25,
+        d: 1.5,
+        e: 1.5,
+        f: 1.25,
+        g: 1,
+        h: 0.75,
+    },
+    endGame: {
+        a: 1.5,
+        b: 1.25,
+        c: 1,
+        d: 0.75,
+        e: 0.75,
+        f: 1,
+        g: 1.25,
+        h: 1.5,
+    },
+};
+
 const DEFAULT_CONFIGS = {
     brain: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3, queen: 9, king: 10000 },
@@ -43,6 +68,8 @@ const DEFAULT_CONFIGS = {
             /** Switch to endGame when the opponent has at most this many pieces on the board. */
             endGameOpponentMaxPieces: 8,
         },
+        /** Pawn value multipliers by file (× base pawn score). openingMidGame = start + mid; endGame = end phase. */
+        pawnFileValues: DEFAULT_BRAIN42_PAWN_FILE_VALUES,
         startGame: {
             pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
             specialEvaluations: {
@@ -188,6 +215,31 @@ function sanitizeBrain41StylePhaseSettings(fallbackPhase, rawPhase) {
     return { pieceScores, specialEvaluations };
 }
 
+function sanitizePawnFileTable(fallbackTable, rawTable) {
+    const out = { ...fallbackTable };
+    const raw = rawTable && typeof rawTable === "object" ? rawTable : {};
+    for (let i = 0; i < PAWN_FILE_LETTERS.length; i++) {
+        const file = PAWN_FILE_LETTERS[i];
+        const parsed = Number(raw[file]);
+        if (Number.isFinite(parsed)) {
+            out[file] = parsed;
+        }
+    }
+    return out;
+}
+
+function sanitizePawnFileValues(fallback, raw) {
+    const fb = fallback || DEFAULT_BRAIN42_PAWN_FILE_VALUES;
+    const input = raw && typeof raw === "object" ? raw : {};
+    return {
+        openingMidGame: sanitizePawnFileTable(
+            fb.openingMidGame,
+            input.openingMidGame,
+        ),
+        endGame: sanitizePawnFileTable(fb.endGame, input.endGame),
+    };
+}
+
 function sanitizeBrain42Config(rawConfig) {
     const fallback = getDefaultConfig("brain42");
     let raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
@@ -208,6 +260,7 @@ function sanitizeBrain42Config(rawConfig) {
         midGameAfterMoves: Number.isFinite(midMoves) ? midMoves : 10,
         endGameOpponentMaxPieces: Number.isFinite(endPieces) ? endPieces : 8,
     };
+    const pawnFileValues = sanitizePawnFileValues(fallback.pawnFileValues, raw.pawnFileValues);
     const startFallback = fallback.startGame || fallback;
     const startRaw = raw.startGame || startFallback;
     const startGame = sanitizeBrain41StylePhaseSettings(startFallback, startRaw);
@@ -219,7 +272,7 @@ function sanitizeBrain42Config(rawConfig) {
         fallback.endGame || startFallback,
         raw.endGame || startRaw,
     );
-    return { gamePhase, startGame, midGame, endGame };
+    return { gamePhase, pawnFileValues, startGame, midGame, endGame };
 }
 
 function sanitizeBrainConfig(engineName, rawConfig) {
@@ -275,6 +328,7 @@ function saveBrainConfig(engineName, rawConfig) {
 
 module.exports = {
     ALLOWED_BRAINS,
+    PAWN_FILE_LETTERS,
     getDefaultConfig,
     loadBrainConfig,
     saveBrainConfig,

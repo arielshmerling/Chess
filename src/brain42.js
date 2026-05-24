@@ -80,6 +80,7 @@ function resolveBrain42ActivePhaseSettings(fullConfig, game, pliesPlayed) {
         phase,
         pieceScores: phaseSettings.pieceScores || {},
         specialEvaluations: phaseSettings.specialEvaluations || {},
+        pawnFileValues: (fullConfig && fullConfig.pawnFileValues) || null,
     };
 }
 
@@ -101,6 +102,8 @@ function applyRuntimeConfigForGame(game) {
     runtimeConfig = {
         pieceScores: active.pieceScores,
         specialEvaluations: active.specialEvaluations,
+        pawnFileValues: active.pawnFileValues,
+        pawnFileTableKey: active.phase === "endGame" ? "endGame" : "openingMidGame",
     };
     return active.phase;
 }
@@ -110,6 +113,8 @@ function applyRuntimeConfigForGame(game) {
     runtimeConfig = {
         pieceScores: active.pieceScores,
         specialEvaluations: active.specialEvaluations,
+        pawnFileValues: active.pawnFileValues,
+        pawnFileTableKey: "openingMidGame",
     };
 })();
 
@@ -457,6 +462,32 @@ function pieceValue(game, pieceType) {
     }
 }
 
+/** Multiplier for pawn on file `col` (0=a … 7=h); 1 when no table configured. */
+function pawnFileMultiplier(col) {
+    const pfv = runtimeConfig.pawnFileValues;
+    if (!pfv || typeof col !== "number" || col < 0 || col > 7) {
+        return 1;
+    }
+    const tableKey = runtimeConfig.pawnFileTableKey || "openingMidGame";
+    const table = pfv[tableKey];
+    if (!table) {
+        return 1;
+    }
+    const file = "abcdefgh"[col];
+    const mult = table[file];
+    return Number.isFinite(mult) ? mult : 1;
+}
+
+function pieceValueOnSquare(game, piece, col) {
+    if (!piece) {
+        return 0;
+    }
+    if (piece.pieceType === game.PAWN) {
+        return pieceValue(game, game.PAWN) * pawnFileMultiplier(col);
+    }
+    return pieceValue(game, piece.pieceType);
+}
+
 function specialEvaluations() {
     return runtimeConfig.specialEvaluations || {};
 }
@@ -536,14 +567,70 @@ function getCurrentPlayerDoubledPawnCount(game) {
     return doubledCount;
 }
 
-function isAdvancedPawnRankForColor(row, color) {
+/**
+ * Stacked advanced-pawn bonus fraction (× pawn value on that square).
+ * White: rank 5/6/7 (rows 3/2/1) → 20% / 40% / 60% per pawnAdvancedBonus step.
+ * Black: rank 4/3/2 (rows 4/5/6) → 20% / 40% / 60%.
+ */
+function getAdvancedPawnBonusFraction(row, color, bonusPerRank) {
+    const step = Number(bonusPerRank);
+    if (!Number.isFinite(step) || step <= 0) {
+        return 0;
+    }
     if (color === "white") {
-        return row >= 1 && row <= 3;
+        if (row === 3) {
+            return step;
+        }
+        if (row === 2) {
+            return step * 2;
+        }
+        if (row === 1) {
+            return step * 3;
+        }
+        return 0;
     }
     if (color === "black") {
-        return row >= 4 && row <= 6;
+        if (row === 4) {
+            return step;
+        }
+        if (row === 5) {
+            return step * 2;
+        }
+        if (row === 6) {
+            return step * 3;
+        }
+        return 0;
     }
-    return false;
+    return 0;
+}
+
+function isAdvancedPawnRankForColor(row, color) {
+    return getAdvancedPawnBonusFraction(row, color, 1) > 0;
+}
+
+function getAdvancedPawnBonusForColor(game, color, se) {
+    const pab = Number(se.pawnAdvancedBonus) || 0;
+    if (pab === 0) {
+        return 0;
+    }
+    const state = game.GameState;
+    if (!state?.board) {
+        return 0;
+    }
+    let total = 0;
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = state.board[row][col];
+            if (!piece || piece.color !== color || piece.pieceType !== game.PAWN) {
+                continue;
+            }
+            const frac = getAdvancedPawnBonusFraction(row, color, pab);
+            if (frac > 0) {
+                total += pieceValueOnSquare(game, piece, col) * frac;
+            }
+        }
+    }
+    return total;
 }
 
 function getCurrentPlayerAdvancedPawnCount(game) {
@@ -732,13 +819,12 @@ function getPoorClosedFileRookPenaltyDelta(game, se) {
     return count * deltaPerRook;
 }
 
-/** Doubled pawns: −count × doublePawnPenalty × pawn value; advanced: +count × pawn value × pawnAdvancedBonus. */
+/** Doubled pawns: −count × doublePawnPenalty × pawn value; advanced: stacked rank bonus per pawn. */
 function getPawnEvalDelta(game, se) {
     const dpp = Number(se.doublePawnPenalty) || 0;
-    const pab = Number(se.pawnAdvancedBonus) || 0;
     const pv = pieceValue(game, game.PAWN);
     return -getCurrentPlayerDoubledPawnCount(game) * dpp * pv
-        + getCurrentPlayerAdvancedPawnCount(game) * pv * pab;
+        + getAdvancedPawnBonusForColor(game, game.Turn, se);
 }
 
 function getTotalMaterialValueForColor(game, color) {
@@ -751,7 +837,7 @@ function getTotalMaterialValueForColor(game, color) {
         for (let col = 0; col < 8; col++) {
             const piece = state.board[row][col];
             if (piece && piece.color === color) {
-                total += pieceValue(game, piece.pieceType);
+                total += pieceValueOnSquare(game, piece, col);
             }
         }
     }
@@ -792,7 +878,7 @@ function stateScoreForMove(game, move) {
     const targetPiece = state.board[move.target.row][move.target.col];
     let score = 0;
     if (targetPiece != null) {
-        score = pieceValue(game, targetPiece.pieceType);
+        score = pieceValueOnSquare(game, targetPiece, move.target.col);
     }
     const se = specialEvaluations();
     score += getPawnEvalDelta(game, se);
@@ -862,7 +948,7 @@ function materialDifferenceForSideToMove(game) {
             if (!p) {
                 continue;
             }
-            const v = pieceValue(game, p.pieceType);
+            const v = pieceValueOnSquare(game, p, c);
             if (p.color === side) {
                 mine += v;
             } else {
@@ -948,11 +1034,10 @@ function countPawnsInFileForColor(game, col, color) {
 
 function getPawnEvalDeltaParts(game, se) {
     const dpp = Number(se.doublePawnPenalty) || 0;
-    const pab = Number(se.pawnAdvancedBonus) || 0;
     const pv = pieceValue(game, game.PAWN);
     return {
         doubled: -getCurrentPlayerDoubledPawnCount(game) * dpp * pv,
-        advanced: getCurrentPlayerAdvancedPawnCount(game) * pv * pab,
+        advanced: getAdvancedPawnBonusForColor(game, game.Turn, se),
     };
 }
 
@@ -985,17 +1070,21 @@ function getSquarePawnPositionalBreakdown(game, row, col, se, perspectiveColor) 
     }
     const dpp = Number(se.doublePawnPenalty) || 0;
     if (dpp !== 0 && countPawnsInFileForColor(game, col, piece.color) >= 2) {
-        const penalty = -dpp * pieceValue(game, game.PAWN);
+        const penalty = -dpp * pieceValueOnSquare(game, piece, col);
         breakdown.push({
             label: piece.color === perspectiveColor ? "Doubled pawn penalty" : "Opponent doubled pawn penalty",
             value: roundEvalScore(signedForPerspective(penalty, piece.color, perspectiveColor)),
         });
     }
     const pab = Number(se.pawnAdvancedBonus) || 0;
-    if (pab !== 0 && isAdvancedPawnRankForColor(row, piece.color)) {
-        const bonus = pieceValue(game, game.PAWN) * pab;
+    const frac = getAdvancedPawnBonusFraction(row, piece.color, pab);
+    if (frac > 0) {
+        const bonus = pieceValueOnSquare(game, piece, col) * frac;
+        const pct = Math.round(frac * 100);
         breakdown.push({
-            label: piece.color === perspectiveColor ? "Advanced pawn bonus" : "Opponent advanced pawn bonus",
+            label: piece.color === perspectiveColor
+                ? `Advanced pawn bonus (+${pct}%)`
+                : `Opponent advanced pawn bonus (+${pct}%)`,
             value: roundEvalScore(signedForPerspective(bonus, piece.color, perspectiveColor)),
         });
     }
@@ -1050,8 +1139,21 @@ function getSquareRookPositionalBreakdown(game, row, col, se, perspectiveColor) 
     return breakdown;
 }
 
-/** Status-bar tooltip: per-color piece score total and pawn chain count. */
-function buildPositionSummaryBreakdown(game, squares) {
+function formatBrain42PhaseLabel(phase) {
+    switch (phase) {
+        case "startGame":
+            return "Start game";
+        case "midGame":
+            return "Mid game";
+        case "endGame":
+            return "End game";
+        default:
+            return phase || "Start game";
+    }
+}
+
+/** Status-bar tooltip: game phase, per-color piece score total and pawn chain count. */
+function buildPositionSummaryBreakdown(game, squares, phase) {
     const totals = { white: 0, black: 0 };
     (squares || []).forEach((sq) => {
         const color = sq.piece && sq.piece.color;
@@ -1059,7 +1161,7 @@ function buildPositionSummaryBreakdown(game, squares) {
             totals[color] += sq.score;
         }
     });
-    return ["white", "black"].map((color) => {
+    const colorLines = ["white", "black"].map((color) => {
         const chainCount = getPawnChainCountForColor(game, color);
         const chainWord = chainCount === 1 ? "chain" : "chains";
         return {
@@ -1068,6 +1170,13 @@ function buildPositionSummaryBreakdown(game, squares) {
             text: `${chainCount} pawn ${chainWord}`,
         };
     });
+    return [
+        {
+            label: "Game mode",
+            text: formatBrain42PhaseLabel(phase),
+        },
+        ...colorLines,
+    ];
 }
 
 /**
@@ -1078,7 +1187,8 @@ function buildPositionSummaryBreakdown(game, squares) {
  *   total: number,
  *   sideToMove: string,
  *   terminal: string|null,
- *   summary: { label: string, value: number }[],
+ *   gamePhase: string,
+ *   summary: { label: string, value?: number, text?: string }[],
  *   squares: { row: number, col: number, piece: { color: string, pieceType: number }, score: number, breakdown: { label: string, value: number }[] }[]
  * }}
  */
@@ -1114,11 +1224,15 @@ function evaluatePositionDisplay(game, options) {
                     continue;
                 }
                 const isMine = piece.color === side;
-                const materialValue = pieceValue(game, piece.pieceType);
+                const materialValue = pieceValueOnSquare(game, piece, col);
                 const signedMaterial = isMine ? materialValue : -materialValue;
+                let materialLabel = `${pieceLabel(game, piece.pieceType)} material`;
+                if (piece.pieceType === game.PAWN && pawnFileMultiplier(col) !== 1) {
+                    materialLabel += ` (${"abcdefgh"[col]}-file)`;
+                }
                 const breakdown = [
                     {
-                        label: `${pieceLabel(game, piece.pieceType)} material`,
+                        label: materialLabel,
                         value: roundEvalScore(signedMaterial),
                     },
                 ];
@@ -1141,7 +1255,8 @@ function evaluatePositionDisplay(game, options) {
         total,
         sideToMove: side,
         terminal,
-        summary: buildPositionSummaryBreakdown(game, squares),
+        gamePhase: phase,
+        summary: buildPositionSummaryBreakdown(game, squares, phase),
         squares,
     };
 }
@@ -1150,6 +1265,8 @@ exports.evaluatePositionDisplay = evaluatePositionDisplay;
 exports.detectBrain42Phase = detectBrain42Phase;
 exports.countPiecesForColor = countPiecesForColor;
 exports.resolveBrain42ActivePhaseSettings = resolveBrain42ActivePhaseSettings;
+exports.getAdvancedPawnBonusFraction = getAdvancedPawnBonusFraction;
+exports.getAdvancedPawnBonusForColor = getAdvancedPawnBonusForColor;
 
 function collectLegalMoves(game) {
     const state = game.GameState;
@@ -1199,8 +1316,8 @@ function orderMovesCapturesFirst(game, moves) {
     return moves.slice().sort((a, b) => {
         const capA = state.board[a.target.row]?.[a.target.col];
         const capB = state.board[b.target.row]?.[b.target.col];
-        const va = capA ? pieceValue(game, capA.pieceType) : 0;
-        const vb = capB ? pieceValue(game, capB.pieceType) : 0;
+        const va = capA ? pieceValueOnSquare(game, capA, a.target.col) : 0;
+        const vb = capB ? pieceValueOnSquare(game, capB, b.target.col) : 0;
         return vb - va;
     });
 }

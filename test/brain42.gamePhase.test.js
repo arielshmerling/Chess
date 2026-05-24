@@ -11,7 +11,10 @@ const {
     countPiecesForColor,
     resolveBrain42ActivePhaseSettings,
 } = require("../src/brain42");
-const { getDefaultConfig } = require("../src/modules/game/brainConfigService");
+const {
+    getDefaultConfig,
+    sanitizeBrain42Config,
+} = require("../src/modules/game/brainConfigService");
 
 function emptyStateBase(turn) {
     const board = {};
@@ -77,5 +80,13 @@ describe("Brain 4.2 game phase", () => {
         const resolved = resolveBrain42ActivePhaseSettings(fullConfig, game, 0);
         assert.strictEqual(resolved.phase, "startGame");
         assert.strictEqual(resolved.pieceScores.king, fullConfig.startGame.pieceScores.king);
+    });
+
+    it("sanitized config includes pawn file values for brain42", () => {
+        const cfg = sanitizeBrain42Config(getDefaultConfig("brain42"));
+        assert.strictEqual(cfg.pawnFileValues.openingMidGame.d, 1.5);
+        assert.strictEqual(cfg.pawnFileValues.openingMidGame.a, 0.75);
+        assert.strictEqual(cfg.pawnFileValues.endGame.a, 1.5);
+        assert.strictEqual(cfg.pawnFileValues.endGame.d, 0.75);
     });
 });

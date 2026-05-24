@@ -13,10 +13,14 @@
         { value: "brain", label: "Brain" },
     ];
 
+    const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
     const SECTION_TITLES = {
         pieceScores: "Piece scores",
         specialEvaluations: "Special evaluations",
         gamePhase: "Game phase",
+        "pawnFileValues.openingMidGame": "Pawn files (opening / mid)",
+        "pawnFileValues.endGame": "Pawn files (endgame)",
     };
 
     let panelRoot = null;
@@ -66,6 +70,31 @@
         return copy;
     }
 
+    function getConfigBlock(cfg, sectionPath) {
+        if (!cfg) {
+            return undefined;
+        }
+        const parts = sectionPath.split(".");
+        let block = cfg;
+        for (let i = 0; i < parts.length; i++) {
+            block = block && block[parts[i]];
+        }
+        return block;
+    }
+
+    function setConfigBlock(cfg, sectionPath, key, value) {
+        const parts = sectionPath.split(".");
+        let block = cfg;
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (!block[part] || typeof block[part] !== "object") {
+                block[part] = {};
+            }
+            block = block[part];
+        }
+        block[key] = value;
+    }
+
     function prepareConfigForSave(draft, engine) {
         const copy = JSON.parse(JSON.stringify(draft || {}));
         if (engine === "brain42" && copy.startGame) {
@@ -105,24 +134,44 @@
                 }
             }
         }
+        if (config.pawnFileValues) {
+            const pawnSections = ["pawnFileValues.openingMidGame", "pawnFileValues.endGame"];
+            for (let p = 0; p < pawnSections.length; p++) {
+                const sectionPath = pawnSections[p];
+                const block = getConfigBlock(config, sectionPath);
+                if (!block) {
+                    continue;
+                }
+                for (let f = 0; f < PAWN_FILE_LETTERS.length; f++) {
+                    const file = PAWN_FILE_LETTERS[f];
+                    if (typeof block[file] === "number") {
+                        fields.push({
+                            section: sectionPath,
+                            key: file,
+                            label: file + " file",
+                        });
+                    }
+                }
+            }
+        }
         return fields;
     }
 
     function getFieldValue(cfg, field) {
-        const block = cfg && cfg[field.section];
+        const block = getConfigBlock(cfg, field.section);
         return block ? block[field.key] : undefined;
     }
 
     function setFieldValue(cfg, field, value) {
-        if (!cfg[field.section]) {
-            cfg[field.section] = {};
-        }
-        cfg[field.section][field.key] = value;
+        setConfigBlock(cfg, field.section, field.key, value);
     }
 
     function inputStepForField(field) {
         if (field.section === "gamePhase") {
             return "1";
+        }
+        if (field.section.indexOf("pawnFileValues") === 0) {
+            return "0.01";
         }
         return "0.01";
     }
