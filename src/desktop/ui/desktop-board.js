@@ -145,6 +145,10 @@
         removeEvaluationLabels();
     }
 
+    function isEvaluationOverlayActive() {
+        return !!(evaluationOverlayData && evaluationOverlayData.squares && evaluationOverlayData.squares.length);
+    }
+
     function setGame(chessGameInstance) {
         chessGame = chessGameInstance;
     }
@@ -1333,6 +1337,7 @@
         mutateSetupBoard: mutateSetupBoard,
         showEvaluationOverlay: showEvaluationOverlay,
         clearEvaluationOverlay: clearEvaluationOverlay,
+        isEvaluationOverlayActive: isEvaluationOverlayActive,
         isBoardAnimating: function () {
             return boardAnimating;
         },

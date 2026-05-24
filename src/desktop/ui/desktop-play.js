@@ -921,6 +921,17 @@
         }
     }
 
+    function handleDismissEvaluationOnClick(ev) {
+        if (!Board || !Board.isEvaluationOverlayActive || !Board.isEvaluationOverlayActive()) {
+            return;
+        }
+        const target = ev.target;
+        if (target && target.closest && target.closest(".desktop-play-game-run-eval")) {
+            return;
+        }
+        clearDisplayedEvaluation();
+    }
+
     function validateSetupPosition() {
         if (!game || !game.GameState) {
             return;
@@ -2545,6 +2556,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("click", handleDismissEvaluationOnClick, true);
         document.addEventListener("keydown", handleKeyboardShortcuts);
         if (Dialog && Dialog.setLockHandlers) {
             Dialog.setLockHandlers(function (locked) {
