@@ -17,7 +17,7 @@
         "--frame": "#a48b37",
         "--frame-forecolor": "#ffffff",
         "--play-header-background": "#141414",
-        "--play-footer-background": "#303030",
+        "--play-footer-background": "#474747",
         "--play-clock-background": "rgba(0, 0, 0, 0.25)",
         "--play-clock-border": "rgba(255, 255, 255, 0.08)",
         "--play-clock-text": "#e8e8e8",
@@ -68,7 +68,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1779051686709
+      "updatedAt": 1779627014571
     },
     {
       "id": "custom-mp9zer1t",

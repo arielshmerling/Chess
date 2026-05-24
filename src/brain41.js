@@ -367,11 +367,8 @@ function getCurrentPlayerAdvancedPawnCount(localChess) {
 /**
  * Counts how many **pawn chains** the side to move has (Chess.com sense: pawns on the same
  * diagonal, each “supporting” the next along that diagonal; 
- * Two pawns are in the same chain if they are on **diagonally adjacent** squares
- * (|Δrow| = 1, |Δcol| = 1) — the graph where edges are those links is split into
- * connected components; each component is one chain. Isolated pawns are chains of size 1.
- * Pawns on the same rank/file only (e.g. doubled pawns) are not on a diagonal with each
- * other unless a third pawn links them.
+ * A pawn chain is a run of adjacent files (columns) that each contain at least one
+ * friendly pawn. Rank does not matter; pawns need not defend each other.
  */
 function getCurrentPlayerPawnChainCount(localChess) {
     const state = localChess.GameState;
@@ -379,53 +376,29 @@ function getCurrentPlayerPawnChainCount(localChess) {
         return 0;
     }
     const currentColor = localChess.Turn;
-    const pawns = [];
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
+    const filesWithPawns = [];
+    for (let col = 0; col < 8; col++) {
+        for (let row = 0; row < 8; row++) {
             const piece = state.board[row][col];
             if (piece && piece.color === currentColor && piece.pieceType === localChess.PAWN) {
-                pawns.push({ row, col });
+                filesWithPawns.push(col);
+                break;
             }
         }
     }
-    const n = pawns.length;
-    if (n === 0) {
+    if (filesWithPawns.length === 0) {
         return 0;
     }
-    const parent = new Array(n);
-    for (let i = 0; i < n; i++) {
-        parent[i] = i;
-    }
-    function find(i) {
-        if (parent[i] !== i) {
-            parent[i] = find(parent[i]);
-        }
-        return parent[i];
-    }
-    function union(i, j) {
-        const ri = find(i);
-        const rj = find(j);
-        if (ri !== rj) {
-            parent[ri] = rj;
+    let chains = 1;
+    for (let i = 1; i < filesWithPawns.length; i++) {
+        if (filesWithPawns[i] !== filesWithPawns[i - 1] + 1) {
+            chains += 1;
         }
     }
-    for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-            const dr = Math.abs(pawns[i].row - pawns[j].row);
-            const dc = Math.abs(pawns[i].col - pawns[j].col);
-            if (dr === 1 && dc === 1) {
-                union(i, j);
-            }
-        }
-    }
-    const roots = new Set();
-    for (let i = 0; i < n; i++) {
-        roots.add(find(i));
-    }
-    return roots.size;
+    return chains;
 }
 
-/** Penalizes fragmentation into many diagonal pawn chains: (chainCount - 1) * pawnsChainCountPenalty; one chain (or no pawns) adds nothing. */
+/** Penalizes extra pawn chains: -(chainCount - 1) * pawnsChainCountPenalty; one chain (or no pawns) adds nothing. */
 function getPawnChainCountEvalDelta(localChess, specialEvaluations) {
     const p = Number(specialEvaluations && specialEvaluations.pawnsChainCountPenalty) || 0;
     if (p === 0) {

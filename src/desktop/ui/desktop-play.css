@@ -347,6 +347,10 @@ body.desktop-play-page .desktop-play-main {
   text-overflow: ellipsis;
 }
 
+.desktop-play-status-bar[title] {
+  cursor: help;
+}
+
 .desktop-play-status-bar--event {
   font-size: 0.85rem;
 }
@@ -1326,21 +1330,6 @@ body.desktop-play-page .desktop-play-main {
   min-height: 0;
 }
 
-.desktop-play-game-id {
-  align-self: flex-end;
-  width: var(--total-board-height);
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 0.35rem 0 0;
-  padding: 0 2px;
-  font-size: 0.7rem;
-  line-height: 1.3;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: var(--play-game-id-text, var(--semiDark, #555555));
-  text-align: right;
-  user-select: all;
-}
-
 .desktop-play-board .arrowsCanvas {
   pointer-events: none;
 }
@@ -1372,7 +1361,6 @@ body.desktop-play-page .desktop-play-main {
   background: rgba(20, 30, 45, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.35);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
-  cursor: help;
   pointer-events: auto;
 }
 

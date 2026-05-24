@@ -92,43 +92,52 @@ function loadKingsWithPawnExtras(game, whitePawnSquares, blackPawnSquares) {
     game.loadGame(JSON.stringify(s));
 }
 
-describe("brain41 getCurrentPlayerPawnChainCount (diagonal / Chess.com pawn chains)", () => {
+describe("brain41 getCurrentPlayerPawnChainCount (adjacent-file pawn chains)", () => {
     const game = new ChessGame();
 
     it("returns 0 when the side to move has no pawns", () => {
         loadPawnBoard(game, "white", () => {});
         assert.strictEqual(getCurrentPlayerPawnChainCount(game), 0);
     });
-    it("treats a full home rank as 8 separate chains (only orthogonal neighbors, not diagonal links)", () => {
+    it("treats a full home rank as one chain (files a–h are all adjacent)", () => {
         loadPawnFiles(game, "white", [0, 1, 2, 3, 4, 5, 6, 7]);
-        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 8);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
     });
-    it("merges pawns on one uninterrupted diagonal (e.g. c5–d4–e3–f2 style) into one chain", () => {
+    it("merges pawns on adjacent files regardless of rank (c3, d6, e5, f2 style)", () => {
         loadPawnSquares(game, "white", [
-            { row: 3, col: 0 },
-            { row: 4, col: 1 },
             { row: 5, col: 2 },
-            { row: 6, col: 3 },
+            { row: 2, col: 3 },
+            { row: 3, col: 4 },
+            { row: 6, col: 5 },
         ]);
         assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
     });
-    it("joins pawns on diagonally adjacent squares |Δr|=|Δc|=1", () => {
+    it("joins pawns on neighboring files even when not diagonally adjacent", () => {
         loadPawnSquares(game, "white", [
             { row: 5, col: 0 },
             { row: 6, col: 1 },
         ]);
         assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
     });
-    it("does not link pawns on the same file (doubled pawns) without a diagonal neighbor", () => {
+    it("counts doubled pawns on one file as part of the same file chain as the neighbor file", () => {
         const s = emptyStateBase("white");
         const P = 0;
         s.board[6][0] = { color: "white", pieceType: P };
         s.board[5][0] = { color: "white", pieceType: P };
         s.board[6][1] = { color: "white", pieceType: P };
         game.loadGame(JSON.stringify(s));
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
+    });
+    it("splits when files are not adjacent (b2, d2, e5, f5 style => 2 chains)", () => {
+        loadPawnSquares(game, "white", [
+            { row: 6, col: 1 },
+            { row: 6, col: 3 },
+            { row: 3, col: 4 },
+            { row: 3, col: 5 },
+        ]);
         assert.strictEqual(getCurrentPlayerPawnChainCount(game), 2);
     });
-    it("returns 3 for three separate diagonal groups (no cross-links)", () => {
+    it("returns 3 for three separate file groups with gaps between them", () => {
         loadPawnSquares(game, "white", [
             { row: 6, col: 0 },
             { row: 5, col: 1 },
@@ -138,7 +147,7 @@ describe("brain41 getCurrentPlayerPawnChainCount (diagonal / Chess.com pawn chai
         ]);
         assert.strictEqual(getCurrentPlayerPawnChainCount(game), 3);
     });
-    it("counts for the side to move (black) with the same diagonal rule", () => {
+    it("counts for the side to move (black) with the same file-adjacency rule", () => {
         loadPawnSquares(game, "black", [
             { row: 1, col: 0 },
             { row: 2, col: 1 },
@@ -164,13 +173,22 @@ describe("brain41 getPawnChainCountEvalDelta", () => {
         loadPawnSquares(game, "white", [{ row: 6, col: 0 }]);
         assert.strictEqual(getPawnChainCountEvalDelta(game, se), 0);
     });
-    it("penalizes many chains on a rank: 8 pawns, 8 chains, (8-1)*0.1", () => {
+    it("has no penalty for a single file chain on the home rank", () => {
         loadPawnFiles(game, "white", [0, 1, 2, 3, 4, 5, 6, 7]);
-        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 8);
-        const d = getPawnChainCountEvalDelta(game, se);
-        assert.ok(Math.abs(d - (-0.7)) < 1e-12, `expected -0.7, got ${d}`);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 1);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), 0);
     });
-    it("subtracts (chainCount - 1) * pawnsChainCountPenalty for multiple diagonal groups", () => {
+    it("penalizes (chainCount - 1) * pawnsChainCountPenalty for b2/d2/e5/f5 style (2 chains)", () => {
+        loadPawnSquares(game, "white", [
+            { row: 6, col: 1 },
+            { row: 6, col: 3 },
+            { row: 3, col: 4 },
+            { row: 3, col: 5 },
+        ]);
+        assert.strictEqual(getCurrentPlayerPawnChainCount(game), 2);
+        assert.strictEqual(getPawnChainCountEvalDelta(game, se), -0.1);
+    });
+    it("subtracts (chainCount - 1) * pawnsChainCountPenalty for multiple file groups", () => {
         loadPawnSquares(game, "white", [
             { row: 6, col: 0 },
             { row: 5, col: 1 },

@@ -472,56 +472,37 @@ function getCurrentPlayerAdvancedPawnCount(game) {
     return count;
 }
 
+/**
+ * Pawn chains for the side to move: each chain is a run of adjacent files (columns)
+ * that contain at least one friendly pawn. Rank does not matter; pawns need not
+ * defend each other. Example: pawns on c3, d6, e5, f2 => one chain (files c–f).
+ */
 function getCurrentPlayerPawnChainCount(game) {
     const state = game.GameState;
     if (!state?.board) {
         return 0;
     }
     const currentColor = game.Turn;
-    const pawns = [];
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
+    const filesWithPawns = [];
+    for (let col = 0; col < 8; col++) {
+        for (let row = 0; row < 8; row++) {
             const piece = state.board[row][col];
             if (piece && piece.color === currentColor && piece.pieceType === game.PAWN) {
-                pawns.push({ row, col });
+                filesWithPawns.push(col);
+                break;
             }
         }
     }
-    const n = pawns.length;
-    if (n === 0) {
+    if (filesWithPawns.length === 0) {
         return 0;
     }
-    const parent = new Array(n);
-    for (let i = 0; i < n; i++) {
-        parent[i] = i;
-    }
-    function find(i) {
-        if (parent[i] !== i) {
-            parent[i] = find(parent[i]);
-        }
-        return parent[i];
-    }
-    function union(i, j) {
-        const ri = find(i);
-        const rj = find(j);
-        if (ri !== rj) {
-            parent[ri] = rj;
+    let chains = 1;
+    for (let i = 1; i < filesWithPawns.length; i++) {
+        if (filesWithPawns[i] !== filesWithPawns[i - 1] + 1) {
+            chains += 1;
         }
     }
-    for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-            const dr = Math.abs(pawns[i].row - pawns[j].row);
-            const dc = Math.abs(pawns[i].col - pawns[j].col);
-            if (dr === 1 && dc === 1) {
-                union(i, j);
-            }
-        }
-    }
-    const roots = new Set();
-    for (let i = 0; i < n; i++) {
-        roots.add(find(i));
-    }
-    return roots.size;
+    return chains;
 }
 
 function getPawnChainCountEvalDelta(game, se) {

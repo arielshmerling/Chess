@@ -88,25 +88,23 @@
 
     function assignNewGameId() {
         currentGameId = generateGameId();
-        updateGameIdLabel();
+        updateGameModeTooltip();
     }
 
     function setCurrentGameId(id) {
         currentGameId = id ? String(id) : null;
-        updateGameIdLabel();
+        updateGameModeTooltip();
     }
 
-    function updateGameIdLabel() {
-        const el = $("desktopPlayGameId");
-        if (!el) {
+    function updateGameModeTooltip() {
+        const titleEl = $("desktopPlayMatchTitle");
+        if (!titleEl) {
             return;
         }
         if (currentGameId) {
-            el.textContent = currentGameId;
-            el.hidden = false;
+            titleEl.title = "Game ID: " + currentGameId;
         } else {
-            el.textContent = "";
-            el.hidden = true;
+            titleEl.removeAttribute("title");
         }
     }
 
@@ -262,6 +260,7 @@
         const titleEl = $("desktopPlayMatchTitle");
         if (titleEl) {
             titleEl.textContent = formatSessionTypeLabel();
+            updateGameModeTooltip();
         }
         if (!session) {
             return;
@@ -813,13 +812,48 @@
         return (rounded > 0 ? "+" : "") + text;
     }
 
+    function formatEvaluationSummaryTooltip(summary, totalText) {
+        if (!summary || !summary.length) {
+            return "";
+        }
+        const lines = summary.map(function (item) {
+            if (item.text != null) {
+                return item.label + ": " + item.text;
+            }
+            const sign = item.value > 0 ? "+" : "";
+            return item.label + ": " + sign + item.value;
+        });
+        if (totalText) {
+            lines.push("Total: " + totalText);
+        }
+        return lines.join("\n");
+    }
+
+    function setStatusBarEvaluationTooltip(summary, totalText) {
+        const statusEl = $("desktopPlayStatusBar");
+        if (!statusEl) {
+            return;
+        }
+        const tooltip = formatEvaluationSummaryTooltip(summary, totalText);
+        if (tooltip) {
+            statusEl.setAttribute("title", tooltip);
+        } else {
+            statusEl.removeAttribute("title");
+        }
+    }
+
+    function clearStatusBarEvaluationTooltip() {
+        const statusEl = $("desktopPlayStatusBar");
+        if (statusEl) {
+            statusEl.removeAttribute("title");
+        }
+    }
+
     function clearDisplayedEvaluation() {
         if (Board && Board.clearEvaluationOverlay) {
             Board.clearEvaluationOverlay();
         }
-        if (GameRun && GameRun.setEvaluationSummaryTooltip) {
-            GameRun.setEvaluationSummaryTooltip(null);
-        }
+        clearStatusBarEvaluationTooltip();
     }
 
     async function displayPositionEvaluation() {
@@ -862,16 +896,9 @@
             const sideLabel = result.sideToMove === "black" ? "Black" : "White";
             const scoreText = formatEvaluationTotalText(result);
             showStatus("Evaluation (" + sideLabel + " to move): " + scoreText, 0, "info");
-            if (GameRun && GameRun.setEvaluationSummaryTooltip) {
-                GameRun.setEvaluationSummaryTooltip(result.summary, scoreText);
-            }
+            setStatusBarEvaluationTooltip(result.summary, scoreText);
         } catch (err) {
-            if (Board && Board.clearEvaluationOverlay) {
-                Board.clearEvaluationOverlay();
-            }
-            if (GameRun && GameRun.setEvaluationSummaryTooltip) {
-                GameRun.setEvaluationSummaryTooltip(null);
-            }
+            clearDisplayedEvaluation();
             showStatus(err.message || "Evaluation failed", 0, "error");
         }
     }
@@ -1416,6 +1443,19 @@
         return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
     }
 
+    function formatSavedGameInfoTooltip(entry) {
+        const parts = [];
+        const when = formatSavedGameDate(entry && entry.date);
+        if (when) {
+            parts.push("Saved: " + when);
+        }
+        const id = savedGameId(entry);
+        if (id) {
+            parts.push("Game ID: " + id);
+        }
+        return parts.join("\n");
+    }
+
     function savedGameStateFromEntry(entry) {
         if (!entry) {
             return null;
@@ -1464,6 +1504,8 @@
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
         expand:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>',
+        info:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     };
 
     function createSavedGameIconButton(title, iconKey, onClick) {
@@ -1599,6 +1641,7 @@
         headerEventKind = null;
         Board.clearArrows();
         Board.syncFromGameState();
+        clearDisplayedEvaluation();
         if (game.GameState && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
         }
@@ -1764,6 +1807,12 @@
 
         const actions = document.createElement("div");
         actions.className = "desktop-play-saved-game-actions";
+        const infoTooltip = formatSavedGameInfoTooltip(entry);
+        if (infoTooltip) {
+            const infoBtn = createSavedGameIconButton(infoTooltip, "info", function () {});
+            infoBtn.setAttribute("aria-label", "Saved game details");
+            actions.appendChild(infoBtn);
+        }
         actions.appendChild(
             createSavedGameIconButton("Edit position", "edit", function () {
                 editSavedGame(id);
@@ -2459,7 +2508,7 @@
         updateHeaderTurn();
         showStatus("Choose New game or Position setup from the sidebar", 0, "info");
         updateActionButtons();
-        updateGameIdLabel();
+        updateGameModeTooltip();
     }
 
     async function startSession() {

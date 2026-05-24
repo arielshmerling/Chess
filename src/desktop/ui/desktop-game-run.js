@@ -21,8 +21,6 @@
     let turnSwatchBlack = null;
     let computerSwatchWhite = null;
     let computerSwatchBlack = null;
-    let evalBtnEl = null;
-
     const EVAL_BUTTON_DEFAULT_TITLE =
         "Display evaluation (Ctrl+E) — score each piece and show the total in the status bar";
 
@@ -189,7 +187,6 @@
         );
         evalBtn.setAttribute("aria-label", "Display evaluation");
         evalBtn.innerHTML = SVG_EVAL;
-        evalBtnEl = evalBtn;
         evalBtn.addEventListener("click", function () {
             if (onDisplayEvaluation) {
                 onDisplayEvaluation();
@@ -233,34 +230,12 @@
         };
     }
 
-    function setEvaluationSummaryTooltip(summary, totalText) {
-        if (!evalBtnEl) {
-            return;
-        }
-        if (!summary || !summary.length) {
-            evalBtnEl.setAttribute("title", EVAL_BUTTON_DEFAULT_TITLE);
-            return;
-        }
-        const lines = summary.map(function (item) {
-            if (item.text != null) {
-                return item.label + ": " + item.text;
-            }
-            const sign = item.value > 0 ? "+" : "";
-            return item.label + ": " + sign + item.value;
-        });
-        if (totalText) {
-            lines.push("Total: " + totalText);
-        }
-        evalBtnEl.setAttribute("title", lines.join("\n"));
-    }
-
     global.DesktopGameRun = {
         mount: mount,
         getOptions: getOptions,
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
-        setEvaluationSummaryTooltip: setEvaluationSummaryTooltip,
         createSwatchRow: createSwatchToggle,
         updateSwatchPair: updateSwatchPair,
     };

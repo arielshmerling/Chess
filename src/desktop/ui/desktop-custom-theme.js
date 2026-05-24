@@ -395,7 +395,15 @@
         return completeThemeVarsClient(draftVars, fallback);
     }
 
+    var KEY_LABELS = {
+        "--play-header-background": "Header panel background",
+        "--play-footer-background": "Footer panel background",
+    };
+
     function labelForKey(key) {
+        if (KEY_LABELS[key]) {
+            return KEY_LABELS[key];
+        }
         return key.replace(/^--/, "").replace(/-/g, " ");
     }
 
