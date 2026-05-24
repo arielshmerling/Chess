@@ -9,10 +9,12 @@ const brainConfigService = require("../modules/game/brainConfigService");
 const runtime = require("./runtime");
 
 function safeEngine(raw) {
-    return runtime.normalizeEngine(typeof raw === "string" ? raw.trim() : "");
+    const name = typeof raw === "string" ? raw.trim() : "";
+    return brainConfigService.ALLOWED_BRAINS.includes(name) ? name : "brain4";
 }
 
 function configPath(engine) {
+    runtime.ensureInitialized();
     return path.join(runtime.getBrainConfigDir(), `${engine}.json`);
 }
 
@@ -29,6 +31,7 @@ function loadFromUserData(engine) {
 }
 
 function saveToUserData(engine, rawConfig) {
+    runtime.ensureInitialized();
     const sanitized = brainConfigService.sanitizeBrainConfig(engine, rawConfig);
     fs.mkdirSync(runtime.getBrainConfigDir(), { recursive: true });
     const filePath = configPath(engine);

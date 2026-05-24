@@ -820,12 +820,17 @@ body.desktop-play-page .desktop-play-main {
   min-height: 0;
 }
 
-/* Game mode: hide entire Pieces dock (title + content). */
+/* Hide position-setup dock unless that mode is active. */
 .desktop-play-sidebar:not(.desktop-play-sidebar--position-setup) .desktop-play-setup {
   display: none !important;
 }
 
-/* Position setup: hide entire Moves dock (title + content). */
+/* Hide configuration dock unless that mode is active. */
+.desktop-play-sidebar:not(.desktop-play-sidebar--brain-config) .desktop-play-config {
+  display: none !important;
+}
+
+/* Position setup: hide Moves dock. */
 .desktop-play-sidebar--position-setup .desktop-play-moves {
   display: none !important;
 }
@@ -839,7 +844,22 @@ body.desktop-play-page .desktop-play-main {
   overflow: hidden;
 }
 
-.desktop-play-sidebar--position-setup .desktop-play-dock-toggle--collapse-moves {
+/* Brain configuration: hide Moves dock. */
+.desktop-play-sidebar--brain-config .desktop-play-moves {
+  display: none !important;
+}
+
+.desktop-play-sidebar--brain-config .desktop-play-sidebar-stacks .desktop-play-config {
+  flex: 1;
+  min-height: 0;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desktop-play-sidebar--position-setup .desktop-play-dock-toggle--collapse-moves,
+.desktop-play-sidebar--brain-config .desktop-play-dock-toggle--collapse-moves {
   display: none !important;
 }
 
@@ -847,8 +867,153 @@ body.desktop-play-page .desktop-play-main {
   display: none !important;
 }
 
-.desktop-play-sidebar--position-setup {
+.desktop-play-sidebar:not(.desktop-play-sidebar--brain-config) .desktop-play-dock-toggle--collapse-config {
+  display: none !important;
+}
+
+.desktop-play-sidebar--position-setup,
+.desktop-play-sidebar--brain-config {
   --desktop-play-sidebar-width: 248px;
+}
+
+.desktop-play-config-panel-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktop-play-config-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.45rem 0.4rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.desktop-play-config-engine {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.desktop-play-config-engine label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.desktop-play-config-engine-select {
+  width: 100%;
+  padding: 0.28rem 0.35rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--desktop-play-border, rgba(255, 255, 255, 0.15));
+  background: var(--desktop-play-panel-bg, rgba(0, 0, 0, 0.25));
+  color: inherit;
+}
+
+.desktop-play-config-status {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.desktop-play-config-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.desktop-play-config-table thead th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.2rem 0.1rem 0.35rem;
+  border-bottom: 1px solid var(--desktop-play-border, rgba(255, 255, 255, 0.12));
+}
+
+.desktop-play-config-table thead th:last-child {
+  width: 3.75rem;
+  text-align: right;
+}
+
+.desktop-play-config-table tbody td {
+  padding: 0.18rem 0.1rem;
+  vertical-align: middle;
+}
+
+.desktop-play-config-value {
+  width: 3.75rem;
+  text-align: right;
+}
+
+.desktop-play-config-group td {
+  padding-top: 0.45rem;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.85;
+  border-top: 1px solid var(--desktop-play-border, rgba(255, 255, 255, 0.08));
+}
+
+.desktop-play-config-name {
+  line-height: 1.3;
+  word-break: break-word;
+  padding-right: 0.35rem;
+}
+
+.desktop-play-config-value input {
+  box-sizing: border-box;
+  width: 3.5rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.12rem 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  border-radius: 3px;
+  border: 1px solid var(--desktop-play-border, rgba(255, 255, 255, 0.15));
+  background: var(--desktop-play-panel-bg, rgba(0, 0, 0, 0.2));
+  color: inherit;
+  text-align: right;
+}
+
+.desktop-play-config-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+}
+
+.desktop-play-config-save,
+.desktop-play-config-discard {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--desktop-play-border, rgba(255, 255, 255, 0.18));
+  background: var(--desktop-play-panel-bg, rgba(0, 0, 0, 0.3));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.desktop-play-config-save:disabled,
+.desktop-play-config-discard:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.desktop-play-config-save:not(:disabled):hover,
+.desktop-play-config-discard:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .desktop-play-setup-panel {

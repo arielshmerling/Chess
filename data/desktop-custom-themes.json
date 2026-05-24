@@ -148,10 +148,10 @@
         "--semiDark": "#9ca08d",
         "--semiLight": "#737472",
         "--light": "#e8e9d8",
-        "--body-background": "#eeebd8",
+        "--body-background": "#c6c2a9",
         "--darkSquare": "#bdc1ae",
         "--lightSquare": "#e8e9d8",
-        "--optionSquare": "#9ca08d",
+        "--optionSquare": "#599b59",
         "--frame": "#5c5c57",
         "--frame-forecolor": "#ffffff",
         "--play-header-background": "#141414",
@@ -169,13 +169,13 @@
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
         "--textbox-background": "#737373",
-        "--textbox-forecolor": "#807f5b",
-        "--moves-panel-bg": "#e1e2d5",
+        "--textbox-forecolor": "#000000",
+        "--moves-panel-bg": "#9ca088",
         "--moves-dock-title-background": "#d0d0c2",
         "--moves-dock-title-text": "rgba(34, 32, 32, 0.55)",
         "--moves-header-background": "#000000",
         "--moves-header-text": "#999999",
-        "--moves-cell-bg": "#ffffff",
+        "--moves-cell-bg": "#d6d6cc",
         "--moves-cell-text": "#000000",
         "--moves-cell-highlight-bg": "#8c8c87",
         "--moves-cell-highlight-text": "rgb(233, 231, 231)",
@@ -206,7 +206,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1779627729837
+      "updatedAt": 1779660497915
     },
     {
       "id": "custom-mpjsexfo",

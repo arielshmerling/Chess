@@ -8,6 +8,7 @@
     const Api = window.DesktopApi;
     const Board = window.DesktopBoard;
     const Setup = window.DesktopPositionSetup;
+    const BrainConfig = window.DesktopBrainConfig;
     const GameRun = window.DesktopGameRun;
     const PositionValidation = window.DesktopPositionValidation;
 
@@ -42,9 +43,12 @@
     let editingSavedGameId = null;
     let renamingSavedGameId = null;
     let positionSetupMode = false;
+    let configurationMode = false;
+    let reviewMode = false;
     let positionSetupSnapshot = null;
     let playSessionReady = false;
     let positionSetupPanelMounted = false;
+    let configurationPanelMounted = false;
     let gameRunPanelMounted = false;
     let currentGameId = null;
 
@@ -69,6 +73,8 @@
             '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
         positionSetup:
             '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+        configuration:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     };
 
     function $(id) {
@@ -213,7 +219,10 @@
         if (!game) {
             return "";
         }
-        if (!gameActive && !positionSetupMode) {
+        if (!gameActive && !positionSetupMode && !configurationMode) {
+            if (reviewMode && boardHasPieces()) {
+                return "Review mode — set next move and computer color in the header, then press Play";
+            }
             if (boardHasPieces()) {
                 return "Set next move and computer color in the header, then press Play";
             }
@@ -252,6 +261,12 @@
     function formatSessionTypeLabel() {
         if (positionSetupMode) {
             return "Position Setup";
+        }
+        if (configurationMode) {
+            return "Configuration mode";
+        }
+        if (reviewMode) {
+            return "Review Mode";
         }
         return "Game Mode";
     }
@@ -529,7 +544,11 @@
     }
 
     function setPositionSetupUi(active) {
-        positionSetupMode = !!active;
+        const on = !!active;
+        if (on && configurationMode) {
+            setConfigurationUi(false);
+        }
+        positionSetupMode = on;
         const btn = $("positionSetupBtn");
         if (btn) {
             btn.classList.toggle("desktop-play-action--active", positionSetupMode);
@@ -537,8 +556,110 @@
         const sidebar = $("desktopPlaySidebarMoves");
         if (sidebar) {
             sidebar.classList.toggle("desktop-play-sidebar--position-setup", positionSetupMode);
+            if (positionSetupMode) {
+                sidebar.classList.remove("desktop-play-sidebar--brain-config");
+            }
         }
         updateMatchHeader();
+        updateActionButtons();
+    }
+
+    function setConfigurationUi(active) {
+        const on = !!active;
+        if (on && positionSetupMode) {
+            Board.setSetupMode(false);
+            positionSetupMode = false;
+            const setupBtn = $("positionSetupBtn");
+            if (setupBtn) {
+                setupBtn.classList.remove("desktop-play-action--active");
+            }
+        }
+        configurationMode = on;
+        const btn = $("configurationBtn");
+        if (btn) {
+            btn.classList.toggle("desktop-play-action--active", configurationMode);
+        }
+        const sidebar = $("desktopPlaySidebarMoves");
+        if (sidebar) {
+            sidebar.classList.toggle("desktop-play-sidebar--brain-config", configurationMode);
+            if (configurationMode) {
+                sidebar.classList.remove("desktop-play-sidebar--position-setup");
+            }
+        }
+        updateMatchHeader();
+        updateActionButtons();
+    }
+
+    function exitConfigurationMode() {
+        if (!configurationMode) {
+            return;
+        }
+        if (BrainConfig && BrainConfig.hasUnsavedChanges && BrainConfig.hasUnsavedChanges()) {
+            const proceed = window.confirm("Discard unsaved brain configuration changes?");
+            if (!proceed) {
+                return false;
+            }
+        }
+        setConfigurationUi(false);
+        showStatus("");
+        updateActionButtons();
+        return true;
+    }
+
+    function enterConfigurationMode() {
+        if (!game || !playSessionReady) {
+            showStatus("Board is still loading…", 2500, "info");
+            return;
+        }
+        if (!canUseBrainConfig()) {
+            return;
+        }
+        exitReviewMode();
+        if (positionSetupMode) {
+            exitPositionSetupMode(false);
+        }
+        setConfigurationUi(true);
+        expandMovesSidebar();
+        ensureConfigurationPanel();
+        if (BrainConfig && BrainConfig.syncEngine) {
+            const engine = session && session.engine ? session.engine : "brain42";
+            BrainConfig.syncEngine(engine);
+        }
+        showStatus("Configuration mode — edit values and save", 0, "info");
+        updateActionButtons();
+    }
+
+    function ensureConfigurationPanel() {
+        if (configurationPanelMounted || !BrainConfig) {
+            return;
+        }
+        const panel = $("desktopPlayConfigPanel");
+        if (!panel) {
+            return;
+        }
+        BrainConfig.mountPanel(panel, {
+            initialEngine: session && session.engine ? session.engine : "brain42",
+        });
+        configurationPanelMounted = true;
+    }
+
+    function onConfigurationToggle() {
+        const btn = $("configurationBtn");
+        if (btn && btn.disabled) {
+            return;
+        }
+        if (!playSessionReady || !game) {
+            showStatus("Board is still loading…", 2500, "info");
+            return;
+        }
+        if (configurationMode) {
+            exitConfigurationMode();
+            return;
+        }
+        if (!canUseBrainConfig()) {
+            return;
+        }
+        enterConfigurationMode();
     }
 
     function expandMovesSidebar() {
@@ -689,6 +810,8 @@
         updateMatchHeader();
         updateHeaderTurn();
         gameActive = true;
+        exitConfigurationIfGameStarting();
+        exitReviewMode();
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -732,6 +855,12 @@
             showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
             return;
         }
+        if (configurationMode) {
+            if (!exitConfigurationMode()) {
+                return;
+            }
+        }
+        exitReviewMode();
         setPositionSetupUi(true);
         setCurrentGameId(null);
         positionSetupSnapshot = capturePositionSetupSnapshot();
@@ -984,6 +1113,8 @@
             }
         }
         gameActive = true;
+        exitConfigurationIfGameStarting();
+        exitReviewMode();
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -1010,6 +1141,47 @@
         }
         const moveCount = game.Moves ? game.Moves.length : 0;
         return moveCount === 0;
+    }
+
+    function canUseBrainConfig() {
+        return !positionSetupMode && !gameActive;
+    }
+
+    function exitConfigurationIfGameStarting() {
+        if (!configurationMode) {
+            return;
+        }
+        setConfigurationUi(false);
+    }
+
+    function exitConfigurationSilently() {
+        if (!configurationMode) {
+            return;
+        }
+        setConfigurationUi(false);
+    }
+
+    function enterReviewMode() {
+        exitConfigurationSilently();
+        if (positionSetupMode) {
+            Board.setSetupMode(false);
+            setPositionSetupUi(false);
+        }
+        reviewMode = true;
+        expandMovesSidebar();
+        updateMatchHeader();
+        updateActionButtons();
+        updateGameRunPanelVisibility();
+    }
+
+    function exitReviewMode() {
+        if (!reviewMode) {
+            return;
+        }
+        reviewMode = false;
+        updateMatchHeader();
+        updateActionButtons();
+        updateGameRunPanelVisibility();
     }
 
     function onPositionSetupToggle() {
@@ -1060,6 +1232,12 @@
                 label: "Position setup",
                 icon: "positionSetup",
                 onClick: onPositionSetupToggle,
+            },
+            {
+                id: "configurationBtn",
+                label: "Config",
+                icon: "configuration",
+                onClick: onConfigurationToggle,
             },
             { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
             { id: "saveBtn", label: "Save", icon: "save", onClick: onSaveGame },
@@ -1134,10 +1312,15 @@
     function updateActionButtons() {
         if (!game || !playSessionReady) {
             setButtonDisabled("positionSetupBtn", true);
+            setButtonDisabled("configurationBtn", true);
             setButtonDisabled("rematchBtn", true);
             return;
         }
-        if (!gameActive && !positionSetupMode) {
+        setButtonDisabled(
+            "configurationBtn",
+            animating || dialogOn || (!configurationMode && !canUseBrainConfig()),
+        );
+        if (!gameActive && !positionSetupMode && !configurationMode) {
             setButtonDisabled("resignBtn", true);
             setButtonDisabled("drawBtn", true);
             setButtonDisabled("undoBtn", true);
@@ -1155,9 +1338,23 @@
 
         setButtonDisabled(
             "positionSetupBtn",
-            animating || dialogOn || (!positionSetupMode && !canUsePositionSetup()),
+            animating ||
+                dialogOn ||
+                configurationMode ||
+                (!positionSetupMode && !canUsePositionSetup()),
         );
         if (positionSetupMode) {
+            setButtonDisabled("resignBtn", true);
+            setButtonDisabled("drawBtn", true);
+            setButtonDisabled("undoBtn", true);
+            setButtonDisabled("redoBtn", true);
+            setButtonDisabled("lastMoveBtn", true);
+            setButtonDisabled("saveBtn", true);
+            setButtonDisabled("rematchBtn", true);
+            setButtonDisabled("flipBtn", animating);
+            return;
+        }
+        if (configurationMode) {
             setButtonDisabled("resignBtn", true);
             setButtonDisabled("drawBtn", true);
             setButtonDisabled("undoBtn", true);
@@ -1614,6 +1811,7 @@
             }
             if (lastLoadedSavedGameId === String(bookmarkId)) {
                 lastLoadedSavedGameId = null;
+                exitReviewMode();
             }
             renderSavedGamesList();
             updateGameRunPanelVisibility();
@@ -1681,17 +1879,14 @@
         animating = true;
         updateActionButtons();
         try {
-            if (positionSetupMode) {
-                exitPositionSetupMode(false);
-            }
             applyBookmarkEntryToBoard(entry);
             lastLoadedSavedGameId = String(bookmarkId);
             editingSavedGameId = null;
             setCurrentGameId(null);
+            enterReviewMode();
             syncGameRunPanelOptions();
-            updateGameRunPanelVisibility();
             showStatus(
-                "Position loaded — set next move and computer color in the header, then press Play",
+                "Review mode — set next move and computer color in the header, then press Play",
                 0,
                 "info",
             );
@@ -1716,14 +1911,12 @@
         animating = true;
         updateActionButtons();
         try {
-            if (positionSetupMode) {
-                exitPositionSetupMode(false);
-            }
             applyBookmarkEntryToBoard(entry);
             lastLoadedSavedGameId = String(bookmarkId);
             editingSavedGameId = String(bookmarkId);
             expandedSavedGameId = String(bookmarkId);
             setCurrentGameId(null);
+            exitReviewMode();
             enterPositionSetupMode();
             showStatus("Editing position — Save to update this bookmark", 0, "info");
         } catch (err) {
@@ -2119,7 +2312,15 @@
     }
 
     async function runEngineMove() {
-        if (!game || !session || !Engine || game.GameOver || !isAiTurn() || positionSetupMode) {
+        if (
+            !game ||
+            !session ||
+            !Engine ||
+            game.GameOver ||
+            !isAiTurn() ||
+            positionSetupMode ||
+            configurationMode
+        ) {
             return;
         }
         if (animating || dialogOn) {
@@ -2196,6 +2397,8 @@
         updateMovesTable([]);
         updateHeaderTurn();
         gameActive = true;
+        exitConfigurationIfGameStarting();
+        exitReviewMode();
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -2218,6 +2421,8 @@
             showStatus("Board is still loading…", 2500, "info");
             return;
         }
+        exitReviewMode();
+        lastLoadedSavedGameId = null;
         const opts = Settings.loadLastOptions();
         applySessionSettings(opts);
         lastLoadedSavedGameId = null;
@@ -2286,7 +2491,7 @@
     }
 
     async function onHumanMove(executed) {
-        if (!gameActive || positionSetupMode) {
+        if (!gameActive || positionSetupMode || configurationMode) {
             return;
         }
         clearDisplayedEvaluation();
@@ -2464,6 +2669,11 @@
     }
 
     function onHome() {
+        if (configurationMode) {
+            if (!exitConfigurationMode()) {
+                return;
+            }
+        }
         if (positionSetupMode) {
             exitPositionSetupMode(true);
             resetToIdleScreen();
@@ -2488,10 +2698,14 @@
     }
 
     function resetToIdleScreen() {
+        if (configurationMode) {
+            setConfigurationUi(false);
+        }
         if (positionSetupMode) {
             Board.setSetupMode(false);
             setPositionSetupUi(false);
         }
+        exitReviewMode();
         gameActive = false;
         positionSetupSnapshot = null;
         document.body.classList.remove("desktop-play-has-active-game");
