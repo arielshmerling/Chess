@@ -13,7 +13,11 @@
     "start": "electron .",
     "predist": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder --mac --win --linux"
   },
   "build": {
     "appId": "com.shmerling.app",
@@ -44,6 +48,11 @@
     "mac": {
       "category": "public.app-category.board-games",
       "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true,
       "extendInfo": {
         "CFBundleDisplayName": "Shmerling Chess",
         "CFBundleName": "Shmerling Chess"
@@ -59,7 +68,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^35.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1"
   }
 }
