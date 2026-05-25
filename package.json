@@ -17,8 +17,11 @@
     "desktop:dist": "cd desktop && npm install && npm run dist",
     "desktop:dist:mac": "cd desktop && npm install && npm run dist:mac",
     "desktop:dist:win": "cd desktop && npm install && npm run dist:win",
+    "desktop:dist:win:setup": "cd desktop && npm install && npm run dist:win:setup",
     "desktop:dist:linux": "cd desktop && npm install && npm run dist:linux",
     "desktop:dist:all": "cd desktop && npm install && npm run dist:all",
+    "desktop:publish": "node scripts/publish-desktop-downloads.js",
+    "desktop:release": "bash scripts/build-desktop-release.sh",
     "dummy:active-games:add": "node ./scripts/dummy-active-games-seed.js",
     "dummy:active-games:remove": "node ./scripts/dummy-active-games-delete.js"
   },

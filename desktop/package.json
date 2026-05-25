@@ -3,6 +3,7 @@
   "productName": "Shmerling Chess",
   "version": "1.0.0",
   "description": "Shmerling Chess — offline desktop",
+  "author": "Shmerling Chess",
   "main": "main.js",
   "private": true,
   "scripts": {
@@ -15,7 +16,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
+    "dist:win": "electron-builder --win --x64",
+    "dist:win:setup": "electron-builder --win --x64 --config.win.target=nsis",
     "dist:linux": "electron-builder --linux",
     "dist:all": "electron-builder --mac --win --linux"
   },
@@ -57,14 +59,28 @@
         "CFBundleDisplayName": "Shmerling Chess",
         "CFBundleName": "Shmerling Chess"
       },
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
-      "icon": "build/icon.ico",
-      "target": ["nsis"]
+      "icon": "build/icon.png",
+      "target": [
+        "zip"
+      ],
+      "signAndEditExecutable": false,
+      "signExts": [
+        ".dll",
+        ".exe",
+        ".msi",
+        ".node",
+        ".cab"
+      ]
     },
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "devDependencies": {

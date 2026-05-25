@@ -1290,3 +1290,110 @@ main {
         padding: 10px 6px;
     }
 }
+
+/* Desktop app downloads (welcome + mobile-home) */
+.desktop-downloads-panel {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-bottom: 32px;
+    padding: 0 24px;
+    box-sizing: border-box;
+}
+
+.desktop-downloads-panel-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background: var(--panel-background, rgba(0, 0, 0, 0.12));
+    border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.12));
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+}
+
+.desktop-downloads-header {
+    margin-bottom: 16px;
+}
+
+.desktop-downloads-title {
+    margin: 0 0 6px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary, inherit);
+}
+
+.desktop-downloads-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.desktop-downloads-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.desktop-downloads-item {
+    margin: 0;
+}
+
+.desktop-downloads-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--desktop-accent-text, #fff);
+    background: var(--desktop-accent, #3d5a80);
+    border: 1px solid transparent;
+    transition: filter 0.15s, background 0.15s;
+}
+
+.desktop-downloads-btn:hover {
+    filter: brightness(1.08);
+    background: var(--desktop-accent-hover, #4a6f9a);
+}
+
+.desktop-downloads-btn-label {
+    font-size: 1rem;
+}
+
+.desktop-downloads-btn-meta {
+    font-size: 0.8rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.desktop-downloads-hint {
+    margin: 14px 0 0;
+    font-size: 0.82rem;
+    opacity: 0.8;
+    line-height: 1.45;
+}
+
+.mobile-home-main .desktop-downloads-panel {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0 16px 8px;
+}
+
+.mobile-home-main .desktop-downloads-panel-inner {
+    padding: 16px;
+}
+
+.mobile-home-main .desktop-downloads-list {
+    flex-direction: column;
+}
+
+.mobile-home-main .desktop-downloads-btn {
+    width: 100%;
+    box-sizing: border-box;
+}

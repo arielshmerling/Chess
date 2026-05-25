@@ -1,0 +1,49 @@
+# Build Windows NSIS installer (needs windows-latest — NSIS does not run on Apple Silicon Mac).
+# macOS DMG can be built on macos-latest here or locally on your Mac.
+name: Desktop release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build Windows installer (NSIS)
+        env:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          cd desktop
+          npm install
+          npm run dist:win:setup
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shmerling-windows-setup
+          path: desktop/dist/*.exe
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build macOS DMG
+        env:
+          CSC_NAME: ${{ secrets.MAC_CSC_NAME }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd desktop
+          npm install
+          npm run dist:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shmerling-macos-dmg
+          path: desktop/dist/*.dmg

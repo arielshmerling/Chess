@@ -1,6 +1,7 @@
 const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
 const { User } = require("../user/model");
+const { loadDesktopDownloadsManifest } = require("../../utils/desktopDownloads");
 
 /**
  * @param {object} g - row from getOnGoingOnlineGames
@@ -50,7 +51,9 @@ async function loadHomePageData(req) {
         }
     }
 
-    return { username, allGames, playerGames, lastGameOptions };
+    const desktopDownloads = loadDesktopDownloadsManifest();
+
+    return { username, allGames, playerGames, lastGameOptions, desktopDownloads };
 }
 
 function mapOngoingGameForClient(g, username, extras = {}) {
@@ -102,7 +105,11 @@ exports.showHomePage = async (req, res) => {
     const ctx = await loadHomePageData(req);
     res.locals.username = ctx.username;
     res.locals.playerGames = ctx.playerGames;
-    res.render("welcome", { allGames: ctx.allGames, lastGameOptions: ctx.lastGameOptions });
+    res.render("welcome", {
+        allGames: ctx.allGames,
+        lastGameOptions: ctx.lastGameOptions,
+        desktopDownloads: ctx.desktopDownloads,
+    });
 };
 
 /** Same data as `showHomePage`; renders compact mobile-only template. */
@@ -110,7 +117,11 @@ exports.showHomePageMobile = async (req, res) => {
     const ctx = await loadHomePageData(req);
     res.locals.username = ctx.username;
     res.locals.playerGames = ctx.playerGames;
-    res.render("mobile-welcome", { allGames: ctx.allGames, lastGameOptions: ctx.lastGameOptions });
+    res.render("mobile-welcome", {
+        allGames: ctx.allGames,
+        lastGameOptions: ctx.lastGameOptions,
+        desktopDownloads: ctx.desktopDownloads,
+    });
 };
 
 exports.getActiveGamesJson = async (req, res) => {
