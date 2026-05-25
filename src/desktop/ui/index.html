@@ -18,8 +18,13 @@
   <main class="desktop-menu">
     <img src="/images/logo.png" alt="" class="desktop-menu-king" width="200" height="200">
     <div class="desktop-menu-actions">
-      <a class="desktop-btn desktop-btn-gold" href="/app/play">Let's Play</a>
+      <button type="button" class="desktop-btn desktop-btn-gold" id="desktopMenuPlayBtn">Let's Play</button>
     </div>
   </main>
+  <script>
+    document.getElementById("desktopMenuPlayBtn")?.addEventListener("click", function () {
+      window.location.href = "/app/play";
+    });
+  </script>
 </body>
 </html>

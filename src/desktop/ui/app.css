@@ -485,6 +485,11 @@ body.desktop-has-topbar {
   max-width: 280px;
 }
 
+.desktop-menu-actions .desktop-btn {
+  width: 100%;
+  font-family: inherit;
+}
+
 .desktop-theme-choice {
   flex: 1;
   display: flex;
