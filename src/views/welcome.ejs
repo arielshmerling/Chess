@@ -109,8 +109,6 @@
     </div>
   </div>
 
-  <%- include('partials/desktop-downloads.ejs', { desktopDownloads: typeof desktopDownloads !== "undefined" ? desktopDownloads : null }) %>
-
   <!-- Games Section -->
   <div class="games-section">
     <div class="welcome-active-games-row">
@@ -249,4 +247,6 @@
       </div>
     </div>
   </div>
+
+  <%- include('partials/desktop-downloads.ejs', { desktopDownloads: typeof desktopDownloads !== "undefined" ? desktopDownloads : null }) %>
 </div>

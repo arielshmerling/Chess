@@ -11,8 +11,6 @@
     </button>
   </div>
 
-  <%- include('partials/desktop-downloads.ejs', { desktopDownloads: typeof desktopDownloads !== "undefined" ? desktopDownloads : null }) %>
-
   <div class="mobile-home-tabs-wrap">
     <div class="mobile-home-tabs" role="tablist" aria-label="Home sections">
       <button type="button" class="mobile-home-tab mobile-home-tab--active" role="tab" aria-selected="true" aria-controls="mobile-home-tab-friends" id="mobile-home-tabbtn-friends" data-tab="friends">Friends</button>
@@ -159,6 +157,8 @@
       <p class="mobile-home-library-foot">Want a blank board for analysis? <a href="/research">Research mode</a></p>
     </div>
   </div>
+
+  <%- include('partials/desktop-downloads.ejs', { desktopDownloads: typeof desktopDownloads !== "undefined" ? desktopDownloads : null }) %>
 
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
     <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>

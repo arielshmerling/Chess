@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("fs");
 const cookieSession = require("cookie-session");
 const flash = require("connect-flash");
 const methodOverride = require("method-override");
@@ -33,6 +34,22 @@ app.use(flash());
 app.use(express.static(path.join(__dirname)));
 app.use(express.static(path.join(__dirname, "src")));
 app.use(express.static(path.join(__dirname, "assets")));
+
+const DOWNLOADS_DIR = path.join(__dirname, "assets", "downloads");
+app.get("/downloads/:filename", (req, res, next) => {
+    const filename = path.basename(decodeURIComponent(req.params.filename || ""));
+    if (!filename || filename !== req.params.filename) {
+        return res.status(400).send("Invalid download path");
+    }
+    const filePath = path.join(DOWNLOADS_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).type("text/plain").send(
+            "This installer is not on the server yet. Ask the site admin to deploy files from src/assets/downloads/.",
+        );
+    }
+    res.download(filePath, filename);
+});
+
 // Serve images from assets/Images directory
 //app.use("/Images", express.static(path.join(__dirname, "assets", "Images")));
 app.use("/images", express.static(path.join(__dirname, "assets", "images")));

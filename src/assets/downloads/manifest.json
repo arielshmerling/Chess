@@ -1,23 +1,23 @@
 {
   "version": "1.0.0",
-  "updatedAt": "2026-05-25T18:26:19.071Z",
+  "updatedAt": "2026-05-26T23:12:05.270Z",
   "downloads": [
     {
       "platform": "windows",
       "label": "Windows (ZIP)",
-      "filename": "Shmerling Chess-1.0.0-win.zip",
-      "url": "/downloads/Shmerling%20Chess-1.0.0-win.zip",
-      "sha256": "0fd5b7a98e32c84f4a7685dd4ac97ac98a70cb416f5c6985f2cdc2b8669145d2",
-      "sizeBytes": 140213931,
+      "filename": "shmerling-chess-1.0.0-win.zip",
+      "url": "/downloads/shmerling-chess-1.0.0-win.zip",
+      "sha256": "c48b7e77ce54a526832890864fcc0195da2c6d336fd467e513c8f06f9b016ab8",
+      "sizeBytes": 140214214,
       "sizeLabel": "133.7 MB"
     },
     {
       "platform": "mac",
       "label": "macOS",
-      "filename": "Shmerling Chess-1.0.0-arm64.dmg",
-      "url": "/downloads/Shmerling%20Chess-1.0.0-arm64.dmg",
-      "sha256": "09dc180a13f973774217c4580bc41c5f6c74267efa5838b4e960b9fd78364e59",
-      "sizeBytes": 116887946,
+      "filename": "shmerling-chess-1.0.0-mac-arm64.dmg",
+      "url": "/downloads/shmerling-chess-1.0.0-mac-arm64.dmg",
+      "sha256": "2463b79fb1281f68966eb250e6a3644d9e8e473fc099de0f1d622caf3614d972",
+      "sizeBytes": 116892675,
       "sizeLabel": "111.5 MB"
     }
   ]

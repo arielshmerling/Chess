@@ -6,10 +6,24 @@ const fs = require("fs");
 const path = require("path");
 const { fork } = require("child_process");
 
-const PRELOAD_PATH = path.join(__dirname, "preload.js");
-
 const APP_NAME = "Shmerling Chess";
-const SERVER_ENTRY = path.join(__dirname, "..", "server-desktop.js");
+
+/** Dev: repo root server-desktop.js. Packaged: colocated in app.asar next to main.js. */
+function resolveServerEntry() {
+    const packaged = path.join(__dirname, "server-desktop.js");
+    if (fs.existsSync(packaged)) {
+        return packaged;
+    }
+    return path.join(__dirname, "..", "server-desktop.js");
+}
+
+function resolvePreloadPath() {
+    const packaged = path.join(__dirname, "preload.js");
+    if (fs.existsSync(packaged)) {
+        return packaged;
+    }
+    return path.join(__dirname, "preload.js");
+}
 const ICON_PNG = path.join(__dirname, "build", "icon.png");
 const ICON_ICNS = path.join(__dirname, "build", "icon.icns");
 const ICON_ICO = path.join(__dirname, "build", "icon.ico");
@@ -105,7 +119,7 @@ function setupMacApplicationMenu() {
 
 function startLocalServer() {
     return new Promise((resolve, reject) => {
-        serverProcess = fork(SERVER_ENTRY, [], {
+        serverProcess = fork(resolveServerEntry(), [], {
             env: {
                 ...process.env,
                 SHMERLING_MODE: "desktop",
@@ -171,7 +185,7 @@ function createWindow() {
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
-            preload: PRELOAD_PATH,
+            preload: resolvePreloadPath(),
         },
     });
 

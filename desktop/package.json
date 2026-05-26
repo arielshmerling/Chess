@@ -30,6 +30,7 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "build/icon.png",
       "build/icon.ico",
       "build/icon.icns",
