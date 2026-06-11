@@ -883,6 +883,7 @@
             switchClocks();
             showStatus("Your move", 2000, "info");
         } else if (!game.GameOver && isAiTurn()) {
+            switchClocks();
             showStatus("Engine to move…", 0, "info");
             await runEngineMove();
         }
@@ -1162,13 +1163,6 @@
         updateMatchHeader();
         updateMovesTable([]);
         updateHeaderTurn();
-        if (!game.GameOver) {
-            if (isHumanTurn()) {
-                switchClocks();
-            } else {
-                showStatus("Engine to move…", 0, "info");
-            }
-        }
         gameActive = true;
         exitConfigurationIfGameStarting();
         exitReviewMode();
@@ -1179,13 +1173,14 @@
         updateActionButtons();
         editingSavedGameId = null;
         updateGameRunPanelVisibility();
-        if (isHumanTurn()) {
-            showStatus("Playing from custom position", 3000, "info");
-            if (!game.GameOver) {
-                switchClocks();
+        if (!game.GameOver) {
+            switchClocks();
+            if (isHumanTurn()) {
+                showStatus("Playing from custom position", 3000, "info");
+            } else {
+                showStatus("Engine to move…", 0, "info");
+                await runEngineMove();
             }
-        } else {
-            await runEngineMove();
         }
     }
 
@@ -2465,7 +2460,9 @@
         updateActionButtons();
         syncGameRunPanelOptions();
         updateGameRunPanelVisibility();
-        if (!game.GameOver && !isHumanTurn()) {
+        if (!game.GameOver && isAiTurn()) {
+            switchClocks();
+            showStatus("Engine to move…", 0, "info");
             await runEngineMove();
         } else if (!game.GameOver) {
             switchClocks();
