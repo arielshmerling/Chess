@@ -14,17 +14,24 @@
     let runTurn = "white";
     let runComputerIsWhite = false;
     let runDepth = 3;
+    let runEngine = "brain42";
     let onPlay = null;
     let onDisplayEvaluation = null;
     let onTurnChange = null;
     let onComputerColorChange = null;
     let onDepthChange = null;
+    let onEngineChange = null;
     let turnSwatchWhite = null;
     let turnSwatchBlack = null;
     let computerSwatchWhite = null;
     let computerSwatchBlack = null;
     let depthSelect = null;
+    let engineSelect = null;
     const MAX_SEARCH_DEPTH = 6;
+    const DEFAULT_ENGINE_OPTIONS = [
+        { value: "brain42", label: "Brain 4.2" },
+        { value: "brain41", label: "Brain 4.1" },
+    ];
     const EVAL_BUTTON_DEFAULT_TITLE =
         "Display evaluation (Ctrl+E) — score each piece and show the total in the status bar";
 
@@ -134,6 +141,63 @@
         }
     }
 
+    function engineOptionsList() {
+        const settings = global.DesktopGameSettings;
+        if (settings && Array.isArray(settings.ENGINE_OPTIONS) && settings.ENGINE_OPTIONS.length) {
+            return settings.ENGINE_OPTIONS;
+        }
+        return DEFAULT_ENGINE_OPTIONS;
+    }
+
+    function normalizeEngine(engine) {
+        const settings = global.DesktopGameSettings;
+        if (settings && settings.normalizeEngine) {
+            return settings.normalizeEngine(engine);
+        }
+        const allowed = engineOptionsList().map(function (o) {
+            return o.value;
+        });
+        return allowed.indexOf(engine) !== -1 ? engine : "brain42";
+    }
+
+    function setEngineSelection(engine) {
+        runEngine = normalizeEngine(engine);
+        if (engineSelect) {
+            engineSelect.value = runEngine;
+        }
+    }
+
+    function createEngineRow(initialEngine) {
+        const row = document.createElement("div");
+        row.className = "desktop-play-game-run-row desktop-play-game-run-engine-row";
+
+        const label = document.createElement("span");
+        label.className = "desktop-play-game-run-label";
+        label.textContent = "Engine";
+        row.appendChild(label);
+
+        const select = document.createElement("select");
+        select.className = "desktop-play-game-run-select desktop-play-game-run-engine";
+        select.setAttribute("aria-label", "Engine");
+        engineOptionsList().forEach(function (opt) {
+            const option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.label;
+            select.appendChild(option);
+        });
+        setEngineSelection(initialEngine);
+        select.value = runEngine;
+        select.addEventListener("change", function () {
+            setEngineSelection(select.value);
+            if (onEngineChange) {
+                onEngineChange(runEngine);
+            }
+        });
+        engineSelect = select;
+        row.appendChild(select);
+        return row;
+    }
+
     function createDepthRow(initialDepth) {
         const row = document.createElement("div");
         row.className = "desktop-play-game-run-row desktop-play-game-run-depth-row";
@@ -144,7 +208,7 @@
         row.appendChild(label);
 
         const select = document.createElement("select");
-        select.className = "desktop-play-game-run-depth";
+        select.className = "desktop-play-game-run-select desktop-play-game-run-depth";
         select.setAttribute("aria-label", "Search depth");
         for (let i = 1; i <= MAX_SEARCH_DEPTH; i += 1) {
             const opt = document.createElement("option");
@@ -175,6 +239,13 @@
         return 3;
     }
 
+    function resolveInitialEngine(options) {
+        if (options.initialEngine) {
+            return options.initialEngine;
+        }
+        return "brain42";
+    }
+
     function mount(container, options) {
         options = options || {};
         onPlay = options.onPlay || null;
@@ -183,13 +254,16 @@
         onComputerColorChange =
             options.onComputerColorChange || options.onHumanColorChange || null;
         onDepthChange = options.onDepthChange || null;
+        onEngineChange = options.onEngineChange || null;
         runTurn =
             options.initialTurn === "black" || options.initialTurn === "white"
                 ? options.initialTurn
                 : "white";
         runComputerIsWhite = resolveInitialComputerIsWhite(options);
         runDepth = clampDepth(resolveInitialDepth(options));
+        runEngine = normalizeEngine(resolveInitialEngine(options));
         depthSelect = null;
+        engineSelect = null;
 
         container.innerHTML = "";
         panelRoot = container;
@@ -236,6 +310,7 @@
         computerSwatchWhite = computerBtns.white;
         computerSwatchBlack = computerBtns.black;
 
+        controls.appendChild(createEngineRow(runEngine));
         controls.appendChild(createDepthRow(runDepth));
 
         container.appendChild(controls);
@@ -290,6 +365,9 @@
         } else if (opts.difficulty != null) {
             setDepthSelection(opts.difficulty);
         }
+        if (opts.engine != null) {
+            setEngineSelection(opts.engine);
+        }
     }
 
     function getOptions() {
@@ -297,6 +375,7 @@
             turn: runTurn,
             computerIsWhite: runComputerIsWhite,
             humanIsWhite: !runComputerIsWhite,
+            engine: runEngine,
             depth: runDepth,
             difficulty: runDepth,
         };
@@ -309,6 +388,7 @@
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
         setDepthSelection: setDepthSelection,
+        setEngineSelection: setEngineSelection,
         createSwatchRow: createSwatchToggle,
         updateSwatchPair: updateSwatchPair,
     };

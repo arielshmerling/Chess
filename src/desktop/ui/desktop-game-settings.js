@@ -12,6 +12,11 @@
         brain41: "Brain 4.1",
     };
 
+    const ENGINE_OPTIONS = [
+        { value: "brain42", label: ENGINE_LABELS.brain42 },
+        { value: "brain41", label: ENGINE_LABELS.brain41 },
+    ];
+
     const DEFAULTS = {
         color: "white",
         engine: "brain42",
@@ -61,11 +66,21 @@
         };
     }
 
+    function normalizeEngine(engine) {
+        return ENGINE_OPTIONS.some(function (o) {
+            return o.value === engine;
+        })
+            ? engine
+            : DEFAULTS.engine;
+    }
+
     window.DesktopGameSettings = {
         DEFAULTS,
+        ENGINE_OPTIONS,
         loadLastOptions,
         saveLastOptions,
         buildSession,
         brainLabel,
+        normalizeEngine,
     };
 })();

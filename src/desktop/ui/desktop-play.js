@@ -221,10 +221,10 @@
         }
         if (!gameActive && !positionSetupMode && !configurationMode) {
             if (reviewMode && boardHasPieces()) {
-                return "Review mode — set next move, computer color, and depth in the header, then press Play";
+                return "Review mode — set move, color, engine, and depth in the header, then press Play";
             }
             if (boardHasPieces()) {
-                return "Set next move, computer color, and depth in the header, then press Play";
+                return "Set move, color, engine, and depth in the header, then press Play";
             }
             return "Choose New game or Position setup from the sidebar";
         }
@@ -497,8 +497,33 @@
         session = Object.assign({}, session, { difficulty: next });
     }
 
+    function applySetupEngine(engine) {
+        if (!session) {
+            return;
+        }
+        const engineId =
+            Settings.normalizeEngine && engine
+                ? Settings.normalizeEngine(engine)
+                : engine === "brain41"
+                  ? "brain41"
+                  : "brain42";
+        session = Settings.buildSession({
+            color: currentPlayerIsWhite ? "white" : "black",
+            engine: engineId,
+            difficulty: session.difficulty,
+            mouse: session.mousePreference,
+            showAvailableMoves: session.showAvailableMoves,
+            allowUndo: session.allowUndo,
+            timeMinutes: session.gameTimeMinutes,
+        });
+        updateMatchHeader();
+    }
+
     function applyGameRunPanelOptions(setupOpts) {
         currentPlayerIsWhite = setupOpts.humanIsWhite !== false;
+        if (setupOpts.engine != null) {
+            applySetupEngine(setupOpts.engine);
+        }
         if (setupOpts.depth != null || setupOpts.difficulty != null) {
             applySetupDepth(
                 setupOpts.depth != null ? setupOpts.depth : setupOpts.difficulty,
@@ -731,6 +756,10 @@
         GameRun.mount(panel, {
             initialTurn: game && game.Turn ? game.Turn : "white",
             initialComputerIsWhite: !currentPlayerIsWhite,
+            initialEngine:
+                session && session.engine
+                    ? session.engine
+                    : Settings.loadLastOptions().engine,
             initialDepth:
                 session && session.difficulty != null
                     ? session.difficulty
@@ -740,6 +769,7 @@
             onTurnChange: applySetupTurn,
             onComputerColorChange: applySetupComputerColor,
             onDepthChange: applySetupDepth,
+            onEngineChange: applySetupEngine,
         });
         gameRunPanelMounted = true;
         setGameRunPanelVisible(false);
@@ -756,6 +786,10 @@
         GameRun.syncOptions({
             turn: turn,
             computerIsWhite: !currentPlayerIsWhite,
+            engine:
+                session && session.engine
+                    ? session.engine
+                    : Settings.loadLastOptions().engine,
             depth:
                 session && session.difficulty != null
                     ? session.difficulty
@@ -1909,7 +1943,7 @@
             enterReviewMode();
             syncGameRunPanelOptions();
             showStatus(
-                "Review mode — set next move, computer color, and depth in the header, then press Play",
+                "Review mode — set move, color, engine, and depth in the header, then press Play",
                 0,
                 "info",
             );

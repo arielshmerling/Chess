@@ -229,8 +229,7 @@ body.desktop-play-page .desktop-play-main {
   min-height: 1.2rem;
 }
 
-.desktop-play-header-run .desktop-play-game-run-depth {
-  min-width: 2.35rem;
+.desktop-play-header-run .desktop-play-game-run-select {
   height: 1.2rem;
   padding: 0 0.2rem;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -242,7 +241,16 @@ body.desktop-play-page .desktop-play-main {
   cursor: pointer;
 }
 
-.desktop-play-header-run .desktop-play-game-run-depth:focus {
+.desktop-play-header-run .desktop-play-game-run-depth {
+  min-width: 2.35rem;
+}
+
+.desktop-play-header-run .desktop-play-game-run-engine {
+  min-width: 4.75rem;
+  max-width: 5.5rem;
+}
+
+.desktop-play-header-run .desktop-play-game-run-select:focus {
   outline: none;
   border-color: var(--semiLight, rgba(152, 193, 217, 0.85));
 }
@@ -1266,8 +1274,7 @@ body.desktop-play-page .desktop-play-main {
   gap: 0.2rem;
 }
 
-.desktop-play-game-run-depth {
-  min-width: 2.75rem;
+.desktop-play-game-run-select {
   height: 1.65rem;
   padding: 0 0.35rem;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -1279,7 +1286,16 @@ body.desktop-play-page .desktop-play-main {
   cursor: pointer;
 }
 
-.desktop-play-game-run-depth:focus {
+.desktop-play-game-run-depth {
+  min-width: 2.75rem;
+}
+
+.desktop-play-game-run-engine {
+  min-width: 5.5rem;
+  max-width: 7rem;
+}
+
+.desktop-play-game-run-select:focus {
   outline: none;
   border-color: var(--semiLight, rgba(152, 193, 217, 0.85));
 }
