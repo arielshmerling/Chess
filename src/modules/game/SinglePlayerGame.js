@@ -16,7 +16,7 @@ function loadEngine(engineName) {
         const { Brain } = mod;
         return {
             brainNextMoveFunc: async (game, options) => {
-                const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, options.maxDepth)) : 1;
+                const maxDepth = options?.maxDepth != null ? Math.min(6, Math.max(1, options.maxDepth)) : 1;
                 const brain = new Brain(maxDepth);
                 return brain.nextMove(game);
             },
@@ -189,7 +189,7 @@ class SinglePlayerGame extends GameBase {
         const brainName = this._brainName;
         if (!brainNextMoveFunc) { return null; }
 
-        const maxDepth = Math.min(5, Math.max(1, Number(this.options.difficulty) || 3));
+        const maxDepth = Math.min(6, Math.max(1, Number(this.options.difficulty) || 3));
         try {
             // console.profile();
             console.time("brain");

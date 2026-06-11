@@ -12,7 +12,7 @@ exports.brainNextMoveFunc = async (game, options) => {
 
     const state = game.GameState;
     const strState = JSON.stringify(state);
-    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
+    const maxDepth = options?.maxDepth != null ? Math.min(6, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
         // resolve(move);
@@ -181,7 +181,7 @@ if (!isMainThread) {
         ? workerData.strState
         : workerData;
     const maxDepth = typeof workerData === "object" && workerData != null && workerData.maxDepth != null
-        ? Math.min(5, Math.max(1, Number(workerData.maxDepth)))
+        ? Math.min(6, Math.max(1, Number(workerData.maxDepth)))
         : DEFAULT_MAX_DEPTH;
     chess = new ChessGame();
     chess.loadGame(strState);

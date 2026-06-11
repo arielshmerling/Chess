@@ -79,7 +79,7 @@ function createWorkerPromise(strState, maxDepth) {
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
-        const depthLimit = maxDepth != null ? Math.min(5, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
+        const depthLimit = maxDepth != null ? Math.min(6, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
 
         // Add timeout to prevent hanging
         const timeout = setTimeout(() => {
@@ -132,7 +132,7 @@ function isBookMoveStillLegal(game, move) {
 exports.brainNextMoveFunc = async (game, options) => {
     const state = game.GameState;
     const strState = JSON.stringify(state);
-    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
+    const maxDepth = options?.maxDepth != null ? Math.min(6, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const bookMove = await tryFindMatchState(game);
     if (bookMove && isBookMoveStillLegal(game, bookMove)) {
         return bookMove;
@@ -503,7 +503,7 @@ if (!isMainThread) {
             return;
         }
 
-        const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        const maxDepth = requestMaxDepth != null ? Math.min(6, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
         console.log(`Brain 5 is thinking... (request ${requestId}, depth ${maxDepth})`);
         const startTime = Date.now();
 

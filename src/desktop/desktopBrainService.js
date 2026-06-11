@@ -69,7 +69,7 @@ async function computeMove(opts) {
     }
 
     const loaded = loadEngine(engine);
-    const maxDepth = Math.min(5, Math.max(1, Number(difficulty) || 3));
+    const maxDepth = Math.min(6, Math.max(1, Number(difficulty) || 3));
     const config = brainConfigService.loadBrainConfig(engine);
 
     let brainMove;

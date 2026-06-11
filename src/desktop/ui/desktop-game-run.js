@@ -13,14 +13,18 @@
     let panelRoot = null;
     let runTurn = "white";
     let runComputerIsWhite = false;
+    let runDepth = 3;
     let onPlay = null;
     let onDisplayEvaluation = null;
     let onTurnChange = null;
     let onComputerColorChange = null;
+    let onDepthChange = null;
     let turnSwatchWhite = null;
     let turnSwatchBlack = null;
     let computerSwatchWhite = null;
     let computerSwatchBlack = null;
+    let depthSelect = null;
+    const MAX_SEARCH_DEPTH = 6;
     const EVAL_BUTTON_DEFAULT_TITLE =
         "Display evaluation (Ctrl+E) — score each piece and show the total in the status bar";
 
@@ -115,6 +119,62 @@
         return false;
     }
 
+    function clampDepth(depth) {
+        const parsed = parseInt(depth, 10);
+        if (!Number.isFinite(parsed)) {
+            return 3;
+        }
+        return Math.min(MAX_SEARCH_DEPTH, Math.max(1, parsed));
+    }
+
+    function setDepthSelection(depth) {
+        runDepth = clampDepth(depth);
+        if (depthSelect) {
+            depthSelect.value = String(runDepth);
+        }
+    }
+
+    function createDepthRow(initialDepth) {
+        const row = document.createElement("div");
+        row.className = "desktop-play-game-run-row desktop-play-game-run-depth-row";
+
+        const label = document.createElement("span");
+        label.className = "desktop-play-game-run-label";
+        label.textContent = "Depth";
+        row.appendChild(label);
+
+        const select = document.createElement("select");
+        select.className = "desktop-play-game-run-depth";
+        select.setAttribute("aria-label", "Search depth");
+        for (let i = 1; i <= MAX_SEARCH_DEPTH; i += 1) {
+            const opt = document.createElement("option");
+            opt.value = String(i);
+            opt.textContent = String(i);
+            select.appendChild(opt);
+        }
+        setDepthSelection(initialDepth);
+        select.value = String(runDepth);
+        select.addEventListener("change", function () {
+            setDepthSelection(select.value);
+            if (onDepthChange) {
+                onDepthChange(runDepth);
+            }
+        });
+        depthSelect = select;
+        row.appendChild(select);
+        return row;
+    }
+
+    function resolveInitialDepth(options) {
+        if (options.initialDepth != null) {
+            return options.initialDepth;
+        }
+        if (options.initialDifficulty != null) {
+            return options.initialDifficulty;
+        }
+        return 3;
+    }
+
     function mount(container, options) {
         options = options || {};
         onPlay = options.onPlay || null;
@@ -122,11 +182,14 @@
         onTurnChange = options.onTurnChange || null;
         onComputerColorChange =
             options.onComputerColorChange || options.onHumanColorChange || null;
+        onDepthChange = options.onDepthChange || null;
         runTurn =
             options.initialTurn === "black" || options.initialTurn === "white"
                 ? options.initialTurn
                 : "white";
         runComputerIsWhite = resolveInitialComputerIsWhite(options);
+        runDepth = clampDepth(resolveInitialDepth(options));
+        depthSelect = null;
 
         container.innerHTML = "";
         panelRoot = container;
@@ -172,6 +235,8 @@
         controls.appendChild(computerRow);
         computerSwatchWhite = computerBtns.white;
         computerSwatchBlack = computerBtns.black;
+
+        controls.appendChild(createDepthRow(runDepth));
 
         container.appendChild(controls);
 
@@ -220,6 +285,11 @@
         } else if (typeof opts.humanIsWhite === "boolean") {
             setComputerColorSelection(!opts.humanIsWhite);
         }
+        if (opts.depth != null) {
+            setDepthSelection(opts.depth);
+        } else if (opts.difficulty != null) {
+            setDepthSelection(opts.difficulty);
+        }
     }
 
     function getOptions() {
@@ -227,6 +297,8 @@
             turn: runTurn,
             computerIsWhite: runComputerIsWhite,
             humanIsWhite: !runComputerIsWhite,
+            depth: runDepth,
+            difficulty: runDepth,
         };
     }
 
@@ -236,6 +308,7 @@
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
+        setDepthSelection: setDepthSelection,
         createSwatchRow: createSwatchToggle,
         updateSwatchPair: updateSwatchPair,
     };

@@ -59,7 +59,7 @@ function normalizeBookmarkEngine(engineName) {
 
 function normalizeBookmarkDepth(depthValue) {
     const parsed = Number(depthValue);
-    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : 3;
+    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 6 ? parsed : 3;
 }
 
 function isResearchScreen() {

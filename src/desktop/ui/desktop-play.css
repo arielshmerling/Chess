@@ -229,6 +229,24 @@ body.desktop-play-page .desktop-play-main {
   min-height: 1.2rem;
 }
 
+.desktop-play-header-run .desktop-play-game-run-depth {
+  min-width: 2.35rem;
+  height: 1.2rem;
+  padding: 0 0.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.desktop-play-header-run .desktop-play-game-run-depth:focus {
+  outline: none;
+  border-color: var(--semiLight, rgba(152, 193, 217, 0.85));
+}
+
 .desktop-play-header-run .desktop-play-game-run-play {
   width: 2.15rem;
   height: 2.15rem;
@@ -1246,6 +1264,24 @@ body.desktop-play-page .desktop-play-main {
   display: flex;
   flex-direction: row;
   gap: 0.2rem;
+}
+
+.desktop-play-game-run-depth {
+  min-width: 2.75rem;
+  height: 1.65rem;
+  padding: 0 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1.65rem;
+  cursor: pointer;
+}
+
+.desktop-play-game-run-depth:focus {
+  outline: none;
+  border-color: var(--semiLight, rgba(152, 193, 217, 0.85));
 }
 
 .desktop-play-game-run-swatch {

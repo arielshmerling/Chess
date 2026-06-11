@@ -81,7 +81,7 @@ function createWorkerPromise(strState, maxDepth) {
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
-        const depthLimit = maxDepth != null ? Math.min(5, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
+        const depthLimit = maxDepth != null ? Math.min(6, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
 
         // Add timeout to prevent hanging
         const timeout = setTimeout(() => {
@@ -123,7 +123,7 @@ exports.brainNextMoveFunc = async (game, options) => {
     runtimeConfig = sanitizeBrainConfig("brain4", options?.config || {});
     const state = game.GameState;
     const strState = JSON.stringify(state);
-    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
+    const maxDepth = options?.maxDepth != null ? Math.min(6, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
     const move = await tryFindMatchState(game);
     if (move) {
         return move;
@@ -321,7 +321,7 @@ if (!isMainThread) {
             return;
         }
 
-        const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        const maxDepth = requestMaxDepth != null ? Math.min(6, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
         runtimeConfig = sanitizeBrainConfig("brain4", config || {});
         console.log(`Brain 4 is thinking... (request ${requestId}, depth ${maxDepth})`);
         const startTime = Date.now();

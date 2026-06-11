@@ -12,10 +12,18 @@
  *
  * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateLeafPosition} call and logs
  * the total after each completed search.
+ *
+ * Adaptive depth ({@link computeAdaptiveSearchDepth}): counts root legal moves on the first iteration and
+ * adds bonus plies when fewer than referenceRootMoves (endgames search deeper); shrinks when above reference.
+ * {@link estimateLeafEvaluations} logs a rough leaf budget using avgBranchingFactor.
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { ChessGame } = require("./ChessGame");
-const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
+const {
+    getDefaultConfig,
+    sanitizeBrainConfig,
+    MAX_SEARCH_DEPTH,
+} = require("./modules/game/brainConfigService");
 const gamesManagerService = require("./modules/gamesManager/service");
 const { savedGameStateToLookupKey } = require("./openingBookJson");
 
@@ -82,6 +90,80 @@ function resolveBrain42ActivePhaseSettings(fullConfig, game, pliesPlayed) {
         specialEvaluations: phaseSettings.specialEvaluations || {},
         pawnFileValues: (fullConfig && fullConfig.pawnFileValues) || null,
     };
+}
+
+function clampSearchDepth(depth) {
+    return Math.min(MAX_SEARCH_DEPTH, Math.max(1, Math.floor(Number(depth) || DEFAULT_MAX_DEPTH)));
+}
+
+function resolveAdaptiveDepthSettings(fullConfig) {
+    const defaults = getDefaultConfig("brain42").adaptiveDepth;
+    const input = fullConfig && fullConfig.adaptiveDepth;
+    if (!input || typeof input !== "object") {
+        return defaults;
+    }
+    const ref = Number(input.referenceRootMoves ?? defaults.referenceRootMoves);
+    const avg = Number(input.avgBranchingFactor ?? defaults.avgBranchingFactor);
+    const minD = Number(input.minSearchDepth ?? defaults.minSearchDepth);
+    const maxD = Number(input.maxSearchDepth ?? defaults.maxSearchDepth);
+    const enabled = input.enabled !== undefined ? Boolean(input.enabled) : defaults.enabled !== false;
+    return {
+        enabled,
+        referenceRootMoves: Number.isFinite(ref) && ref > 0 ? ref : defaults.referenceRootMoves,
+        avgBranchingFactor: Number.isFinite(avg) && avg > 1 ? avg : defaults.avgBranchingFactor,
+        minSearchDepth: Number.isFinite(minD) && minD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(minD)) : defaults.minSearchDepth,
+        maxSearchDepth: Number.isFinite(maxD) && maxD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(maxD)) : defaults.maxSearchDepth,
+    };
+}
+
+/**
+ * Worst-case leaf evaluation estimate (no alpha-beta pruning): rootMoves × avgBranch^(depth−1).
+ * @param {number} rootMoveCount
+ * @param {number} maxDepth
+ * @param {object} [fullConfig]
+ * @returns {number}
+ */
+function estimateLeafEvaluations(rootMoveCount, maxDepth, fullConfig) {
+    const settings = resolveAdaptiveDepthSettings(fullConfig || brain42FullConfig);
+    const depth = clampSearchDepth(maxDepth);
+    const rootMoves = Math.max(0, Math.floor(Number(rootMoveCount) || 0));
+    if (rootMoves === 0 || depth <= 0) {
+        return 0;
+    }
+    const depthAfterRoot = Math.max(0, depth - 1);
+    return rootMoves * Math.pow(settings.avgBranchingFactor, depthAfterRoot);
+}
+
+/**
+ * Adjust base maxDepth from root legal-move count. Fewer root moves add bonus plies
+ * (log2(reference/root)); more root moves than reference shrink depth to cap evaluations.
+ * @param {number} baseMaxDepth
+ * @param {number} rootMoveCount
+ * @param {object} [fullConfig]
+ * @returns {number}
+ */
+function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, fullConfig) {
+    const base = clampSearchDepth(baseMaxDepth);
+    const settings = resolveAdaptiveDepthSettings(fullConfig || brain42FullConfig);
+    const rootMoves = Math.max(0, Math.floor(Number(rootMoveCount) || 0));
+    if (!settings.enabled || rootMoves <= 0) {
+        return base;
+    }
+
+    const ref = settings.referenceRootMoves;
+    if (rootMoves >= ref) {
+        const shrink = Math.floor(Math.log(rootMoves / ref) / Math.log(2));
+        if (shrink <= 0) {
+            return base;
+        }
+        return Math.min(settings.maxSearchDepth, Math.max(settings.minSearchDepth, base - shrink));
+    }
+
+    const bonus = Math.round(Math.log(ref / rootMoves) / Math.log(2));
+    if (bonus <= 0) {
+        return base;
+    }
+    return Math.min(settings.maxSearchDepth, Math.max(settings.minSearchDepth, base + bonus));
 }
 
 function setBrain42SearchContext(fullConfig, rootPliesPlayed) {
@@ -269,7 +351,7 @@ function createWorkerPromise(strState, maxDepth, config, pliesPlayed) {
         }
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
-        const depthLimit = maxDepth != null ? Math.min(5, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
+        const depthLimit = maxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
         const timeout = setTimeout(() => {
             const pending = pendingRequests.get(requestId);
             if (pending) {
@@ -414,7 +496,7 @@ exports.brainNextMoveFunc = async (game, options) => {
         state.capturedPiecesList = [];
     }
     const strState = JSON.stringify(state);
-    const maxDepth = options?.maxDepth != null ? Math.min(5, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
+    const maxDepth = options?.maxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
 
     const mateNow = findImmediateMatingMove(game, collectLegalMoves(game));
     if (mateNow) {
@@ -1274,6 +1356,9 @@ exports.countPiecesForColor = countPiecesForColor;
 exports.resolveBrain42ActivePhaseSettings = resolveBrain42ActivePhaseSettings;
 exports.getAdvancedPawnBonusFraction = getAdvancedPawnBonusFraction;
 exports.getAdvancedPawnBonusForColor = getAdvancedPawnBonusForColor;
+exports.estimateLeafEvaluations = estimateLeafEvaluations;
+exports.computeAdaptiveSearchDepth = computeAdaptiveSearchDepth;
+exports.resolveAdaptiveDepthSettings = resolveAdaptiveDepthSettings;
 
 function collectLegalMoves(game) {
     const state = game.GameState;
@@ -1398,11 +1483,15 @@ function negamax(game, depthRemaining, alpha, beta) {
     return best;
 }
 
-function searchBestMoveAtRoot(game, maxDepth) {
+function searchBestMoveAtRoot(game, baseMaxDepth) {
     const moves = collectLegalMoves(game);
     if (moves.length === 0) {
         return null;
     }
+    const maxDepth = computeAdaptiveSearchDepth(baseMaxDepth, moves.length, brain42FullConfig);
+    const baseDepth = clampSearchDepth(baseMaxDepth);
+    const depthNote = maxDepth !== baseDepth ? ` (base=${baseDepth})` : "";
+    console.log(`${LOG_PREFIX} Search: rootMoves=${moves.length}, depth=${maxDepth}${depthNote}`);
     const mateNow = findImmediateMatingMove(game, moves);
     if (mateNow) {
         mateNow.score = MATE_SCORE;
@@ -1474,7 +1563,7 @@ if (!isMainThread) {
             return;
         }
 
-        const maxDepth = requestMaxDepth != null ? Math.min(5, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        const maxDepth = requestMaxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
         setBrain42SearchContext(config || {}, pliesPlayed ?? 0);
         const startTime = Date.now();
 
@@ -1486,7 +1575,7 @@ if (!isMainThread) {
             }
             const phase = applyRuntimeConfigForGame(chess);
             console.log(
-                `${LOG_PREFIX} Thinking... request=${requestId}, depth=${maxDepth}, phase=${phase}, `
+                `${LOG_PREFIX} Thinking... request=${requestId}, baseDepth=${maxDepth}, phase=${phase}, `
                     + `plies=${currentSearchPliesPlayed(chess)}`,
             );
             chess.SearchMode = true;

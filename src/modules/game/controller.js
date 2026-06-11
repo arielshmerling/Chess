@@ -346,7 +346,7 @@ const executeStartGame = catchAsync(async (req, res) => {
     const color = (req.query.color === "black" || req.query.color === "white") ? req.query.color : "white";
     const engine = typeof req.query.engine === "string" && req.query.engine.length <= 20 ? req.query.engine : "brain4";
     const difficulty = parseInt(req.query.difficulty, 10);
-    const difficultyNum = (difficulty >= 1 && difficulty <= 5) ? difficulty : 3;
+    const difficultyNum = (difficulty >= 1 && difficulty <= 6) ? difficulty : 3;
     const mouse = (req.query.mouse === "double" || req.query.mouse === "drag") ? req.query.mouse : "drag";
     const showAvailableMoves = req.query.showMoves !== "0";
     const timeMinutesParsed = parseInt(req.query.timeMinutes, 10);

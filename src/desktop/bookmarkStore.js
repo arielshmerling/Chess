@@ -59,7 +59,7 @@ exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, 
         gameType: gameType || "SinglePlayerGame",
         moves: Array.isArray(moves) ? moves : [],
         engine: runtime.normalizeEngine(engine),
-        depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 5 ? parsedDepth : 3,
+        depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3,
         date: new Date(),
     };
     list.push(bookmark);
@@ -83,7 +83,7 @@ exports.updateBookmark = async (_userId, id, date, name, gameType, gameState, mo
     if (engine !== undefined) { bookmark.engine = runtime.normalizeEngine(engine); }
     if (depth !== undefined) {
         const parsedDepth = Number(depth);
-        bookmark.depth = Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 5 ? parsedDepth : 3;
+        bookmark.depth = Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3;
     }
     await writeAll(list);
 };

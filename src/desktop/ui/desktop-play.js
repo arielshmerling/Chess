@@ -221,10 +221,10 @@
         }
         if (!gameActive && !positionSetupMode && !configurationMode) {
             if (reviewMode && boardHasPieces()) {
-                return "Review mode — set next move and computer color in the header, then press Play";
+                return "Review mode — set next move, computer color, and depth in the header, then press Play";
             }
             if (boardHasPieces()) {
-                return "Set next move and computer color in the header, then press Play";
+                return "Set next move, computer color, and depth in the header, then press Play";
             }
             return "Choose New game or Position setup from the sidebar";
         }
@@ -489,6 +489,26 @@
         updateActionButtons();
     }
 
+    function applySetupDepth(depth) {
+        if (!session) {
+            return;
+        }
+        const next = Math.min(6, Math.max(1, parseInt(depth, 10) || 3));
+        session = Object.assign({}, session, { difficulty: next });
+    }
+
+    function applyGameRunPanelOptions(setupOpts) {
+        currentPlayerIsWhite = setupOpts.humanIsWhite !== false;
+        if (setupOpts.depth != null || setupOpts.difficulty != null) {
+            applySetupDepth(
+                setupOpts.depth != null ? setupOpts.depth : setupOpts.difficulty,
+            );
+        }
+        if (Board.setHumanColor) {
+            Board.setHumanColor(currentPlayerIsWhite);
+        }
+    }
+
     function clearSetupBoard() {
         Board.mutateSetupBoard(function (state) {
             state.board = Array.from({ length: game.BOARD_ROWS }, function () {
@@ -711,10 +731,15 @@
         GameRun.mount(panel, {
             initialTurn: game && game.Turn ? game.Turn : "white",
             initialComputerIsWhite: !currentPlayerIsWhite,
+            initialDepth:
+                session && session.difficulty != null
+                    ? session.difficulty
+                    : Settings.loadLastOptions().difficulty,
             onPlay: runGameFromPanel,
             onDisplayEvaluation: displayPositionEvaluation,
             onTurnChange: applySetupTurn,
             onComputerColorChange: applySetupComputerColor,
+            onDepthChange: applySetupDepth,
         });
         gameRunPanelMounted = true;
         setGameRunPanelVisible(false);
@@ -731,6 +756,10 @@
         GameRun.syncOptions({
             turn: turn,
             computerIsWhite: !currentPlayerIsWhite,
+            depth:
+                session && session.difficulty != null
+                    ? session.difficulty
+                    : Settings.loadLastOptions().difficulty,
         });
     }
 
@@ -791,10 +820,7 @@
         state.capturedPiecesList = state.capturedPiecesList || [];
         game.loadGame(JSON.stringify(state));
         game.loadMoves([]);
-        currentPlayerIsWhite = setupOpts.humanIsWhite !== false;
-        if (Board.setHumanColor) {
-            Board.setHumanColor(currentPlayerIsWhite);
-        }
+        applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
@@ -1090,10 +1116,7 @@
         state.capturedPiecesList = state.capturedPiecesList || [];
         game.loadGame(JSON.stringify(state));
         game.loadMoves([]);
-        currentPlayerIsWhite = setupOpts.humanIsWhite !== false;
-        if (Board.setHumanColor) {
-            Board.setHumanColor(currentPlayerIsWhite);
-        }
+        applyGameRunPanelOptions(setupOpts);
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
         updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
@@ -1886,7 +1909,7 @@
             enterReviewMode();
             syncGameRunPanelOptions();
             showStatus(
-                "Review mode — set next move and computer color in the header, then press Play",
+                "Review mode — set next move, computer color, and depth in the header, then press Play",
                 0,
                 "info",
             );

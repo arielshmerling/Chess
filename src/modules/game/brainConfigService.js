@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const CONFIG_DIR = path.join(__dirname, "..", "..", "config", "brains");
+const MAX_SEARCH_DEPTH = 6;
 
 const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -62,6 +63,19 @@ const DEFAULT_CONFIGS = {
         },
     },
     brain42: {
+        /**
+         * Scale search depth from root legal-move count: fewer moves → deeper search (log2 bonus plies),
+         * more moves than reference → shallower. avgBranchingFactor is for leaf-eval estimation logs only.
+         */
+        adaptiveDepth: {
+            enabled: true,
+            /** Typical root branching at base maxDepth; used as the evaluation budget anchor. */
+            referenceRootMoves: 30,
+            /** Average branching factor per ply for leaf-count estimation (worst case, no pruning). */
+            avgBranchingFactor: 32,
+            minSearchDepth: 1,
+            maxSearchDepth: MAX_SEARCH_DEPTH,
+        },
         gamePhase: {
             /** Switch to midGame after this many full moves (both sides). */
             midGameAfterMoves: 10,
@@ -240,6 +254,23 @@ function sanitizePawnFileValues(fallback, raw) {
     };
 }
 
+function sanitizeAdaptiveDepthSettings(fallback, raw) {
+    const fb = fallback && typeof fallback === "object" ? fallback : {};
+    const input = raw && typeof raw === "object" ? raw : {};
+    const ref = Number(input.referenceRootMoves ?? fb.referenceRootMoves);
+    const avg = Number(input.avgBranchingFactor ?? fb.avgBranchingFactor);
+    const minD = Number(input.minSearchDepth ?? fb.minSearchDepth);
+    const maxD = Number(input.maxSearchDepth ?? fb.maxSearchDepth);
+    const enabled = input.enabled !== undefined ? Boolean(input.enabled) : fb.enabled !== false;
+    return {
+        enabled,
+        referenceRootMoves: Number.isFinite(ref) && ref > 0 ? ref : 30,
+        avgBranchingFactor: Number.isFinite(avg) && avg > 1 ? avg : 32,
+        minSearchDepth: Number.isFinite(minD) && minD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(minD)) : 1,
+        maxSearchDepth: Number.isFinite(maxD) && maxD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(maxD)) : MAX_SEARCH_DEPTH,
+    };
+}
+
 function sanitizeBrain42Config(rawConfig) {
     const fallback = getDefaultConfig("brain42");
     let raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
@@ -272,7 +303,8 @@ function sanitizeBrain42Config(rawConfig) {
         fallback.endGame || startFallback,
         raw.endGame || startRaw,
     );
-    return { gamePhase, pawnFileValues, startGame, midGame, endGame };
+    const adaptiveDepth = sanitizeAdaptiveDepthSettings(fallback.adaptiveDepth, raw.adaptiveDepth);
+    return { gamePhase, pawnFileValues, adaptiveDepth, startGame, midGame, endGame };
 }
 
 function sanitizeBrainConfig(engineName, rawConfig) {
@@ -327,6 +359,7 @@ function saveBrainConfig(engineName, rawConfig) {
 }
 
 module.exports = {
+    MAX_SEARCH_DEPTH,
     ALLOWED_BRAINS,
     PAWN_FILE_LETTERS,
     getDefaultConfig,
@@ -334,4 +367,5 @@ module.exports = {
     saveBrainConfig,
     sanitizeBrainConfig,
     sanitizeBrain42Config,
+    sanitizeAdaptiveDepthSettings,
 };

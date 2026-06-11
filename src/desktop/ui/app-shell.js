@@ -38,7 +38,7 @@
         if (opts.engine && form.elements.engine) {
             form.elements.engine.value = opts.engine;
         }
-        if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 5) {
+        if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 6) {
             var difficultyInput = form.querySelector("input[name='difficulty']");
             var valueSpan = document.getElementById("playNowDifficultyValue");
             if (difficultyInput) {

@@ -16,7 +16,7 @@ function parseSinglePlayerOptions(body) {
     const color = body.color === "black" || body.color === "white" ? body.color : "white";
     const engine = runtime.normalizeEngine(body.engine);
     const difficulty = parseInt(body.difficulty, 10);
-    const difficultyNum = difficulty >= 1 && difficulty <= 5 ? difficulty : 3;
+    const difficultyNum = difficulty >= 1 && difficulty <= 6 ? difficulty : 3;
     const mouse = body.mouse === "double" || body.mouse === "drag" ? body.mouse : "drag";
     const showAvailableMoves = body.showAvailableMoves !== false;
     const allowUndo = body.allowUndo === true || body.allowUndo === "1" || body.allowUndo === 1;

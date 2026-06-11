@@ -81,7 +81,7 @@ function applyLastGameOptions(opts) {
             timeInput.value = String(Math.round(tm));
         }
     }
-    if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 5) {
+    if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 6) {
         const difficultyInput = form.querySelector("input[name='difficulty']");
         const valueSpan = document.getElementById("playNowDifficultyValue");
         if (difficultyInput) {

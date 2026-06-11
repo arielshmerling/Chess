@@ -73,7 +73,7 @@
             '>Brain 4.1</option></select></div>' +
             '<div class="desktop-field"><span class="desktop-form-section-title" id="dlgDiffLabel">Difficulty</span>' +
             '<div class="desktop-slider-row" aria-labelledby="dlgDiffLabel">' +
-            '<input type="range" name="difficulty" min="1" max="5" value="' +
+            '<input type="range" name="difficulty" min="1" max="6" value="' +
             (last.difficulty || 3) +
             '" id="dlgDifficulty" class="desktop-slider--gold">' +
             '<output id="dlgDifficultyOut" class="desktop-slider-value">' +
