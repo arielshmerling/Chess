@@ -1290,36 +1290,3 @@ main {
         padding: 10px 6px;
     }
 }
-
-/* Desktop app download links (footer, below all panels) */
-.welcome-desktop-downloads {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 24px 20px 40px;
-    box-sizing: border-box;
-}
-
-.welcome-desktop-downloads-line {
-    margin: 0;
-    font-size: 0.9rem;
-    text-align: center;
-    color: var(--text-muted, rgba(255, 255, 255, 0.55));
-}
-
-.welcome-desktop-downloads-link {
-    color: var(--link-color, var(--desktop-accent, #98c1d9));
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.welcome-desktop-downloads-link:hover {
-    color: var(--link-hover-color, #e0fbfc);
-}
-
-.welcome-desktop-downloads-sep {
-    opacity: 0.6;
-}
-
-.mobile-home-main .welcome-desktop-downloads {
-    padding: 20px 16px 32px;
-}

@@ -1,8 +1,6 @@
 const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
 const { User } = require("../user/model");
-const { loadDesktopDownloadsManifest } = require("../../utils/desktopDownloads");
-
 /**
  * @param {object} g - row from getOnGoingOnlineGames
  * @param {string} username
@@ -51,9 +49,7 @@ async function loadHomePageData(req) {
         }
     }
 
-    const desktopDownloads = loadDesktopDownloadsManifest();
-
-    return { username, allGames, playerGames, lastGameOptions, desktopDownloads };
+    return { username, allGames, playerGames, lastGameOptions };
 }
 
 function mapOngoingGameForClient(g, username, extras = {}) {
@@ -108,7 +104,6 @@ exports.showHomePage = async (req, res) => {
     res.render("welcome", {
         allGames: ctx.allGames,
         lastGameOptions: ctx.lastGameOptions,
-        desktopDownloads: ctx.desktopDownloads,
     });
 };
 
@@ -120,7 +115,6 @@ exports.showHomePageMobile = async (req, res) => {
     res.render("mobile-welcome", {
         allGames: ctx.allGames,
         lastGameOptions: ctx.lastGameOptions,
-        desktopDownloads: ctx.desktopDownloads,
     });
 };
 

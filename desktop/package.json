@@ -11,81 +11,9 @@
     "patch:app-name": "node scripts/patch-electron-app-name.js",
     "postinstall": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
     "prestart": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
-    "start": "electron .",
-    "predist": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win --x64",
-    "dist:win:setup": "electron-builder --win --x64 --config.win.target=nsis",
-    "dist:linux": "electron-builder --linux",
-    "dist:all": "electron-builder --mac --win --linux"
-  },
-  "build": {
-    "appId": "com.shmerling.app",
-    "productName": "Shmerling Chess",
-    "icon": "build/icon.png",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "preload.js",
-      "build/icon.png",
-      "build/icon.ico",
-      "build/icon.icns",
-      "../server-desktop.js",
-      "../src/**/*",
-      "../data/opening-book-states.json",
-      "../data/desktop-custom-themes.json",
-      "../assets/**/*",
-      "!../**/*.test.js",
-      "!../test/**"
-    ],
-    "extraResources": [
-      {
-        "from": "../data/opening-book-states.json",
-        "to": "data/opening-book-states.json"
-      }
-    ],
-    "mac": {
-      "category": "public.app-category.board-games",
-      "icon": "build/icon.icns",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true,
-      "extendInfo": {
-        "CFBundleDisplayName": "Shmerling Chess",
-        "CFBundleName": "Shmerling Chess"
-      },
-      "target": [
-        "dmg"
-      ]
-    },
-    "win": {
-      "icon": "build/icon.png",
-      "target": [
-        "zip"
-      ],
-      "signAndEditExecutable": false,
-      "signExts": [
-        ".dll",
-        ".exe",
-        ".msi",
-        ".node",
-        ".cab"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
-    }
+    "start": "electron ."
   },
   "devDependencies": {
-    "electron": "^42.2.0",
-    "electron-builder": "^26.8.1"
+    "electron": "^42.2.0"
   }
 }
