@@ -500,7 +500,7 @@ function logOpeningBookOptions(game, options) {
 function logTiedBestMoveOptions(game, options, bestScore) {
     const pgns = options.map((m) => bookMovePgn(game, m));
     console.log(
-        `${LOG_PREFIX} Equal best score ${bestScore}; ${options.length} move(s), picking randomly: ${pgns.join(", ")}`,
+        `${LOG_PREFIX} Equal best score ${bestScore}; ${options.length} tied move(s): ${pgns.join(", ")}`,
     );
 }
 
@@ -1125,11 +1125,11 @@ function materialDifferenceForSideToMove(game) {
 }
 
 /** Leaf: material + positional terms for side to move (no move-specific king/rook first penalty). */
-function evaluateLeafPosition(game) {
+function evaluateLeafPosition(game, ply = 0) {
     applyRuntimeConfigForGame(game);
     leafEvaluationsThisSearch += 1;
     if (game.Checkmate) {
-        return -MATE_SCORE;
+        return -MATE_SCORE + ply;
     }
     if (game.Draw) {
         return 0;
@@ -1483,13 +1483,63 @@ function orderMovesCapturesFirst(game, moves) {
     if (!state?.board?.length || moves.length <= 1) {
         return moves.slice();
     }
-    return moves.slice().sort((a, b) => {
-        const capA = state.board[a.target.row]?.[a.target.col];
-        const capB = state.board[b.target.row]?.[b.target.col];
-        const va = capA ? pieceValueOnSquare(game, capA, a.target.col) : 0;
-        const vb = capB ? pieceValueOnSquare(game, capB, b.target.col) : 0;
-        return vb - va;
+    const decorated = moves.map((move) => {
+        const capture = state.board[move.target.row]?.[move.target.col];
+        const captureValue = capture ? pieceValueOnSquare(game, capture, move.target.col) : 0;
+        const givesCheck = withAppliedMove(game, move, () => game.Check);
+        return { move, captureValue, givesCheck };
     });
+    decorated.sort((a, b) => {
+        if (a.givesCheck !== b.givesCheck) {
+            return (b.givesCheck ? 1 : 0) - (a.givesCheck ? 1 : 0);
+        }
+        return b.captureValue - a.captureValue;
+    });
+    return decorated.map((entry) => entry.move);
+}
+
+function rootNeedsTacticalDepthBoost(game, moves) {
+    const state = game.GameState;
+    if (!state?.board) {
+        return false;
+    }
+    for (let i = 0; i < moves.length; i++) {
+        const move = moves[i];
+        const captured = state.board[move.target.row]?.[move.target.col];
+        if (
+            captured
+            && (captured.pieceType === game.ROOK || captured.pieceType === game.QUEEN)
+        ) {
+            return true;
+        }
+        if (withAppliedMove(game, move, () => game.Check)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function staticMoveBonus(game, move) {
+    let score = stateScoreForMove(game, move);
+    if (move.promotion) {
+        switch (move.selectedPiece) {
+            case game.QUEEN:
+                score = pieceValue(game, game.QUEEN);
+                break;
+            case game.ROOK:
+                score = pieceValue(game, game.ROOK);
+                break;
+            case game.KNIGHT:
+                score = pieceValue(game, game.KNIGHT);
+                break;
+            case game.BISHOP:
+                score = pieceValue(game, game.BISHOP);
+                break;
+            default:
+                break;
+        }
+    }
+    return score;
 }
 
 /**
@@ -1512,11 +1562,32 @@ function withAppliedMove(game, move, fn) {
     }
 }
 
-function scoreTerminalNoMoves(game) {
+function scoreTerminalNoMoves(game, ply = 0) {
     if (game.Checkmate) {
-        return -MATE_SCORE;
+        return -MATE_SCORE + ply;
     }
     return 0;
+}
+
+/**
+ * Score a legal move from the current node (negamax): static bonuses, then recurse unless terminal.
+ * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above horizon false mates.
+ */
+function evaluateSearchMove(game, move, depthRemaining, alpha, beta, ply) {
+    const q = staticMoveBonus(game, move);
+    return withAppliedMove(game, move, () => {
+        if (game.Checkmate) {
+            return MATE_SCORE - ply;
+        }
+        const mover = game.Turn === "white" ? "black" : "white";
+        if (game.Draw) {
+            return getDrawLeafScoreForMover(game, mover, specialEvaluations());
+        }
+        if (game.Moves.length > 50 && game.Check) {
+            return q + 2.5 - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
+        }
+        return q - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
+    });
 }
 
 /** If any legal move mates immediately, return it (do not search past checkmate). */
@@ -1531,23 +1602,22 @@ function findImmediateMatingMove(game, moves) {
     return null;
 }
 
-function negamax(game, depthRemaining, alpha, beta) {
+function negamax(game, depthRemaining, alpha, beta, ply = 0) {
     applyRuntimeConfigForGame(game);
-    if (depthRemaining === 0) {
-        return evaluateLeafPosition(game);
+    if (depthRemaining <= 0) {
+        return evaluateLeafPosition(game, ply);
     }
 
     const moves = collectLegalMoves(game);
     if (moves.length === 0) {
-        return scoreTerminalNoMoves(game);
+        return scoreTerminalNoMoves(game, ply);
     }
 
     const ordered = orderMovesCapturesFirst(game, moves);
     let best = -Infinity;
     for (let i = 0; i < ordered.length; i++) {
         const move = ordered[i];
-        const q = immediateLineScoreForMove(game, move);
-        const score = q + withAppliedMove(game, move, () => -negamax(game, depthRemaining - 1, -beta, -alpha));
+        const score = evaluateSearchMove(game, move, depthRemaining - 1, alpha, beta, ply);
         if (score > best) {
             best = score;
         }
@@ -1567,12 +1637,16 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
         return null;
     }
     const totalPieces = countTotalPiecesOnBoard(game);
-    const maxDepth = computeAdaptiveSearchDepth(
+    let maxDepth = computeAdaptiveSearchDepth(
         baseMaxDepth,
         moves.length,
         totalPieces,
         brain42FullConfig,
     );
+    if (rootNeedsTacticalDepthBoost(game, moves)) {
+        const settings = resolveAdaptiveDepthSettings(brain42FullConfig);
+        maxDepth = Math.min(settings.maxSearchDepth, maxDepth + 2);
+    }
     const baseDepth = clampSearchDepth(baseMaxDepth);
     const depthNote = maxDepth !== baseDepth ? ` (base=${baseDepth})` : "";
     console.log(
@@ -1592,8 +1666,7 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
 
     for (let i = 0; i < ordered.length; i++) {
         const move = ordered[i];
-        const q = immediateLineScoreForMove(game, move);
-        const score = q + withAppliedMove(game, move, () => -negamax(game, depthAfterRoot, -beta, -alpha));
+        const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
         if (!Number.isFinite(score)) {
             continue;
         }
@@ -1602,10 +1675,10 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
             tiedBest.length = 0;
             tiedBest.push(move);
         } else if (score === bestScore) {
-            const q = immediateLineScoreForMove(game, move);
+            const q = staticMoveBonus(game, move);
             const prevQ =
                 tiedBest.length > 0
-                    ? immediateLineScoreForMove(game, tiedBest[0])
+                    ? staticMoveBonus(game, tiedBest[0])
                     : -Infinity;
             if (q > prevQ) {
                 tiedBest.length = 0;
@@ -1622,12 +1695,10 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
     if (tiedBest.length === 0) {
         return ordered[0];
     }
+    const pick = tiedBest[0];
     if (tiedBest.length > 1) {
         logTiedBestMoveOptions(game, tiedBest, bestScore);
-    }
-    const pick = tiedBest[Math.floor(Math.random() * tiedBest.length)];
-    if (tiedBest.length > 1) {
-        console.log(`${LOG_PREFIX} Random pick among ties: ${bookMovePgn(game, pick)}`);
+        console.log(`${LOG_PREFIX} Tie-break: ${bookMovePgn(game, pick)} (first by move order / static bonus)`);
     }
     pick.score = bestScore;
     return pick;

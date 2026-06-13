@@ -1102,8 +1102,20 @@
         return !!target.closest("input, textarea, select, [contenteditable='true']");
     }
 
+    function logGameState() {
+        if (!game || !game.GameState) {
+            return;
+        }
+        console.log(JSON.stringify(game.GameState));
+    }
+
     function handleKeyboardShortcuts(ev) {
         if (shouldIgnoreShortcutTarget(ev.target)) {
+            return;
+        }
+        if (ev.key === "F2") {
+            ev.preventDefault();
+            logGameState();
             return;
         }
         if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key && ev.key.toLowerCase() === "e") {
