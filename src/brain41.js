@@ -6,6 +6,8 @@ var chess;
 const DEFAULT_MAX_DEPTH = 2;
 const MAX_DEBUG_MOVES_TO_PRINT = 12;
 const LOG_PREFIX = "[Brain4.1]";
+/** Worker search timeout before fallback move (ms). */
+const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
 let runtimeConfig = getDefaultConfig("brain41");
 let lastLoggedRuntimeConfigJson = null;
 
@@ -100,7 +102,7 @@ function createWorkerPromise(strState, maxDepth, config) {
                 console.error(`${LOG_PREFIX} move timeout for request ${requestId}`);
                 reject(new Error("Brain move timeout"));
             }
-        }, 120000);
+        }, BRAIN_MOVE_TIMEOUT_MS);
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
         console.log(`${LOG_PREFIX} Sending request ${requestId} (depth ${depthLimit})`);

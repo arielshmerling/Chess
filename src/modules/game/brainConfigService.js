@@ -65,7 +65,8 @@ const DEFAULT_CONFIGS = {
     brain42: {
         /**
          * Scale search depth from root legal-move count: fewer moves → deeper search (log2 bonus plies),
-         * more moves than reference → shallower. avgBranchingFactor is for leaf-eval estimation logs only.
+         * more moves than reference → shallower. Depth increases are scaled by total pieces on the board
+         * so checks in the middlegame do not search excessively deep.
          */
         adaptiveDepth: {
             enabled: true,
@@ -75,6 +76,10 @@ const DEFAULT_CONFIGS = {
             avgBranchingFactor: 32,
             minSearchDepth: 1,
             maxSearchDepth: MAX_SEARCH_DEPTH,
+            /** Full root-move depth bonus at or below this total piece count (both colors). */
+            fullAdaptiveBelowTotalPieces: 12,
+            /** No depth increase from sparse root moves above this total piece count. */
+            noAdaptiveAboveTotalPieces: 24,
         },
         gamePhase: {
             /** Switch to midGame after this many full moves (both sides). */
@@ -261,6 +266,8 @@ function sanitizeAdaptiveDepthSettings(fallback, raw) {
     const avg = Number(input.avgBranchingFactor ?? fb.avgBranchingFactor);
     const minD = Number(input.minSearchDepth ?? fb.minSearchDepth);
     const maxD = Number(input.maxSearchDepth ?? fb.maxSearchDepth);
+    const fullBelow = Number(input.fullAdaptiveBelowTotalPieces ?? fb.fullAdaptiveBelowTotalPieces);
+    const noneAbove = Number(input.noAdaptiveAboveTotalPieces ?? fb.noAdaptiveAboveTotalPieces);
     const enabled = input.enabled !== undefined ? Boolean(input.enabled) : fb.enabled !== false;
     return {
         enabled,
@@ -268,6 +275,10 @@ function sanitizeAdaptiveDepthSettings(fallback, raw) {
         avgBranchingFactor: Number.isFinite(avg) && avg > 1 ? avg : 32,
         minSearchDepth: Number.isFinite(minD) && minD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(minD)) : 1,
         maxSearchDepth: Number.isFinite(maxD) && maxD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(maxD)) : MAX_SEARCH_DEPTH,
+        fullAdaptiveBelowTotalPieces:
+            Number.isFinite(fullBelow) && fullBelow > 0 ? Math.floor(fullBelow) : 12,
+        noAdaptiveAboveTotalPieces:
+            Number.isFinite(noneAbove) && noneAbove > 0 ? Math.floor(noneAbove) : 24,
     };
 }
 

@@ -64,16 +64,37 @@ describe("Brain 4.2 adaptive depth", () => {
         const base = 3;
         const ref = fullConfig.adaptiveDepth.referenceRootMoves;
         const baseBudget = estimateLeafEvaluations(ref, base, fullConfig);
-        const sparseDepth = computeAdaptiveSearchDepth(base, 8, fullConfig);
+        const sparseDepth = computeAdaptiveSearchDepth(base, 8, 10, fullConfig);
         const sparseBudget = estimateLeafEvaluations(8, sparseDepth, fullConfig);
         assert.ok(sparseDepth > base);
         assert.ok(sparseBudget > baseBudget);
     });
 
-    it("sanitized config includes adaptiveDepth settings", () => {
+    it("does not increase depth for sparse root moves when many pieces remain (check)", () => {
+        assert.strictEqual(computeAdaptiveSearchDepth(3, 5, 32, fullConfig), 3);
+        assert.strictEqual(computeAdaptiveSearchDepth(3, 3, 28, fullConfig), 3);
+    });
+
+    it("still increases depth for sparse root moves in low-material endgames", () => {
+        assert.ok(computeAdaptiveSearchDepth(3, 5, 10, fullConfig) > 3);
+        assert.ok(computeAdaptiveSearchDepth(3, 3, 8, fullConfig) >= computeAdaptiveSearchDepth(3, 5, 10, fullConfig));
+    });
+
+    it("partially scales depth increase between endgame and full-board piece counts", () => {
+        const endgameDepth = computeAdaptiveSearchDepth(3, 8, 10, fullConfig);
+        const midDepth = computeAdaptiveSearchDepth(3, 8, 18, fullConfig);
+        const fullBoardDepth = computeAdaptiveSearchDepth(3, 8, 32, fullConfig);
+        assert.ok(endgameDepth > midDepth);
+        assert.ok(midDepth > fullBoardDepth);
+        assert.strictEqual(fullBoardDepth, 3);
+    });
+
+    it("sanitized config includes adaptiveDepth piece-count thresholds", () => {
         const cfg = sanitizeBrain42Config(getDefaultConfig("brain42"));
         assert.strictEqual(cfg.adaptiveDepth.enabled, true);
         assert.strictEqual(cfg.adaptiveDepth.referenceRootMoves, 30);
+        assert.strictEqual(cfg.adaptiveDepth.fullAdaptiveBelowTotalPieces, 12);
+        assert.strictEqual(cfg.adaptiveDepth.noAdaptiveAboveTotalPieces, 24);
         assert.ok(resolveAdaptiveDepthSettings(cfg).avgBranchingFactor > 1);
     });
 });

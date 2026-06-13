@@ -13,9 +13,8 @@
  * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateLeafPosition} call and logs
  * the total after each completed search.
  *
- * Adaptive depth ({@link computeAdaptiveSearchDepth}): counts root legal moves on the first iteration and
- * adds bonus plies when fewer than referenceRootMoves (endgames search deeper); shrinks when above reference.
- * {@link estimateLeafEvaluations} logs a rough leaf budget using avgBranchingFactor.
+ * Adaptive depth ({@link computeAdaptiveSearchDepth}): root legal-move count adjusts depth (log2 bonus/shrink);
+ * depth increases are scaled down when many pieces remain (avoids deep search on checks in the middlegame).
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
 const { ChessGame } = require("./ChessGame");
@@ -29,6 +28,8 @@ const { savedGameStateToLookupKey } = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
+/** Worker search timeout before fallback move (ms). */
+const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
 /** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
 const MATE_SCORE = 9_000_000_000_000_000;
 
@@ -57,6 +58,10 @@ function countPiecesForColor(game, color) {
         }
     }
     return count;
+}
+
+function countTotalPiecesOnBoard(game) {
+    return countPiecesForColor(game, "white") + countPiecesForColor(game, "black");
 }
 
 function detectBrain42Phase(fullConfig, game, pliesPlayed) {
@@ -106,6 +111,8 @@ function resolveAdaptiveDepthSettings(fullConfig) {
     const avg = Number(input.avgBranchingFactor ?? defaults.avgBranchingFactor);
     const minD = Number(input.minSearchDepth ?? defaults.minSearchDepth);
     const maxD = Number(input.maxSearchDepth ?? defaults.maxSearchDepth);
+    const fullBelow = Number(input.fullAdaptiveBelowTotalPieces ?? defaults.fullAdaptiveBelowTotalPieces);
+    const noneAbove = Number(input.noAdaptiveAboveTotalPieces ?? defaults.noAdaptiveAboveTotalPieces);
     const enabled = input.enabled !== undefined ? Boolean(input.enabled) : defaults.enabled !== false;
     return {
         enabled,
@@ -113,7 +120,40 @@ function resolveAdaptiveDepthSettings(fullConfig) {
         avgBranchingFactor: Number.isFinite(avg) && avg > 1 ? avg : defaults.avgBranchingFactor,
         minSearchDepth: Number.isFinite(minD) && minD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(minD)) : defaults.minSearchDepth,
         maxSearchDepth: Number.isFinite(maxD) && maxD >= 1 ? Math.min(MAX_SEARCH_DEPTH, Math.floor(maxD)) : defaults.maxSearchDepth,
+        fullAdaptiveBelowTotalPieces:
+            Number.isFinite(fullBelow) && fullBelow > 0
+                ? Math.floor(fullBelow)
+                : defaults.fullAdaptiveBelowTotalPieces,
+        noAdaptiveAboveTotalPieces:
+            Number.isFinite(noneAbove) && noneAbove > 0
+                ? Math.floor(noneAbove)
+                : defaults.noAdaptiveAboveTotalPieces,
     };
+}
+
+/**
+ * 0 = no depth increase from sparse root moves (full board); 1 = full increase (endgame piece count).
+ * @param {number|null|undefined} totalPieces
+ * @param {object} settings
+ * @returns {number}
+ */
+function computeAdaptivePieceScale(totalPieces, settings) {
+    if (totalPieces == null || !Number.isFinite(Number(totalPieces))) {
+        return 1;
+    }
+    const pieces = Math.max(0, Math.floor(Number(totalPieces)));
+    const fullBelow = settings.fullAdaptiveBelowTotalPieces;
+    const noneAbove = settings.noAdaptiveAboveTotalPieces;
+    if (noneAbove <= fullBelow) {
+        return pieces <= fullBelow ? 1 : 0;
+    }
+    if (pieces <= fullBelow) {
+        return 1;
+    }
+    if (pieces >= noneAbove) {
+        return 0;
+    }
+    return (noneAbove - pieces) / (noneAbove - fullBelow);
 }
 
 /**
@@ -135,15 +175,30 @@ function estimateLeafEvaluations(rootMoveCount, maxDepth, fullConfig) {
 }
 
 /**
- * Adjust base maxDepth from root legal-move count. Fewer root moves add bonus plies
- * (log2(reference/root)); more root moves than reference shrink depth to cap evaluations.
+ * Adjust base maxDepth from root legal-move count and total pieces on the board.
  * @param {number} baseMaxDepth
  * @param {number} rootMoveCount
- * @param {object} [fullConfig]
+ * @param {number|null|undefined|object} [totalPiecesOrConfig] piece count, or legacy fullConfig as 3rd arg
+ * @param {object} [maybeConfig]
  * @returns {number}
  */
-function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, fullConfig) {
+function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, totalPiecesOrConfig, maybeConfig) {
     const base = clampSearchDepth(baseMaxDepth);
+    let totalPieces = null;
+    let fullConfig = brain42FullConfig;
+    if (
+        totalPiecesOrConfig != null
+        && typeof totalPiecesOrConfig === "object"
+        && !Number.isFinite(Number(totalPiecesOrConfig))
+    ) {
+        fullConfig = totalPiecesOrConfig;
+    } else {
+        totalPieces = totalPiecesOrConfig;
+        if (maybeConfig && typeof maybeConfig === "object") {
+            fullConfig = maybeConfig;
+        }
+    }
+
     const settings = resolveAdaptiveDepthSettings(fullConfig || brain42FullConfig);
     const rootMoves = Math.max(0, Math.floor(Number(rootMoveCount) || 0));
     if (!settings.enabled || rootMoves <= 0) {
@@ -163,7 +218,28 @@ function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, fullConfig) {
     if (bonus <= 0) {
         return base;
     }
-    return Math.min(settings.maxSearchDepth, Math.max(settings.minSearchDepth, base + bonus));
+
+    const targetDepth = Math.min(
+        settings.maxSearchDepth,
+        Math.max(settings.minSearchDepth, base + bonus),
+    );
+    if (targetDepth <= base) {
+        return base;
+    }
+
+    const pieceScale = computeAdaptivePieceScale(totalPieces, settings);
+    if (pieceScale >= 1) {
+        return targetDepth;
+    }
+    if (pieceScale <= 0) {
+        return base;
+    }
+
+    const scaledBonus = Math.round((targetDepth - base) * pieceScale);
+    if (scaledBonus <= 0) {
+        return base;
+    }
+    return Math.min(settings.maxSearchDepth, Math.max(settings.minSearchDepth, base + scaledBonus));
 }
 
 function setBrain42SearchContext(fullConfig, rootPliesPlayed) {
@@ -359,7 +435,7 @@ function createWorkerPromise(strState, maxDepth, config, pliesPlayed) {
                 console.error(`${LOG_PREFIX} move timeout for request ${requestId}`);
                 reject(new Error("Brain move timeout"));
             }
-        }, 120000);
+        }, BRAIN_MOVE_TIMEOUT_MS);
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
         worker.postMessage({
@@ -1353,11 +1429,13 @@ function evaluatePositionDisplay(game, options) {
 exports.evaluatePositionDisplay = evaluatePositionDisplay;
 exports.detectBrain42Phase = detectBrain42Phase;
 exports.countPiecesForColor = countPiecesForColor;
+exports.countTotalPiecesOnBoard = countTotalPiecesOnBoard;
 exports.resolveBrain42ActivePhaseSettings = resolveBrain42ActivePhaseSettings;
 exports.getAdvancedPawnBonusFraction = getAdvancedPawnBonusFraction;
 exports.getAdvancedPawnBonusForColor = getAdvancedPawnBonusForColor;
 exports.estimateLeafEvaluations = estimateLeafEvaluations;
 exports.computeAdaptiveSearchDepth = computeAdaptiveSearchDepth;
+exports.computeAdaptivePieceScale = computeAdaptivePieceScale;
 exports.resolveAdaptiveDepthSettings = resolveAdaptiveDepthSettings;
 
 function collectLegalMoves(game) {
@@ -1488,10 +1566,18 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
     if (moves.length === 0) {
         return null;
     }
-    const maxDepth = computeAdaptiveSearchDepth(baseMaxDepth, moves.length, brain42FullConfig);
+    const totalPieces = countTotalPiecesOnBoard(game);
+    const maxDepth = computeAdaptiveSearchDepth(
+        baseMaxDepth,
+        moves.length,
+        totalPieces,
+        brain42FullConfig,
+    );
     const baseDepth = clampSearchDepth(baseMaxDepth);
     const depthNote = maxDepth !== baseDepth ? ` (base=${baseDepth})` : "";
-    console.log(`${LOG_PREFIX} Search: rootMoves=${moves.length}, depth=${maxDepth}${depthNote}`);
+    console.log(
+        `${LOG_PREFIX} Search: rootMoves=${moves.length}, pieces=${totalPieces}, depth=${maxDepth}${depthNote}`,
+    );
     const mateNow = findImmediateMatingMove(game, moves);
     if (mateNow) {
         mateNow.score = MATE_SCORE;

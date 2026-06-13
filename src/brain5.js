@@ -5,6 +5,8 @@ const { ChessGame } = require("./ChessGame");
 var chess;
 var depth = 0;
 const DEFAULT_MAX_DEPTH = 4;
+/** Worker search timeout before fallback move (ms). */
+const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
 
 exports.Name = "Brain 5.0";
 
@@ -89,7 +91,7 @@ function createWorkerPromise(strState, maxDepth) {
                 console.error(`Brain move timeout for request ${requestId} - worker thread took too long`);
                 reject(new Error("Brain move timeout"));
             }
-        }, 120000); // 120 second timeout
+        }, BRAIN_MOVE_TIMEOUT_MS);
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
 
