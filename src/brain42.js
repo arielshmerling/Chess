@@ -30,6 +30,8 @@ const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
 /** Worker search timeout before fallback move (ms). */
 const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
+/** Extra plies when the root has checks and the position is a low-material endgame. */
+const TACTICAL_DEPTH_BOOST = 1;
 /** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
 const MATE_SCORE = 9_000_000_000_000_000;
 
@@ -585,6 +587,16 @@ exports.brainNextMoveFunc = async (game, options) => {
             `${LOG_PREFIX} Opening book hit: ${bookMovePgn(game, bookMove)} (positions evaluated: 0)`,
         );
         return bookMove;
+    }
+
+    const searchPlan = planSearchDepth(game, maxDepth, brain42FullConfig);
+    if (searchPlan.moves.length > 0 && !findImmediateMatingMove(game, searchPlan.moves)) {
+        logSearchPlan(
+            searchPlan.moves.length,
+            searchPlan.totalPieces,
+            searchPlan.maxDepth,
+            searchPlan.depthNote,
+        );
     }
 
     try {
@@ -1498,21 +1510,9 @@ function orderMovesCapturesFirst(game, moves) {
     return decorated.map((entry) => entry.move);
 }
 
-function rootNeedsTacticalDepthBoost(game, moves) {
-    const state = game.GameState;
-    if (!state?.board) {
-        return false;
-    }
+function rootHasCheckingMove(game, moves) {
     for (let i = 0; i < moves.length; i++) {
-        const move = moves[i];
-        const captured = state.board[move.target.row]?.[move.target.col];
-        if (
-            captured
-            && (captured.pieceType === game.ROOK || captured.pieceType === game.QUEEN)
-        ) {
-            return true;
-        }
-        if (withAppliedMove(game, move, () => game.Check)) {
+        if (withAppliedMove(game, moves[i], () => game.Check)) {
             return true;
         }
     }
@@ -1631,27 +1631,41 @@ function negamax(game, depthRemaining, alpha, beta, ply = 0) {
     return best;
 }
 
-function searchBestMoveAtRoot(game, baseMaxDepth) {
+function planSearchDepth(game, baseMaxDepth, fullConfig) {
+    const cfg = fullConfig || brain42FullConfig;
     const moves = collectLegalMoves(game);
-    if (moves.length === 0) {
-        return null;
-    }
     const totalPieces = countTotalPiecesOnBoard(game);
     let maxDepth = computeAdaptiveSearchDepth(
         baseMaxDepth,
         moves.length,
         totalPieces,
-        brain42FullConfig,
+        cfg,
     );
-    if (rootNeedsTacticalDepthBoost(game, moves)) {
-        const settings = resolveAdaptiveDepthSettings(brain42FullConfig);
-        maxDepth = Math.min(settings.maxSearchDepth, maxDepth + 2);
+    const adaptiveSettings = resolveAdaptiveDepthSettings(cfg);
+    const endgamePieceCount = totalPieces <= adaptiveSettings.fullAdaptiveBelowTotalPieces;
+    if (
+        endgamePieceCount
+        && rootHasCheckingMove(game, moves)
+        && TACTICAL_DEPTH_BOOST > 0
+    ) {
+        maxDepth = Math.min(adaptiveSettings.maxSearchDepth, maxDepth + TACTICAL_DEPTH_BOOST);
     }
     const baseDepth = clampSearchDepth(baseMaxDepth);
     const depthNote = maxDepth !== baseDepth ? ` (base=${baseDepth})` : "";
+    return { moves, totalPieces, maxDepth, depthNote };
+}
+
+function logSearchPlan(rootMoves, totalPieces, maxDepth, depthNote) {
     console.log(
-        `${LOG_PREFIX} Search: rootMoves=${moves.length}, pieces=${totalPieces}, depth=${maxDepth}${depthNote}`,
+        `${LOG_PREFIX} Search: rootMoves=${rootMoves}, pieces=${totalPieces}, depth=${maxDepth}${depthNote}`,
     );
+}
+
+function searchBestMoveAtRoot(game, baseMaxDepth) {
+    const { moves, maxDepth } = planSearchDepth(game, baseMaxDepth);
+    if (moves.length === 0) {
+        return null;
+    }
     const mateNow = findImmediateMatingMove(game, moves);
     if (mateNow) {
         mateNow.score = MATE_SCORE;

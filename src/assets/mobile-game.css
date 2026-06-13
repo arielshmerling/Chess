@@ -129,20 +129,22 @@ body.mobile-game-shell .mobile-clock-cell {
 
 body.mobile-game-shell .mobile-clock-cell--white {
     background: #ffffff;
-    border-color: rgba(0, 0, 0, 0.14);
+    border-color: transparent;
 }
 
 body.mobile-game-shell .mobile-clock-cell--black {
     background: #0f0f0f;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: transparent;
 }
 
 body.mobile-game-shell .mobile-match-bar[data-active-turn="white"] .mobile-clock-cell--white {
     border-color: #d4af37;
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.45), 0 0 10px rgba(212, 175, 55, 0.28);
 }
 
 body.mobile-game-shell .mobile-match-bar[data-active-turn="black"] .mobile-clock-cell--black {
     border-color: #d4af37;
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.45), 0 0 10px rgba(212, 175, 55, 0.28);
 }
 
 body.mobile-game-shell .mobile-clock-display {

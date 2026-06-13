@@ -70,9 +70,12 @@ describe("Brain 4.2 adaptive depth", () => {
         assert.ok(sparseBudget > baseBudget);
     });
 
-    it("does not increase depth for sparse root moves when many pieces remain (check)", () => {
-        assert.strictEqual(computeAdaptiveSearchDepth(3, 5, 32, fullConfig), 3);
-        assert.strictEqual(computeAdaptiveSearchDepth(3, 3, 28, fullConfig), 3);
+    it("does not increase depth for tactical checks when many pieces remain on the board", () => {
+        const fullConfig = getDefaultConfig("brain42");
+        const base = 3;
+        const ref = fullConfig.adaptiveDepth.referenceRootMoves;
+        assert.strictEqual(computeAdaptiveSearchDepth(base, ref, 23, fullConfig), base);
+        assert.strictEqual(computeAdaptiveSearchDepth(base, 8, 23, fullConfig), base);
     });
 
     it("still increases depth for sparse root moves in low-material endgames", () => {

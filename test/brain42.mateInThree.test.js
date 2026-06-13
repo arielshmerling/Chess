@@ -85,11 +85,11 @@ describe("Brain 4.2 mate in three", () => {
         assert.strictEqual(game.Checkmate, true);
     });
 
-    it("finds Kxf8+ at default difficulty (depth 3 + tactical boost)", async function () {
+    it("finds Kxf8+ at difficulty 5 (mate in three needs 5 plies; no midgame depth boost)", async function () {
         this.timeout(120000);
         const game = loadPosition();
         const move = await brain42.brainNextMoveFunc(game, {
-            maxDepth: 3,
+            maxDepth: 5,
             config: getDefaultConfig("brain42"),
             pliesPlayed: 40,
         });

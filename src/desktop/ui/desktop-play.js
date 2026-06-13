@@ -196,12 +196,17 @@
         if (!game) {
             return;
         }
-        const active = !game.GameOver && !headerEventMessage;
+        const suppressForAlert =
+            headerEventMessage &&
+            headerEventKind &&
+            headerEventKind !== "info";
+        const active = !game.GameOver && !suppressForAlert;
+        const turn = game.Turn || (game.GameState && game.GameState.turn);
         if (headerBlack) {
-            headerBlack.classList.toggle("desktop-play-header-clock--active", active && game.Turn === "black");
+            headerBlack.classList.toggle("desktop-play-header-clock--active", active && turn === "black");
         }
         if (headerWhite) {
-            headerWhite.classList.toggle("desktop-play-header-clock--active", active && game.Turn === "white");
+            headerWhite.classList.toggle("desktop-play-header-clock--active", active && turn === "white");
         }
     }
 
