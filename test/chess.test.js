@@ -1747,6 +1747,62 @@ describe("Draw tests", () => {
         assert.equal(game.DrawReason, "insufficient Materials");
     });
 
+    it("King and pawn versus king and pawn is not insufficient material", () => {
+        let verifyCall = false;
+        game.OnDraw = () => {
+            verifyCall = true;
+        };
+        const state = {
+            board: [
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, { color: "white", pieceType: 0 }, null, null, null, null],
+                [null, null, null, { color: "black", pieceType: 1 }, { color: "white", pieceType: 1 }, null, null, null],
+                [null, null, null, null, { color: "black", pieceType: 0 }, null, null, null],
+            ],
+            turn: "white",
+            capturedPiecesList: [],
+            fiftyMovesCounter: 0,
+            whiteKingMoved: true,
+            blackKingMoved: true,
+        };
+        game.loadGame(JSON.stringify(state));
+        const evalResult = game.evaluate();
+        assert.equal(evalResult.draw, false);
+        assert.equal(verifyCall, false);
+    });
+
+    it("King and two pawns versus king is not insufficient material", () => {
+        let verifyCall = false;
+        game.OnDraw = () => {
+            verifyCall = true;
+        };
+        const state = {
+            board: [
+                [null, null, null, null, { color: "black", pieceType: 1 }, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, { color: "white", pieceType: 0 }, null, null, null, null],
+                [null, null, null, { color: "white", pieceType: 0 }, null, null, null, null],
+                [null, null, null, null, { color: "white", pieceType: 1 }, null, null, null],
+            ],
+            turn: "white",
+            capturedPiecesList: [],
+            fiftyMovesCounter: 0,
+            whiteKingMoved: true,
+            blackKingMoved: true,
+        };
+        game.loadGame(JSON.stringify(state));
+        const evalResult = game.evaluate();
+        assert.equal(evalResult.draw, false);
+        assert.equal(verifyCall, false);
+    });
+
 
 
     it("Threefold Repetition cases a draw", () => {

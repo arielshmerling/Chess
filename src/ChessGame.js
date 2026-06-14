@@ -1251,7 +1251,7 @@ class ChessGame {
 
         }
 
-        if (this.#state.fiftyMovesCounter == 50) {
+        if (!this.#state.draw && this.#state.fiftyMovesCounter == 50) {
             //console.log("Draw - 50 Moves without a capture or pawn movement!")
             if (!this.#simulation) {
                 move.draw = true;
@@ -1262,7 +1262,7 @@ class ChessGame {
             }
         }
 
-        if (this.#insufficientMaterials()) {
+        if (!this.#state.draw && this.#insufficientMaterials()) {
             if (!this.#simulation) {
                 move.draw = true;
                 this.#state.draw = true;
@@ -1273,7 +1273,7 @@ class ChessGame {
             }
         }
 
-        if (this.#threefoldRepetition()) {
+        if (!this.#state.draw && this.#threefoldRepetition()) {
 
 
             if (!this.#simulation) {
@@ -2163,68 +2163,98 @@ class ChessGame {
     }
 
     #insufficientMaterials() {
-        let count = 0;              // Counts how many non-empty Squares are present on the board        
         const board = this.#state.board;
-        let whiteBishop;
-        let blackBishop;
-        let whiteKnight;
-        let blackKnight;
-        let whiteBishopPosition;
-        let blackBishopPosition;
+        const tallies = {
+            white: { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0 },
+            black: { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0 },
+        };
+        let whiteBishopSquare = null;
+        let blackBishopSquare = null;
 
-        /*
-        king versus king
-        king and bishop versus king
-        king and knight versus king
-        king and bishop versus king and bishop with the bishops on the same color.
-         */
         for (let i = 0; i < this.BOARD_ROWS; i++) {
-            for (var j = 0; j < this.BOARD_COLUMNS; j++) {
-                if (board[i][j]) {
-                    if (board[i][j] != null) {
-                        count++;
-                    }
-                    if (board[i][j].pieceType == this.BISHOP) {
-                        if (board[i][j].color == "white") {
-                            whiteBishop = true;
-                            whiteBishopPosition = this.square(i, j);
+            for (let j = 0; j < this.BOARD_COLUMNS; j++) {
+                const piece = board[i][j];
+                if (!piece) {
+                    continue;
+                }
+                switch (piece.pieceType) {
+                    case this.PAWN:
+                        tallies[piece.color].pawn++;
+                        break;
+                    case this.KNIGHT:
+                        tallies[piece.color].knight++;
+                        break;
+                    case this.BISHOP:
+                        tallies[piece.color].bishop++;
+                        if (piece.color === "white") {
+                            whiteBishopSquare = this.square(i, j);
+                        } else {
+                            blackBishopSquare = this.square(i, j);
                         }
-                        else {
-                            blackBishop = true;
-                            blackBishopPosition = this.square(i, j);
-                        }
-                    }
-                    else if (board[i][j].pieceType == this.KNIGHT) {
-
-                        if (board[i][j].color == "white") {
-                            whiteKnight = true;
-                        }
-                        else {
-                            blackKnight = true;
-                        }
-                    }
-
+                        break;
+                    case this.ROOK:
+                        tallies[piece.color].rook++;
+                        break;
+                    case this.QUEEN:
+                        tallies[piece.color].queen++;
+                        break;
+                    default:
+                        break;
                 }
             }
         }
 
+        const w = tallies.white;
+        const b = tallies.black;
+        const nonKingWhite = w.pawn + w.knight + w.bishop + w.rook + w.queen;
+        const nonKingBlack = b.pawn + b.knight + b.bishop + b.rook + b.queen;
 
-        // If two kings have remained
-        if (count == 2) {
+        // Pawns, rooks, or queens can always deliver checkmate (promotion included).
+        if (w.pawn + b.pawn + w.rook + b.rook + w.queen + b.queen > 0) {
+            return false;
+        }
+
+        // King versus king.
+        if (nonKingWhite === 0 && nonKingBlack === 0) {
             return true;
         }
 
-        // If a king have remained against a king and a Bishop, or against a king and a Knight.
-        if (count == 3) {
-            if (whiteBishop || blackBishop || whiteKnight || blackKnight) {
+        const minorsWhite = w.bishop + w.knight;
+        const minorsBlack = b.bishop + b.knight;
+        const minorsTotal = minorsWhite + minorsBlack;
+
+        // King versus king and bishop or knight.
+        if (nonKingWhite === 0 && nonKingBlack === 1 && minorsTotal === 1) {
+            return true;
+        }
+        if (nonKingBlack === 0 && nonKingWhite === 1 && minorsTotal === 1) {
+            return true;
+        }
+
+        // King and bishop versus king and bishop on the same square color.
+        if (w.bishop === 1 && b.bishop === 1 && minorsTotal === 2
+            && w.knight === 0 && b.knight === 0
+            && whiteBishopSquare && blackBishopSquare) {
+            const whiteSum = whiteBishopSquare.row + whiteBishopSquare.col;
+            const blackSum = blackBishopSquare.row + blackBishopSquare.col;
+            if (whiteSum % 2 === blackSum % 2) {
                 return true;
             }
         }
 
-        if (count == 4) {
-            if (whiteBishop && blackBishop) {
-                if ((whiteBishopPosition.row + whiteBishopPosition.col) % 2 == (blackBishopPosition.row + blackBishopPosition.col) % 2) { return true; }
-            }
+        // King and bishop versus king and knight (neither side can force mate).
+        if (w.bishop === 1 && b.knight === 1 && minorsTotal === 2
+            && w.knight === 0 && b.bishop === 0) {
+            return true;
+        }
+        if (w.knight === 1 && b.bishop === 1 && minorsTotal === 2
+            && w.bishop === 0 && b.knight === 0) {
+            return true;
+        }
+
+        // King and knight versus king and knight.
+        if (w.knight === 1 && b.knight === 1 && w.bishop === 0 && b.bishop === 0) {
+            return true;
         }
 
         return false;
