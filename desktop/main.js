@@ -1,21 +1,43 @@
 /**
  * Shmerling Chess — Electron main process.
  */
-const { app, BrowserWindow, Menu, nativeImage, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const { fork } = require("child_process");
 
 const APP_NAME = "Shmerling Chess";
 
-/** Dev: repo root server-desktop.js. Packaged: colocated in app.asar next to main.js. */
-function resolveServerEntry() {
-    const packaged = path.join(__dirname, "server-desktop.js");
-    if (fs.existsSync(packaged)) {
-        return packaged;
+/** Real filesystem path for files unpacked from app.asar (required for workers). */
+function toUnpackedPath(filePath) {
+    if (!app.isPackaged || !filePath.includes(".asar")) {
+        return filePath;
     }
-    return path.join(__dirname, "..", "server-desktop.js");
+    return filePath.replace(/\.asar([\\/])/, ".asar.unpacked$1");
 }
+
+/** Dev: repo root. Packaged: app.asar.unpacked/app-bundle (never the virtual asar path). */
+function resolveBundleRoot() {
+    if (app.isPackaged) {
+        const candidates = [
+            path.join(process.resourcesPath, "app.asar.unpacked", "app-bundle"),
+            toUnpackedPath(path.join(__dirname, "app-bundle")),
+        ];
+        for (const candidate of candidates) {
+            if (fs.existsSync(path.join(candidate, "server-desktop.js"))) {
+                return candidate;
+            }
+        }
+        throw new Error(
+            "Desktop server bundle not found. Run Shmerling Chess.exe from the full install folder (must include app.asar.unpacked)."
+        );
+    }
+    const staged = path.join(__dirname, "app-bundle");
+    if (fs.existsSync(path.join(staged, "server-desktop.js"))) {
+        return staged;
+    }
+    return path.join(__dirname, "..");
+}
+
 
 function resolvePreloadPath() {
     const packaged = path.join(__dirname, "preload.js");
@@ -27,10 +49,10 @@ function resolvePreloadPath() {
 const ICON_PNG = path.join(__dirname, "build", "icon.png");
 const ICON_ICNS = path.join(__dirname, "build", "icon.icns");
 const ICON_ICO = path.join(__dirname, "build", "icon.ico");
-const FAVICON = path.join(__dirname, "..", "src", "favicon.ico");
+const FAVICON = path.join(resolveBundleRoot(), "src", "favicon.ico");
 
 let mainWindow = null;
-let serverProcess = null;
+let httpServer = null;
 let serverPort = null;
 
 if (process.platform === "darwin") {
@@ -117,47 +139,42 @@ function setupMacApplicationMenu() {
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-function startLocalServer() {
+function stopLocalServer() {
+    if (httpServer) {
+        httpServer.close();
+        httpServer = null;
+    }
+}
+
+/** Start Express in the main process (fork + ELECTRON_RUN_AS_NODE is unreliable on Windows). */
+async function startLocalServer() {
+    const bundleRoot = resolveBundleRoot();
+    const expressApp = require(path.join(bundleRoot, "src/app-desktop.js"));
+    const host = "127.0.0.1";
+
     return new Promise((resolve, reject) => {
-        serverProcess = fork(resolveServerEntry(), [], {
-            env: {
-                ...process.env,
-                SHMERLING_MODE: "desktop",
-                SHMERLING_USER_DATA: app.getPath("userData"),
-                SHMERLING_SYNC_CUSTOM_THEMES: app.isPackaged ? "" : "1",
-                SESSION_SECRET: process.env.SESSION_SECRET || "shmerling-desktop-local-session",
-                NODE_ENV: process.env.NODE_ENV || "production",
-            },
-            stdio: ["inherit", "inherit", "inherit", "ipc"],
+        const server = expressApp.listen(0, host, () => {
+            const address = server.address();
+            const boundPort = typeof address === "object" && address ? address.port : 0;
+            console.log(`[desktop] Shmerling listening on http://${host}:${boundPort}`);
+            serverPort = boundPort;
+            httpServer = server;
+            resolve(boundPort);
         });
-
-        const timeout = setTimeout(() => {
-            reject(new Error("Desktop server did not become ready in time"));
-        }, 60000);
-
-        serverProcess.on("message", (msg) => {
-            if (msg && msg.type === "ready" && msg.port) {
-                clearTimeout(timeout);
-                serverPort = msg.port;
-                resolve(msg.port);
-            }
-        });
-
-        serverProcess.on("error", reject);
-        serverProcess.on("exit", (code) => {
-            if (code !== 0 && code !== null) {
-                console.error("[desktop] Server process exited:", code);
-            }
-        });
+        server.on("error", reject);
     });
 }
 
 function initDesktopBrainIpc() {
     process.env.SHMERLING_MODE = "desktop";
     process.env.SHMERLING_USER_DATA = app.getPath("userData");
-    const runtime = require("../src/desktop/runtime");
-    const { computeMove, evaluatePosition } = require("../src/desktop/desktopBrainService");
-    const { preloadOpeningBookAtStartup } = require("../src/desktop/preloadOpeningBook");
+    process.env.SHMERLING_SYNC_CUSTOM_THEMES = app.isPackaged ? "" : "1";
+    process.env.SESSION_SECRET = process.env.SESSION_SECRET || "shmerling-desktop-local-session";
+    process.env.NODE_ENV = process.env.NODE_ENV || "production";
+    const bundleRoot = resolveBundleRoot();
+    const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
+    const { computeMove, evaluatePosition } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
+    const { preloadOpeningBookAtStartup } = require(path.join(bundleRoot, "src/desktop/preloadOpeningBook"));
 
     runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
     preloadOpeningBookAtStartup().catch((err) => {
@@ -176,10 +193,10 @@ function initDesktopBrainIpc() {
 function createWindow() {
     const icon = resolveAppIcon();
     mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 900,
-        minWidth: 900,
-        minHeight: 700,
+        width: 1440,
+        height: 960,
+        minWidth: 960,
+        minHeight: 720,
         title: APP_NAME,
         icon: icon.isEmpty() ? undefined : icon,
         webPreferences: {
@@ -196,10 +213,7 @@ function createWindow() {
     });
 
     mainWindow.on("close", () => {
-        if (serverProcess) {
-            serverProcess.kill();
-            serverProcess = null;
-        }
+        stopLocalServer();
     });
 }
 
@@ -212,6 +226,10 @@ app.whenReady().then(async () => {
         createWindow();
     } catch (err) {
         console.error("[desktop] Failed to start:", err);
+        dialog.showErrorBox(
+            APP_NAME,
+            `Failed to start:\n\n${err && err.message ? err.message : String(err)}`
+        );
         app.quit();
     }
 });
@@ -222,8 +240,5 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-    if (serverProcess) {
-        serverProcess.kill();
-        serverProcess = null;
-    }
+    stopLocalServer();
 });

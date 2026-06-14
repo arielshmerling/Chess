@@ -4,7 +4,6 @@
 
 const catchAsync = require("../utils/catchAsync");
 const bookmarkStore = require("./bookmarkStore");
-const { applyBookmark } = require("./applyBookmark");
 
 exports.list = catchAsync(async (_req, res) => {
     const bookmarks = await bookmarkStore.getAllUserBookmarks();
@@ -47,13 +46,3 @@ exports.remove = catchAsync(async (req, res) => {
     res.send(ok ? '{"status":"OK"}' : "ERROR");
 });
 
-exports.apply = catchAsync(async (req, res) => {
-    const userId = req.session.user_id;
-    const { gameId, bookarkId } = req.body;
-    if (!userId || !gameId || !bookarkId) {
-        res.send("ERROR");
-        return;
-    }
-    await applyBookmark(userId, gameId, bookarkId);
-    res.send('{"status":"OK"}');
-});

@@ -9,11 +9,65 @@
   "scripts": {
     "prepare:icons": "node scripts/prepare-icons.js",
     "patch:app-name": "node scripts/patch-electron-app-name.js",
+    "stage": "node scripts/stage-app-bundle.js",
     "postinstall": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
     "prestart": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
-    "start": "electron ."
+    "start": "electron .",
+    "predist:win": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",
+    "predist:win:dir": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",
+    "dist:win": "electron-builder --win --x64",
+    "dist:win:dir": "electron-builder --win --x64 --dir",
+    "zip:win:dir": "node scripts/zip-win-unpacked.js",
+    "dist:win:dir:zip": "npm run dist:win:dir && npm run zip:win:dir",
+    "dist:win:zip": "npm run dist:win:dir:zip"
+  },
+  "build": {
+    "appId": "com.shmerling.app",
+    "productName": "Shmerling Chess",
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "build/icon.png",
+      "build/icon.ico",
+      "app-bundle/**/*",
+      "!app-bundle/**/node_modules/**/*.test.js",
+      "!app-bundle/**/node_modules/**/{test,tests,__tests__,docs,example,examples}/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "app-bundle/**/*"
+    ],
+    "electronLanguages": [
+      "en-US"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Shmerling Chess"
+    }
   },
   "devDependencies": {
-    "electron": "^42.2.0"
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1"
   }
 }

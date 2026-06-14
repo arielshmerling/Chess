@@ -6,7 +6,7 @@ const fs = require("fs").promises;
 const runtime = require("./runtime");
 
 const DEFAULT_SETTINGS = {
-    pieceSet: "obsidian-court",
+    pieceSet: "storm-ivory",
 };
 
 const VALID_PIECE_SETS = new Set([

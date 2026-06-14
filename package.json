@@ -13,6 +13,9 @@
     "start:prod": "node ./server.js",
     "start:desktop:server": "SHMERLING_MODE=desktop SHMERLING_USER_DATA=./.shmerling-desktop-dev SHMERLING_SYNC_CUSTOM_THEMES=1 node ./server-desktop.js",
     "desktop": "cd desktop && npm install && npm start",
+    "desktop:dist:win": "cd desktop && npm install && npm run dist:win",
+    "desktop:dist:win:dir": "cd desktop && npm install && npm run dist:win:dir",
+    "desktop:dist:win:zip": "cd desktop && npm install && npm run dist:win:dir:zip",
     "dummy:active-games:add": "node ./scripts/dummy-active-games-seed.js",
     "dummy:active-games:remove": "node ./scripts/dummy-active-games-delete.js"
   },

@@ -6,7 +6,7 @@
     "use strict";
 
     const STORAGE_KEY = "shmerling.pieceSet";
-    const DEFAULT_SET_ID = "obsidian-court";
+    const DEFAULT_SET_ID = "storm-ivory";
 
     const PIECE_FILES = ["pawn", "king", "knight", "bishop", "rook", "queen"];
 

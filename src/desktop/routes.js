@@ -31,7 +31,6 @@ function mountDesktopRoutes(app) {
     app.post("/deleteBookmark", requireLogin, bookmarkApi.remove);
 
     app.use("/app/ui", express.static(UI_DIR));
-    app.use("/vendor", express.static(path.join(__dirname, "..", "assets", "vendor")));
 
     app.get("/", (_req, res) => {
         res.redirect("/app/");

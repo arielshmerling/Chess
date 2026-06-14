@@ -23,7 +23,7 @@ const {
     sanitizeBrainConfig,
     MAX_SEARCH_DEPTH,
 } = require("./modules/game/brainConfigService");
-const gamesManagerService = require("./modules/gamesManager/service");
+const { loadOpeningBookEntries } = require("./openingBookLoader");
 const { savedGameStateToLookupKey } = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
@@ -327,8 +327,7 @@ function beginOpeningBookLoad() {
         return Promise.resolve(openingBookByStateKey);
     }
     if (!openingBookLoadPromise) {
-        openingBookLoadPromise = gamesManagerService
-            .loadOpeningBookEntries()
+        openingBookLoadPromise = loadOpeningBookEntries()
             .then((entries) => {
                 const map = new Map();
                 for (const e of entries) {

@@ -1,0 +1,20 @@
+# Build Windows installer (NSIS). Must run on Windows (or use the GitHub Actions workflow).
+name: Desktop Windows installer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build Windows NSIS installer
+        run: npm run desktop:dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shmerling-windows-setup
+          path: desktop/dist/*.exe

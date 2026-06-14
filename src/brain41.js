@@ -1,5 +1,4 @@
 const { Worker, isMainThread, parentPort } = require("worker_threads");
-const { State } = require("./modules/game/model");
 const { ChessGame } = require("./ChessGame");
 const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
 var chess;
@@ -715,6 +714,7 @@ async function tryFindMatchState(game) {
     const gameState = game.SavedGameState;
     const options = [];
     try {
+        const { State } = require("./modules/game/model");
         const findResult = await State.find({ state: gameState });
         for await (const doc of findResult) {
             options.push(JSON.parse(doc.move));
