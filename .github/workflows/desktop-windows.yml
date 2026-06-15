@@ -1,20 +1,41 @@
-# Build Windows installer (NSIS). Must run on Windows (or use the GitHub Actions workflow).
-name: Desktop Windows installer
+# Build the Windows NSIS installer and publish it to GitHub Releases on version tags.
+# Manual runs (workflow_dispatch) only upload a CI artifact for testing.
+name: Desktop Windows release
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+
       - name: Build Windows NSIS installer
         run: npm run desktop:dist:win
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload installer artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
         with:
           name: shmerling-windows-setup
           path: desktop/dist/*.exe
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Shmerling Chess ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: desktop/dist/*.exe

@@ -1,7 +1,7 @@
 {
   "name": "shmerling-desktop",
   "productName": "Shmerling Chess",
-  "version": "1.0.0",
+  "version": "6.14.18.58",
   "description": "Shmerling Chess — offline desktop",
   "author": "Shmerling Chess",
   "main": "main.js",
@@ -45,6 +45,7 @@
       "en-US"
     ],
     "win": {
+      "artifactName": "Shmerling-Chess-${version}-win-setup.${ext}",
       "icon": "build/icon.ico",
       "target": [
         {
