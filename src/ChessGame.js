@@ -2025,7 +2025,7 @@ class ChessGame {
                         underAttack = true;
                         break;
                     } else {
-                        break;
+                        continue;
                     }
                 }
             }

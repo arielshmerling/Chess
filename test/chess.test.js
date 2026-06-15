@@ -87,6 +87,30 @@ describe('Verify that Check can be canceled', () => {
     });
 })
 
+describe("Pawn check detection with adjacent friendly non-pawn", () => {
+    const dxe7PlusSetupState = `{"board":[[null,{"color":"black","pieceType":2},{"color":"black","pieceType":3},{"color":"black","pieceType":1},null,null,null,null],[null,{"color":"black","pieceType":0},{"color":"white","pieceType":2},null,{"color":"black","pieceType":2},null,null,{"color":"white","pieceType":5}],[null,{"color":"white","pieceType":0},null,{"color":"white","pieceType":0},null,null,null,null],[null,null,null,null,{"color":"black","pieceType":0},null,null,null],[null,null,null,null,null,null,null,null],[{"color":"black","pieceType":0},null,{"color":"white","pieceType":0},null,null,null,null,null],[{"color":"white","pieceType":0},null,null,null,null,{"color":"white","pieceType":0},{"color":"white","pieceType":1},{"color":"white","pieceType":0}],[null,null,null,{"color":"white","pieceType":4},null,null,null,null]],"turn":"white","capturedPiecesList":[{"color":"black","pieceType":5},{"color":"black","pieceType":4},{"color":"white","pieceType":4},{"color":"black","pieceType":4},{"color":"black","pieceType":3},{"color":"white","pieceType":3},{"color":"white","pieceType":3},{"color":"white","pieceType":2},{"color":"white","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"black","pieceType":0},{"color":"white","pieceType":0}],"check":false,"checkmate":false,"draw":false,"drawReason":"","resigned":"","outOfTime":"","whiteKingMoved":true,"blackKingMoved":true,"whitePlayerView":true,"fiftyMovesCounter":3,"gameOver":false,"promoting":false,"kingsideWhiteRookMoved":false,"queensideWhiteRookMoved":true,"kingsideBlackRookMoved":true,"queensideBlackRookMoved":false,"lastMove":{"valid":true,"source":{"row":1,"col":3},"target":{"row":0,"col":1},"piece":{"color":"black","pieceType":2},"promotion":false,"ennPassant":false,"capturedPiece":null,"hitSquare":null,"turn":"black","castling":false,"whitePlayerView":true}}`;
+
+    it("after dxe7+ rejects black moves that leave the king in pawn check", () => {
+        const g = new ChessGame(true);
+        g.loadGame(dxe7PlusSetupState);
+
+        assert.equal(g.Turn, "white");
+        const dxe7 = g.validateMove({ row: 2, col: 3 }, { row: 1, col: 4 }, "white");
+        assert.equal(dxe7.valid, true, "dxe7+ should be legal for white");
+
+        const played = g.makeMove({ row: 2, col: 3 }, { row: 1, col: 4 });
+        assert.equal(played.check, true, "dxe7+ should give check");
+        assert.equal(g.Check, true);
+        assert.equal(g.Turn, "black");
+
+        const nd7 = g.validateMove({ row: 0, col: 1 }, { row: 1, col: 3 }, "black");
+        assert.equal(nd7.valid, false, "Nd7 blocks the rook but not the e7 pawn check");
+
+        const bd7 = g.validateMove({ row: 0, col: 2 }, { row: 1, col: 3 }, "black");
+        assert.equal(bd7.valid, false, "Bd7 blocks the rook but not the e7 pawn check");
+    });
+});
+
 describe('Verify Available Moves', () => {
     it('Verify Available Moves', () => {
         //Arrange      
