@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Verify desktop build scripts
+        shell: bash
+        run: test -f desktop/scripts/stage-app-bundle.js
+
       - name: Build Windows NSIS installer
         run: npm run desktop:dist:win
 
