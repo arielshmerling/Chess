@@ -14,6 +14,7 @@ const DESKTOP_ROOT_FILES = [
     "ChessGame.js",
     "brain41.js",
     "brain42.js",
+    "brainSearchTime.js",
     "openingBookJson.js",
     "openingBookLoader.js",
     "gameStateCompact.js",

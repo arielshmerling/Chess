@@ -15,7 +15,7 @@ function toUnpackedPath(filePath) {
     return filePath.replace(/\.asar([\\/])/, ".asar.unpacked$1");
 }
 
-/** Dev: repo root. Packaged: app.asar.unpacked/app-bundle (never the virtual asar path). */
+/** Dev: prefer live repo source so code changes apply without re-staging. Packaged: app-bundle only. */
 function resolveBundleRoot() {
     if (app.isPackaged) {
         const candidates = [
@@ -31,11 +31,15 @@ function resolveBundleRoot() {
             "Desktop server bundle not found. Run Shmerling Chess.exe from the full install folder (must include app.asar.unpacked)."
         );
     }
+    const repoRoot = path.join(__dirname, "..");
+    if (fs.existsSync(path.join(repoRoot, "server-desktop.js"))) {
+        return repoRoot;
+    }
     const staged = path.join(__dirname, "app-bundle");
     if (fs.existsSync(path.join(staged, "server-desktop.js"))) {
         return staged;
     }
-    return path.join(__dirname, "..");
+    return repoRoot;
 }
 
 

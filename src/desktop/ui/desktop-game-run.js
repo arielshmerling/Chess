@@ -13,21 +13,21 @@
     let panelRoot = null;
     let runTurn = "white";
     let runComputerIsWhite = false;
-    let runDepth = 3;
+    let runThinkingTimeSeconds = 6;
     let runEngine = "brain42";
     let onPlay = null;
     let onDisplayEvaluation = null;
     let onTurnChange = null;
     let onComputerColorChange = null;
-    let onDepthChange = null;
+    let onThinkingTimeChange = null;
     let onEngineChange = null;
     let turnSwatchWhite = null;
     let turnSwatchBlack = null;
     let computerSwatchWhite = null;
     let computerSwatchBlack = null;
-    let depthSelect = null;
+    let thinkingTimeSelect = null;
     let engineSelect = null;
-    const MAX_SEARCH_DEPTH = 6;
+    const DEFAULT_THINKING_TIME_OPTIONS = [2, 4, 6, 8, 10];
     const DEFAULT_ENGINE_OPTIONS = [
         { value: "brain42", label: "Brain 4.2" },
         { value: "brain41", label: "Brain 4.1" },
@@ -126,19 +126,40 @@
         return false;
     }
 
-    function clampDepth(depth) {
-        const parsed = parseInt(depth, 10);
-        if (!Number.isFinite(parsed)) {
-            return 3;
+    function thinkingTimeOptionsList() {
+        const settings = global.DesktopGameSettings;
+        if (settings && Array.isArray(settings.THINKING_TIME_OPTIONS) && settings.THINKING_TIME_OPTIONS.length) {
+            return settings.THINKING_TIME_OPTIONS;
         }
-        return Math.min(MAX_SEARCH_DEPTH, Math.max(1, parsed));
+        return DEFAULT_THINKING_TIME_OPTIONS;
     }
 
-    function setDepthSelection(depth) {
-        runDepth = clampDepth(depth);
-        if (depthSelect) {
-            depthSelect.value = String(runDepth);
+    function normalizeThinkingTimeSeconds(value) {
+        const settings = global.DesktopGameSettings;
+        if (settings && settings.normalizeThinkingTimeSeconds) {
+            return settings.normalizeThinkingTimeSeconds(value);
         }
+        const parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+            return 6;
+        }
+        const options = thinkingTimeOptionsList();
+        if (options.indexOf(parsed) !== -1) {
+            return parsed;
+        }
+        return 6;
+    }
+
+    function setThinkingTimeSelection(seconds) {
+        runThinkingTimeSeconds = normalizeThinkingTimeSeconds(seconds);
+        if (thinkingTimeSelect) {
+            thinkingTimeSelect.value = String(runThinkingTimeSeconds);
+        }
+    }
+
+    /** @deprecated use setThinkingTimeSelection */
+    function setDepthSelection(depth) {
+        setThinkingTimeSelection(depth);
     }
 
     function engineOptionsList() {
@@ -198,45 +219,48 @@
         return row;
     }
 
-    function createDepthRow(initialDepth) {
+    function createThinkingTimeRow(initialSeconds) {
         const row = document.createElement("div");
-        row.className = "desktop-play-game-run-row desktop-play-game-run-depth-row";
+        row.className = "desktop-play-game-run-row desktop-play-game-run-thinking-time-row";
 
         const label = document.createElement("span");
         label.className = "desktop-play-game-run-label";
-        label.textContent = "Depth";
+        label.textContent = "Think time (s)";
         row.appendChild(label);
 
         const select = document.createElement("select");
-        select.className = "desktop-play-game-run-select desktop-play-game-run-depth";
-        select.setAttribute("aria-label", "Search depth");
-        for (let i = 1; i <= MAX_SEARCH_DEPTH; i += 1) {
+        select.className = "desktop-play-game-run-select desktop-play-game-run-thinking-time";
+        select.setAttribute("aria-label", "Engine thinking time in seconds");
+        thinkingTimeOptionsList().forEach(function (seconds) {
             const opt = document.createElement("option");
-            opt.value = String(i);
-            opt.textContent = String(i);
+            opt.value = String(seconds);
+            opt.textContent = String(seconds);
             select.appendChild(opt);
-        }
-        setDepthSelection(initialDepth);
-        select.value = String(runDepth);
+        });
+        setThinkingTimeSelection(initialSeconds);
+        select.value = String(runThinkingTimeSeconds);
         select.addEventListener("change", function () {
-            setDepthSelection(select.value);
-            if (onDepthChange) {
-                onDepthChange(runDepth);
+            setThinkingTimeSelection(select.value);
+            if (onThinkingTimeChange) {
+                onThinkingTimeChange(runThinkingTimeSeconds);
             }
         });
-        depthSelect = select;
+        thinkingTimeSelect = select;
         row.appendChild(select);
         return row;
     }
 
-    function resolveInitialDepth(options) {
+    function resolveInitialThinkingTime(options) {
+        if (options.initialThinkingTimeSeconds != null) {
+            return options.initialThinkingTimeSeconds;
+        }
         if (options.initialDepth != null) {
             return options.initialDepth;
         }
         if (options.initialDifficulty != null) {
             return options.initialDifficulty;
         }
-        return 3;
+        return 6;
     }
 
     function resolveInitialEngine(options) {
@@ -253,16 +277,16 @@
         onTurnChange = options.onTurnChange || null;
         onComputerColorChange =
             options.onComputerColorChange || options.onHumanColorChange || null;
-        onDepthChange = options.onDepthChange || null;
+        onThinkingTimeChange = options.onThinkingTimeChange || options.onDepthChange || null;
         onEngineChange = options.onEngineChange || null;
         runTurn =
             options.initialTurn === "black" || options.initialTurn === "white"
                 ? options.initialTurn
                 : "white";
         runComputerIsWhite = resolveInitialComputerIsWhite(options);
-        runDepth = clampDepth(resolveInitialDepth(options));
+        runThinkingTimeSeconds = normalizeThinkingTimeSeconds(resolveInitialThinkingTime(options));
         runEngine = normalizeEngine(resolveInitialEngine(options));
-        depthSelect = null;
+        thinkingTimeSelect = null;
         engineSelect = null;
 
         container.innerHTML = "";
@@ -311,7 +335,7 @@
         computerSwatchBlack = computerBtns.black;
 
         controls.appendChild(createEngineRow(runEngine));
-        controls.appendChild(createDepthRow(runDepth));
+        controls.appendChild(createThinkingTimeRow(runThinkingTimeSeconds));
 
         container.appendChild(controls);
 
@@ -360,10 +384,12 @@
         } else if (typeof opts.humanIsWhite === "boolean") {
             setComputerColorSelection(!opts.humanIsWhite);
         }
-        if (opts.depth != null) {
-            setDepthSelection(opts.depth);
+        if (opts.thinkingTimeSeconds != null) {
+            setThinkingTimeSelection(opts.thinkingTimeSeconds);
+        } else if (opts.depth != null) {
+            setThinkingTimeSelection(opts.depth);
         } else if (opts.difficulty != null) {
-            setDepthSelection(opts.difficulty);
+            setThinkingTimeSelection(opts.difficulty);
         }
         if (opts.engine != null) {
             setEngineSelection(opts.engine);
@@ -376,8 +402,9 @@
             computerIsWhite: runComputerIsWhite,
             humanIsWhite: !runComputerIsWhite,
             engine: runEngine,
-            depth: runDepth,
-            difficulty: runDepth,
+            thinkingTimeSeconds: runThinkingTimeSeconds,
+            depth: runThinkingTimeSeconds,
+            difficulty: runThinkingTimeSeconds,
         };
     }
 
@@ -387,6 +414,7 @@
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,
         setComputerColorSelection: setComputerColorSelection,
+        setThinkingTimeSelection: setThinkingTimeSelection,
         setDepthSelection: setDepthSelection,
         setEngineSelection: setEngineSelection,
         createSwatchRow: createSwatchToggle,

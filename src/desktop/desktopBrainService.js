@@ -5,6 +5,10 @@
 const path = require("path");
 const { ChessGame } = require("../ChessGame");
 const brainConfigService = require("../modules/game/brainConfigService");
+const {
+    thinkingTimeSecondsToMs,
+    normalizeThinkingTimeSeconds,
+} = brainConfigService;
 const runtime = require("./runtime");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
 
@@ -49,12 +53,18 @@ function ensureOpeningBookReady(engineName) {
 }
 
 /**
- * @param {{ gameState: object, engine?: string, difficulty?: number }} opts
+ * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, pliesPlayed?: number }} opts
  * @returns {Promise<object|null>} move object (source/target) for client ChessGame
  */
 async function computeMove(opts) {
     ensureRuntime();
-    const { gameState, engine = "brain42", difficulty = 3, pliesPlayed } = opts || {};
+    const {
+        gameState,
+        engine = "brain42",
+        thinkingTimeSeconds,
+        difficulty,
+        pliesPlayed,
+    } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
     }
@@ -69,13 +79,15 @@ async function computeMove(opts) {
     }
 
     const loaded = loadEngine(engine);
-    const maxDepth = Math.min(6, Math.max(1, Number(difficulty) || 3));
+    const thinkingTimeMs = thinkingTimeSecondsToMs(
+        thinkingTimeSeconds != null ? thinkingTimeSeconds : difficulty,
+    );
     const config = brainConfigService.loadBrainConfig(engine);
 
     let brainMove;
     try {
         brainMove = await loaded.brainNextMoveFunc(chessGame, {
-            maxDepth,
+            thinkingTimeMs,
             config,
             pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
         });
@@ -145,4 +157,10 @@ async function evaluatePosition(opts) {
     throw new Error(`Evaluation display is not supported for engine "${engine}"`);
 }
 
-module.exports = { computeMove, evaluatePosition, ensureRuntime };
+module.exports = {
+    computeMove,
+    evaluatePosition,
+    ensureRuntime,
+    normalizeThinkingTimeSeconds,
+    thinkingTimeSecondsToMs,
+};

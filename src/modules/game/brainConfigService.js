@@ -3,6 +3,9 @@ const path = require("path");
 
 const CONFIG_DIR = path.join(__dirname, "..", "..", "config", "brains");
 const MAX_SEARCH_DEPTH = 6;
+/** Allowed engine thinking times (seconds) for desktop UI. */
+const THINKING_TIME_SECONDS_OPTIONS = [2, 4, 6, 8, 10];
+const DEFAULT_THINKING_TIME_SECONDS = 6;
 
 const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -369,8 +372,45 @@ function saveBrainConfig(engineName, rawConfig) {
     return sanitized;
 }
 
+/**
+ * Snap UI / stored value to an allowed thinking time (2, 4, 6, 8, 10 seconds).
+ * Legacy difficulty 1–6 maps to 2, 4, 6, 8, 10, 10.
+ * @param {number|string|null|undefined} value
+ * @returns {number}
+ */
+function normalizeThinkingTimeSeconds(value) {
+    const allowed = THINKING_TIME_SECONDS_OPTIONS;
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+        return DEFAULT_THINKING_TIME_SECONDS;
+    }
+    if (allowed.includes(parsed)) {
+        return parsed;
+    }
+    if (parsed >= 1 && parsed <= 6) {
+        return allowed[Math.min(parsed - 1, allowed.length - 1)];
+    }
+    let nearest = allowed[0];
+    let nearestDist = Math.abs(parsed - nearest);
+    for (let i = 1; i < allowed.length; i += 1) {
+        const dist = Math.abs(parsed - allowed[i]);
+        if (dist < nearestDist) {
+            nearest = allowed[i];
+            nearestDist = dist;
+        }
+    }
+    return nearest;
+}
+
+/** @param {number|string|null|undefined} seconds */
+function thinkingTimeSecondsToMs(seconds) {
+    return normalizeThinkingTimeSeconds(seconds) * 1000;
+}
+
 module.exports = {
     MAX_SEARCH_DEPTH,
+    THINKING_TIME_SECONDS_OPTIONS,
+    DEFAULT_THINKING_TIME_SECONDS,
     ALLOWED_BRAINS,
     PAWN_FILE_LETTERS,
     getDefaultConfig,
@@ -379,4 +419,6 @@ module.exports = {
     sanitizeBrainConfig,
     sanitizeBrain42Config,
     sanitizeAdaptiveDepthSettings,
+    normalizeThinkingTimeSeconds,
+    thinkingTimeSecondsToMs,
 };

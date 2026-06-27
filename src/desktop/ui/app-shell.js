@@ -24,6 +24,31 @@
         }
     }
 
+    function normalizeThinkingTimeSeconds(value) {
+        var allowed = [2, 4, 6, 8, 10];
+        var parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+            return 6;
+        }
+        if (allowed.indexOf(parsed) !== -1) {
+            return parsed;
+        }
+        if (parsed >= 1 && parsed <= 6) {
+            return allowed[Math.min(parsed - 1, allowed.length - 1)];
+        }
+        return 6;
+    }
+
+    function resolveThinkingTimeSeconds(opts) {
+        if (opts.thinkingTimeSeconds != null) {
+            return normalizeThinkingTimeSeconds(opts.thinkingTimeSeconds);
+        }
+        if (opts.difficulty != null) {
+            return normalizeThinkingTimeSeconds(opts.difficulty);
+        }
+        return 6;
+    }
+
     function applyLastGameOptions(opts) {
         var form = document.getElementById("playNowForm");
         if (!form) {
@@ -38,14 +63,14 @@
         if (opts.engine && form.elements.engine) {
             form.elements.engine.value = opts.engine;
         }
-        if (opts.difficulty != null && opts.difficulty >= 1 && opts.difficulty <= 6) {
-            var difficultyInput = form.querySelector("input[name='difficulty']");
-            var valueSpan = document.getElementById("playNowDifficultyValue");
-            if (difficultyInput) {
-                difficultyInput.value = String(opts.difficulty);
-                if (valueSpan) {
-                    valueSpan.textContent = String(opts.difficulty);
-                }
+        var thinkingTimeSeconds = resolveThinkingTimeSeconds(opts);
+        var thinkingTimeInput = form.querySelector("input[name='thinkingTimeSeconds']")
+            || form.querySelector("input[name='difficulty']");
+        var valueSpan = document.getElementById("playNowDifficultyValue");
+        if (thinkingTimeInput) {
+            thinkingTimeInput.value = String(thinkingTimeSeconds);
+            if (valueSpan) {
+                valueSpan.textContent = String(thinkingTimeSeconds) + "s";
             }
         }
         if (opts.mouse === "double") {
@@ -83,10 +108,14 @@
             return;
         }
         var formData = new FormData(form);
+        var thinkingTimeSeconds = normalizeThinkingTimeSeconds(
+            parseInt(formData.get("thinkingTimeSeconds") || formData.get("difficulty"), 10) || 6,
+        );
         var payload = {
             color: formData.get("color") || "white",
             engine: formData.get("engine") || "brain42",
-            difficulty: parseInt(formData.get("difficulty"), 10) || 3,
+            thinkingTimeSeconds: thinkingTimeSeconds,
+            difficulty: thinkingTimeSeconds,
             mouse: formData.get("mouse") || "drag",
             showAvailableMoves: formData.get("showMoves") === "1",
             timeMinutes: 90,

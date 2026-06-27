@@ -71,14 +71,14 @@
             '<option value="brain41"' +
             (last.engine === "brain41" ? " selected" : "") +
             '>Brain 4.1</option></select></div>' +
-            '<div class="desktop-field"><span class="desktop-form-section-title" id="dlgDiffLabel">Difficulty</span>' +
+            '<div class="desktop-field"><span class="desktop-form-section-title" id="dlgDiffLabel">Thinking time (seconds)</span>' +
             '<div class="desktop-slider-row" aria-labelledby="dlgDiffLabel">' +
-            '<input type="range" name="difficulty" min="1" max="6" value="' +
-            (last.difficulty || 3) +
-            '" id="dlgDifficulty" class="desktop-slider--gold">' +
-            '<output id="dlgDifficultyOut" class="desktop-slider-value">' +
-            (last.difficulty || 3) +
-            "</output></div></div>" +
+            '<input type="range" name="thinkingTimeSeconds" min="2" max="10" step="2" value="' +
+            (last.thinkingTimeSeconds || 6) +
+            '" id="dlgThinkingTime" class="desktop-slider--gold">' +
+            '<output id="dlgThinkingTimeOut" class="desktop-slider-value">' +
+            (last.thinkingTimeSeconds || 6) +
+            "s</output></div></div>" +
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">Time per side (minutes)</label>' +
             '<input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +
             (last.timeMinutes || 90) +
@@ -116,11 +116,11 @@
         actions.appendChild(startBtn);
         form.appendChild(actions);
 
-        const diffRange = form.querySelector("#dlgDifficulty");
-        const diffOut = form.querySelector("#dlgDifficultyOut");
+        const diffRange = form.querySelector("#dlgThinkingTime");
+        const diffOut = form.querySelector("#dlgThinkingTimeOut");
         if (diffRange && diffOut) {
             diffRange.addEventListener("input", function () {
-                diffOut.textContent = diffRange.value;
+                diffOut.textContent = diffRange.value + "s";
             });
         }
 
@@ -129,12 +129,14 @@
             const payload = {
                 color: fd.get("color") || "white",
                 engine: fd.get("engine") || "brain42",
-                difficulty: parseInt(fd.get("difficulty"), 10) || 3,
+                thinkingTimeSeconds: parseInt(fd.get("thinkingTimeSeconds"), 10) || 6,
                 mouse: fd.get("mouse") || "drag",
                 showAvailableMoves: fd.get("showMoves") === "1",
                 allowUndo: fd.get("allowUndo") === "1",
                 timeMinutes: parseInt(fd.get("timeMinutes"), 10) || 90,
             };
+            payload.thinkingTimeSeconds = Settings.normalizeThinkingTimeSeconds(payload.thinkingTimeSeconds);
+            payload.difficulty = payload.thinkingTimeSeconds;
             Settings.saveLastOptions(payload);
             closeNewGameDialog();
             onStart(payload);

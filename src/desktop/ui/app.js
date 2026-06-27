@@ -1,23 +1,33 @@
 (function () {
     "use strict";
 
-    var STORAGE_KEY = "shmerling.desktop.lastGameOptions";
+    var Settings = window.DesktopGameSettings;
 
     function loadLastOptions() {
-        try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : {};
-        } catch {
-            return {};
+        if (Settings && Settings.loadLastOptions) {
+            return Settings.loadLastOptions();
         }
+        return {};
     }
 
     function saveLastOptions(opts) {
+        if (Settings && Settings.saveLastOptions) {
+            Settings.saveLastOptions(opts);
+            return;
+        }
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(opts));
+            localStorage.setItem("shmerling.desktop.lastGameOptions", JSON.stringify(opts));
         } catch {
             /* ignore */
         }
+    }
+
+    function normalizeThinkingTimeSeconds(value) {
+        if (Settings && Settings.normalizeThinkingTimeSeconds) {
+            return Settings.normalizeThinkingTimeSeconds(value);
+        }
+        var parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : 6;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -33,13 +43,16 @@
                 engineEl.value = last.engine;
             }
         }
-        if (last.difficulty != null) {
-            var diff = form.querySelector("[name=difficulty]");
+        var thinkingTime =
+            last.thinkingTimeSeconds != null ? last.thinkingTimeSeconds : last.difficulty;
+        if (thinkingTime != null) {
+            var diff = form.querySelector("[name=thinkingTimeSeconds]");
             var out = document.getElementById("difficultyOut");
+            var normalized = normalizeThinkingTimeSeconds(thinkingTime);
             if (diff) {
-                diff.value = String(last.difficulty);
+                diff.value = String(normalized);
                 if (out) {
-                    out.textContent = String(last.difficulty);
+                    out.textContent = String(normalized) + "s";
                 }
             }
         }
@@ -72,7 +85,7 @@
         var output = document.getElementById("difficultyOut");
         if (range && output) {
             range.addEventListener("input", function () {
-                output.textContent = range.value;
+                output.textContent = range.value + "s";
             });
         }
 
@@ -88,10 +101,14 @@
             }
 
             var fd = new FormData(form);
+            var thinkingTimeSeconds = normalizeThinkingTimeSeconds(
+                parseInt(fd.get("thinkingTimeSeconds"), 10) || 6,
+            );
             var payload = {
                 color: fd.get("color") || "white",
                 engine: fd.get("engine") || "brain42",
-                difficulty: parseInt(fd.get("difficulty"), 10) || 3,
+                thinkingTimeSeconds: thinkingTimeSeconds,
+                difficulty: thinkingTimeSeconds,
                 mouse: fd.get("mouse") || "drag",
                 showAvailableMoves: fd.get("showMoves") === "1",
                 allowUndo: fd.get("allowUndo") === "1",

@@ -11,12 +11,14 @@ const gameStore = require("./gameStore");
 const { createGameInfo } = require("./gameInfo");
 const { registerDesktopGameEvents } = require("./registerGameEvents");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
+const { normalizeThinkingTimeSeconds } = require("../modules/game/brainConfigService");
 
 function parseSinglePlayerOptions(body) {
     const color = body.color === "black" || body.color === "white" ? body.color : "white";
     const engine = runtime.normalizeEngine(body.engine);
-    const difficulty = parseInt(body.difficulty, 10);
-    const difficultyNum = difficulty >= 1 && difficulty <= 6 ? difficulty : 3;
+    const thinkingTimeSeconds = normalizeThinkingTimeSeconds(
+        body.thinkingTimeSeconds != null ? body.thinkingTimeSeconds : body.difficulty,
+    );
     const mouse = body.mouse === "double" || body.mouse === "drag" ? body.mouse : "drag";
     const showAvailableMoves = body.showAvailableMoves !== false;
     const allowUndo = body.allowUndo === true || body.allowUndo === "1" || body.allowUndo === 1;
@@ -28,7 +30,8 @@ function parseSinglePlayerOptions(body) {
     return {
         color,
         engine,
-        difficulty: difficultyNum,
+        thinkingTimeSeconds,
+        difficulty: thinkingTimeSeconds,
         mouse,
         showAvailableMoves,
         allowUndo,
@@ -77,13 +80,16 @@ exports.startFromQuery = catchAsync(async (req, res) => {
     const options = {
         color: req.query.color === "black" ? "black" : "white",
         engine: runtime.normalizeEngine(req.query.engine),
-        difficulty: parseInt(req.query.difficulty, 10) || 3,
+        thinkingTimeSeconds: normalizeThinkingTimeSeconds(
+            req.query.thinkingTimeSeconds != null ? req.query.thinkingTimeSeconds : req.query.difficulty,
+        ),
         mouse: req.query.mouse === "double" ? "double" : "drag",
         showAvailableMoves: req.query.showMoves !== "0",
         allowUndo: req.query.allowUndo === "1",
         timeMinutes: parseInt(req.query.timeMinutes, 10) || 90,
         isPrivate: req.query.private === "1",
     };
+    options.difficulty = options.thinkingTimeSeconds;
     const game = await createSinglePlayerGame(
         req.session.user_name,
         req.session.user_id,

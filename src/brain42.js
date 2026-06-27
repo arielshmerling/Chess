@@ -23,15 +23,23 @@ const {
     sanitizeBrainConfig,
     MAX_SEARCH_DEPTH,
 } = require("./modules/game/brainConfigService");
+const {
+    beginTimedSearch,
+    endTimedSearch,
+    shouldStopSearch,
+    getRemainingSearchMs,
+} = require("./brainSearchTime");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const { savedGameStateToLookupKey } = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
-/** Worker search timeout before fallback move (ms). */
+/** Worker safety timeout when search uses fixed depth (tests). */
 const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
-/** Extra plies when the root has checks and the position is a low-material endgame. */
-const TACTICAL_DEPTH_BOOST = 1;
+/** Extra ms beyond user thinking time before main thread abandons the worker request. */
+const THINKING_TIME_SAFETY_BUFFER_MS = 400;
+/** Do not start another iterative-deepening ply below this remaining budget. */
+const MIN_MS_FOR_NEXT_DEPTH = 50;
 /** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
 const MATE_SCORE = 9_000_000_000_000_000;
 
@@ -420,7 +428,22 @@ function getOrCreateWorker() {
     return persistentWorker;
 }
 
-function createWorkerPromise(strState, maxDepth, config, pliesPlayed) {
+function terminatePersistentWorker(reason) {
+    if (!persistentWorker) {
+        return;
+    }
+    console.warn(`${LOG_PREFIX} Terminating worker: ${reason}`);
+    const worker = persistentWorker;
+    persistentWorker = null;
+    for (const [, pending] of pendingRequests.entries()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error(reason || "Worker terminated"));
+    }
+    pendingRequests.clear();
+    worker.terminate();
+}
+
+function createWorkerPromise(strState, searchOptions) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
@@ -428,21 +451,34 @@ function createWorkerPromise(strState, maxDepth, config, pliesPlayed) {
         }
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
-        const depthLimit = maxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(maxDepth))) : DEFAULT_MAX_DEPTH;
+        const thinkingTimeMs = searchOptions?.thinkingTimeMs;
+        const maxDepth = searchOptions?.maxDepth;
+        const config = searchOptions?.config;
+        const pliesPlayed = searchOptions?.pliesPlayed;
+        const timeoutMs = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+            ? Math.max(1000, Math.floor(Number(thinkingTimeMs)) + THINKING_TIME_SAFETY_BUFFER_MS)
+            : BRAIN_MOVE_TIMEOUT_MS;
+
         const timeout = setTimeout(() => {
             const pending = pendingRequests.get(requestId);
             if (pending) {
                 pendingRequests.delete(requestId);
-                console.error(`${LOG_PREFIX} move timeout for request ${requestId}`);
+                console.error(`${LOG_PREFIX} move timeout for request ${requestId} after ${timeoutMs}ms`);
+                terminatePersistentWorker("Brain move timeout");
                 reject(new Error("Brain move timeout"));
             }
-        }, BRAIN_MOVE_TIMEOUT_MS);
+        }, timeoutMs);
 
         pendingRequests.set(requestId, { resolve, reject, timeout });
+        const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+            ? `time ${thinkingTimeMs}ms`
+            : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
+        console.log(`${LOG_PREFIX} Sending request ${requestId} (${label})`);
         worker.postMessage({
             requestId,
             gameState: strState,
-            maxDepth: depthLimit,
+            thinkingTimeMs,
+            maxDepth,
             config,
             pliesPlayed,
         });
@@ -577,38 +613,83 @@ exports.brainNextMoveFunc = async (game, options) => {
 
     const mateNow = findImmediateMatingMove(game, collectLegalMoves(game));
     if (mateNow) {
+        mateNow.searchDepthReached = 0;
+        console.log(`${LOG_PREFIX} Immediate mate (depth 0): ${bookMovePgn(game, mateNow)}`);
         return mateNow;
     }
 
     const bookMove = tryFindMatchState(game);
     if (bookMove && isBookMoveStillLegal(game, bookMove)) {
+        bookMove.searchDepthReached = 0;
         console.log(
-            `${LOG_PREFIX} Opening book hit: ${bookMovePgn(game, bookMove)} (positions evaluated: 0)`,
+            `${LOG_PREFIX} Opening book hit (depth 0): ${bookMovePgn(game, bookMove)} (positions evaluated: 0)`,
         );
         return bookMove;
     }
 
-    const searchPlan = planSearchDepth(game, maxDepth, brain42FullConfig);
-    if (searchPlan.moves.length > 0 && !findImmediateMatingMove(game, searchPlan.moves)) {
-        logSearchPlan(
-            searchPlan.moves.length,
-            searchPlan.totalPieces,
-            searchPlan.maxDepth,
-            searchPlan.depthNote,
-        );
+    const workerSearchOptions = {
+        config: brain42FullConfig,
+        pliesPlayed,
+    };
+    if (options?.thinkingTimeMs != null && Number(options.thinkingTimeMs) > 0) {
+        workerSearchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
+        console.log(`${LOG_PREFIX} Search budget: ${workerSearchOptions.thinkingTimeMs}ms`);
+    } else {
+        workerSearchOptions.maxDepth = maxDepth;
+        const searchPlan = planSearchDepth(game, maxDepth, brain42FullConfig);
+        if (searchPlan.moves.length > 0 && !findImmediateMatingMove(game, searchPlan.moves)) {
+            logSearchPlan(
+                searchPlan.moves.length,
+                searchPlan.totalPieces,
+                searchPlan.maxDepth,
+                searchPlan.depthNote,
+            );
+        }
     }
 
     try {
-        return await createWorkerPromise(strState, maxDepth, brain42FullConfig, pliesPlayed);
+        const move = await createWorkerPromise(strState, workerSearchOptions);
+        if (move && move.searchDepthReached != null) {
+            console.log(
+                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}`,
+            );
+        }
+        return move;
     } catch (err) {
-        console.warn(`${LOG_PREFIX} First worker attempt failed: ${err.message}`);
-        try {
-            return await createWorkerPromise(strState, maxDepth, brain42FullConfig, pliesPlayed);
-        } catch {
+        if (err && err.message === "Brain move timeout") {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
                 throw new Error("No legal moves available (checkmate or stalemate)");
             }
+            fallbackMove.searchDepthReached = 0;
+            console.log(
+                `${LOG_PREFIX} Timeout fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+            );
+            throw new BrainTimeoutFallbackError(fallbackMove);
+        }
+        console.warn(`${LOG_PREFIX} First worker attempt failed: ${err.message}`);
+        try {
+            return await createWorkerPromise(strState, workerSearchOptions);
+        } catch (retryErr) {
+            if (retryErr && retryErr.message === "Brain move timeout") {
+                const fallbackMove = getFirstLegalMove(game);
+                if (!fallbackMove) {
+                    throw new Error("No legal moves available (checkmate or stalemate)");
+                }
+                fallbackMove.searchDepthReached = 0;
+                console.log(
+                    `${LOG_PREFIX} Timeout fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+                );
+                throw new BrainTimeoutFallbackError(fallbackMove);
+            }
+            const fallbackMove = getFirstLegalMove(game);
+            if (!fallbackMove) {
+                throw new Error("No legal moves available (checkmate or stalemate)");
+            }
+            fallbackMove.searchDepthReached = 0;
+            console.log(
+                `${LOG_PREFIX} Error fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+            );
             throw new BrainTimeoutFallbackError(fallbackMove);
         }
     }
@@ -1602,6 +1683,9 @@ function findImmediateMatingMove(game, moves) {
 }
 
 function negamax(game, depthRemaining, alpha, beta, ply = 0) {
+    if (shouldStopSearch()) {
+        return evaluateLeafPosition(game, ply);
+    }
     applyRuntimeConfigForGame(game);
     if (depthRemaining <= 0) {
         return evaluateLeafPosition(game, ply);
@@ -1615,6 +1699,9 @@ function negamax(game, depthRemaining, alpha, beta, ply = 0) {
     const ordered = orderMovesCapturesFirst(game, moves);
     let best = -Infinity;
     for (let i = 0; i < ordered.length; i++) {
+        if (shouldStopSearch()) {
+            break;
+        }
         const move = ordered[i];
         const score = evaluateSearchMove(game, move, depthRemaining - 1, alpha, beta, ply);
         if (score > best) {
@@ -1631,27 +1718,10 @@ function negamax(game, depthRemaining, alpha, beta, ply = 0) {
 }
 
 function planSearchDepth(game, baseMaxDepth, fullConfig) {
-    const cfg = fullConfig || brain42FullConfig;
     const moves = collectLegalMoves(game);
     const totalPieces = countTotalPiecesOnBoard(game);
-    let maxDepth = computeAdaptiveSearchDepth(
-        baseMaxDepth,
-        moves.length,
-        totalPieces,
-        cfg,
-    );
-    const adaptiveSettings = resolveAdaptiveDepthSettings(cfg);
-    const endgamePieceCount = totalPieces <= adaptiveSettings.fullAdaptiveBelowTotalPieces;
-    if (
-        endgamePieceCount
-        && rootHasCheckingMove(game, moves)
-        && TACTICAL_DEPTH_BOOST > 0
-    ) {
-        maxDepth = Math.min(adaptiveSettings.maxSearchDepth, maxDepth + TACTICAL_DEPTH_BOOST);
-    }
-    const baseDepth = clampSearchDepth(baseMaxDepth);
-    const depthNote = maxDepth !== baseDepth ? ` (base=${baseDepth})` : "";
-    return { moves, totalPieces, maxDepth, depthNote };
+    const maxDepth = clampSearchDepth(baseMaxDepth);
+    return { moves, totalPieces, maxDepth, depthNote: "" };
 }
 
 function logSearchPlan(rootMoves, totalPieces, maxDepth, depthNote) {
@@ -1660,8 +1730,9 @@ function logSearchPlan(rootMoves, totalPieces, maxDepth, depthNote) {
     );
 }
 
-function searchBestMoveAtRoot(game, baseMaxDepth) {
-    const { moves, maxDepth } = planSearchDepth(game, baseMaxDepth);
+function searchAtFixedDepth(game, maxDepth) {
+    const depthLimit = clampSearchDepth(maxDepth);
+    const moves = collectLegalMoves(game);
     if (moves.length === 0) {
         return null;
     }
@@ -1671,13 +1742,16 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
         return mateNow;
     }
     const ordered = orderMovesCapturesFirst(game, moves);
-    const depthAfterRoot = Math.max(0, maxDepth - 1);
+    const depthAfterRoot = Math.max(0, depthLimit - 1);
     let alpha = -Infinity;
     const beta = Infinity;
     const tiedBest = [];
     let bestScore = -Infinity;
 
     for (let i = 0; i < ordered.length; i++) {
+        if (shouldStopSearch()) {
+            return null;
+        }
         const move = ordered[i];
         const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
         if (!Number.isFinite(score)) {
@@ -1717,6 +1791,64 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
     return pick;
 }
 
+function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
+    beginTimedSearch(thinkingTimeMs);
+    try {
+        const moves = collectLegalMoves(game);
+        if (moves.length === 0) {
+            return null;
+        }
+        const mateNow = findImmediateMatingMove(game, moves);
+        if (mateNow) {
+            mateNow.score = MATE_SCORE;
+            mateNow.searchDepthReached = 0;
+            return mateNow;
+        }
+
+        const ordered = orderMovesCapturesFirst(game, moves);
+        let bestMove = ordered[0];
+        let completedDepth = 0;
+
+        for (let depth = 1; depth <= MAX_SEARCH_DEPTH; depth += 1) {
+            if (shouldStopSearch()) {
+                break;
+            }
+            if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
+                break;
+            }
+            const atDepth = searchAtFixedDepth(game, depth);
+            if (atDepth) {
+                bestMove = atDepth;
+                completedDepth = depth;
+                console.log(
+                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}`,
+                );
+            }
+            if (shouldStopSearch()) {
+                break;
+            }
+        }
+
+        bestMove.searchDepthReached = completedDepth || 1;
+        console.log(
+            `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
+                + `best=${bookMovePgn(game, bestMove)}`,
+        );
+        return bestMove;
+    } finally {
+        endTimedSearch();
+    }
+}
+
+function searchBestMoveAtRoot(game, baseMaxDepth) {
+    const depthLimit = clampSearchDepth(baseMaxDepth);
+    const move = searchAtFixedDepth(game, depthLimit);
+    if (move) {
+        move.searchDepthReached = depthLimit;
+    }
+    return move;
+}
+
 if (!isMainThread) {
     if (!chess) {
         chess = new ChessGame();
@@ -1725,7 +1857,14 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
-        const { requestId, gameState, maxDepth: requestMaxDepth, config, pliesPlayed } = request;
+        const {
+            requestId,
+            gameState,
+            thinkingTimeMs: requestThinkingTimeMs,
+            maxDepth: requestMaxDepth,
+            config,
+            pliesPlayed,
+        } = request;
 
         if (!requestId || !gameState) {
             console.error(`${LOG_PREFIX} Worker received invalid request`, request);
@@ -1733,7 +1872,12 @@ if (!isMainThread) {
             return;
         }
 
-        const maxDepth = requestMaxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
+        const maxDepth = requestMaxDepth != null
+            ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth)))
+            : DEFAULT_MAX_DEPTH;
+        const thinkingTimeMs = requestThinkingTimeMs != null && Number(requestThinkingTimeMs) > 0
+            ? Math.floor(Number(requestThinkingTimeMs))
+            : null;
         setBrain42SearchContext(config || {}, pliesPlayed ?? 0);
         const startTime = Date.now();
 
@@ -1744,31 +1888,43 @@ if (!isMainThread) {
                 chess.GameState.capturedPiecesList = [];
             }
             const phase = applyRuntimeConfigForGame(chess);
+            const budgetLabel = thinkingTimeMs != null
+                ? `time=${thinkingTimeMs}ms`
+                : `depth=${maxDepth}`;
             console.log(
-                `${LOG_PREFIX} Thinking... request=${requestId}, baseDepth=${maxDepth}, phase=${phase}, `
+                `${LOG_PREFIX} Thinking... request=${requestId}, ${budgetLabel}, phase=${phase}, `
                     + `plies=${currentSearchPliesPlayed(chess)}`,
             );
             chess.SearchMode = true;
-            const move = searchBestMoveAtRoot(chess, maxDepth);
+            const move = thinkingTimeMs != null
+                ? searchBestMoveWithTimeLimit(chess, thinkingTimeMs)
+                : searchBestMoveAtRoot(chess, maxDepth);
             chess.SearchMode = false;
-
-            const duration = Date.now() - startTime;
-            console.log(`${LOG_PREFIX} request=${requestId} done in ${duration}ms`);
 
             let out = move;
             if (!out || out.source == null) {
                 out = getFirstLegalMove(chess);
+                if (out) {
+                    out.searchDepthReached = 0;
+                }
                 console.error(`${LOG_PREFIX} Worker: search returned empty; first legal fallback`);
             } else {
                 const v = chess.validateMove(out.source, out.target, chess.Turn);
                 if (!v.valid) {
                     out = getFirstLegalMove(chess);
+                    if (out) {
+                        out.searchDepthReached = 0;
+                    }
                     console.error(`${LOG_PREFIX} Worker: chosen move failed validateMove; first legal fallback`, out);
                 }
             }
 
+            const duration = Date.now() - startTime;
+            const depthReached = out && out.searchDepthReached != null ? out.searchDepthReached : "?";
             console.log(
-                `${LOG_PREFIX} request=${requestId} final decision: leaf evaluations=${leafEvaluationsThisSearch}`,
+                `${LOG_PREFIX} request=${requestId} done in ${duration}ms, `
+                    + `depth=${depthReached}, move=${bookMovePgn(chess, out)}, `
+                    + `leaf evaluations=${leafEvaluationsThisSearch}`,
             );
 
             if (out && out.source != null) {

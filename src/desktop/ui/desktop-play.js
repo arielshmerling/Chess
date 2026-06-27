@@ -226,10 +226,10 @@
         }
         if (!gameActive && !positionSetupMode && !configurationMode) {
             if (reviewMode && boardHasPieces()) {
-                return "Review mode — set move, color, engine, and depth in the header, then press Play";
+                return "Review mode — set move, color, engine, and think time in the header, then press Play";
             }
             if (boardHasPieces()) {
-                return "Set move, color, engine, and depth in the header, then press Play";
+                return "Set move, color, engine, and think time in the header, then press Play";
             }
             return "Choose New game or Position setup from the sidebar";
         }
@@ -494,12 +494,22 @@
         updateActionButtons();
     }
 
-    function applySetupDepth(depth) {
+    function applySetupThinkingTime(seconds) {
         if (!session) {
             return;
         }
-        const next = Math.min(6, Math.max(1, parseInt(depth, 10) || 3));
-        session = Object.assign({}, session, { difficulty: next });
+        const next = Settings.normalizeThinkingTimeSeconds
+            ? Settings.normalizeThinkingTimeSeconds(seconds)
+            : parseInt(seconds, 10) || 6;
+        session = Object.assign({}, session, {
+            thinkingTimeSeconds: next,
+            difficulty: next,
+        });
+    }
+
+    /** @deprecated */
+    function applySetupDepth(depth) {
+        applySetupThinkingTime(depth);
     }
 
     function applySetupEngine(engine) {
@@ -515,7 +525,12 @@
         session = Settings.buildSession({
             color: currentPlayerIsWhite ? "white" : "black",
             engine: engineId,
-            difficulty: session.difficulty,
+            thinkingTimeSeconds: session.thinkingTimeSeconds != null
+                ? session.thinkingTimeSeconds
+                : session.difficulty,
+            difficulty: session.thinkingTimeSeconds != null
+                ? session.thinkingTimeSeconds
+                : session.difficulty,
             mouse: session.mousePreference,
             showAvailableMoves: session.showAvailableMoves,
             allowUndo: session.allowUndo,
@@ -529,9 +544,13 @@
         if (setupOpts.engine != null) {
             applySetupEngine(setupOpts.engine);
         }
-        if (setupOpts.depth != null || setupOpts.difficulty != null) {
-            applySetupDepth(
-                setupOpts.depth != null ? setupOpts.depth : setupOpts.difficulty,
+        if (setupOpts.thinkingTimeSeconds != null || setupOpts.depth != null || setupOpts.difficulty != null) {
+            applySetupThinkingTime(
+                setupOpts.thinkingTimeSeconds != null
+                    ? setupOpts.thinkingTimeSeconds
+                    : setupOpts.depth != null
+                      ? setupOpts.depth
+                      : setupOpts.difficulty,
             );
         }
         if (Board.setHumanColor) {
@@ -765,15 +784,18 @@
                 session && session.engine
                     ? session.engine
                     : Settings.loadLastOptions().engine,
-            initialDepth:
-                session && session.difficulty != null
-                    ? session.difficulty
-                    : Settings.loadLastOptions().difficulty,
+            initialThinkingTimeSeconds:
+                session && session.thinkingTimeSeconds != null
+                    ? session.thinkingTimeSeconds
+                    : session && session.difficulty != null
+                      ? session.difficulty
+                      : Settings.loadLastOptions().thinkingTimeSeconds,
             onPlay: runGameFromPanel,
             onDisplayEvaluation: displayPositionEvaluation,
             onTurnChange: applySetupTurn,
             onComputerColorChange: applySetupComputerColor,
-            onDepthChange: applySetupDepth,
+            onThinkingTimeChange: applySetupThinkingTime,
+            onDepthChange: applySetupThinkingTime,
             onEngineChange: applySetupEngine,
         });
         gameRunPanelMounted = true;
@@ -795,10 +817,18 @@
                 session && session.engine
                     ? session.engine
                     : Settings.loadLastOptions().engine,
+            thinkingTimeSeconds:
+                session && session.thinkingTimeSeconds != null
+                    ? session.thinkingTimeSeconds
+                    : session && session.difficulty != null
+                      ? session.difficulty
+                      : Settings.loadLastOptions().thinkingTimeSeconds,
             depth:
-                session && session.difficulty != null
-                    ? session.difficulty
-                    : Settings.loadLastOptions().difficulty,
+                session && session.thinkingTimeSeconds != null
+                    ? session.thinkingTimeSeconds
+                    : session && session.difficulty != null
+                      ? session.difficulty
+                      : Settings.loadLastOptions().thinkingTimeSeconds,
         });
     }
 
@@ -1484,10 +1514,18 @@
             gameType: "SinglePlayerGame",
             moves: moves || [],
             engine: session.engine || "brain42",
+            thinkingTimeSeconds:
+                typeof session.thinkingTimeSeconds === "number"
+                    ? session.thinkingTimeSeconds
+                    : typeof session.difficulty === "number"
+                      ? session.difficulty
+                      : 6,
             depth:
-                typeof session.difficulty === "number" && session.difficulty >= 1
-                    ? session.difficulty
-                    : 3,
+                typeof session.thinkingTimeSeconds === "number"
+                    ? session.thinkingTimeSeconds
+                    : typeof session.difficulty === "number"
+                      ? session.difficulty
+                      : 6,
         };
     }
 
@@ -1552,18 +1590,22 @@
                 moves: [],
                 engine: session.engine || "brain42",
                 depth:
-                    typeof session.difficulty === "number" && session.difficulty >= 1
-                        ? session.difficulty
-                        : 3,
+                    typeof session.thinkingTimeSeconds === "number"
+                        ? session.thinkingTimeSeconds
+                        : typeof session.difficulty === "number"
+                          ? session.difficulty
+                          : 6,
                 date: entry.date || new Date(),
             });
             entry.state = JSON.stringify(game.GameState);
             entry.moves = [];
             entry.engine = session.engine || "brain42";
             entry.depth =
-                typeof session.difficulty === "number" && session.difficulty >= 1
-                    ? session.difficulty
-                    : 3;
+                typeof session.thinkingTimeSeconds === "number"
+                    ? session.thinkingTimeSeconds
+                    : typeof session.difficulty === "number"
+                      ? session.difficulty
+                      : 6;
             lastLoadedSavedGameId = savedGameId(entry);
             renderSavedGamesList();
             syncGameRunPanelOptions();
@@ -1895,10 +1937,14 @@
         applySessionSettings({
             color: baseOpts.color,
             engine: entry.engine || baseOpts.engine,
-            difficulty:
-                typeof entry.depth === "number" && entry.depth >= 1
+            thinkingTimeSeconds:
+                typeof entry.depth === "number"
                     ? entry.depth
-                    : baseOpts.difficulty,
+                    : baseOpts.thinkingTimeSeconds,
+            difficulty:
+                typeof entry.depth === "number"
+                    ? entry.depth
+                    : baseOpts.thinkingTimeSeconds,
             mouse: baseOpts.mouse,
             showAvailableMoves: baseOpts.showAvailableMoves,
             allowUndo: baseOpts.allowUndo,
@@ -1955,7 +2001,7 @@
             enterReviewMode();
             syncGameRunPanelOptions();
             showStatus(
-                "Review mode — set move, color, engine, and depth in the header, then press Play",
+                "Review mode — set move, color, engine, and think time in the header, then press Play",
                 0,
                 "info",
             );
@@ -2159,9 +2205,11 @@
                 moves: bookmarkMovesPayload(),
                 engine: session.engine || "brain42",
                 depth:
-                    typeof session.difficulty === "number" && session.difficulty >= 1
-                        ? session.difficulty
-                        : 3,
+                    typeof session.thinkingTimeSeconds === "number"
+                        ? session.thinkingTimeSeconds
+                        : typeof session.difficulty === "number"
+                          ? session.difficulty
+                          : 6,
             });
             if (bookmark && bookmark._id) {
                 savedGames = savedGames.filter(function (b) {
@@ -2405,7 +2453,9 @@
             const move = await Engine.computeMove({
                 gameState: game.GameState,
                 engine: session.engine,
-                difficulty: session.difficulty,
+                thinkingTimeSeconds: session.thinkingTimeSeconds != null
+                    ? session.thinkingTimeSeconds
+                    : session.difficulty,
                 pliesPlayed: game.Moves ? game.Moves.length : 0,
             });
             if (!move) {

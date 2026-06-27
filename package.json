@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "nyc --reporter=html mocha ./test/chess.test.js",
+    "test": "nyc --reporter=html mocha ./test/chess.test.js ./test/chess.fide-rules.test.js",
     "test:app": "mocha ./test/chess.app.test.js ./test/brain41.pawnEval.test.js",
     "test:heavy": "mocha ./test/chess.heavy.test.js",
     "test:all": "npm run test && npm run test:heavy",

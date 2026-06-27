@@ -20,17 +20,52 @@
     const DEFAULTS = {
         color: "white",
         engine: "brain42",
-        difficulty: 3,
+        thinkingTimeSeconds: 6,
         mouse: "drag",
         showAvailableMoves: true,
         allowUndo: true,
         timeMinutes: 90,
     };
 
+    const THINKING_TIME_OPTIONS = [2, 4, 6, 8, 10];
+
+    function normalizeThinkingTimeSeconds(value) {
+        const parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+            return DEFAULTS.thinkingTimeSeconds;
+        }
+        if (THINKING_TIME_OPTIONS.indexOf(parsed) !== -1) {
+            return parsed;
+        }
+        if (parsed >= 1 && parsed <= 6) {
+            return THINKING_TIME_OPTIONS[Math.min(parsed - 1, THINKING_TIME_OPTIONS.length - 1)];
+        }
+        let nearest = THINKING_TIME_OPTIONS[0];
+        let nearestDist = Math.abs(parsed - nearest);
+        for (let i = 1; i < THINKING_TIME_OPTIONS.length; i += 1) {
+            const dist = Math.abs(parsed - THINKING_TIME_OPTIONS[i]);
+            if (dist < nearestDist) {
+                nearest = THINKING_TIME_OPTIONS[i];
+                nearestDist = dist;
+            }
+        }
+        return nearest;
+    }
+
+    function migrateSavedOptions(raw) {
+        const opts = Object.assign({}, DEFAULTS, raw || {});
+        if (opts.thinkingTimeSeconds == null && opts.difficulty != null) {
+            opts.thinkingTimeSeconds = normalizeThinkingTimeSeconds(opts.difficulty);
+        } else {
+            opts.thinkingTimeSeconds = normalizeThinkingTimeSeconds(opts.thinkingTimeSeconds);
+        }
+        return opts;
+    }
+
     function loadLastOptions() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? Object.assign({}, DEFAULTS, JSON.parse(raw)) : Object.assign({}, DEFAULTS);
+            return raw ? migrateSavedOptions(JSON.parse(raw)) : Object.assign({}, DEFAULTS);
         } catch {
             return Object.assign({}, DEFAULTS);
         }
@@ -57,7 +92,13 @@
             whitePlayerName: humanWhite ? GUEST_NAME : engineName,
             blackPlayerName: humanWhite ? engineName : GUEST_NAME,
             engine: opts.engine || DEFAULTS.engine,
-            difficulty: opts.difficulty != null ? opts.difficulty : DEFAULTS.difficulty,
+            thinkingTimeSeconds: normalizeThinkingTimeSeconds(
+                opts.thinkingTimeSeconds != null ? opts.thinkingTimeSeconds : opts.difficulty,
+            ),
+            /** @deprecated alias — same value as thinkingTimeSeconds */
+            difficulty: normalizeThinkingTimeSeconds(
+                opts.thinkingTimeSeconds != null ? opts.thinkingTimeSeconds : opts.difficulty,
+            ),
             gameTimeMinutes: opts.timeMinutes != null ? opts.timeMinutes : DEFAULTS.timeMinutes,
             mousePreference: opts.mouse || DEFAULTS.mouse,
             showAvailableMoves: opts.showAvailableMoves !== false,
@@ -77,10 +118,12 @@
     window.DesktopGameSettings = {
         DEFAULTS,
         ENGINE_OPTIONS,
+        THINKING_TIME_OPTIONS,
         loadLastOptions,
         saveLastOptions,
         buildSession,
         brainLabel,
         normalizeEngine,
+        normalizeThinkingTimeSeconds,
     };
 })();

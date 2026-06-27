@@ -4,6 +4,7 @@
 
 const fs = require("fs").promises;
 const { randomUUID } = require("crypto");
+const { normalizeThinkingTimeSeconds } = require("../modules/game/brainConfigService");
 const runtime = require("./runtime");
 
 async function readAll() {
@@ -50,7 +51,6 @@ exports.getAllUserBookmarks = async () => {
 exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, depth) => {
     const list = await readAll();
     const id = randomUUID();
-    const parsedDepth = Number(depth);
     const bookmark = {
         _id: id,
         id,
@@ -59,7 +59,7 @@ exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, 
         gameType: gameType || "SinglePlayerGame",
         moves: Array.isArray(moves) ? moves : [],
         engine: runtime.normalizeEngine(engine),
-        depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3,
+        depth: normalizeThinkingTimeSeconds(depth),
         date: new Date(),
     };
     list.push(bookmark);
@@ -82,8 +82,7 @@ exports.updateBookmark = async (_userId, id, date, name, gameType, gameState, mo
     if (moves !== undefined) { bookmark.moves = moves; }
     if (engine !== undefined) { bookmark.engine = runtime.normalizeEngine(engine); }
     if (depth !== undefined) {
-        const parsedDepth = Number(depth);
-        bookmark.depth = Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3;
+        bookmark.depth = normalizeThinkingTimeSeconds(depth);
     }
     await writeAll(list);
 };
