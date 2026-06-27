@@ -24,7 +24,7 @@ function formatPgnDate(date) {
 function escapeTagValue(value) {
     return String(value == null ? "" : value)
         .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"');
+        .replace(/"/g, "\\\"");
 }
 
 function formatTag(name, value) {

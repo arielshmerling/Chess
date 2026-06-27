@@ -1,7 +1,4 @@
-const path = require("path");
 const { mountDesktopRoutes } = require("./routes");
-
-const UI_DIR = path.join(__dirname, "ui");
 
 /**
  * Desktop-only Express setup. Called from app.js when SHMERLING_MODE=desktop.

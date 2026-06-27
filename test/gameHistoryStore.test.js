@@ -22,7 +22,7 @@ describe("gameHistoryStore", function () {
             result: "1-0",
             date: "2026.06.27",
             engine: "brain42",
-            thinkingTimeSeconds: 6,
+            thinkingTimeSeconds: 10,
             moves: [
                 { moveStr: "e4", turn: "white" },
                 { moveStr: "e5", turn: "black" },
@@ -34,7 +34,7 @@ describe("gameHistoryStore", function () {
         assert.match(pgn, /\[Black "Brain 4\.2"\]/);
         assert.match(pgn, /\[Result "1-0"\]/);
         assert.match(pgn, /\[Engine "brain42"\]/);
-        assert.match(pgn, /\[ThinkingTime "6s"\]/);
+        assert.match(pgn, /\[ThinkingTime "10s"\]/);
         assert.match(pgn, /1\.e4 e5 1-0/);
     });
 });

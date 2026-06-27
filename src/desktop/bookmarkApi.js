@@ -33,7 +33,7 @@ exports.update = catchAsync(async (req, res) => {
         return;
     }
     await bookmarkStore.updateBookmark(userId, id, date, name, gameType, gameState, moves, engine, depth);
-    res.send('{"status":"OK"}');
+    res.send("{\"status\":\"OK\"}");
 });
 
 exports.remove = catchAsync(async (req, res) => {
@@ -43,6 +43,6 @@ exports.remove = catchAsync(async (req, res) => {
         return;
     }
     const ok = await bookmarkStore.deleteBookmark(id);
-    res.send(ok ? '{"status":"OK"}' : "ERROR");
+    res.send(ok ? "{\"status\":\"OK\"}" : "ERROR");
 });
 

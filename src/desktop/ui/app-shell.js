@@ -25,10 +25,10 @@
     }
 
     function normalizeThinkingTimeSeconds(value) {
-        var allowed = [2, 4, 6, 8, 10];
+        var allowed = [2, 5, 10, 15, 20, 30, 60, 120];
         var parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) {
-            return 6;
+            return 10;
         }
         if (allowed.indexOf(parsed) !== -1) {
             return parsed;
@@ -36,7 +36,16 @@
         if (parsed >= 1 && parsed <= 6) {
             return allowed[Math.min(parsed - 1, allowed.length - 1)];
         }
-        return 6;
+        var nearest = allowed[0];
+        var nearestDist = Math.abs(parsed - nearest);
+        for (var i = 1; i < allowed.length; i += 1) {
+            var dist = Math.abs(parsed - allowed[i]);
+            if (dist < nearestDist) {
+                nearest = allowed[i];
+                nearestDist = dist;
+            }
+        }
+        return nearest;
     }
 
     function resolveThinkingTimeSeconds(opts) {
@@ -46,7 +55,7 @@
         if (opts.difficulty != null) {
             return normalizeThinkingTimeSeconds(opts.difficulty);
         }
-        return 6;
+        return 10;
     }
 
     function applyLastGameOptions(opts) {
@@ -109,7 +118,7 @@
         }
         var formData = new FormData(form);
         var thinkingTimeSeconds = normalizeThinkingTimeSeconds(
-            parseInt(formData.get("thinkingTimeSeconds") || formData.get("difficulty"), 10) || 6,
+            parseInt(formData.get("thinkingTimeSeconds") || formData.get("difficulty"), 10) || 10,
         );
         var payload = {
             color: formData.get("color") || "white",

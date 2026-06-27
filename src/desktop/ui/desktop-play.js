@@ -552,7 +552,7 @@
         }
         const next = Settings.normalizeThinkingTimeSeconds
             ? Settings.normalizeThinkingTimeSeconds(seconds)
-            : parseInt(seconds, 10) || 6;
+            : parseInt(seconds, 10) || 10;
         session = Object.assign({}, session, {
             thinkingTimeSeconds: next,
             difficulty: next,
@@ -1573,13 +1573,13 @@
                     ? session.thinkingTimeSeconds
                     : typeof session.difficulty === "number"
                       ? session.difficulty
-                      : 6,
+                      : 10,
             depth:
                 typeof session.thinkingTimeSeconds === "number"
                     ? session.thinkingTimeSeconds
                     : typeof session.difficulty === "number"
                       ? session.difficulty
-                      : 6,
+                      : 10,
         };
     }
 
@@ -1648,7 +1648,7 @@
                         ? session.thinkingTimeSeconds
                         : typeof session.difficulty === "number"
                           ? session.difficulty
-                          : 6,
+                          : 10,
                 date: entry.date || new Date(),
             });
             entry.state = JSON.stringify(game.GameState);
@@ -2263,7 +2263,7 @@
                         ? session.thinkingTimeSeconds
                         : typeof session.difficulty === "number"
                           ? session.difficulty
-                          : 6,
+                          : 10,
             });
             if (bookmark && bookmark._id) {
                 savedGames = savedGames.filter(function (b) {

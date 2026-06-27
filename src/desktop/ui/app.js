@@ -27,7 +27,7 @@
             return Settings.normalizeThinkingTimeSeconds(value);
         }
         var parsed = parseInt(value, 10);
-        return Number.isFinite(parsed) ? parsed : 6;
+        return Number.isFinite(parsed) ? parsed : 10;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -47,13 +47,9 @@
             last.thinkingTimeSeconds != null ? last.thinkingTimeSeconds : last.difficulty;
         if (thinkingTime != null) {
             var diff = form.querySelector("[name=thinkingTimeSeconds]");
-            var out = document.getElementById("difficultyOut");
             var normalized = normalizeThinkingTimeSeconds(thinkingTime);
             if (diff) {
                 diff.value = String(normalized);
-                if (out) {
-                    out.textContent = String(normalized) + "s";
-                }
             }
         }
         if (last.color === "black") {
@@ -81,28 +77,8 @@
             }
         }
 
-        var range = document.getElementById("difficultyRange");
-        var output = document.getElementById("difficultyOut");
-        if (range && output) {
-            range.addEventListener("input", function () {
-                output.textContent = range.value + "s";
-            });
-        }
-
-        form.addEventListener("submit", function (ev) {
-            ev.preventDefault();
-            var errEl = document.getElementById("newGameError");
-            var btn = document.getElementById("startBtn");
-            if (errEl) {
-                errEl.hidden = true;
-            }
-            if (btn) {
-                btn.disabled = true;
-            }
-
-            var fd = new FormData(form);
             var thinkingTimeSeconds = normalizeThinkingTimeSeconds(
-                parseInt(fd.get("thinkingTimeSeconds"), 10) || 6,
+                parseInt(fd.get("thinkingTimeSeconds"), 10) || 10,
             );
             var payload = {
                 color: fd.get("color") || "white",

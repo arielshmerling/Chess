@@ -13,7 +13,7 @@
     let panelRoot = null;
     let runTurn = "white";
     let runComputerIsWhite = false;
-    let runThinkingTimeSeconds = 6;
+    let runThinkingTimeSeconds = 10;
     let runEngine = "brain42";
     let onPlay = null;
     let onDisplayEvaluation = null;
@@ -27,7 +27,7 @@
     let computerSwatchBlack = null;
     let thinkingTimeSelect = null;
     let engineSelect = null;
-    const DEFAULT_THINKING_TIME_OPTIONS = [2, 4, 6, 8, 10];
+    const DEFAULT_THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
     const DEFAULT_ENGINE_OPTIONS = [
         { value: "brain42", label: "Brain 4.2" },
         { value: "brain41", label: "Brain 4.1" },
@@ -141,13 +141,13 @@
         }
         const parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) {
-            return 6;
+            return 10;
         }
         const options = thinkingTimeOptionsList();
         if (options.indexOf(parsed) !== -1) {
             return parsed;
         }
-        return 6;
+        return 10;
     }
 
     function setThinkingTimeSelection(seconds) {

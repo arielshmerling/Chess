@@ -4,8 +4,8 @@ const path = require("path");
 const CONFIG_DIR = path.join(__dirname, "..", "..", "config", "brains");
 const MAX_SEARCH_DEPTH = 6;
 /** Allowed engine thinking times (seconds) for desktop UI. */
-const THINKING_TIME_SECONDS_OPTIONS = [2, 4, 6, 8, 10];
-const DEFAULT_THINKING_TIME_SECONDS = 6;
+const THINKING_TIME_SECONDS_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
+const DEFAULT_THINKING_TIME_SECONDS = 10;
 
 const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -373,8 +373,8 @@ function saveBrainConfig(engineName, rawConfig) {
 }
 
 /**
- * Snap UI / stored value to an allowed thinking time (2, 4, 6, 8, 10 seconds).
- * Legacy difficulty 1–6 maps to 2, 4, 6, 8, 10, 10.
+ * Snap UI / stored value to an allowed thinking time (2, 5, 10, 15, 20, 30, 60, 120 seconds).
+ * Legacy difficulty 1–6 maps across the option list; other values snap to nearest.
  * @param {number|string|null|undefined} value
  * @returns {number}
  */

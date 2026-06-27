@@ -20,14 +20,14 @@
     const DEFAULTS = {
         color: "white",
         engine: "brain42",
-        thinkingTimeSeconds: 6,
+        thinkingTimeSeconds: 10,
         mouse: "drag",
         showAvailableMoves: true,
         allowUndo: true,
         timeMinutes: 90,
     };
 
-    const THINKING_TIME_OPTIONS = [2, 4, 6, 8, 10];
+    const THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
 
     function normalizeThinkingTimeSeconds(value) {
         const parsed = parseInt(value, 10);

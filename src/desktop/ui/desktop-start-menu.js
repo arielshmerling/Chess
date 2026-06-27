@@ -71,14 +71,16 @@
             '<option value="brain41"' +
             (last.engine === "brain41" ? " selected" : "") +
             '>Brain 4.1</option></select></div>' +
-            '<div class="desktop-field"><span class="desktop-form-section-title" id="dlgDiffLabel">Thinking time (seconds)</span>' +
-            '<div class="desktop-slider-row" aria-labelledby="dlgDiffLabel">' +
-            '<input type="range" name="thinkingTimeSeconds" min="2" max="10" step="2" value="' +
-            (last.thinkingTimeSeconds || 6) +
-            '" id="dlgThinkingTime" class="desktop-slider--gold">' +
-            '<output id="dlgThinkingTimeOut" class="desktop-slider-value">' +
-            (last.thinkingTimeSeconds || 6) +
-            "s</output></div></div>" +
+            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgThinkingTime" id="dlgDiffLabel">Thinking time (seconds)</label>' +
+            '<select name="thinkingTimeSeconds" id="dlgThinkingTime" aria-labelledby="dlgDiffLabel">' +
+            Settings.THINKING_TIME_OPTIONS.map(function (seconds) {
+                const selected =
+                    seconds === Settings.normalizeThinkingTimeSeconds(last.thinkingTimeSeconds)
+                        ? " selected"
+                        : "";
+                return '<option value="' + seconds + '"' + selected + ">" + seconds + "s</option>";
+            }).join("") +
+            "</select></div>" +
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">Time per side (minutes)</label>' +
             '<input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +
             (last.timeMinutes || 90) +
@@ -116,20 +118,12 @@
         actions.appendChild(startBtn);
         form.appendChild(actions);
 
-        const diffRange = form.querySelector("#dlgThinkingTime");
-        const diffOut = form.querySelector("#dlgThinkingTimeOut");
-        if (diffRange && diffOut) {
-            diffRange.addEventListener("input", function () {
-                diffOut.textContent = diffRange.value + "s";
-            });
-        }
-
         function submit() {
             const fd = new FormData(form);
             const payload = {
                 color: fd.get("color") || "white",
                 engine: fd.get("engine") || "brain42",
-                thinkingTimeSeconds: parseInt(fd.get("thinkingTimeSeconds"), 10) || 6,
+                thinkingTimeSeconds: parseInt(fd.get("thinkingTimeSeconds"), 10) || 10,
                 mouse: fd.get("mouse") || "drag",
                 showAvailableMoves: fd.get("showMoves") === "1",
                 allowUndo: fd.get("allowUndo") === "1",

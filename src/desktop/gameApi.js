@@ -133,7 +133,7 @@ exports.getGameMoves = catchAsync(async (req, res) => {
 exports.rematch = catchAsync(async (req, res) => {
     validate(req.body, "id");
     req.session.gameId = req.body.id;
-    res.send('{"status":"OK"}');
+    res.send("{\"status\":\"OK\"}");
 });
 
 /**
