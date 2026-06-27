@@ -2359,6 +2359,38 @@ describe("Special cases", () => {
 
 describe("PGN Move Tests", () => {
 
+    function loadEmptyForPgn(pieces, overrides = {}) {
+        const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+        for (const { row, col, color, pieceType } of pieces) {
+            board[row][col] = { color, pieceType };
+        }
+        game.loadGame(JSON.stringify({
+            board,
+            turn: "white",
+            capturedPiecesList: [],
+            check: false,
+            checkmate: false,
+            draw: false,
+            drawReason: "",
+            resigned: "",
+            outOfTime: "",
+            whiteKingMoved: true,
+            blackKingMoved: true,
+            whitePlayerView: true,
+            fiftyMovesCounter: 0,
+            promoting: false,
+            queensideWhiteRookMoved: true,
+            queensideBlackRookMoved: true,
+            kingsideWhiteRookMoved: true,
+            kingsideBlackRookMoved: true,
+            ...overrides,
+        }));
+    }
+
+    function convert(moveStr, color = "white") {
+        return game.convertPGNMove({ moveStr, color });
+    }
+
     it("e4", () => {
         const move = game.parsePGNMove("e4", "white");
         assert.equal(move.source, null);
@@ -2482,6 +2514,122 @@ describe("PGN Move Tests", () => {
         assert.deepEqual(move.source, { row: 7, col: 0 });
         assert.deepEqual(move.target, { row: 0, col: 7 });
         assert.equal(move.valid, true);
+    });
+
+    describe("findSource via convertPGNMove", () => {
+        it("resolves two queens on the same file using rank disambiguation", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 3, color: "white", pieceType: game.QUEEN },
+                { row: 3, col: 3, color: "white", pieceType: game.QUEEN },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Qd4").source, { row: 7, col: 3 });
+            assert.deepEqual(convert("Q5d4").source, { row: 3, col: 3 });
+            assert.deepEqual(convert("Q1d4").source, { row: 7, col: 3 });
+        });
+
+        it("resolves two queens on the same rank using file disambiguation", () => {
+            loadEmptyForPgn([
+                { row: 4, col: 0, color: "white", pieceType: game.QUEEN },
+                { row: 4, col: 7, color: "white", pieceType: game.QUEEN },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Qe4").source, { row: 4, col: 7 });
+            assert.deepEqual(convert("Qae4").source, { row: 4, col: 0 });
+            assert.deepEqual(convert("Qhe4").source, { row: 4, col: 7 });
+        });
+
+        it("resolves two queens on the e-file toward a shared square", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 4, color: "white", pieceType: game.QUEEN },
+                { row: 0, col: 4, color: "white", pieceType: game.QUEEN },
+                { row: 7, col: 0, color: "white", pieceType: game.KING },
+                { row: 0, col: 7, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Qe4").source, { row: 7, col: 4 });
+            assert.deepEqual(convert("Q1e4").source, { row: 7, col: 4 });
+            assert.deepEqual(convert("Q8e4").source, { row: 0, col: 4 });
+        });
+
+        it("resolves two rooks on the same rank using file disambiguation", () => {
+            loadEmptyForPgn([
+                { row: 4, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 4, col: 7, color: "white", pieceType: game.ROOK },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Rd4").source, { row: 4, col: 7 });
+            assert.deepEqual(convert("Rad4").source, { row: 4, col: 0 });
+            assert.deepEqual(convert("Rhd4").source, { row: 4, col: 7 });
+        });
+
+        it("resolves two rooks on the same file using rank disambiguation", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 3, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Ra4").source, { row: 7, col: 0 });
+            assert.deepEqual(convert("R1a4").source, { row: 7, col: 0 });
+            assert.deepEqual(convert("R5a4").source, { row: 3, col: 0 });
+        });
+
+        it("finds a bishop source square on a diagonal capture", () => {
+            loadEmptyForPgn([
+                { row: 1, col: 6, color: "white", pieceType: game.BISHOP },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+                { row: 2, col: 5, color: "black", pieceType: game.PAWN },
+            ]);
+            assert.deepEqual(convert("Bxf6").source, { row: 1, col: 6 });
+            assert.deepEqual(convert("Bxf6").target, { row: 2, col: 5 });
+        });
+
+        it("resolves two knights that can reach the same target", () => {
+            loadEmptyForPgn([
+                { row: 3, col: 1, color: "white", pieceType: game.KNIGHT },
+                { row: 5, col: 5, color: "white", pieceType: game.KNIGHT },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Nd4").source, { row: 5, col: 5 });
+            assert.deepEqual(convert("Nbd4").source, { row: 3, col: 1 });
+            assert.deepEqual(convert("Nfd4").source, { row: 5, col: 5 });
+        });
+
+        it("finds the king source square for a simple king move", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Ke2").source, { row: 7, col: 4 });
+            assert.deepEqual(convert("Ke2").target, { row: 6, col: 4 });
+        });
+
+        it("returns explicit file+rank from long-form PGN without searching the board", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 0, color: "white", pieceType: game.QUEEN },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+            ]);
+            assert.deepEqual(convert("Qa1h8").source, { row: 7, col: 0 });
+            assert.deepEqual(convert("Qa1h8").target, { row: 0, col: 7 });
+        });
+
+        it("throws when no piece can legally reach the parsed target", () => {
+            loadEmptyForPgn([
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+                { row: 2, col: 5, color: "black", pieceType: game.PAWN },
+            ]);
+            assert.throws(
+                () => convert("Bxf6"),
+                /Cannot find move:Bf6/
+            );
+        });
     });
 
 
