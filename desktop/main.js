@@ -178,6 +178,7 @@ function initDesktopBrainIpc() {
     const bundleRoot = resolveBundleRoot();
     const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
     const { computeMove, evaluatePosition } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
+    const { appendCompletedGame } = require(path.join(bundleRoot, "src/desktop/gameHistoryStore"));
     const { preloadOpeningBookAtStartup } = require(path.join(bundleRoot, "src/desktop/preloadOpeningBook"));
 
     runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
@@ -191,6 +192,11 @@ function initDesktopBrainIpc() {
 
     ipcMain.handle("brain:evaluatePosition", async (_event, payload) => {
         return evaluatePosition(payload);
+    });
+
+    ipcMain.handle("game:appendPgn", async (_event, payload) => {
+        const filePath = await appendCompletedGame(payload || {});
+        return { ok: true, filePath };
     });
 }
 

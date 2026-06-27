@@ -623,3 +623,587 @@ describe("FIDE rules — Phase 3: special moves edge cases", () => {
         });
     });
 });
+
+describe("FIDE rules — Phase 4: check, checkmate & stalemate", () => {
+    /** @type {ChessGame} */
+    let game;
+
+    beforeEach(() => {
+        game = new ChessGame(true);
+    });
+
+    /** Count legal moves for every piece of the side to move. */
+    function countLegalMoves(g) {
+        let total = 0;
+        const color = g.Turn;
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = g.GameState.board[r][c];
+                if (piece && piece.color === color) {
+                    total += g.possibleMoves({ row: r, col: c }).length;
+                }
+            }
+        }
+        return total;
+    }
+
+    /** Assert every legal move belongs to the king. */
+    function assertOnlyKingCanMove(g, color) {
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = g.GameState.board[r][c];
+                if (!piece || piece.color !== color) {
+                    continue;
+                }
+                const moves = g.possibleMoves({ row: r, col: c });
+                if (piece.pieceType === KING) {
+                    continue;
+                }
+                assert.equal(
+                    moves.length,
+                    0,
+                    `Piece at ${r},${c} should have no legal moves in double check`
+                );
+            }
+        }
+        const kingPos = findKing(g, color);
+        assert.ok(kingPos, "King should exist");
+        assert.ok(
+            g.possibleMoves(kingPos).length > 0,
+            "King should have at least one legal move when not checkmated"
+        );
+    }
+
+    function findKing(g, color) {
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = g.GameState.board[r][c];
+                if (piece && piece.color === color && piece.pieceType === KING) {
+                    return { row: r, col: c };
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Pre-mate position: Bc4 delivers discovered checkmate (from existing reveal-check test). */
+    const discoveredMateSetup = emptyBoard([
+        { row: 2, col: 0, color: "white", pieceType: QUEEN },
+        { row: 2, col: 1, color: "black", pieceType: KNIGHT },
+        { row: 3, col: 2, color: "black", pieceType: PAWN },
+        { row: 3, col: 4, color: "white", pieceType: PAWN },
+        { row: 3, col: 6, color: "black", pieceType: PAWN },
+        { row: 4, col: 1, color: "black", pieceType: KING },
+        { row: 4, col: 3, color: "white", pieceType: PAWN },
+        { row: 4, col: 4, color: "white", pieceType: KNIGHT },
+        { row: 6, col: 0, color: "white", pieceType: PAWN },
+        { row: 6, col: 1, color: "white", pieceType: BISHOP },
+        { row: 6, col: 4, color: "white", pieceType: BISHOP },
+        { row: 6, col: 5, color: "white", pieceType: PAWN },
+        { row: 6, col: 6, color: "white", pieceType: PAWN },
+        { row: 6, col: 7, color: "white", pieceType: PAWN },
+        { row: 7, col: 1, color: "white", pieceType: ROOK },
+        { row: 7, col: 4, color: "white", pieceType: KING },
+        { row: 7, col: 7, color: "white", pieceType: ROOK },
+    ], { turn: "white", blackKingMoved: true });
+
+    function deliverDiscoveredMate(g) {
+        g.loadGame(discoveredMateSetup);
+        return g.makeMove({ row: 6, col: 1 }, { row: 5, col: 2 });
+    }
+
+    describe("Double check (Article 3.9 — only the king may move)", () => {
+        it("rejects non-king moves when the king is in double check", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 0, col: 3, color: "white", pieceType: QUEEN },
+                { row: 2, col: 2, color: "white", pieceType: BISHOP },
+                { row: 2, col: 5, color: "black", pieceType: KNIGHT },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "black", check: true }));
+            assert.equal(game.Check, true);
+            assertOnlyKingCanMove(game, "black");
+            assert.equal(
+                game.validateMove({ row: 2, col: 5 }, { row: 4, col: 4 }, "black").valid,
+                false,
+                "Knight cannot move out of double check"
+            );
+        });
+
+        it("allows the king to move to a safe square when doubly checked", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 0, col: 3, color: "white", pieceType: QUEEN },
+                { row: 2, col: 2, color: "white", pieceType: BISHOP },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "black" }));
+            game.evaluate();
+            const kingPos = findKing(game, "black");
+            const kingMoves = game.possibleMoves(kingPos);
+            assert.ok(kingMoves.length > 0, "King should have at least one escape from double check");
+            assert.ok(
+                kingMoves.every((m) => m.piece.pieceType === KING),
+                "Every legal move should be a king move"
+            );
+        });
+    });
+
+    describe("Checkmate (Article 5.1.1 — king in check with no legal move)", () => {
+        it("detects discovered checkmate after the mating move", () => {
+            const move = deliverDiscoveredMate(game);
+            assert.equal(move.checkmate, true);
+            assert.equal(game.Checkmate, true);
+            const result = game.evaluate();
+            assert.equal(result.check, true);
+            assert.equal(result.checkmate, true);
+            assert.equal(countLegalMoves(game), 0);
+        });
+
+        it("declares game over and rejects further moves", () => {
+            deliverDiscoveredMate(game);
+            const move = game.validateMove({ row: 4, col: 1 }, { row: 3, col: 1 }, "black");
+            assert.equal(move.valid, false);
+            assert.equal(move.reason, game.Reasons.GAME_OVER);
+        });
+    });
+
+    describe("Stalemate (Article 5.2.2 — not in check, no legal move)", () => {
+        it("detects stalemate when the king is not attacked", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 1, col: 2, color: "white", pieceType: QUEEN },
+                { row: 3, col: 1, color: "white", pieceType: KING },
+            ], { turn: "black" }));
+            const result = game.evaluate();
+            assert.equal(result.check, false);
+            assert.equal(result.checkmate, false);
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "Stalemate");
+            assert.equal(countLegalMoves(game), 0);
+        });
+
+        it("does not confuse stalemate with checkmate", () => {
+            const stalemate = emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 1, col: 2, color: "white", pieceType: QUEEN },
+                { row: 3, col: 1, color: "white", pieceType: KING },
+            ], { turn: "black" });
+
+            game.loadGame(stalemate);
+            const staleResult = game.evaluate();
+            assert.equal(staleResult.draw, true);
+            assert.equal(staleResult.checkmate, false);
+
+            deliverDiscoveredMate(game);
+            const mateResult = game.evaluate();
+            assert.equal(mateResult.checkmate, true);
+            assert.equal(mateResult.draw, false);
+        });
+    });
+
+    describe("evaluate() (recompute game status without playing a move)", () => {
+        it("recomputes check when the loaded state flag is stale", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 4, col: 4, color: "white", pieceType: QUEEN },
+                { row: 7, col: 0, color: "white", pieceType: KING },
+            ], { turn: "black", check: false }));
+            const result = game.evaluate();
+            assert.equal(result.check, true);
+            assert.equal(game.Check, true);
+        });
+
+        it("recomputes stalemate when draw flags were not set on load", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 1, col: 2, color: "white", pieceType: QUEEN },
+                { row: 3, col: 1, color: "white", pieceType: KING },
+            ], { turn: "black", draw: false, check: false }));
+            const result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "Stalemate");
+            assert.equal(game.Draw, true);
+        });
+
+        it("recomputes checkmate when mate flags were not set on load", () => {
+            deliverDiscoveredMate(game);
+            game.GameState.checkmate = false;
+            game.GameState.check = false;
+            const result = game.evaluate();
+            assert.equal(result.check, true);
+            assert.equal(result.checkmate, true);
+            assert.equal(game.Checkmate, true);
+        });
+    });
+});
+
+/** Kings, knights, and queens — enough material to avoid an immediate insufficient-material draw. */
+const REPETITION_PIECES = [
+    { row: 0, col: 4, color: "black", pieceType: KING },
+    { row: 0, col: 6, color: "black", pieceType: KNIGHT },
+    { row: 0, col: 3, color: "black", pieceType: QUEEN },
+    { row: 7, col: 4, color: "white", pieceType: KING },
+    { row: 7, col: 6, color: "white", pieceType: KNIGHT },
+    { row: 7, col: 3, color: "white", pieceType: QUEEN },
+];
+
+function loadRepetitionStart(game, overrides = {}) {
+    game.loadGame(emptyBoard(REPETITION_PIECES, {
+        whiteKingMoved: false,
+        blackKingMoved: false,
+        ...overrides,
+    }));
+}
+
+function knightCycle(game) {
+    play(game, { row: 7, col: 6 }, { row: 5, col: 7 });
+    play(game, { row: 0, col: 6 }, { row: 2, col: 5 });
+    play(game, { row: 5, col: 7 }, { row: 7, col: 6 });
+    play(game, { row: 2, col: 5 }, { row: 0, col: 6 });
+}
+
+function kingShuffle(game) {
+    play(game, { row: 7, col: 4 }, { row: 6, col: 4 });
+    play(game, { row: 0, col: 4 }, { row: 1, col: 4 });
+    play(game, { row: 6, col: 4 }, { row: 7, col: 4 });
+    play(game, { row: 1, col: 4 }, { row: 0, col: 4 });
+}
+
+describe("FIDE rules — Phase 5: draw rule refinements", () => {
+    /** @type {ChessGame} */
+    let game;
+
+    beforeEach(() => {
+        game = new ChessGame(true);
+    });
+
+    describe("Fifty-move rule (Article 9.3 — 50 moves without pawn move or capture)", () => {
+        it("resets the counter to zero after a pawn move", () => {
+            game.loadGame(emptyBoard([
+                { row: 5, col: 4, color: "white", pieceType: PAWN },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { fiftyMovesCounter: 45, turn: "white" }));
+            play(game, { row: 5, col: 4 }, { row: 4, col: 4 });
+            assert.equal(game.GameState.fiftyMovesCounter, 0);
+            assert.equal(game.Draw, false);
+        });
+
+        it("resets the counter to zero after a capture", () => {
+            game.loadGame(emptyBoard([
+                { row: 4, col: 4, color: "white", pieceType: ROOK },
+                { row: 4, col: 5, color: "black", pieceType: PAWN },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { fiftyMovesCounter: 45, turn: "white" }));
+            play(game, { row: 4, col: 4 }, { row: 4, col: 5 });
+            assert.equal(game.GameState.fiftyMovesCounter, 0);
+            assert.equal(game.Draw, false);
+        });
+
+        it("increments the counter on quiet piece moves", () => {
+            game.loadGame(emptyBoard([
+                { row: 4, col: 4, color: "white", pieceType: KNIGHT },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+                { row: 0, col: 3, color: "black", pieceType: QUEEN },
+                { row: 7, col: 3, color: "white", pieceType: QUEEN },
+            ], { fiftyMovesCounter: 10, turn: "white" }));
+            play(game, { row: 4, col: 4 }, { row: 2, col: 5 });
+            assert.equal(game.GameState.fiftyMovesCounter, 11);
+            assert.equal(game.Draw, false);
+        });
+
+        it("declares a draw when the counter reaches 50 after a quiet move", () => {
+            let drawFired = false;
+            game.OnDraw = () => { drawFired = true; };
+            game.loadGame(emptyBoard([
+                { row: 3, col: 4, color: "white", pieceType: KNIGHT },
+                { row: 4, col: 3, color: "black", pieceType: KNIGHT },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { fiftyMovesCounter: 49, turn: "black" }));
+            play(game, { row: 4, col: 3 }, { row: 2, col: 4 });
+            assert.equal(game.Draw, true);
+            assert.equal(game.DrawReason, "50 Moves");
+            assert.equal(drawFired, true);
+        });
+    });
+
+    describe("Insufficient material (Article 5.2.2)", () => {
+        it("declares K vs K as insufficient material", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            const result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "insufficient Materials");
+        });
+
+        it("declares K+B vs K+B on same-color squares as insufficient material", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 2, col: 5, color: "black", pieceType: BISHOP },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+                { row: 5, col: 2, color: "white", pieceType: BISHOP },
+            ]));
+            const result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "insufficient Materials");
+        });
+
+        it("does not declare K+B vs K+B on opposite-color squares as insufficient material", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 2, col: 2, color: "black", pieceType: BISHOP },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+                { row: 5, col: 2, color: "white", pieceType: BISHOP },
+            ]));
+            const result = game.evaluate();
+            assert.equal(result.draw, false);
+        });
+
+        it("declares K+N vs K+N as insufficient material", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 2, col: 7, color: "black", pieceType: KNIGHT },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+                { row: 5, col: 0, color: "white", pieceType: KNIGHT },
+            ]));
+            const result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "insufficient Materials");
+        });
+
+        it("does not declare K+P vs K+P as insufficient material", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 1, col: 4, color: "black", pieceType: PAWN },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+                { row: 6, col: 4, color: "white", pieceType: PAWN },
+            ]));
+            const result = game.evaluate();
+            assert.equal(result.draw, false);
+        });
+    });
+
+    describe("Threefold repetition (Article 5.2.2)", () => {
+        it("declares a draw after the same position occurs three times", () => {
+            let drawFired = false;
+            game.OnDraw = () => { drawFired = true; };
+            loadRepetitionStart(game);
+            knightCycle(game);
+            assert.equal(game.Draw, false, "one cycle is only the second occurrence");
+            knightCycle(game);
+            assert.equal(game.Draw, true);
+            assert.equal(game.DrawReason, "Threefold Repetition");
+            assert.equal(drawFired, true);
+        });
+
+        it("does not count earlier positions with different castling rights toward threefold", () => {
+            loadRepetitionStart(game);
+            kingShuffle(game);
+            assert.equal(game.GameState.whiteKingMoved, true);
+            assert.equal(game.GameState.blackKingMoved, true);
+            knightCycle(game);
+            assert.equal(game.Draw, false, "one cycle after castling rights changed is not yet threefold");
+        });
+    });
+});
+
+function assertGameOverMoveBlocked(game, source, target, color) {
+    const move = game.validateMove(source, target, color);
+    assert.equal(move.valid, false);
+    assert.equal(move.reason, game.Reasons.GAME_OVER);
+}
+
+describe("FIDE rules — Phase 6: game termination", () => {
+    /** @type {ChessGame} */
+    let game;
+
+    beforeEach(() => {
+        game = new ChessGame(true);
+    });
+
+    describe("Resignation (Article 9.6 — a player may resign)", () => {
+        it("normalizes the resigning player name to lowercase", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.resign("White");
+            assert.equal(game.GameState.resigned, "white");
+        });
+
+        it("ends the game with 0-1 when white resigns", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.resign("white");
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "0-1");
+        });
+
+        it("ends the game with 1-0 when black resigns", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.resign("black");
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "1-0");
+        });
+
+        it("reports resignation in GameOverReason", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.resign("black");
+            assert.equal(game.GameOverReason, "black Player Resigned.");
+        });
+
+        it("blocks further moves after resignation", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            game.resign("black");
+            assertGameOverMoveBlocked(game, { row: 7, col: 4 }, { row: 6, col: 4 }, "white");
+        });
+    });
+
+    describe("Timeout (Article 6.9 — loss on time)", () => {
+        it("ends the game with 0-1 when white runs out of time", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.OutOfTime = "white";
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "0-1");
+        });
+
+        it("ends the game with 1-0 when black runs out of time", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.OutOfTime = "black";
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "1-0");
+        });
+
+        it("blocks further moves after a timeout", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            game.OutOfTime = "black";
+            assertGameOverMoveBlocked(game, { row: 7, col: 4 }, { row: 6, col: 4 }, "white");
+        });
+    });
+
+    describe("Draw offer accepted (Article 9.6 — agreement to a draw)", () => {
+        it("declares a draw with result 1/2-1/2", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.drawOfferAccepted("white");
+            assert.equal(game.Draw, true);
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "1/2-1/2");
+            assert.equal(game.DrawReason, "white player's draw offer accepted");
+        });
+
+        it("fires OnDraw with the acceptance reason", () => {
+            let drawFired = false;
+            let drawReason = "";
+            game.OnDraw = (reason) => {
+                drawFired = true;
+                drawReason = reason;
+            };
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ]));
+            game.drawOfferAccepted("black");
+            assert.equal(drawFired, true);
+            assert.equal(drawReason, "black player's draw offer accepted");
+        });
+
+        it("blocks further moves after a draw is agreed", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            game.drawOfferAccepted("white");
+            assertGameOverMoveBlocked(game, { row: 7, col: 4 }, { row: 6, col: 4 }, "white");
+        });
+    });
+
+    describe("Game-over invariants", () => {
+        it("returns null ResultMove while the game is in progress", () => {
+            game.loadGame(emptyBoard([
+                { row: 6, col: 4, color: "white", pieceType: PAWN },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            assert.equal(game.GameOver, false);
+            assert.equal(game.ResultMove, null);
+        });
+
+        it("rejects moves on a loaded draw position", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 1, col: 2, color: "white", pieceType: QUEEN },
+                { row: 3, col: 1, color: "white", pieceType: KING },
+            ], { turn: "black", draw: true, drawReason: "Stalemate" }));
+            assert.equal(game.GameOver, true);
+            assertGameOverMoveBlocked(game, { row: 0, col: 0 }, { row: 0, col: 1 }, "black");
+        });
+
+        it("rejects moves on a loaded resignation state", () => {
+            game.loadGame(emptyBoard([
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white", resigned: "white" }));
+            assert.equal(game.GameOver, true);
+            assert.equal(game.ResultMove.moveStr, "0-1");
+            assertGameOverMoveBlocked(game, { row: 7, col: 4 }, { row: 6, col: 4 }, "white");
+        });
+
+        it("undo restores a playable position after resignation without a new snapshot", () => {
+            game.loadGame(emptyBoard([
+                { row: 6, col: 4, color: "white", pieceType: PAWN },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+            game.resign("white");
+            assert.equal(game.GameOver, true);
+            game.undo();
+            assert.equal(game.GameOver, false);
+            assert.equal(game.GameState.resigned, "");
+            assert.equal(game.Turn, "white");
+            assert.ok(game.GameState.board[6][4], "pawn should be back on e2 after undo");
+        });
+
+        it("redo replays a move that was undone", () => {
+            game.loadGame(emptyBoard([
+                { row: 6, col: 4, color: "white", pieceType: PAWN },
+                { row: 0, col: 4, color: "black", pieceType: KING },
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "white" }));
+            play(game, { row: 6, col: 4 }, { row: 4, col: 4 });
+            game.undo();
+            assert.equal(game.Turn, "white");
+            game.redo();
+            assert.equal(game.Turn, "black");
+            assert.ok(game.GameState.board[4][4], "pawn should be on e4 after redo");
+        });
+    });
+});

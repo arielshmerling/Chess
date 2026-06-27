@@ -15,6 +15,7 @@
     let game = null;
     const Settings = window.DesktopGameSettings;
     const Engine = window.DesktopEngine;
+    const GameLog = window.DesktopGameLog;
     const Dialog = window.DesktopDialog;
     const NewGameDialog = window.DesktopNewGameDialog;
 
@@ -51,6 +52,7 @@
     let configurationPanelMounted = false;
     let gameRunPanelMounted = false;
     let currentGameId = null;
+    let gameHistoryLogged = false;
 
     const ACTION_ICONS = {
         resign:
@@ -346,6 +348,56 @@
         showStatus("Time's up! " + loser + " lost", 5000, "timeout");
         game.OutOfTime = loser;
         updateActionButtons();
+        tryLogCompletedGame();
+    }
+
+    function tryLogCompletedGame() {
+        if (
+            gameHistoryLogged ||
+            !game ||
+            !game.GameOver ||
+            !gameActive ||
+            reviewMode ||
+            positionSetupMode ||
+            configurationMode
+        ) {
+            return;
+        }
+        const moves = tableMovesFromGame();
+        if (!moves.length) {
+            return;
+        }
+        if (!GameLog || typeof GameLog.appendCompletedGame !== "function") {
+            return;
+        }
+
+        const resultMove = game.ResultMove;
+        const payload = {
+            whitePlayer: session && session.whitePlayerName ? session.whitePlayerName : "White",
+            blackPlayer: session && session.blackPlayerName ? session.blackPlayerName : "Black",
+            result: resultMove && resultMove.moveStr ? resultMove.moveStr : "*",
+            moves: moves.map(function (m) {
+                return {
+                    moveStr: m.moveStr || "",
+                    turn: m.turn,
+                    piece: m.piece,
+                };
+            }),
+            engine: session && session.engine ? session.engine : undefined,
+            thinkingTimeSeconds:
+                session && session.thinkingTimeSeconds != null
+                    ? session.thinkingTimeSeconds
+                    : session && session.difficulty != null
+                      ? session.difficulty
+                      : undefined,
+            termination: game.GameOverReason || "",
+        };
+
+        gameHistoryLogged = true;
+        GameLog.appendCompletedGame(payload).catch(function (err) {
+            gameHistoryLogged = false;
+            console.error("Could not append game to PGN log:", err);
+        });
     }
 
     /**
@@ -891,6 +943,7 @@
         game.loadMoves([]);
         applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
+        gameHistoryLogged = false;
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
         updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
@@ -1187,6 +1240,7 @@
             return;
         }
         assignNewGameId();
+        gameHistoryLogged = false;
         const setupOpts =
             GameRun && GameRun.getOptions
                 ? GameRun.getOptions()
@@ -2336,6 +2390,7 @@
             clearInterval(blackHandle);
         }
         updateActionButtons();
+        tryLogCompletedGame();
     }
 
     function onDraw(reason) {
@@ -2349,6 +2404,7 @@
             clearInterval(blackHandle);
         }
         updateActionButtons();
+        tryLogCompletedGame();
     }
 
     function adjustIncomingNetworkMoveForBoardView(move) {
@@ -2505,6 +2561,7 @@
     async function beginNewGame(opts) {
         applySessionSettings(opts);
         assignNewGameId();
+        gameHistoryLogged = false;
         game.startNewGame(currentPlayerIsWhite);
         clearDisplayedEvaluation();
         resetClocks();
@@ -2720,6 +2777,7 @@
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
             updateActionButtons();
+            tryLogCompletedGame();
         });
     }
 
@@ -2814,6 +2872,7 @@
         confirmDialog("Leave game?", "Your game will be resigned.", function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
+            tryLogCompletedGame();
             resetToIdleScreen();
         });
     }
