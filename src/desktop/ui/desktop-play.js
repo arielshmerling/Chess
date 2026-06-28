@@ -35,6 +35,7 @@
     let headerEventKind = null;
     let headerEventTimer = null;
     let animating = false;
+    let engineThinking = false;
     let redoPairAvailable = false;
     let allowUndo = true;
     let batchUndoRedo = false;
@@ -1145,7 +1146,7 @@
             showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
             return;
         }
-        if (animating) {
+        if (animating || engineThinking) {
             showStatus("Wait for the current move to finish before evaluating", 2500, "info");
             return;
         }
@@ -1441,7 +1442,7 @@
     }
 
     function canUndoMovePair() {
-        if (!allowUndo || !game || game.GameOver || animating || dialogOn) {
+        if (!allowUndo || !game || game.GameOver || animating || engineThinking || dialogOn) {
             return false;
         }
         const moveCount = game.Moves ? game.Moves.length : 0;
@@ -1525,7 +1526,7 @@
         }
         setButtonDisabled("resignBtn", over || animating);
         setButtonDisabled("drawBtn", over || animating || !humanTurn);
-        const undoRedoDisabled = !allowUndo || over || animating || dialogOn;
+        const undoRedoDisabled = !allowUndo || over || animating || engineThinking || dialogOn;
         setButtonDisabled("undoBtn", undoRedoDisabled || !canUndoMovePair());
         setButtonDisabled("redoBtn", undoRedoDisabled || !redoPairAvailable);
         setButtonDisabled("lastMoveBtn", !hasMoves);
@@ -2041,7 +2042,7 @@
     }
 
     async function loadSavedGame(bookmarkId) {
-        if (!game || animating || dialogOn) {
+        if (!game || animating || engineThinking || dialogOn) {
             return;
         }
         const entry = savedGames.find(function (b) {
@@ -2073,7 +2074,7 @@
     }
 
     async function editSavedGame(bookmarkId) {
-        if (!game || animating || dialogOn) {
+        if (!game || animating || engineThinking || dialogOn) {
             return;
         }
         const entry = savedGames.find(function (b) {
@@ -2247,7 +2248,7 @@
     }
 
     async function onSaveGame() {
-        if (!game || !session || animating || dialogOn) {
+        if (!game || !session || animating || engineThinking || dialogOn) {
             return;
         }
         const state = game.GameState;
@@ -2501,14 +2502,15 @@
         ) {
             return;
         }
-        if (animating || dialogOn) {
+        if (animating || engineThinking || dialogOn) {
             return;
         }
         if (Board.resetSquareColors) {
             Board.resetSquareColors();
         }
         await yieldForPaint();
-        animating = true;
+        engineThinking = true;
+        updateActionButtons();
         showStatus("Engine thinking…", 0, "info");
         try {
             const move = await Engine.computeMove({
@@ -2526,6 +2528,9 @@
             if (move.promotion && move.selectedPiece == null) {
                 move.selectedPiece = game.QUEEN;
             }
+            engineThinking = false;
+            animating = true;
+            updateActionButtons();
             const applied = await applyEngineMove(move);
             if (!applied) {
                 showStatus("Engine move could not be applied", 0, "error");
@@ -2539,6 +2544,7 @@
             console.error(err);
             showStatus(err.message || "Engine error", 0, "error");
         } finally {
+            engineThinking = false;
             animating = false;
             if (Board.refreshHumanPieceInput) {
                 Board.refreshHumanPieceInput();
@@ -2815,7 +2821,7 @@
     }
 
     async function onRedo() {
-        if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating) {
+        if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating || engineThinking) {
             return;
         }
         clearDisplayedEvaluation();

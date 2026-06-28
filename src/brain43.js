@@ -2,7 +2,7 @@
  * Brain 4.3 — same evaluation and search as Brain 4.2, with parallel root-move search
  * across a small worker pool (up to 4 threads) inside the search worker.
  */
-const { isMainThread } = require("worker_threads");
+const { Worker, isMainThread, parentPort } = require("worker_threads");
 const path = require("path");
 const ROOT_EVAL_WORKER_SCRIPT = path.join(__dirname, "brain43RootEvalWorker.js");
 const { ChessGame } = require("./ChessGame");
@@ -399,6 +399,116 @@ class BrainTimeoutFallbackError extends Error {
     }
 }
 
+let persistentWorker = null;
+let requestIdCounter = 0;
+const pendingRequests = new Map();
+
+function getOrCreateWorker() {
+    if (!isMainThread) {
+        throw new Error("getOrCreateWorker called from worker thread");
+    }
+    if (!persistentWorker) {
+        console.log(`${LOG_PREFIX} Creating persistent worker thread...`);
+        persistentWorker = new Worker(__filename);
+
+        persistentWorker.on("message", (response) => {
+            const { requestId, move, error } = response;
+            const pending = pendingRequests.get(requestId);
+            if (pending) {
+                pendingRequests.delete(requestId);
+                clearTimeout(pending.timeout);
+                if (error) {
+                    pending.reject(new Error(error));
+                } else if (move) {
+                    pending.resolve(move);
+                } else {
+                    pending.reject(new Error("Worker returned null move"));
+                }
+            }
+        });
+
+        persistentWorker.on("error", (err) => {
+            console.error(`${LOG_PREFIX} Persistent worker thread error:`, err);
+            for (const [, pending] of pendingRequests.entries()) {
+                clearTimeout(pending.timeout);
+                pending.reject(err);
+            }
+            pendingRequests.clear();
+            persistentWorker = null;
+        });
+
+        persistentWorker.on("exit", (code) => {
+            if (code !== 0) {
+                console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
+            }
+            for (const [, pending] of pendingRequests.entries()) {
+                clearTimeout(pending.timeout);
+                pending.reject(new Error(`Worker thread exited with code ${code}`));
+            }
+            pendingRequests.clear();
+            persistentWorker = null;
+        });
+    }
+    return persistentWorker;
+}
+
+function terminatePersistentWorker(reason) {
+    if (!persistentWorker) {
+        return;
+    }
+    console.warn(`${LOG_PREFIX} Terminating worker: ${reason}`);
+    const worker = persistentWorker;
+    persistentWorker = null;
+    for (const [, pending] of pendingRequests.entries()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error(reason || "Worker terminated"));
+    }
+    pendingRequests.clear();
+    worker.terminate();
+}
+
+function createWorkerPromise(strState, searchOptions) {
+    return new Promise((resolve, reject) => {
+        if (!isMainThread) {
+            reject(new Error("createWorkerPromise called from worker thread"));
+            return;
+        }
+        const requestId = ++requestIdCounter;
+        const worker = getOrCreateWorker();
+        const thinkingTimeMs = searchOptions?.thinkingTimeMs;
+        const maxDepth = searchOptions?.maxDepth;
+        const config = searchOptions?.config;
+        const pliesPlayed = searchOptions?.pliesPlayed;
+        const timeoutMs = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+            ? Math.max(1000, Math.floor(Number(thinkingTimeMs)) + THINKING_TIME_SAFETY_BUFFER_MS)
+            : BRAIN_MOVE_TIMEOUT_MS;
+
+        const timeout = setTimeout(() => {
+            const pending = pendingRequests.get(requestId);
+            if (pending) {
+                pendingRequests.delete(requestId);
+                console.error(`${LOG_PREFIX} move timeout for request ${requestId} after ${timeoutMs}ms`);
+                terminatePersistentWorker("Brain move timeout");
+                reject(new Error("Brain move timeout"));
+            }
+        }, timeoutMs);
+
+        pendingRequests.set(requestId, { resolve, reject, timeout });
+        const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+            ? `time ${thinkingTimeMs}ms`
+            : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
+        console.log(`${LOG_PREFIX} Sending request ${requestId} (${label})`);
+        worker.postMessage({
+            requestId,
+            gameState: strState,
+            thinkingTimeMs,
+            maxDepth,
+            config,
+            pliesPlayed,
+        });
+    });
+}
+
 function isBookMoveStillLegal(game, move) {
     if (!move || move.source == null || move.target == null) {
         return false;
@@ -585,6 +695,7 @@ exports.brainNextMoveFunc = async (game, options) => {
     if (!Array.isArray(state.capturedPiecesList)) {
         state.capturedPiecesList = [];
     }
+    const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
 
     const mateNow = findImmediateMatingMove(game, collectLegalMoves(game));
@@ -603,15 +714,15 @@ exports.brainNextMoveFunc = async (game, options) => {
         return bookMove;
     }
 
-    const searchOptions = {
+    const workerSearchOptions = {
         config: brain43FullConfig,
         pliesPlayed,
     };
     if (options?.thinkingTimeMs != null && Number(options.thinkingTimeMs) > 0) {
-        searchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
-        console.log(`${LOG_PREFIX} Search budget: ${searchOptions.thinkingTimeMs}ms`);
+        workerSearchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
+        console.log(`${LOG_PREFIX} Search budget: ${workerSearchOptions.thinkingTimeMs}ms`);
     } else {
-        searchOptions.maxDepth = maxDepth;
+        workerSearchOptions.maxDepth = maxDepth;
         const searchPlan = planSearchDepth(game, maxDepth, brain43FullConfig);
         if (searchPlan.moves.length > 0 && !findImmediateMatingMove(game, searchPlan.moves)) {
             logSearchPlan(
@@ -624,11 +735,10 @@ exports.brainNextMoveFunc = async (game, options) => {
     }
 
     try {
-        const move = await runBrain43SearchLocal(game, searchOptions);
+        const move = await createWorkerPromise(strState, workerSearchOptions);
         if (move && move.searchDepthReached != null) {
             console.log(
-                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}, `
-                    + `leaf evaluations=${leafEvaluationsThisSearch}`,
+                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}`,
             );
         }
         return move;
@@ -644,16 +754,31 @@ exports.brainNextMoveFunc = async (game, options) => {
             );
             throw new BrainTimeoutFallbackError(fallbackMove);
         }
-        console.warn(`${LOG_PREFIX} Search failed: ${err.message}`);
-        const fallbackMove = getFirstLegalMove(game);
-        if (!fallbackMove) {
-            throw new Error("No legal moves available (checkmate or stalemate)");
+        console.warn(`${LOG_PREFIX} First worker attempt failed: ${err.message}`);
+        try {
+            return await createWorkerPromise(strState, workerSearchOptions);
+        } catch (retryErr) {
+            if (retryErr && retryErr.message === "Brain move timeout") {
+                const fallbackMove = getFirstLegalMove(game);
+                if (!fallbackMove) {
+                    throw new Error("No legal moves available (checkmate or stalemate)");
+                }
+                fallbackMove.searchDepthReached = 0;
+                console.log(
+                    `${LOG_PREFIX} Timeout fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+                );
+                throw new BrainTimeoutFallbackError(fallbackMove);
+            }
+            const fallbackMove = getFirstLegalMove(game);
+            if (!fallbackMove) {
+                throw new Error("No legal moves available (checkmate or stalemate)");
+            }
+            fallbackMove.searchDepthReached = 0;
+            console.log(
+                `${LOG_PREFIX} Error fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+            );
+            throw new BrainTimeoutFallbackError(fallbackMove);
         }
-        fallbackMove.searchDepthReached = 0;
-        console.log(
-            `${LOG_PREFIX} Error fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
-        );
-        throw new BrainTimeoutFallbackError(fallbackMove);
     }
 };
 
@@ -2039,3 +2164,99 @@ function evaluateRootMoveInWorker(request) {
 }
 
 exports.evaluateRootMoveInWorker = evaluateRootMoveInWorker;
+
+let workerChess = null;
+
+if (!isMainThread) {
+    if (!workerChess) {
+        workerChess = new ChessGame();
+    }
+
+    console.log(`${LOG_PREFIX} worker thread initialized`);
+
+    parentPort.on("message", (request) => {
+        const {
+            requestId,
+            gameState,
+            thinkingTimeMs: requestThinkingTimeMs,
+            maxDepth: requestMaxDepth,
+            config,
+            pliesPlayed,
+        } = request;
+
+        if (!requestId || !gameState) {
+            console.error(`${LOG_PREFIX} Worker received invalid request`, request);
+            parentPort.postMessage({ requestId: request?.requestId || 0, error: "Invalid request format" });
+            return;
+        }
+
+        (async () => {
+            const maxDepth = requestMaxDepth != null
+                ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth)))
+                : DEFAULT_MAX_DEPTH;
+            const thinkingTimeMs = requestThinkingTimeMs != null && Number(requestThinkingTimeMs) > 0
+                ? Math.floor(Number(requestThinkingTimeMs))
+                : null;
+            setBrain43SearchContext(config || {}, pliesPlayed ?? 0);
+            const startTime = Date.now();
+
+            try {
+                workerChess.loadGame(gameState);
+                if (!Array.isArray(workerChess.GameState.capturedPiecesList)) {
+                    workerChess.GameState.capturedPiecesList = [];
+                }
+                const searchOptions = {
+                    config: brain43FullConfig,
+                    pliesPlayed: pliesPlayed ?? 0,
+                };
+                if (thinkingTimeMs != null) {
+                    searchOptions.thinkingTimeMs = thinkingTimeMs;
+                } else {
+                    searchOptions.maxDepth = maxDepth;
+                }
+
+                const move = await runBrain43SearchLocal(workerChess, searchOptions);
+                let out = move;
+                if (!out || out.source == null) {
+                    out = getFirstLegalMove(workerChess);
+                    if (out) {
+                        out.searchDepthReached = 0;
+                    }
+                    console.error(`${LOG_PREFIX} Worker: search returned empty; first legal fallback`);
+                } else {
+                    const v = workerChess.validateMove(out.source, out.target, workerChess.Turn);
+                    if (!v.valid) {
+                        out = getFirstLegalMove(workerChess);
+                        if (out) {
+                            out.searchDepthReached = 0;
+                        }
+                        console.error(`${LOG_PREFIX} Worker: chosen move failed validateMove; first legal fallback`, out);
+                    }
+                }
+
+                const duration = Date.now() - startTime;
+                const depthReached = out && out.searchDepthReached != null ? out.searchDepthReached : "?";
+                console.log(
+                    `${LOG_PREFIX} request=${requestId} done in ${duration}ms, `
+                        + `depth=${depthReached}, move=${bookMovePgn(workerChess, out)}, `
+                        + `leaf evaluations=${leafEvaluationsThisSearch}`,
+                );
+
+                if (out && out.source != null) {
+                    out.turn = workerChess.Turn;
+                    parentPort.postMessage({ requestId, move: out });
+                } else {
+                    parentPort.postMessage({ requestId, error: "No move found" });
+                }
+            } catch (err) {
+                const duration = Date.now() - startTime;
+                console.error(
+                    `${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms `
+                        + `(leaf evaluations before error: ${leafEvaluationsThisSearch}):`,
+                    err,
+                );
+                parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
+            }
+        })();
+    });
+}
