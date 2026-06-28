@@ -939,8 +939,13 @@
         state.gameOver = false;
         state.promoting = false;
         state.capturedPiecesList = state.capturedPiecesList || [];
+        // Continue from a loaded saved game: keep its move history so new moves
+        // append to the existing list instead of wiping it. For a freshly set-up
+        // position this is naturally empty, so behavior there is unchanged.
+        const continuedMoves =
+            Array.isArray(game.Moves) && game.Moves.length ? game.Moves.slice() : [];
         game.loadGame(JSON.stringify(state));
-        game.loadMoves([]);
+        game.loadMoves(continuedMoves);
         applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
         gameHistoryLogged = false;
@@ -954,7 +959,7 @@
         if (Board.updateCaptureLists && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
         }
-        updateMovesTable([]);
+        updateMovesTable(movesForMovesTable(continuedMoves));
         updateMatchHeader();
         updateHeaderTurn();
         gameActive = true;
