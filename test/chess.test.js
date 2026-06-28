@@ -2903,6 +2903,359 @@ describe("getSimpleNotation", () => {
     });
 });
 
+describe("ChessGame coverage gaps", () => {
+    function loadEmpty(pieces, overrides = {}) {
+        const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+        for (const { row, col, color, pieceType } of pieces) {
+            board[row][col] = { color, pieceType };
+        }
+        return JSON.stringify({
+            board,
+            turn: "white",
+            capturedPiecesList: [],
+            check: false,
+            checkmate: false,
+            draw: false,
+            drawReason: "",
+            resigned: "",
+            outOfTime: "",
+            whiteKingMoved: true,
+            blackKingMoved: true,
+            whitePlayerView: true,
+            fiftyMovesCounter: 0,
+            promoting: false,
+            queensideWhiteRookMoved: true,
+            queensideBlackRookMoved: true,
+            kingsideWhiteRookMoved: true,
+            kingsideBlackRookMoved: true,
+            ...overrides,
+        });
+    }
+
+    function convert(moveStr, color = "white") {
+        return game.convertPGNMove({ moveStr, color });
+    }
+
+    function standardKings() {
+        return [
+            { row: 7, col: 4, color: "white", pieceType: game.KING },
+            { row: 0, col: 4, color: "black", pieceType: game.KING },
+        ];
+    }
+
+    describe("state helpers and notation edge cases", () => {
+        it("SavedGameState strips volatile fields from the snapshot", () => {
+            game.startNewGame(true);
+            game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+            const saved = game.SavedGameState;
+            assert.equal(saved.includes("capturedPiecesList"), false);
+            assert.equal(saved.includes("fiftyMovesCounter"), false);
+            assert.equal(saved.includes("lastMove"), false);
+        });
+
+        it("SearchMode skips getPGNMoveNotation output", () => {
+            game.startNewGame(true);
+            game.SearchMode = true;
+            assert.equal(
+                game.getPGNMoveNotation({
+                    valid: true,
+                    source: { row: 6, col: 4 },
+                    target: { row: 4, col: 4 },
+                    piece: { color: "white", pieceType: game.PAWN },
+                }),
+                undefined
+            );
+            game.SearchMode = false;
+        });
+
+        it("loadMoves notifies listeners and loadGame clears a stale promoting flag", () => {
+            let updateCount = 0;
+            game.OnUpdate = () => { updateCount++; };
+            game.loadGame(loadEmpty([], { promoting: true }));
+            assert.equal(game.GameState.promoting, false);
+            assert.ok(updateCount >= 1);
+            game.loadMoves([{ moveStr: "e4" }]);
+            assert.ok(updateCount >= 2);
+        });
+
+        it("completePromotion still works when the moves list was cleared", () => {
+            game.loadGame(loadEmpty([
+                { row: 1, col: 6, color: "white", pieceType: game.PAWN },
+                { row: 0, col: 7, color: "black", pieceType: game.PAWN },
+                ...standardKings(),
+            ]));
+            const promoMove = game.makeMove({ row: 1, col: 6 }, { row: 0, col: 7 });
+            game.loadMoves([]);
+            promoMove.selectedPiece = game.QUEEN;
+            game.completePromotion(promoMove);
+            assert.equal(game.GameState.promoting, false);
+            assert.equal(game.Moves.length, 1);
+            assert.equal(game.GameState.board[0][7].pieceType, game.QUEEN);
+        });
+
+        it("evaluate() initializes a missing capturedPiecesList", () => {
+            const state = JSON.parse(loadEmpty([
+                { row: 6, col: 4, color: "white", pieceType: game.PAWN },
+                ...standardKings(),
+            ]));
+            delete state.capturedPiecesList;
+            game.loadGame(JSON.stringify(state));
+            const result = game.evaluate();
+            assert.equal(Array.isArray(game.GameState.capturedPiecesList), true);
+            assert.equal(result.draw, false);
+        });
+
+        it("colorName, pieceName, and letterToPiece cover naming helpers", () => {
+            assert.equal(game.colorName("white"), "White");
+            assert.equal(game.colorName("black"), "Black");
+            assert.equal(game.colorName("purple"), "ERROR");
+            assert.equal(game.pieceName(game.PAWN), "Pawn");
+            assert.equal(game.pieceName(game.ROOK), "Rook");
+            assert.equal(game.pieceName(game.KNIGHT), "Knight");
+            assert.equal(game.pieceName(game.BISHOP), "Bishop");
+            assert.equal(game.pieceName(game.KING), "King");
+            assert.equal(game.pieceName(game.QUEEN), "Queen");
+            assert.equal(game.pieceName(999), "Error");
+            assert.equal(game.letterToPiece("X"), game.PAWN);
+        });
+
+        it("getPGNMoveNotation disambiguates rooks on the same rank or file", () => {
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 4, col: 7, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ]));
+            const rankMove = game.makeMove({ row: 4, col: 0 }, { row: 4, col: 3 });
+            assert.equal(game.getPGNMoveNotation(rankMove), "Rad4");
+
+            game.loadGame(loadEmpty([
+                { row: 7, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 3, col: 0, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ]));
+            const fileMove = game.makeMove({ row: 3, col: 0 }, { row: 3, col: 3 });
+            assert.equal(game.getPGNMoveNotation(fileMove), "Rd5");
+        });
+
+        it("uses rank disambiguation when two rooks on the same file can reach the target", () => {
+            game.loadGame(loadEmpty([
+                { row: 7, col: 2, color: "white", pieceType: game.ROOK },
+                { row: 0, col: 2, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ]));
+            const move = game.makeMove({ row: 0, col: 2 }, { row: 4, col: 2 });
+            assert.equal(game.getPGNMoveNotation(move), "R8c4");
+
+            game.loadGame(loadEmpty([
+                { row: 7, col: 2, color: "white", pieceType: game.ROOK },
+                { row: 0, col: 2, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ], { whitePlayerView: false }));
+            const flippedMove = game.makeMove({ row: 0, col: 2 }, { row: 4, col: 2 });
+            assert.equal(game.getPGNMoveNotation(flippedMove), "R1f5");
+        });
+
+        it("sorts capturedPiecesList after an en passant capture", () => {
+            game.loadGame(loadEmpty([
+                { row: 0, col: 0, color: "black", pieceType: game.KING },
+                { row: 3, col: 0, color: "black", pieceType: game.PAWN },
+                { row: 3, col: 1, color: "white", pieceType: game.PAWN },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+            ], {
+                turn: "white",
+                lastMove: {
+                    valid: true,
+                    source: { row: 1, col: 0 },
+                    target: { row: 3, col: 0 },
+                    piece: { color: "black", pieceType: game.PAWN },
+                    promotion: false,
+                    ennPassant: false,
+                    capturedPiece: null,
+                    hitSquare: null,
+                    turn: "black",
+                    castling: false,
+                    whitePlayerView: true,
+                },
+            }));
+            const ep = game.makeMove({ row: 3, col: 1 }, { row: 2, col: 0 });
+            assert.equal(ep.ennPassant, true);
+            assert.ok(
+                game.GameState.capturedPiecesList.some(
+                    (p) => p.pieceType === game.PAWN && p.color === "black"
+                )
+            );
+        });
+
+        it("reports K+N vs K+B as insufficient material in either orientation", () => {
+            game.loadGame(loadEmpty([
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 5, col: 2, color: "white", pieceType: game.BISHOP },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+                { row: 2, col: 5, color: "black", pieceType: game.KNIGHT },
+            ]));
+            let result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "insufficient Materials");
+
+            game.loadGame(loadEmpty([
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 5, col: 2, color: "white", pieceType: game.KNIGHT },
+                { row: 0, col: 4, color: "black", pieceType: game.KING },
+                { row: 2, col: 5, color: "black", pieceType: game.BISHOP },
+            ]));
+            result = game.evaluate();
+            assert.equal(result.draw, true);
+            assert.equal(result.drawReason, "insufficient Materials");
+        });
+
+        it("rejects moves for pieces with an unknown pieceType", () => {
+            game.loadGame(loadEmpty([
+                { row: 4, col: 4, color: "white", pieceType: 99 },
+                ...standardKings(),
+            ]));
+            const move = game.validateMove({ row: 4, col: 4 }, { row: 3, col: 4 }, "white");
+            assert.equal(move.valid, false);
+        });
+    });
+
+    describe("findSource coverage for sliding pieces and king moves", () => {
+        it("finds bishops approaching the target from each diagonal", () => {
+            const cases = [
+                [{ row: 0, col: 0, color: "white", pieceType: game.BISHOP }, "Be4", { row: 0, col: 0 }],
+                [{ row: 7, col: 7, color: "white", pieceType: game.BISHOP }, "Be4", { row: 7, col: 7 }],
+                [{ row: 1, col: 7, color: "white", pieceType: game.BISHOP }, "Be4", { row: 1, col: 7 }],
+                [{ row: 7, col: 1, color: "white", pieceType: game.BISHOP }, "Be4", { row: 7, col: 1 }],
+            ];
+            for (const [bishop, pgn, expectedSource] of cases) {
+                game.loadGame(loadEmpty([bishop, ...standardKings()]));
+                assert.deepEqual(convert(pgn).source, expectedSource, pgn);
+            }
+        });
+
+        it("finds queens on each diagonal, rank, and file toward the target", () => {
+            const cases = [
+                [{ row: 7, col: 7, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 7, col: 7 }],
+                [{ row: 0, col: 0, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 0, col: 0 }],
+                [{ row: 1, col: 7, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 1, col: 7 }],
+                [{ row: 7, col: 1, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 7, col: 1 }],
+                [{ row: 2, col: 4, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 2, col: 4 }],
+                [{ row: 4, col: 0, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 4, col: 0 }],
+                [{ row: 4, col: 7, color: "white", pieceType: game.QUEEN }, "Qe4", { row: 4, col: 7 }],
+            ];
+            for (const [queen, pgn, expectedSource] of cases) {
+                game.loadGame(loadEmpty([
+                    queen,
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                    { row: 0, col: 7, color: "black", pieceType: game.KING },
+                ]));
+                assert.deepEqual(convert(pgn).source, expectedSource, pgn);
+            }
+        });
+
+        it("disambiguates queens that share a rank, file, or diagonal", () => {
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.QUEEN },
+                { row: 4, col: 7, color: "white", pieceType: game.QUEEN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Qae4").source, { row: 4, col: 0 });
+            assert.deepEqual(convert("Qhe4").source, { row: 4, col: 7 });
+
+            game.loadGame(loadEmpty([
+                { row: 0, col: 0, color: "white", pieceType: game.QUEEN },
+                { row: 7, col: 7, color: "white", pieceType: game.QUEEN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Qae4").source, { row: 0, col: 0 });
+            assert.deepEqual(convert("Qhe4").source, { row: 7, col: 7 });
+        });
+
+        it("finds rooks from vertical and horizontal directions and disambiguates them", () => {
+            game.loadGame(loadEmpty([
+                { row: 7, col: 3, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Rd4").source, { row: 7, col: 3 });
+
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.ROOK },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Re4").source, { row: 4, col: 0 });
+
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 0, col: 3, color: "white", pieceType: game.ROOK },
+                { row: 7, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 7, color: "black", pieceType: game.KING },
+            ]));
+            assert.deepEqual(convert("Rad4").source, { row: 4, col: 0 });
+        });
+
+        it("finds knights around the target from each legal offset", () => {
+            const knightSources = [
+                { row: 6, col: 5 }, { row: 6, col: 3 }, { row: 5, col: 6 }, { row: 5, col: 2 },
+                { row: 3, col: 6 }, { row: 3, col: 2 }, { row: 2, col: 5 }, { row: 2, col: 3 },
+            ];
+            for (const source of knightSources) {
+                game.loadGame(loadEmpty([
+                    { ...source, color: "white", pieceType: game.KNIGHT },
+                    ...standardKings(),
+                ]));
+                assert.deepEqual(convert("Ne4").source, source);
+            }
+        });
+
+        it("finds the king source from every adjacent direction", () => {
+            game.loadGame(loadEmpty([
+                { row: 6, col: 4, color: "white", pieceType: game.KING },
+                { row: 0, col: 7, color: "black", pieceType: game.KING },
+            ]));
+            const cases = [
+                ["Kd1", { row: 7, col: 3 }], ["Ke1", { row: 7, col: 4 }], ["Kf1", { row: 7, col: 5 }],
+                ["Kd2", { row: 6, col: 3 }], ["Kf2", { row: 6, col: 5 }],
+                ["Kd3", { row: 5, col: 3 }], ["Ke3", { row: 5, col: 4 }], ["Kf3", { row: 5, col: 5 }],
+            ];
+            for (const [pgn, target] of cases) {
+                assert.deepEqual(convert(pgn).target, target, pgn);
+                assert.deepEqual(convert(pgn).source, { row: 6, col: 4 }, pgn);
+            }
+        });
+
+        it("uses explicit from-square notation without searching the board", () => {
+            game.loadGame(loadEmpty([
+                { row: 7, col: 7, color: "white", pieceType: game.QUEEN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Qh1e4").source, { row: 7, col: 7 });
+            assert.deepEqual(convert("Qh1e4").target, { row: 4, col: 4 });
+        });
+
+        it("stops sliding scans when a blocking piece sits between target and source", () => {
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.ROOK },
+                { row: 4, col: 4, color: "black", pieceType: game.PAWN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Rd4").source, { row: 4, col: 0 });
+
+            game.loadGame(loadEmpty([
+                { row: 0, col: 0, color: "white", pieceType: game.BISHOP },
+                { row: 5, col: 5, color: "black", pieceType: game.PAWN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Be4").source, { row: 0, col: 0 });
+
+            game.loadGame(loadEmpty([
+                { row: 4, col: 0, color: "white", pieceType: game.QUEEN },
+                { row: 4, col: 5, color: "black", pieceType: game.PAWN },
+                ...standardKings(),
+            ]));
+            assert.deepEqual(convert("Qd4").source, { row: 4, col: 0 });
+        });
+    });
+});
+
 describe("Rgex", () => {
     it("1", () => {
         const moveRegex = /([RNBKQ])?([a-h])?([1-8])?([x])?([a-h][1-8])?([=][RNBQ])?([+#])?/gm

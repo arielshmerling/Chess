@@ -155,6 +155,37 @@
             }
         }
 
+        const sideToMove = normalizeBookmarkPieceColor(
+            (g.GameState && g.GameState.turn) || g.Turn || "white",
+        ) || "white";
+        const whitePlayerView =
+            typeof g.WhitePlayerView === "boolean"
+                ? g.WhitePlayerView
+                : !!(g.GameState && g.GameState.whitePlayerView);
+        const opponent = sideToMove === "white" ? "black" : "white";
+        const opponentKingPos = opponent === "white" ? whiteKingPos : blackKingPos;
+        if (
+            opponentKingPos &&
+            isSquareUnderAttack(
+                board,
+                opponentKingPos,
+                sideToMove,
+                whitePlayerView,
+                rows,
+                cols,
+            )
+        ) {
+            const moverLabel = sideToMove === "white" ? "White" : "Black";
+            const kingLabel = opponent === "white" ? "White" : "Black";
+            return (
+                header +
+                moverLabel +
+                " is to move, but " +
+                kingLabel +
+                "'s king is already in check. The side to move cannot be giving check — change turn or move pieces."
+            );
+        }
+
         const W = byColor.white;
         const B = byColor.black;
         const nonKingWhite = W.pawn + W.rook + W.knight + W.bishop + W.queen;
@@ -226,6 +257,211 @@
         }
 
         return null;
+    }
+
+    function inBounds(row, col, rows, cols) {
+        return row >= 0 && row < rows && col >= 0 && col < cols;
+    }
+
+    function cellAt(board, row, col) {
+        const rowData = board[row];
+        if (!rowData || !Array.isArray(rowData)) {
+            return null;
+        }
+        const cell = rowData[col];
+        return cell && typeof cell === "object" ? cell : null;
+    }
+
+    function cellPieceTypeForAttack(cell) {
+        let pt = cell.pieceType;
+        if (pt === undefined || pt === null) {
+            pt = cell.PieceType;
+        }
+        const n = Number(pt);
+        return Number.isFinite(n) ? n : NaN;
+    }
+
+    function isSquareUnderAttack(board, position, threateningColor, whitePlayerView, rows, cols) {
+        const PT_PAWN = 0;
+        const PT_KING = 1;
+        const PT_KNIGHT = 2;
+        const PT_BISHOP = 3;
+        const PT_ROOK = 4;
+        const PT_QUEEN = 5;
+
+        const row = position.row;
+        const col = position.col;
+        if (!inBounds(row, col, rows, cols)) {
+            return false;
+        }
+
+        for (let i = col + 1; i < cols; i++) {
+            const piece = cellAt(board, row, i);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_ROOK) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = col - 1; i >= 0; i--) {
+            const piece = cellAt(board, row, i);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_ROOK) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row + 1; i < rows; i++) {
+            const piece = cellAt(board, i, col);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_ROOK) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row - 1; i >= 0; i--) {
+            const piece = cellAt(board, i, col);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_ROOK) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row + 1, j = col + 1; i < rows && j < cols; i++, j++) {
+            const piece = cellAt(board, i, j);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_BISHOP) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row + 1, j = col - 1; i < rows && j >= 0; i++, j--) {
+            const piece = cellAt(board, i, j);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_BISHOP) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row - 1, j = col - 1; i >= 0 && j >= 0; i--, j--) {
+            const piece = cellAt(board, i, j);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_BISHOP) {
+                return true;
+            }
+            break;
+        }
+
+        for (let i = row - 1, j = col + 1; i >= 0 && j < cols; i--, j++) {
+            const piece = cellAt(board, i, j);
+            if (!piece) {
+                continue;
+            }
+            if (piece.color !== threateningColor) {
+                break;
+            }
+            const t = cellPieceTypeForAttack(piece);
+            if (t === PT_QUEEN || t === PT_BISHOP) {
+                return true;
+            }
+            break;
+        }
+
+        const knightOffsets = [
+            [1, 2],
+            [-1, 2],
+            [1, -2],
+            [-1, -2],
+            [2, 1],
+            [-2, 1],
+            [2, -1],
+            [-2, -1],
+        ];
+        for (let k = 0; k < knightOffsets.length; k++) {
+            const x = row + knightOffsets[k][0];
+            const y = col + knightOffsets[k][1];
+            if (!inBounds(x, y, rows, cols)) {
+                continue;
+            }
+            const piece = cellAt(board, x, y);
+            if (piece && piece.color === threateningColor && cellPieceTypeForAttack(piece) === PT_KNIGHT) {
+                return true;
+            }
+        }
+
+        let pawnSquares;
+        if ((threateningColor === "black") ^ !whitePlayerView) {
+            pawnSquares = [
+                [row - 1, col - 1],
+                [row - 1, col + 1],
+            ];
+        } else {
+            pawnSquares = [
+                [row + 1, col - 1],
+                [row + 1, col + 1],
+            ];
+        }
+        for (let p = 0; p < pawnSquares.length; p++) {
+            const x = pawnSquares[p][0];
+            const y = pawnSquares[p][1];
+            if (!inBounds(x, y, rows, cols)) {
+                continue;
+            }
+            const piece = cellAt(board, x, y);
+            if (piece && piece.color === threateningColor && cellPieceTypeForAttack(piece) === PT_PAWN) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     global.DesktopPositionValidation = {
