@@ -41,6 +41,8 @@
     let batchUndoRedo = false;
     let loadingBookmark = false;
     let savedGames = [];
+    /** @type {"games"|"positions"} */
+    let savedListFilter = "games";
     let expandedSavedGameId = null;
     let lastLoadedSavedGameId = null;
     let editingSavedGameId = null;
@@ -2110,6 +2112,58 @@
         });
     }
 
+    function isSavedPositionEntry(entry) {
+        return parseSavedGameMoves(entry).length === 0;
+    }
+
+    function isSavedGameEntry(entry) {
+        return !isSavedPositionEntry(entry);
+    }
+
+    function savedEntriesForFilter(filter) {
+        const mode = filter === "positions" ? "positions" : "games";
+        return savedGames.filter(function (entry) {
+            return mode === "positions" ? isSavedPositionEntry(entry) : isSavedGameEntry(entry);
+        });
+    }
+
+    function updateSavedListFilterUi() {
+        const filtersRoot = document.querySelector(".desktop-play-saved-list-filters");
+        if (!filtersRoot) {
+            return;
+        }
+        filtersRoot.querySelectorAll(".desktop-play-saved-list-filter").forEach(function (btn) {
+            const active = btn.getAttribute("data-filter") === savedListFilter;
+            btn.classList.toggle("is-active", active);
+            btn.setAttribute("aria-selected", active ? "true" : "false");
+        });
+    }
+
+    function setSavedListFilter(filter) {
+        const next = filter === "positions" ? "positions" : "games";
+        if (savedListFilter === next) {
+            return;
+        }
+        savedListFilter = next;
+        updateSavedListFilterUi();
+        renderSavedGamesList();
+    }
+
+    function ensureSavedListFilterControls() {
+        const filtersRoot = document.querySelector(".desktop-play-saved-list-filters");
+        if (!filtersRoot || filtersRoot.dataset.wired === "1") {
+            updateSavedListFilterUi();
+            return;
+        }
+        filtersRoot.dataset.wired = "1";
+        filtersRoot.querySelectorAll(".desktop-play-saved-list-filter").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                setSavedListFilter(btn.getAttribute("data-filter"));
+            });
+        });
+        updateSavedListFilterUi();
+    }
+
     function toggleSavedGameExpanded(bookmarkId) {
         const gamesDiv = $("gamesDiv");
         if (!gamesDiv) {
@@ -2566,10 +2620,18 @@
             return;
         }
         gamesDiv.innerHTML = "";
-        if (!savedGames.length) {
+        const entries = savedEntriesForFilter(savedListFilter);
+        if (!entries.length) {
+            const empty = document.createElement("p");
+            empty.className = "desktop-play-saved-list-empty";
+            empty.textContent =
+                savedListFilter === "positions"
+                    ? "No saved positions yet."
+                    : "No saved games yet.";
+            gamesDiv.appendChild(empty);
             return;
         }
-        savedGames.forEach(function (entry) {
+        entries.forEach(function (entry) {
             gamesDiv.appendChild(createSavedGameItem(entry));
         });
     }
@@ -3300,6 +3362,7 @@
 
     async function startSession() {
         playSessionReady = false;
+        ensureSavedListFilterControls();
         await loadSavedGames();
 
         game = new ChessGame();

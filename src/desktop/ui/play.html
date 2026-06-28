@@ -153,7 +153,23 @@
           >+</button>
           <section class="desktop-play-dock desktop-play-games">
             <div class="desktop-play-dock-title">
-              <span class="desktop-play-dock-title-text">Games</span>
+              <div class="desktop-play-saved-list-filters" role="tablist" aria-label="Saved list filter">
+                <button
+                  type="button"
+                  class="desktop-play-saved-list-filter is-active"
+                  data-filter="games"
+                  role="tab"
+                  aria-selected="true"
+                >Games</button>
+                <span class="desktop-play-saved-list-filter-sep" aria-hidden="true">|</span>
+                <button
+                  type="button"
+                  class="desktop-play-saved-list-filter"
+                  data-filter="positions"
+                  role="tab"
+                  aria-selected="false"
+                >Positions</button>
+              </div>
               <span class="desktop-play-dock-title-actions">
                 <button
                   type="button"
