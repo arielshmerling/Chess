@@ -7,7 +7,8 @@
     "test:app": "mocha ./test/chess.app.test.js ./test/brain41.pawnEval.test.js",
     "test:brain": "mocha ./test/brain41.pawnEval.test.js ./test/brain42.advancedPawn.test.js ./test/brain42.adaptiveDepth.test.js ./test/brain42.gamePhase.test.js ./test/brain42.mateInThree.test.js ./test/brain43.mateInThree.test.js",
     "test:heavy": "mocha ./test/chess.heavy.test.js",
-    "test:all": "npm run test && npm run test:heavy",
+    "test:all": "mocha \"./test/**/*.test.js\"",
+    "coverage": "nyc --concurrency=1 --reporter=html --reporter=text-summary mocha \"./test/**/*.test.js\"",
     "analysis": "npx eslint ./src/**/*.js",
     "start": "node ./server.js",
     "start:dev": "node --inspect ./server.js",
@@ -66,5 +67,16 @@
       "diff": "^9.0.0",
       "serialize-javascript": "^7.0.5"
     }
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ],
+    "exclude": [
+      "src/desktop/ui/**",
+      "src/views/**",
+      "src/assets/**"
+    ],
+    "concurrency": 1
   }
 }
