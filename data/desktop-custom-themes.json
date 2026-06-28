@@ -1,5 +1,5 @@
 {
-  "activeTheme": "custom:custom-mpjsexfo",
+  "activeTheme": "custom:custom-mqcodd0j",
   "themes": [
     {
       "id": "custom-mp9z5drk",
@@ -283,7 +283,7 @@
     },
     {
       "id": "custom-mqcodd0j",
-      "name": "Custom theme",
+      "name": "Nice Blue",
       "vars": {
         "--darker": "#293241",
         "--dark": "#3d5a80",
@@ -349,7 +349,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1781374479139
+      "updatedAt": 1782675285641
     }
   ]
 }

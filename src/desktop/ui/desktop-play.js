@@ -63,6 +63,7 @@
     let gameRunPanelMounted = false;
     let currentGameId = null;
     let gameHistoryLogged = false;
+    let gameAutoBookmarked = false;
 
     const ACTION_ICONS = {
         resign:
@@ -361,53 +362,77 @@
         tryLogCompletedGame();
     }
 
+    function canProcessCompletedGame() {
+        return (
+            game &&
+            game.GameOver &&
+            gameActive &&
+            !reviewMode &&
+            !positionSetupMode &&
+            !configurationMode &&
+            tableMovesFromGame().length > 0
+        );
+    }
+
+    async function tryAutoSaveCompletedGame() {
+        if (gameAutoBookmarked || !canProcessCompletedGame() || !session || !Api.post) {
+            return;
+        }
+        const state = game.GameState;
+        if (!state) {
+            return;
+        }
+        gameAutoBookmarked = true;
+        try {
+            const bookmark = await Api.post(
+                "/bookmark",
+                bookmarkPayloadFromCurrentState(formatSaveGameName(), bookmarkMovesPayload()),
+            );
+            await mergeBookmarkIntoList(bookmark);
+            savedListFilter = "games";
+            updateSavedListFilterUi();
+            renderSavedGamesList();
+        } catch (err) {
+            gameAutoBookmarked = false;
+            console.error("Could not auto-save completed game:", err);
+        }
+    }
+
     function tryLogCompletedGame() {
-        if (
-            gameHistoryLogged ||
-            !game ||
-            !game.GameOver ||
-            !gameActive ||
-            reviewMode ||
-            positionSetupMode ||
-            configurationMode
-        ) {
+        if (!canProcessCompletedGame()) {
             return;
         }
-        const moves = tableMovesFromGame();
-        if (!moves.length) {
-            return;
-        }
-        if (!GameLog || typeof GameLog.appendCompletedGame !== "function") {
-            return;
-        }
+        if (!gameHistoryLogged && GameLog && typeof GameLog.appendCompletedGame === "function") {
+            const moves = tableMovesFromGame();
+            const resultMove = game.ResultMove;
+            const payload = {
+                whitePlayer: session && session.whitePlayerName ? session.whitePlayerName : "White",
+                blackPlayer: session && session.blackPlayerName ? session.blackPlayerName : "Black",
+                result: resultMove && resultMove.moveStr ? resultMove.moveStr : "*",
+                moves: moves.map(function (m) {
+                    return {
+                        moveStr: m.moveStr || "",
+                        turn: m.turn,
+                        piece: m.piece,
+                    };
+                }),
+                engine: session && session.engine ? session.engine : undefined,
+                thinkingTimeSeconds:
+                    session && session.thinkingTimeSeconds != null
+                        ? session.thinkingTimeSeconds
+                        : session && session.difficulty != null
+                          ? session.difficulty
+                          : undefined,
+                termination: game.GameOverReason || "",
+            };
 
-        const resultMove = game.ResultMove;
-        const payload = {
-            whitePlayer: session && session.whitePlayerName ? session.whitePlayerName : "White",
-            blackPlayer: session && session.blackPlayerName ? session.blackPlayerName : "Black",
-            result: resultMove && resultMove.moveStr ? resultMove.moveStr : "*",
-            moves: moves.map(function (m) {
-                return {
-                    moveStr: m.moveStr || "",
-                    turn: m.turn,
-                    piece: m.piece,
-                };
-            }),
-            engine: session && session.engine ? session.engine : undefined,
-            thinkingTimeSeconds:
-                session && session.thinkingTimeSeconds != null
-                    ? session.thinkingTimeSeconds
-                    : session && session.difficulty != null
-                      ? session.difficulty
-                      : undefined,
-            termination: game.GameOverReason || "",
-        };
-
-        gameHistoryLogged = true;
-        GameLog.appendCompletedGame(payload).catch(function (err) {
-            gameHistoryLogged = false;
-            console.error("Could not append game to PGN log:", err);
-        });
+            gameHistoryLogged = true;
+            GameLog.appendCompletedGame(payload).catch(function (err) {
+                gameHistoryLogged = false;
+                console.error("Could not append game to PGN log:", err);
+            });
+        }
+        tryAutoSaveCompletedGame();
     }
 
     /**
@@ -973,6 +998,7 @@
         applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
         gameHistoryLogged = false;
+        gameAutoBookmarked = false;
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
         updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
@@ -1271,6 +1297,7 @@
         }
         assignNewGameId();
         gameHistoryLogged = false;
+        gameAutoBookmarked = false;
         const setupOpts =
             GameRun && GameRun.getOptions
                 ? GameRun.getOptions()
@@ -3002,6 +3029,7 @@
         applySessionSettings(opts);
         assignNewGameId();
         gameHistoryLogged = false;
+        gameAutoBookmarked = false;
         game.startNewGame(currentPlayerIsWhite);
         reviewOriginStateStr = JSON.stringify(game.GameState);
         clearDisplayedEvaluation();
