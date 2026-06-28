@@ -629,6 +629,19 @@ body.desktop-play-page .desktop-play-main {
   width: 43%;
 }
 
+.desktop-play-page .desktop-play-moves-list table.movesTable .tdMove.desktop-play-move-clickable {
+  cursor: pointer;
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable .tdMove.desktop-play-move-clickable:hover {
+  background: var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.12));
+}
+
+.desktop-play-page .desktop-play-moves-list table.movesTable .tdMove.desktop-play-move-clickable:focus-visible {
+  outline: 1px solid var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.35));
+  outline-offset: -1px;
+}
+
 /* Saved games accordion (Rename / Delete / Load) */
 .desktop-play-page .desktop-play-games-list {
   display: flex;
@@ -1375,6 +1388,7 @@ body.desktop-play-page .desktop-play-main {
 .desktop-play-setup-reset,
 .desktop-play-setup-default,
 .desktop-play-setup-save,
+.desktop-play-setup-save-as,
 .desktop-play-setup-validate {
   padding: 2px;
   border: 1px solid transparent;
@@ -1426,6 +1440,7 @@ body.desktop-play-page .desktop-play-main {
 .desktop-play-setup-reset:hover,
 .desktop-play-setup-default:hover,
 .desktop-play-setup-save:hover,
+.desktop-play-setup-save-as:hover,
 .desktop-play-setup-validate:hover {
   background: rgba(255, 255, 255, 0.1);
 }
@@ -1486,9 +1501,23 @@ body.desktop-play-page .desktop-play-main {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.desktop-play-setup-save,
-.desktop-play-setup-validate {
+.desktop-play-setup-save-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
   width: 100%;
+}
+
+.desktop-play-setup-save,
+.desktop-play-setup-save-as {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.desktop-play-setup-save,
+.desktop-play-setup-save-as,
+.desktop-play-setup-validate {
   min-width: 2.35rem;
   height: 2.35rem;
   min-height: 2.35rem;
@@ -1496,6 +1525,7 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-setup-save svg,
+.desktop-play-setup-save-as svg,
 .desktop-play-setup-validate svg {
   width: 1.15rem;
   height: 1.15rem;
@@ -1503,7 +1533,8 @@ body.desktop-play-page .desktop-play-main {
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
 }
 
-.desktop-play-setup-save:hover {
+.desktop-play-setup-save:hover,
+.desktop-play-setup-save-as:hover {
   background: rgba(100, 160, 220, 0.28);
 }
 

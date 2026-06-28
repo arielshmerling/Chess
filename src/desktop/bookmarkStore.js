@@ -37,6 +37,7 @@ function toClientBookmark(doc) {
         date: doc.date,
         gameType: doc.gameType,
         state: doc.state,
+        originState: doc.originState,
         moves: doc.moves || [],
         engine: doc.engine,
         depth: doc.depth,
@@ -48,7 +49,7 @@ exports.getAllUserBookmarks = async () => {
     return list.map(toClientBookmark);
 };
 
-exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, depth) => {
+exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, depth, originState) => {
     const list = await readAll();
     const id = randomUUID();
     const bookmark = {
@@ -62,12 +63,27 @@ exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, 
         depth: normalizeThinkingTimeSeconds(depth),
         date: new Date(),
     };
+    if (originState != null && String(originState).trim()) {
+        bookmark.originState =
+            typeof originState === "string" ? originState : JSON.stringify(originState);
+    }
     list.push(bookmark);
     await writeAll(list);
     return toClientBookmark(bookmark);
 };
 
-exports.updateBookmark = async (_userId, id, date, name, gameType, gameState, moves, engine, depth) => {
+exports.updateBookmark = async (
+    _userId,
+    id,
+    date,
+    name,
+    gameType,
+    gameState,
+    moves,
+    engine,
+    depth,
+    originState,
+) => {
     const list = await readAll();
     const bookmark = list.find((b) => String(b._id) === String(id));
     if (!bookmark) {
@@ -83,6 +99,14 @@ exports.updateBookmark = async (_userId, id, date, name, gameType, gameState, mo
     if (engine !== undefined) { bookmark.engine = runtime.normalizeEngine(engine); }
     if (depth !== undefined) {
         bookmark.depth = normalizeThinkingTimeSeconds(depth);
+    }
+    if (originState !== undefined) {
+        if (originState == null || !String(originState).trim()) {
+            delete bookmark.originState;
+        } else {
+            bookmark.originState =
+                typeof originState === "string" ? originState : JSON.stringify(originState);
+        }
     }
     await writeAll(list);
 };

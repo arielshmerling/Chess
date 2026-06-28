@@ -68,6 +68,8 @@
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
         save:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+        saveAs:
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2h7.5L16 8v11a2 2 0 0 1-2 2z"/><polyline points="14 21 14 13 7 13 7 21"/><polyline points="7 5.5 7 9.5 12.5 9.5"/><line x1="18.5" y1="3.5" x2="18.5" y2="9"/><line x1="15.75" y1="6.25" x2="21.25" y2="6.25"/><line x1="16.65" y1="4.6" x2="20.35" y2="7.9"/><line x1="20.35" y1="4.6" x2="16.65" y2="7.9"/></svg>',
         play:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5"/></svg>',
         validate:
@@ -78,6 +80,7 @@
     let panelRoot = null;
     let selected = { color: "white", pieceType: 0 };
     let onSavePosition = null;
+    let onSavePositionAs = null;
     let onValidatePosition = null;
     let onClearBoard = null;
     let onDefaultBoard = null;
@@ -484,6 +487,7 @@
         options = options || {};
         chessGame = options.game;
         onSavePosition = options.onSavePosition || null;
+        onSavePositionAs = options.onSavePositionAs || null;
         onValidatePosition = options.onValidatePosition || null;
         onClearBoard = options.onClearBoard || null;
         onDefaultBoard = options.onDefaultBoard || null;
@@ -583,11 +587,28 @@
         const actions = document.createElement("div");
         actions.className = "desktop-play-setup-actions";
 
+        const saveRow = document.createElement("div");
+        saveRow.className = "desktop-play-setup-save-row";
+
         const saveBtn = createToolButton("desktop-play-setup-save", "Save position", SVG.save, function () {
             if (onSavePosition) {
                 onSavePosition();
             }
         });
+        const saveAsBtn = createToolButton(
+            "desktop-play-setup-save-as",
+            "Save as new position",
+            SVG.saveAs,
+            function () {
+                if (onSavePositionAs) {
+                    onSavePositionAs();
+                }
+            },
+        );
+
+        saveRow.appendChild(saveBtn);
+        saveRow.appendChild(saveAsBtn);
+        actions.appendChild(saveRow);
         const validateBtn = createToolButton(
             "desktop-play-setup-validate",
             "Validate position",
@@ -598,7 +619,6 @@
                 }
             },
         );
-        actions.appendChild(saveBtn);
         actions.appendChild(validateBtn);
         controlsCol.appendChild(actions);
 

@@ -468,6 +468,9 @@
             return;
         }
         captured.forEach(function (piece) {
+            if (!piece || piece.color == null) {
+                return;
+            }
             const url = getImageUrl(piece);
             if (!url) {
                 return;

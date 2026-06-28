@@ -39,6 +39,7 @@
     let redoPairAvailable = false;
     let allowUndo = true;
     let batchUndoRedo = false;
+    let loadingBookmark = false;
     let savedGames = [];
     let expandedSavedGameId = null;
     let lastLoadedSavedGameId = null;
@@ -47,6 +48,12 @@
     let positionSetupMode = false;
     let configurationMode = false;
     let reviewMode = false;
+    let reviewFullMoves = [];
+    let reviewOriginStateStr = null;
+    let reviewFinalStateStr = null;
+    let reviewPlyIndex = 0;
+    /** When set, Play continues from this ply and drops later moves. */
+    let reviewBranchPly = null;
     let positionSetupSnapshot = null;
     let playSessionReady = false;
     let positionSetupPanelMounted = false;
@@ -859,10 +866,15 @@
         if (!GameRun || !GameRun.syncOptions) {
             return;
         }
-        const turn =
-            game && (game.Turn || (game.GameState && game.GameState.turn))
-                ? game.Turn || game.GameState.turn
-                : "white";
+        let turn = "white";
+        if (reviewMode && reviewFullMoves.length) {
+            turn = reviewNextTurnAfterPly(reviewPlyIndex);
+        } else if (
+            game &&
+            (game.Turn || (game.GameState && game.GameState.turn))
+        ) {
+            turn = game.Turn || game.GameState.turn;
+        }
         GameRun.syncOptions({
             turn: turn,
             computerIsWhite: !currentPlayerIsWhite,
@@ -940,13 +952,22 @@
         state.gameOver = false;
         state.promoting = false;
         state.capturedPiecesList = state.capturedPiecesList || [];
-        // Continue from a loaded saved game: keep its move history so new moves
-        // append to the existing list instead of wiping it. For a freshly set-up
-        // position this is naturally empty, so behavior there is unchanged.
-        const continuedMoves =
-            Array.isArray(game.Moves) && game.Moves.length ? game.Moves.slice() : [];
+        const branchPly = reviewMode && reviewBranchPly != null ? reviewBranchPly : null;
+        let continuedMoves;
+        if (branchPly != null) {
+            continuedMoves = reviewFullMoves.slice(0, branchPly).map(cloneReviewMove);
+        } else {
+            continuedMoves = reviewFullMoves.length
+                ? reviewFullMoves.map(cloneReviewMove)
+                : Array.isArray(game.Moves) && game.Moves.length
+                  ? game.Moves.slice()
+                  : [];
+        }
         game.loadGame(JSON.stringify(state));
         game.loadMoves(continuedMoves);
+        if (continuedMoves.length === 0) {
+            reviewOriginStateStr = JSON.stringify(state);
+        }
         applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
         gameHistoryLogged = false;
@@ -998,6 +1019,7 @@
             onClearBoard: clearSetupBoard,
             onDefaultBoard: loadDefaultSetupBoard,
             onSavePosition: saveSetupPosition,
+            onSavePositionAs: saveSetupPositionAs,
             onValidatePosition: validateSetupPosition,
             onSelectTool: updateSetupCursor,
             onTurnChange: applySetupTurn,
@@ -1258,6 +1280,7 @@
         state.capturedPiecesList = state.capturedPiecesList || [];
         game.loadGame(JSON.stringify(state));
         game.loadMoves([]);
+        reviewOriginStateStr = JSON.stringify(state);
         applyGameRunPanelOptions(setupOpts);
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
@@ -1331,6 +1354,7 @@
         updateMatchHeader();
         updateActionButtons();
         updateGameRunPanelVisibility();
+        refreshReviewMovesTable();
     }
 
     function exitReviewMode() {
@@ -1338,9 +1362,192 @@
             return;
         }
         reviewMode = false;
+        clearReviewNavigation();
         updateMatchHeader();
         updateActionButtons();
         updateGameRunPanelVisibility();
+    }
+
+    function clearReviewNavigation() {
+        reviewFullMoves = [];
+        reviewOriginStateStr = null;
+        reviewFinalStateStr = null;
+        reviewPlyIndex = 0;
+        reviewBranchPly = null;
+    }
+
+    function reviewBoardIsWhiteView() {
+        if (game && typeof game.WhitePlayerView === "boolean") {
+            return game.WhitePlayerView;
+        }
+        try {
+            const state = JSON.parse(reviewFinalStateStr || "{}");
+            if (typeof state.whitePlayerView === "boolean") {
+                return state.whitePlayerView;
+            }
+        } catch {
+            /* ignore */
+        }
+        return currentPlayerIsWhite;
+    }
+
+    function prepareReviewStartPosition(chess) {
+        if (
+            reviewOriginStateStr
+            && reviewFinalStateStr
+            && reviewOriginStateStr !== reviewFinalStateStr
+        ) {
+            chess.loadGame(reviewOriginStateStr);
+        } else {
+            chess.startNewGame(reviewBoardIsWhiteView());
+        }
+        chess.loadMoves([]);
+    }
+
+    function applyReviewMove(chess, move) {
+        try {
+            const raw = cloneReviewMove(move);
+            if (!raw || raw.source == null || raw.target == null) {
+                return false;
+            }
+            if (typeof chess.isResultMove === "function" && chess.isResultMove(raw)) {
+                return false;
+            }
+            let m = typeof chess.cloneMove === "function" ? chess.cloneMove(raw) : raw;
+            if (!reviewBoardIsWhiteView()) {
+                m = chess.flipMove(m);
+            }
+            const result = chess.makeMove(m.source, m.target);
+            if (!result || result.valid === false) {
+                return false;
+            }
+            if (chess.GameState && chess.GameState.promoting) {
+                if (!result.piece) {
+                    return false;
+                }
+                result.selectedPiece = raw.selectedPiece != null ? raw.selectedPiece : chess.QUEEN;
+                chess.completePromotion(result);
+            }
+            return true;
+        } catch (err) {
+            console.warn("[desktop-play] Review move failed:", err);
+            return false;
+        }
+    }
+
+    function replayReviewMovesUpTo(ply) {
+        prepareReviewStartPosition(game);
+        const limit = Math.max(0, Math.min(ply, reviewFullMoves.length));
+        for (let i = 0; i < limit; i += 1) {
+            if (!applyReviewMove(game, reviewFullMoves[i])) {
+                console.warn("[desktop-play] Review replay stopped at ply", i + 1);
+                break;
+            }
+        }
+        game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+    }
+
+    function cloneReviewMove(move) {
+        if (typeof move === "string") {
+            return JSON.parse(move);
+        }
+        return Object.assign({}, move);
+    }
+
+    function initReviewNavigation(finalStateStr, moves, bookmarkOrigin) {
+        const loaded = moves && moves.length ? moves : tableMovesFromGame();
+        reviewFullMoves = loaded.map(cloneReviewMove);
+        reviewFinalStateStr = finalStateStr;
+        if (bookmarkOrigin && String(bookmarkOrigin).trim()) {
+            reviewOriginStateStr = String(bookmarkOrigin);
+        } else if (!loaded.length) {
+            reviewOriginStateStr = finalStateStr;
+        } else {
+            const trial = new ChessGame(true);
+            trial.startNewGame(reviewBoardIsWhiteView());
+            reviewOriginStateStr = JSON.stringify(trial.GameState);
+        }
+        reviewPlyIndex = reviewFullMoves.length;
+        reviewBranchPly = null;
+    }
+
+    function syncReviewBoardFromGame() {
+        Board.clearArrows();
+        Board.syncFromGameState();
+        clearDisplayedEvaluation();
+        if (game.GameState && game.GameState.capturedPiecesList) {
+            Board.updateCaptureLists(game.GameState.capturedPiecesList);
+        }
+        updateHeaderTurn();
+    }
+
+    function showReviewAtPly(ply) {
+        if (!reviewMode || !reviewFullMoves.length) {
+            return;
+        }
+        const clamped = Math.max(0, Math.min(ply, reviewFullMoves.length));
+        reviewPlyIndex = clamped;
+        reviewBranchPly = clamped < reviewFullMoves.length ? clamped : null;
+        replayReviewMovesUpTo(clamped);
+        syncReviewBoardFromGame();
+        refreshReviewMovesTable();
+        syncGameRunPanelOptions();
+    }
+
+    function movesForDisplay() {
+        if (reviewMode && reviewFullMoves.length) {
+            return reviewFullMoves;
+        }
+        return tableMovesFromGame();
+    }
+
+    function refreshReviewMovesTable() {
+        updateMovesTable(movesForDisplay());
+    }
+
+    function onReviewMoveClick(ply) {
+        if (!reviewMode || !reviewFullMoves.length || animating || engineThinking || dialogOn) {
+            return;
+        }
+        showReviewAtPly(ply);
+    }
+
+    function attachReviewMoveCell(td, ply) {
+        if (!ply) {
+            return;
+        }
+        td.dataset.ply = String(ply);
+        td.classList.add("desktop-play-move-clickable");
+        td.setAttribute("role", "button");
+        td.setAttribute("tabindex", "0");
+        td.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            onReviewMoveClick(ply);
+        });
+        td.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                onReviewMoveClick(ply);
+            }
+        });
+    }
+
+    function highlightReviewMoveSelection() {
+        const movesDiv = $("movesDiv");
+        if (!movesDiv) {
+            return;
+        }
+        movesDiv.querySelectorAll(".tdMove").forEach(function (td) {
+            td.classList.remove("selectedMove");
+        });
+        if (!reviewMode || reviewBranchPly == null || reviewPlyIndex <= 0) {
+            return;
+        }
+        const selected = movesDiv.querySelector('.tdMove[data-ply="' + reviewPlyIndex + '"]');
+        if (selected) {
+            selected.classList.add("selectedMove");
+            selected.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
     }
 
     function onPositionSetupToggle() {
@@ -1541,7 +1748,7 @@
             dateStyle: "short",
             timeStyle: "short",
         });
-        return formatSessionTypeLabel() + " — " + stamp;
+        return "Saved — " + stamp;
     }
 
     function formatPositionSetupSaveName() {
@@ -1553,22 +1760,23 @@
         return "Position — " + stamp;
     }
 
-    function showPositionSaveNameDialog(onSave) {
+    function showPositionSaveNameDialog(onSave, options) {
+        options = options || {};
         if (dialogOn) {
             return;
         }
         Dialog.prompt({
-            title: "Save position",
+            title: options.title || "Save position",
             label: "Position name",
             defaultValue: formatPositionSetupSaveName(),
-            confirmLabel: "Save",
+            confirmLabel: options.confirmLabel || "Save",
             onSubmit: onSave,
         });
     }
 
     function bookmarkPayloadFromCurrentState(name, moves) {
         const state = game.GameState;
-        return {
+        const payload = {
             gameState: state,
             name: name,
             gameType: "SinglePlayerGame",
@@ -1587,6 +1795,10 @@
                       ? session.difficulty
                       : 10,
         };
+        if (reviewOriginStateStr) {
+            payload.originState = reviewOriginStateStr;
+        }
+        return payload;
     }
 
     function mergeBookmarkIntoList(bookmark) {
@@ -1600,7 +1812,8 @@
         }
     }
 
-    async function saveSetupPositionWithName(name) {
+    async function saveSetupPositionWithName(name, options) {
+        options = options || {};
         if (!game || !session || !Api.post) {
             return;
         }
@@ -1616,7 +1829,12 @@
             );
             await mergeBookmarkIntoList(bookmark);
             renderSavedGamesList();
-            showStatus("Position saved", 2500, "info");
+            if (options.switchToNew && bookmark && (bookmark._id || bookmark.id)) {
+                const newId = String(bookmark._id || bookmark.id);
+                editingSavedGameId = newId;
+                lastLoadedSavedGameId = newId;
+            }
+            showStatus(options.statusMessage || "Position saved", 2500, "info");
         } catch (err) {
             showStatus(err.message || "Could not save position", 0, "error");
         }
@@ -1691,8 +1909,33 @@
             return;
         }
         showPositionSaveNameDialog(function (name) {
-            saveSetupPositionWithName(name);
+            saveSetupPositionWithName(name, { switchToNew: true });
         });
+    }
+
+    function saveSetupPositionAs() {
+        if (!game || !session || !Api.post) {
+            return;
+        }
+        if (!validatePositionSetup("save")) {
+            return;
+        }
+        if (!game.GameState) {
+            showStatus("Nothing to save", 2000, "error");
+            return;
+        }
+        showPositionSaveNameDialog(
+            function (name) {
+                saveSetupPositionWithName(name, {
+                    switchToNew: true,
+                    statusMessage: "Position saved as new bookmark",
+                });
+            },
+            {
+                title: "Save position as",
+                confirmLabel: "Save As",
+            },
+        );
     }
 
     function bookmarkMovesPayload() {
@@ -1724,6 +1967,39 @@
         return null;
     }
 
+    function reviewOriginTurn() {
+        try {
+            const origin = JSON.parse(reviewOriginStateStr || "{}");
+            if (origin.turn === "white" || origin.turn === "black") {
+                return origin.turn;
+            }
+        } catch {
+            /* ignore */
+        }
+        return "white";
+    }
+
+    /** Side to move after replaying `ply` half-moves from the review start. */
+    function reviewNextTurnAfterPly(ply) {
+        const clamped = Math.max(0, Math.min(ply, reviewFullMoves.length));
+        if (clamped === 0) {
+            return reviewOriginTurn();
+        }
+        const lastMove = reviewFullMoves[clamped - 1];
+        const mover = moveColorForTable(lastMove);
+        if (mover === "white") {
+            return "black";
+        }
+        if (mover === "black") {
+            return "white";
+        }
+        let turn = reviewOriginTurn();
+        for (let i = 0; i < clamped; i += 1) {
+            turn = turn === "white" ? "black" : "white";
+        }
+        return turn;
+    }
+
     function buildMoveTableRows(moves) {
         const rows = [];
         if (!moves || !moves.length) {
@@ -1753,6 +2029,59 @@
                     black: blackMove ? blackMove.moveStr || "" : "",
                 });
                 i += blackMove ? 2 : 1;
+            }
+        }
+        return rows;
+    }
+
+    function buildMoveTableCells(moves) {
+        const rows = [];
+        if (!moves || !moves.length) {
+            return rows;
+        }
+        let i = 0;
+        let rowNum = 1;
+        while (i < moves.length) {
+            const move = moves[i];
+            const color = moveColorForTable(move);
+            const row = {
+                num: rowNum,
+                white: "",
+                black: "",
+                whitePly: null,
+                blackPly: null,
+            };
+            rowNum += 1;
+            if (color === "black") {
+                row.white = "-";
+                row.black = move.moveStr || "";
+                row.blackPly = i + 1;
+                rows.push(row);
+                i += 1;
+            } else if (color === "white") {
+                row.white = move.moveStr || "";
+                row.whitePly = i + 1;
+                const next = i + 1 < moves.length ? moves[i + 1] : null;
+                if (next && moveColorForTable(next) === "black") {
+                    row.black = next.moveStr || "";
+                    row.blackPly = i + 2;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+                rows.push(row);
+            } else {
+                row.white = move.moveStr || "";
+                row.whitePly = i + 1;
+                const next = i + 1 < moves.length ? moves[i + 1] : null;
+                if (next) {
+                    row.black = next.moveStr || "";
+                    row.blackPly = i + 2;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+                rows.push(row);
             }
         }
         return rows;
@@ -1993,52 +2322,68 @@
     }
 
     function applyBookmarkEntryToBoard(entry) {
-        const baseOpts = Settings.loadLastOptions();
-        applySessionSettings({
-            color: baseOpts.color,
-            engine: entry.engine || baseOpts.engine,
-            thinkingTimeSeconds:
-                typeof entry.depth === "number"
-                    ? entry.depth
-                    : baseOpts.thinkingTimeSeconds,
-            difficulty:
-                typeof entry.depth === "number"
-                    ? entry.depth
-                    : baseOpts.thinkingTimeSeconds,
-            mouse: baseOpts.mouse,
-            showAvailableMoves: baseOpts.showAvailableMoves,
-            allowUndo: baseOpts.allowUndo,
-            timeMinutes: baseOpts.timeMinutes,
-        });
-        const raw = entry.state != null ? entry.state : entry.gameState;
-        const stateStr =
-            typeof raw === "string" ? raw : JSON.stringify(raw || {});
-        const parsedMoves = parseSavedGameMoves(entry);
-        game.loadGame(stateStr);
-        if (parsedMoves.length) {
-            game.loadMoves(parsedMoves);
-        } else {
-            game.loadMoves([]);
+        loadingBookmark = true;
+        clearReviewNavigation();
+        try {
+            const baseOpts = Settings.loadLastOptions();
+            applySessionSettings({
+                color: baseOpts.color,
+                engine: entry.engine || baseOpts.engine,
+                thinkingTimeSeconds:
+                    typeof entry.depth === "number"
+                        ? entry.depth
+                        : baseOpts.thinkingTimeSeconds,
+                difficulty:
+                    typeof entry.depth === "number"
+                        ? entry.depth
+                        : baseOpts.thinkingTimeSeconds,
+                mouse: baseOpts.mouse,
+                showAvailableMoves: baseOpts.showAvailableMoves,
+                allowUndo: baseOpts.allowUndo,
+                timeMinutes: baseOpts.timeMinutes,
+            });
+            const raw = entry.state != null ? entry.state : entry.gameState;
+            const stateStr =
+                typeof raw === "string" ? raw : JSON.stringify(raw || {});
+            const parsedMoves = parseSavedGameMoves(entry);
+            game.loadGame(stateStr);
+            if (parsedMoves.length) {
+                game.loadMoves(parsedMoves);
+            } else {
+                game.loadMoves([]);
+            }
+            if (typeof game.WhitePlayerView === "boolean") {
+                currentPlayerIsWhite = game.WhitePlayerView;
+                if (Board.setPlayerView) {
+                    Board.setPlayerView(currentPlayerIsWhite);
+                }
+                if (Board.setHumanColor) {
+                    Board.setHumanColor(currentPlayerIsWhite);
+                }
+            }
+            redoPairAvailable = false;
+            lastCheckNotifySide = null;
+            alertMode = false;
+            headerEventMessage = null;
+            headerEventKind = null;
+            Board.clearArrows();
+            Board.syncFromGameState();
+            clearDisplayedEvaluation();
+            if (game.GameState && game.GameState.capturedPiecesList) {
+                Board.updateCaptureLists(game.GameState.capturedPiecesList);
+            }
+            initReviewNavigation(stateStr, parsedMoves, entry.originState);
+            refreshReviewMovesTable();
+            pauseClocksForSetup();
+            gameActive = false;
+            document.body.classList.remove("desktop-play-has-active-game");
+            if (Board.setHumanPlayEnabled) {
+                Board.setHumanPlayEnabled(false);
+            }
+            updateHeaderTurn();
+        } finally {
+            loadingBookmark = false;
         }
-        redoPairAvailable = false;
-        lastCheckNotifySide = null;
-        alertMode = false;
-        headerEventMessage = null;
-        headerEventKind = null;
-        Board.clearArrows();
-        Board.syncFromGameState();
-        clearDisplayedEvaluation();
-        if (game.GameState && game.GameState.capturedPiecesList) {
-            Board.updateCaptureLists(game.GameState.capturedPiecesList);
-        }
-        updateMovesTable(movesForMovesTable(parsedMoves));
-        pauseClocksForSetup();
-        gameActive = false;
-        document.body.classList.remove("desktop-play-has-active-game");
-        if (Board.setHumanPlayEnabled) {
-            Board.setHumanPlayEnabled(false);
-        }
-        updateHeaderTurn();
     }
 
     async function loadSavedGame(bookmarkId) {
@@ -2061,7 +2406,7 @@
             enterReviewMode();
             syncGameRunPanelOptions();
             showStatus(
-                "Review mode — set move, color, engine, and think time in the header, then press Play",
+                "Review mode — click a move to step through the game, then press Play to continue",
                 0,
                 "info",
             );
@@ -2264,6 +2609,7 @@
                 gameType: "SinglePlayerGame",
                 moves: bookmarkMovesPayload(),
                 engine: session.engine || "brain42",
+                originState: reviewOriginStateStr || undefined,
                 depth:
                     typeof session.thinkingTimeSeconds === "number"
                         ? session.thinkingTimeSeconds
@@ -2290,18 +2636,30 @@
 
     function updateMovesTable(moves) {
         const movesDiv = $("movesDiv");
-        if (!movesDiv || !moves) {
+        if (!movesDiv || moves == null) {
             return;
         }
         movesDiv.innerHTML = "";
         const table = document.createElement("table");
         table.className = "movesTable";
-        const rows = buildMoveTableRows(moves);
+        const displayMoves = moves != null ? moves : [];
+        const reviewClicksEnabled = reviewMode && reviewFullMoves.length > 0;
+        const rows = reviewClicksEnabled
+            ? buildMoveTableCells(displayMoves)
+            : buildMoveTableRows(displayMoves).map(function (row, index) {
+                  return {
+                      num: index + 1,
+                      white: row.white,
+                      black: row.black,
+                      whitePly: null,
+                      blackPly: null,
+                  };
+              });
         for (let r = 0; r < rows.length; r++) {
             const row = rows[r];
             const tr = document.createElement("tr");
             const tdNum = document.createElement("td");
-            tdNum.textContent = String(r + 1);
+            tdNum.textContent = String(row.num);
             tdNum.className = "tdNum";
             const tdWhite = document.createElement("td");
             tdWhite.className = "tdMove";
@@ -2309,12 +2667,17 @@
             const tdBlack = document.createElement("td");
             tdBlack.className = "tdMove";
             setCellLabel(tdBlack, row.black);
+            if (reviewClicksEnabled) {
+                attachReviewMoveCell(tdWhite, row.whitePly);
+                attachReviewMoveCell(tdBlack, row.blackPly);
+            }
             tr.appendChild(tdNum);
             tr.appendChild(tdWhite);
             tr.appendChild(tdBlack);
             table.appendChild(tr);
         }
         movesDiv.appendChild(table);
+        highlightReviewMoveSelection();
         movesDiv.scrollTop = movesDiv.scrollHeight;
     }
 
@@ -2351,10 +2714,14 @@
             Board.drawBoard(gameState.board);
             Board.updateCaptureLists(gameState.capturedPiecesList || []);
         }
-        if (positionSetupMode) {
+        if (positionSetupMode || loadingBookmark) {
             return;
         }
-        updateMovesTable(tableMovesFromGame());
+        if (reviewMode) {
+            refreshReviewMovesTable();
+        } else {
+            updateMovesTable(tableMovesFromGame());
+        }
 
         if (gameState.draw) {
             lastCheckNotifySide = null;
@@ -2574,6 +2941,7 @@
         assignNewGameId();
         gameHistoryLogged = false;
         game.startNewGame(currentPlayerIsWhite);
+        reviewOriginStateStr = JSON.stringify(game.GameState);
         clearDisplayedEvaluation();
         resetClocks();
         redoPairAvailable = false;
