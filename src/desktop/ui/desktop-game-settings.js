@@ -8,11 +8,13 @@
     const GUEST_NAME = "Player";
 
     const ENGINE_LABELS = {
+        brain43: "Brain 4.3",
         brain42: "Brain 4.2",
         brain41: "Brain 4.1",
     };
 
     const ENGINE_OPTIONS = [
+        { value: "brain43", label: ENGINE_LABELS.brain43 },
         { value: "brain42", label: ENGINE_LABELS.brain42 },
         { value: "brain41", label: ENGINE_LABELS.brain41 },
     ];

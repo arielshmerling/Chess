@@ -1,5 +1,5 @@
 /**
- * Desktop startup: sync opening-book path and load brain42 book before any game is created.
+ * Desktop startup: sync opening-book path and load brain42/brain43 books before any game is created.
  */
 
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
@@ -7,8 +7,13 @@ const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
 function preloadOpeningBookAtStartup() {
     syncDesktopPathsForSharedModules();
     const brain42 = require("../brain42");
+    const brain43 = require("../brain43");
     brain42.preloadOpeningBook();
-    return brain42.whenOpeningBookReady().then(
+    brain43.preloadOpeningBook();
+    return Promise.all([
+        brain42.whenOpeningBookReady(),
+        brain43.whenOpeningBookReady(),
+    ]).then(
         () => {
             console.log("[desktop] Opening book ready");
         },

@@ -14,6 +14,7 @@
         "--darkSquare": "#bbbbbb",
         "--lightSquare": "#d9d9d9",
         "--optionSquare": "#b99f4b",
+        "--promotion-hover-background": "#b99f4b",
         "--frame": "#a48b37",
         "--frame-forecolor": "#ffffff",
         "--play-header-background": "#141414",
@@ -68,7 +69,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1779627014571
+      "updatedAt": 1782659873160
     },
     {
       "id": "custom-mp9zer1t",
@@ -83,6 +84,7 @@
         "--darkSquare": "#d6d6d6",
         "--lightSquare": "#ffffff",
         "--optionSquare": "#9c9c9c",
+        "--promotion-hover-background": "#3d5a80",
         "--frame": "#a8a8a8",
         "--frame-forecolor": "#000000",
         "--play-header-background": "#d1d1d1",
@@ -152,6 +154,7 @@
         "--darkSquare": "#bdc1ae",
         "--lightSquare": "#e8e9d8",
         "--optionSquare": "#599b59",
+        "--promotion-hover-background": "#3d5a80",
         "--frame": "#5c5c57",
         "--frame-forecolor": "#ffffff",
         "--play-header-background": "#141414",
@@ -221,6 +224,7 @@
         "--darkSquare": "#98c1d9",
         "--lightSquare": "#e0fbfc",
         "--optionSquare": "rgb(92, 171, 125)",
+        "--promotion-hover-background": "#3d5a80",
         "--frame": "#293241",
         "--frame-forecolor": "#e0fbfc",
         "--play-header-background": "#141414",
@@ -290,6 +294,7 @@
         "--darkSquare": "#98c1d9",
         "--lightSquare": "#e0fbfc",
         "--optionSquare": "rgb(92, 171, 125)",
+        "--promotion-hover-background": "#3d5a80",
         "--frame": "#293241",
         "--frame-forecolor": "#e0fbfc",
         "--play-header-background": "#141414",

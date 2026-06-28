@@ -1,22 +1,10 @@
 /**
- * Brain 4.2 — negamax with alpha-beta pruning over the same legal-move tree as other brains.
- *
- * Opening book: JSONL `opening-book-states.json` — `{ state, move, weight }` per line.
- *
- * Edge scoring mirrors Brain 4.1: capture value on the move, first king/rook move penalties, pawn structure,
- * and rook file bonuses. Leaf scoring adds the same positional terms plus material for the side to move.
- * Mate / draw handling aligns with {@link ChessGame} flags ({@link MATE_SCORE} for terminal mate).
- *
- * Every tentative move uses {@link withAppliedMove} so `makeMove` / `completePromotion` always pair with
- * exactly one `undo`, including when pruning breaks out of the move loop early.
- *
- * The worker increments {@link leafEvaluationsThisSearch} once per {@link evaluateLeafPosition} call and logs
- * the total after each completed search.
- *
- * Adaptive depth ({@link computeAdaptiveSearchDepth}): root legal-move count adjusts depth (log2 bonus/shrink);
- * depth increases are scaled down when many pieces remain (avoids deep search on checks in the middlegame).
+ * Brain 4.3 — same evaluation and search as Brain 4.2, with parallel root-move search
+ * across a small worker pool (up to 4 threads) inside the search worker.
  */
-const { Worker, isMainThread, parentPort } = require("worker_threads");
+const { isMainThread } = require("worker_threads");
+const path = require("path");
+const ROOT_EVAL_WORKER_SCRIPT = path.join(__dirname, "brain43RootEvalWorker.js");
 const { ChessGame } = require("./ChessGame");
 const {
     getDefaultConfig,
@@ -28,12 +16,15 @@ const {
     endTimedSearch,
     shouldStopSearch,
     getRemainingSearchMs,
+    getSearchDeadlineMs,
+    syncSearchDeadline,
 } = require("./brainSearchTime");
+const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const { savedGameStateToLookupKey } = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
-const LOG_PREFIX = "[Brain4.2]";
+const LOG_PREFIX = "[Brain4.3]";
 /** Worker safety timeout when search uses fixed depth (tests). */
 const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
 /** Extra ms beyond user thinking time before main thread abandons the worker request. */
@@ -48,11 +39,31 @@ const MAX_TIMED_SEARCH_DEPTH = 64;
 /** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
 const MATE_SCORE = 9_000_000_000_000_000;
 
-let chess;
-let brain42FullConfig = getDefaultConfig("brain42");
+let brain43FullConfig = getDefaultConfig("brain43");
 /** Plies already played before the current search root (worker loadGame clears Moves). */
-let brain42RootPliesPlayed = 0;
+let brain43RootPliesPlayed = 0;
 let runtimeConfig = { pieceScores: {}, specialEvaluations: {} };
+/** @type {ReturnType<typeof createRootWorkerPool>|null} */
+let rootWorkerPool = null;
+let rootEvalRequestCounter = 0;
+
+function getRootWorkerPool() {
+    if (!isMainThread) {
+        return null;
+    }
+    if (!rootWorkerPool) {
+        rootWorkerPool = createRootWorkerPool(ROOT_EVAL_WORKER_SCRIPT);
+        console.log(`${LOG_PREFIX} Root worker pool: ${rootWorkerPool.maxWorkers} thread(s)`);
+    }
+    return rootWorkerPool;
+}
+
+function shutdownRootWorkerPool() {
+    if (rootWorkerPool) {
+        rootWorkerPool.terminate();
+        rootWorkerPool = null;
+    }
+}
 
 function countPiecesForColor(game, color) {
     const state = game && game.GameState;
@@ -79,7 +90,7 @@ function countTotalPiecesOnBoard(game) {
     return countPiecesForColor(game, "white") + countPiecesForColor(game, "black");
 }
 
-function detectBrain42Phase(fullConfig, game, pliesPlayed) {
+function detectBrain43Phase(fullConfig, game, pliesPlayed) {
     const gp = (fullConfig && fullConfig.gamePhase) || {};
     const endMax = Number.isFinite(gp.endGameOpponentMaxPieces) ? gp.endGameOpponentMaxPieces : 8;
     const midAfter = Number.isFinite(gp.midGameAfterMoves) ? gp.midGameAfterMoves : 10;
@@ -101,8 +112,8 @@ function detectBrain42Phase(fullConfig, game, pliesPlayed) {
     return "startGame";
 }
 
-function resolveBrain42ActivePhaseSettings(fullConfig, game, pliesPlayed) {
-    const phase = detectBrain42Phase(fullConfig, game, pliesPlayed);
+function resolveBrain43ActivePhaseSettings(fullConfig, game, pliesPlayed) {
+    const phase = detectBrain43Phase(fullConfig, game, pliesPlayed);
     const phaseSettings = (fullConfig && fullConfig[phase]) || (fullConfig && fullConfig.startGame) || {};
     return {
         phase,
@@ -117,7 +128,7 @@ function clampSearchDepth(depth, cap = MAX_SEARCH_DEPTH) {
 }
 
 function resolveAdaptiveDepthSettings(fullConfig) {
-    const defaults = getDefaultConfig("brain42").adaptiveDepth;
+    const defaults = getDefaultConfig("brain43").adaptiveDepth;
     const input = fullConfig && fullConfig.adaptiveDepth;
     if (!input || typeof input !== "object") {
         return defaults;
@@ -179,7 +190,7 @@ function computeAdaptivePieceScale(totalPieces, settings) {
  * @returns {number}
  */
 function estimateLeafEvaluations(rootMoveCount, maxDepth, fullConfig) {
-    const settings = resolveAdaptiveDepthSettings(fullConfig || brain42FullConfig);
+    const settings = resolveAdaptiveDepthSettings(fullConfig || brain43FullConfig);
     const depth = clampSearchDepth(maxDepth);
     const rootMoves = Math.max(0, Math.floor(Number(rootMoveCount) || 0));
     if (rootMoves === 0 || depth <= 0) {
@@ -200,7 +211,7 @@ function estimateLeafEvaluations(rootMoveCount, maxDepth, fullConfig) {
 function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, totalPiecesOrConfig, maybeConfig) {
     const base = clampSearchDepth(baseMaxDepth);
     let totalPieces = null;
-    let fullConfig = brain42FullConfig;
+    let fullConfig = brain43FullConfig;
     if (
         totalPiecesOrConfig != null
         && typeof totalPiecesOrConfig === "object"
@@ -214,7 +225,7 @@ function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, totalPiecesOrCo
         }
     }
 
-    const settings = resolveAdaptiveDepthSettings(fullConfig || brain42FullConfig);
+    const settings = resolveAdaptiveDepthSettings(fullConfig || brain43FullConfig);
     const rootMoves = Math.max(0, Math.floor(Number(rootMoveCount) || 0));
     if (!settings.enabled || rootMoves <= 0) {
         return base;
@@ -257,21 +268,21 @@ function computeAdaptiveSearchDepth(baseMaxDepth, rootMoveCount, totalPiecesOrCo
     return Math.min(settings.maxSearchDepth, Math.max(settings.minSearchDepth, base + scaledBonus));
 }
 
-function setBrain42SearchContext(fullConfig, rootPliesPlayed) {
-    brain42FullConfig = sanitizeBrainConfig("brain42", fullConfig || {});
-    brain42RootPliesPlayed = Number.isFinite(rootPliesPlayed)
+function setBrain43SearchContext(fullConfig, rootPliesPlayed) {
+    brain43FullConfig = sanitizeBrainConfig("brain43", fullConfig || {});
+    brain43RootPliesPlayed = Number.isFinite(rootPliesPlayed)
         ? Math.max(0, Math.floor(rootPliesPlayed))
         : 0;
 }
 
 function currentSearchPliesPlayed(game) {
-    return brain42RootPliesPlayed + (game && game.Moves ? game.Moves.length : 0);
+    return brain43RootPliesPlayed + (game && game.Moves ? game.Moves.length : 0);
 }
 
 /** Applies pieceScores / specialEvaluations for the active game phase on runtimeConfig. */
 function applyRuntimeConfigForGame(game) {
     const pliesPlayed = currentSearchPliesPlayed(game);
-    const active = resolveBrain42ActivePhaseSettings(brain42FullConfig, game, pliesPlayed);
+    const active = resolveBrain43ActivePhaseSettings(brain43FullConfig, game, pliesPlayed);
     runtimeConfig = {
         pieceScores: active.pieceScores,
         specialEvaluations: active.specialEvaluations,
@@ -282,7 +293,7 @@ function applyRuntimeConfigForGame(game) {
 }
 
 (function initBrain42RuntimeConfig() {
-    const active = resolveBrain42ActivePhaseSettings(brain42FullConfig, null, 0);
+    const active = resolveBrain43ActivePhaseSettings(brain43FullConfig, null, 0);
     runtimeConfig = {
         pieceScores: active.pieceScores,
         specialEvaluations: active.specialEvaluations,
@@ -375,120 +386,10 @@ exports.whenOpeningBookReady = function whenOpeningBookReady() {
     return beginOpeningBookLoad();
 };
 
-/** Counts {@link evaluateLeafPosition} invocations per worker search; reset before each request. */
+/** Counts {@link evaluateLeafPosition} invocations per search; reset before each request. */
 let leafEvaluationsThisSearch = 0;
 
-exports.Name = "Brain 4.2";
-
-let persistentWorker = null;
-let requestIdCounter = 0;
-const pendingRequests = new Map();
-
-function getOrCreateWorker() {
-    if (!isMainThread) {
-        throw new Error("getOrCreateWorker called from worker thread");
-    }
-    if (!persistentWorker) {
-        console.log(`${LOG_PREFIX} Creating persistent worker thread...`);
-        persistentWorker = new Worker(__filename);
-
-        persistentWorker.on("message", (response) => {
-            const { requestId, move, error } = response;
-            const pending = pendingRequests.get(requestId);
-            if (pending) {
-                pendingRequests.delete(requestId);
-                clearTimeout(pending.timeout);
-                if (error) {
-                    pending.reject(new Error(error));
-                } else if (move) {
-                    pending.resolve(move);
-                } else {
-                    pending.reject(new Error("Worker returned null move"));
-                }
-            }
-        });
-
-        persistentWorker.on("error", (err) => {
-            console.error(`${LOG_PREFIX} Persistent worker thread error:`, err);
-            for (const [, pending] of pendingRequests.entries()) {
-                clearTimeout(pending.timeout);
-                pending.reject(err);
-            }
-            pendingRequests.clear();
-            persistentWorker = null;
-        });
-
-        persistentWorker.on("exit", (code) => {
-            if (code !== 0) {
-                console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
-            }
-            for (const [, pending] of pendingRequests.entries()) {
-                clearTimeout(pending.timeout);
-                pending.reject(new Error(`Worker thread exited with code ${code}`));
-            }
-            pendingRequests.clear();
-            persistentWorker = null;
-        });
-    }
-    return persistentWorker;
-}
-
-function terminatePersistentWorker(reason) {
-    if (!persistentWorker) {
-        return;
-    }
-    console.warn(`${LOG_PREFIX} Terminating worker: ${reason}`);
-    const worker = persistentWorker;
-    persistentWorker = null;
-    for (const [, pending] of pendingRequests.entries()) {
-        clearTimeout(pending.timeout);
-        pending.reject(new Error(reason || "Worker terminated"));
-    }
-    pendingRequests.clear();
-    worker.terminate();
-}
-
-function createWorkerPromise(strState, searchOptions) {
-    return new Promise((resolve, reject) => {
-        if (!isMainThread) {
-            reject(new Error("createWorkerPromise called from worker thread"));
-            return;
-        }
-        const requestId = ++requestIdCounter;
-        const worker = getOrCreateWorker();
-        const thinkingTimeMs = searchOptions?.thinkingTimeMs;
-        const maxDepth = searchOptions?.maxDepth;
-        const config = searchOptions?.config;
-        const pliesPlayed = searchOptions?.pliesPlayed;
-        const timeoutMs = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
-            ? Math.max(1000, Math.floor(Number(thinkingTimeMs)) + THINKING_TIME_SAFETY_BUFFER_MS)
-            : BRAIN_MOVE_TIMEOUT_MS;
-
-        const timeout = setTimeout(() => {
-            const pending = pendingRequests.get(requestId);
-            if (pending) {
-                pendingRequests.delete(requestId);
-                console.error(`${LOG_PREFIX} move timeout for request ${requestId} after ${timeoutMs}ms`);
-                terminatePersistentWorker("Brain move timeout");
-                reject(new Error("Brain move timeout"));
-            }
-        }, timeoutMs);
-
-        pendingRequests.set(requestId, { resolve, reject, timeout });
-        const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
-            ? `time ${thinkingTimeMs}ms`
-            : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
-        console.log(`${LOG_PREFIX} Sending request ${requestId} (${label})`);
-        worker.postMessage({
-            requestId,
-            gameState: strState,
-            thinkingTimeMs,
-            maxDepth,
-            config,
-            pliesPlayed,
-        });
-    });
-}
+exports.Name = "Brain 4.3";
 
 class BrainTimeoutFallbackError extends Error {
     constructor(move) {
@@ -604,16 +505,86 @@ function tryFindMatchState(game) {
     return pick;
 }
 
+async function runBrain43SearchLocal(game, searchOptions) {
+    const thinkingTimeMs = searchOptions?.thinkingTimeMs;
+    const maxDepth = searchOptions?.maxDepth != null
+        ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(searchOptions.maxDepth)))
+        : DEFAULT_MAX_DEPTH;
+    const timeoutMs = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+        ? Math.max(1000, Math.floor(Number(thinkingTimeMs)) + THINKING_TIME_SAFETY_BUFFER_MS)
+        : BRAIN_MOVE_TIMEOUT_MS;
+
+    const searchPromise = (async () => {
+        leafEvaluationsThisSearch = 0;
+        const phase = applyRuntimeConfigForGame(game);
+        const budgetLabel = thinkingTimeMs != null
+            ? `time=${thinkingTimeMs}ms`
+            : `depth=${maxDepth}`;
+        console.log(
+            `${LOG_PREFIX} Thinking... ${budgetLabel}, phase=${phase}, `
+                + `plies=${currentSearchPliesPlayed(game)}`,
+        );
+        game.SearchMode = true;
+        try {
+            if (thinkingTimeMs != null && Number(thinkingTimeMs) > 0) {
+                return await searchBestMoveWithTimeLimit(game, thinkingTimeMs);
+            }
+            return await searchBestMoveAtRoot(game, maxDepth);
+        } finally {
+            game.SearchMode = false;
+        }
+    })();
+
+    let timeoutHandle;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+            reject(new Error("Brain move timeout"));
+        }, timeoutMs);
+    });
+
+    try {
+        const move = await Promise.race([searchPromise, timeoutPromise]);
+        clearTimeout(timeoutHandle);
+        return finalizeSearchMove(game, move);
+    } catch (err) {
+        clearTimeout(timeoutHandle);
+        throw err;
+    }
+}
+
+function finalizeSearchMove(game, move) {
+    let out = move;
+    if (!out || out.source == null) {
+        out = getFirstLegalMove(game);
+        if (out) {
+            out.searchDepthReached = 0;
+        }
+        console.error(`${LOG_PREFIX} Search returned empty; first legal fallback`);
+    } else {
+        const v = game.validateMove(out.source, out.target, game.Turn);
+        if (!v.valid) {
+            out = getFirstLegalMove(game);
+            if (out) {
+                out.searchDepthReached = 0;
+            }
+            console.error(`${LOG_PREFIX} Chosen move failed validateMove; first legal fallback`, out);
+        }
+    }
+    if (out && out.source != null) {
+        out.turn = game.Turn;
+    }
+    return out;
+}
+
 exports.brainNextMoveFunc = async (game, options) => {
     const pliesPlayed = options?.pliesPlayed ?? (game.Moves ? game.Moves.length : 0);
-    setBrain42SearchContext(options?.config || {}, pliesPlayed);
+    setBrain43SearchContext(options?.config || {}, pliesPlayed);
     const phase = applyRuntimeConfigForGame(game);
     console.log(`${LOG_PREFIX} Game phase: ${phase} (plies=${pliesPlayed})`);
     const state = game.GameState;
     if (!Array.isArray(state.capturedPiecesList)) {
         state.capturedPiecesList = [];
     }
-    const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;
 
     const mateNow = findImmediateMatingMove(game, collectLegalMoves(game));
@@ -632,16 +603,16 @@ exports.brainNextMoveFunc = async (game, options) => {
         return bookMove;
     }
 
-    const workerSearchOptions = {
-        config: brain42FullConfig,
+    const searchOptions = {
+        config: brain43FullConfig,
         pliesPlayed,
     };
     if (options?.thinkingTimeMs != null && Number(options.thinkingTimeMs) > 0) {
-        workerSearchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
-        console.log(`${LOG_PREFIX} Search budget: ${workerSearchOptions.thinkingTimeMs}ms`);
+        searchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
+        console.log(`${LOG_PREFIX} Search budget: ${searchOptions.thinkingTimeMs}ms`);
     } else {
-        workerSearchOptions.maxDepth = maxDepth;
-        const searchPlan = planSearchDepth(game, maxDepth, brain42FullConfig);
+        searchOptions.maxDepth = maxDepth;
+        const searchPlan = planSearchDepth(game, maxDepth, brain43FullConfig);
         if (searchPlan.moves.length > 0 && !findImmediateMatingMove(game, searchPlan.moves)) {
             logSearchPlan(
                 searchPlan.moves.length,
@@ -653,10 +624,11 @@ exports.brainNextMoveFunc = async (game, options) => {
     }
 
     try {
-        const move = await createWorkerPromise(strState, workerSearchOptions);
+        const move = await runBrain43SearchLocal(game, searchOptions);
         if (move && move.searchDepthReached != null) {
             console.log(
-                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}`,
+                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}, `
+                    + `leaf evaluations=${leafEvaluationsThisSearch}`,
             );
         }
         return move;
@@ -672,31 +644,16 @@ exports.brainNextMoveFunc = async (game, options) => {
             );
             throw new BrainTimeoutFallbackError(fallbackMove);
         }
-        console.warn(`${LOG_PREFIX} First worker attempt failed: ${err.message}`);
-        try {
-            return await createWorkerPromise(strState, workerSearchOptions);
-        } catch (retryErr) {
-            if (retryErr && retryErr.message === "Brain move timeout") {
-                const fallbackMove = getFirstLegalMove(game);
-                if (!fallbackMove) {
-                    throw new Error("No legal moves available (checkmate or stalemate)");
-                }
-                fallbackMove.searchDepthReached = 0;
-                console.log(
-                    `${LOG_PREFIX} Timeout fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
-                );
-                throw new BrainTimeoutFallbackError(fallbackMove);
-            }
-            const fallbackMove = getFirstLegalMove(game);
-            if (!fallbackMove) {
-                throw new Error("No legal moves available (checkmate or stalemate)");
-            }
-            fallbackMove.searchDepthReached = 0;
-            console.log(
-                `${LOG_PREFIX} Error fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
-            );
-            throw new BrainTimeoutFallbackError(fallbackMove);
+        console.warn(`${LOG_PREFIX} Search failed: ${err.message}`);
+        const fallbackMove = getFirstLegalMove(game);
+        if (!fallbackMove) {
+            throw new Error("No legal moves available (checkmate or stalemate)");
         }
+        fallbackMove.searchDepthReached = 0;
+        console.log(
+            `${LOG_PREFIX} Error fallback (depth 0): ${bookMovePgn(game, fallbackMove)}`,
+        );
+        throw new BrainTimeoutFallbackError(fallbackMove);
     }
 };
 
@@ -1401,7 +1358,7 @@ function getSquareRookPositionalBreakdown(game, row, col, se, perspectiveColor) 
     return breakdown;
 }
 
-function formatBrain42PhaseLabel(phase) {
+function formatBrain43PhaseLabel(phase) {
     switch (phase) {
         case "startGame":
             return "Start game";
@@ -1435,7 +1392,7 @@ function buildPositionSummaryBreakdown(game, squares, phase) {
     return [
         {
             label: "Game mode",
-            text: formatBrain42PhaseLabel(phase),
+            text: formatBrain43PhaseLabel(phase),
         },
         ...colorLines,
     ];
@@ -1456,7 +1413,7 @@ function buildPositionSummaryBreakdown(game, squares, phase) {
  */
 function evaluatePositionDisplay(game, options) {
     const pliesPlayed = options?.pliesPlayed ?? (game.Moves ? game.Moves.length : 0);
-    setBrain42SearchContext(options?.config || brain42FullConfig, pliesPlayed);
+    setBrain43SearchContext(options?.config || brain43FullConfig, pliesPlayed);
     const phase = applyRuntimeConfigForGame(game);
     console.log(`${LOG_PREFIX} Display eval phase: ${phase} (plies=${pliesPlayed})`);
     const se = specialEvaluations();
@@ -1524,10 +1481,10 @@ function evaluatePositionDisplay(game, options) {
 }
 
 exports.evaluatePositionDisplay = evaluatePositionDisplay;
-exports.detectBrain42Phase = detectBrain42Phase;
+exports.detectBrain43Phase = detectBrain43Phase;
 exports.countPiecesForColor = countPiecesForColor;
 exports.countTotalPiecesOnBoard = countTotalPiecesOnBoard;
-exports.resolveBrain42ActivePhaseSettings = resolveBrain42ActivePhaseSettings;
+exports.resolveBrain43ActivePhaseSettings = resolveBrain43ActivePhaseSettings;
 exports.getAdvancedPawnBonusFraction = getAdvancedPawnBonusFraction;
 exports.getAdvancedPawnBonusForColor = getAdvancedPawnBonusForColor;
 exports.estimateLeafEvaluations = estimateLeafEvaluations;
@@ -1557,7 +1514,7 @@ function collectLegalMoves(game) {
             try {
                 options = game.possibleMoves(source);
             } catch (err) {
-                console.error("[Brain4.2] possibleMoves failed at", i, j, err);
+                console.error("[Brain4.3] possibleMoves failed at", i, j, err);
                 continue;
             }
             if (options.length > 0) {
@@ -1735,7 +1692,105 @@ function logSearchPlan(rootMoves, totalPieces, maxDepth, depthNote) {
     );
 }
 
-function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
+function mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef) {
+    if (!Number.isFinite(score)) {
+        return bestScoreRef.value;
+    }
+    if (score > bestScoreRef.value) {
+        bestScoreRef.value = score;
+        tiedBest.length = 0;
+        tiedBest.push(move);
+    } else if (score === bestScoreRef.value) {
+        const q = staticMoveBonus(game, move);
+        const prevQ =
+            tiedBest.length > 0
+                ? staticMoveBonus(game, tiedBest[0])
+                : -Infinity;
+        if (q > prevQ) {
+            tiedBest.length = 0;
+            tiedBest.push(move);
+        } else if (q === prevQ) {
+            tiedBest.push(move);
+        }
+    }
+    return bestScoreRef.value;
+}
+
+function finalizeRootSearchPick(game, ordered, tiedBest, bestScore) {
+    if (tiedBest.length === 0) {
+        return ordered[0];
+    }
+    const pick = tiedBest[0];
+    if (tiedBest.length > 1) {
+        logTiedBestMoveOptions(game, tiedBest, bestScore);
+        console.log(`${LOG_PREFIX} Tie-break: ${bookMovePgn(game, pick)} (first by move order / static bonus)`);
+    }
+    pick.score = bestScore;
+    return pick;
+}
+
+/**
+ * Evaluate a set of root moves across the worker pool.
+ * All tasks are dispatched at once so the pool keeps every worker busy (no lockstep batching).
+ * `alpha` seeds an alpha-beta lower bound shared by every worker so sibling subtrees prune,
+ * recovering most of the pruning that sequential alpha-beta gets at the root.
+ *
+ * @param {object[]} moves Root moves to evaluate (subset of the full ordered list).
+ * @param {number} depthAfterRoot Remaining search depth after the root move.
+ * @param {number} alpha Shared lower bound for pruning (-Infinity to disable).
+ * @returns {Promise<Array<{move: object, score: number}|null>>}
+ */
+async function evaluateRootMovesParallel(game, moves, depthAfterRoot, alpha) {
+    if (moves.length === 0) {
+        return [];
+    }
+    const pool = getRootWorkerPool();
+    if (!pool) {
+        return [];
+    }
+    const gameState = JSON.stringify(game.GameState);
+    const config = brain43FullConfig;
+    const pliesPlayed = currentSearchPliesPlayed(game);
+    const searchDeadlineMs = getSearchDeadlineMs();
+    const sharedAlpha = Number.isFinite(alpha) ? alpha : -Infinity;
+
+    const tasks = moves.map((move, i) => {
+        const requestId = ++rootEvalRequestCounter;
+        return pool.runTask({
+            requestId,
+            gameState,
+            move: {
+                source: move.source,
+                target: move.target,
+                piece: move.piece,
+                promotion: move.promotion,
+                selectedPiece: move.selectedPiece,
+            },
+            depthAfterRoot,
+            config,
+            pliesPlayed,
+            searchDeadlineMs,
+            moveIndex: i,
+            alpha: sharedAlpha,
+            beta: Infinity,
+        }).then((result) => {
+            if (result && Number.isFinite(result.leafEvaluations)) {
+                leafEvaluationsThisSearch += result.leafEvaluations;
+            }
+            return result && Number.isFinite(result.score)
+                ? { move, score: result.score }
+                : null;
+        }).catch((err) => {
+            console.warn(`${LOG_PREFIX} Root eval failed for move ${i}: ${err.message}`);
+            return null;
+        });
+    });
+
+    return Promise.all(tasks);
+}
+
+/** Sequential root search (same alpha-beta window as Brain 4.2). */
+function searchAtFixedDepthSequential(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
     const depthLimit = clampSearchDepth(maxDepth, depthCap);
     const moves = collectLegalMoves(game);
     if (moves.length === 0) {
@@ -1751,7 +1806,7 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
     let alpha = -Infinity;
     const beta = Infinity;
     const tiedBest = [];
-    let bestScore = -Infinity;
+    const bestScoreRef = { value: -Infinity };
 
     for (let i = 0; i < ordered.length; i++) {
         if (shouldStopSearch()) {
@@ -1762,41 +1817,111 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
         if (!Number.isFinite(score)) {
             continue;
         }
-        if (score > bestScore) {
-            bestScore = score;
-            tiedBest.length = 0;
-            tiedBest.push(move);
-        } else if (score === bestScore) {
-            const q = staticMoveBonus(game, move);
-            const prevQ =
-                tiedBest.length > 0
-                    ? staticMoveBonus(game, tiedBest[0])
-                    : -Infinity;
-            if (q > prevQ) {
-                tiedBest.length = 0;
-                tiedBest.push(move);
-            } else if (q === prevQ) {
-                tiedBest.push(move);
-            }
-        }
+        mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef);
         if (score > alpha) {
             alpha = score;
         }
     }
 
-    if (tiedBest.length === 0) {
-        return ordered[0];
-    }
-    const pick = tiedBest[0];
-    if (tiedBest.length > 1) {
-        logTiedBestMoveOptions(game, tiedBest, bestScore);
-        console.log(`${LOG_PREFIX} Tie-break: ${bookMovePgn(game, pick)} (first by move order / static bonus)`);
-    }
-    pick.score = bestScore;
-    return pick;
+    return finalizeRootSearchPick(game, ordered, tiedBest, bestScoreRef.value);
 }
 
-function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
+/** True when two moves share source/target (and promotion choice). */
+function sameRootMove(a, b) {
+    return a && b
+        && a.source && b.source && a.target && b.target
+        && a.source.row === b.source.row && a.source.col === b.source.col
+        && a.target.row === b.target.row && a.target.col === b.target.col
+        && !!a.promotion === !!b.promotion
+        && a.selectedPiece === b.selectedPiece;
+}
+
+/** Move `preferred` to the front of `ordered` (Young-Brothers-Wait PV seeding). */
+function orderWithPreferredFirst(ordered, preferred) {
+    if (!preferred) {
+        return ordered;
+    }
+    const idx = ordered.findIndex((m) => sameRootMove(m, preferred));
+    if (idx > 0) {
+        const copy = ordered.slice();
+        const [pv] = copy.splice(idx, 1);
+        copy.unshift(pv);
+        return copy;
+    }
+    return ordered;
+}
+
+/**
+ * @param {object} [preferredFirstMove] PV move from the previous iterative-deepening depth.
+ *   Searched first (on the main thread) to seed a strong alpha so parallel siblings prune well.
+ */
+async function searchAtFixedDepth(game, maxDepth, preferredFirstMove, depthCap = MAX_SEARCH_DEPTH) {
+    const depthLimit = clampSearchDepth(maxDepth, depthCap);
+    const moves = collectLegalMoves(game);
+    if (moves.length === 0) {
+        return null;
+    }
+    const mateNow = findImmediateMatingMove(game, moves);
+    if (mateNow) {
+        mateNow.score = MATE_SCORE;
+        return mateNow;
+    }
+    const captureOrdered = orderMovesCapturesFirst(game, moves);
+    /** Parallel root eval only during timed search; fixed-depth matches Brain 4.2 sequentially. */
+    const useParallelRoot = isMainThread
+        && MAX_ROOT_WORKERS > 1
+        && captureOrdered.length > 1
+        && getSearchDeadlineMs() > 0;
+    if (!useParallelRoot) {
+        return searchAtFixedDepthSequential(game, maxDepth, depthCap);
+    }
+
+    const ordered = orderWithPreferredFirst(captureOrdered, preferredFirstMove);
+    const depthAfterRoot = Math.max(0, depthLimit - 1);
+    const tiedBest = [];
+    const bestScoreRef = { value: -Infinity };
+
+    // Search the first (PV) move on the main thread to establish a strong alpha (eldest brother).
+    const firstMove = ordered[0];
+    const firstScore = evaluateSearchMove(game, firstMove, depthAfterRoot, -Infinity, Infinity, 1);
+    if (shouldStopSearch()) {
+        return null;
+    }
+    if (Number.isFinite(firstScore)) {
+        mergeRootMoveScore(game, firstMove, firstScore, tiedBest, bestScoreRef);
+    }
+
+    // Remaining moves run in parallel waves. Alpha is raised between waves as better moves are
+    // found, so pruning approaches sequential alpha-beta while keeping every worker busy.
+    // Within a wave, a result <= the wave's alpha "failed low" (bound only) and is discarded;
+    // scores above alpha are exact and safe to merge / tie-break.
+    const waveSize = Math.max(1, MAX_ROOT_WORKERS);
+    for (let i = 1; i < ordered.length; i += waveSize) {
+        if (shouldStopSearch()) {
+            break;
+        }
+        const waveAlpha = bestScoreRef.value;
+        const wave = ordered.slice(i, i + waveSize);
+        const results = await evaluateRootMovesParallel(game, wave, depthAfterRoot, waveAlpha);
+        for (const result of results) {
+            if (!result || !Number.isFinite(result.score)) {
+                continue;
+            }
+            if (Number.isFinite(waveAlpha) && result.score <= waveAlpha) {
+                continue;
+            }
+            mergeRootMoveScore(game, result.move, result.score, tiedBest, bestScoreRef);
+        }
+    }
+
+    if (tiedBest.length === 0 && shouldStopSearch()) {
+        return null;
+    }
+
+    return finalizeRootSearchPick(game, ordered, tiedBest, bestScoreRef.value);
+}
+
+async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
     beginTimedSearch(thinkingTimeMs);
     try {
         const moves = collectLegalMoves(game);
@@ -1821,7 +1946,14 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
             if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
                 break;
             }
-            const atDepth = searchAtFixedDepth(game, depth, MAX_TIMED_SEARCH_DEPTH);
+            // Seed the parallel root search with the previous depth's best move so the shared
+            // alpha is strong (Young-Brothers-Wait); without it, siblings barely prune.
+            const atDepth = await searchAtFixedDepth(
+                game,
+                depth,
+                completedDepth > 0 ? bestMove : null,
+                MAX_TIMED_SEARCH_DEPTH,
+            );
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
@@ -1845,107 +1977,65 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
     }
 }
 
-function searchBestMoveAtRoot(game, baseMaxDepth) {
+async function searchBestMoveAtRoot(game, baseMaxDepth) {
     const depthLimit = clampSearchDepth(baseMaxDepth);
-    const move = searchAtFixedDepth(game, depthLimit);
+    const move = await searchAtFixedDepth(game, depthLimit);
     if (move) {
         move.searchDepthReached = depthLimit;
     }
     return move;
 }
 
-if (!isMainThread) {
-    if (!chess) {
-        chess = new ChessGame();
+let rootEvalChess;
+
+/** Called from brain43RootEvalWorker threads for one root-move subtree search. */
+function evaluateRootMoveInWorker(request) {
+    const {
+        requestId,
+        gameState,
+        move,
+        depthAfterRoot,
+        config,
+        pliesPlayed,
+        searchDeadlineMs,
+        moveIndex,
+        alpha,
+        beta,
+    } = request;
+
+    if (!rootEvalChess) {
+        rootEvalChess = new ChessGame();
     }
 
-    console.log(`${LOG_PREFIX} worker thread initialized`);
-
-    parentPort.on("message", (request) => {
-        const {
-            requestId,
-            gameState,
-            thinkingTimeMs: requestThinkingTimeMs,
-            maxDepth: requestMaxDepth,
-            config,
-            pliesPlayed,
-        } = request;
-
-        if (!requestId || !gameState) {
-            console.error(`${LOG_PREFIX} Worker received invalid request`, request);
-            parentPort.postMessage({ requestId: request?.requestId || 0, error: "Invalid request format" });
-            return;
-        }
-
-        const maxDepth = requestMaxDepth != null
-            ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth)))
-            : DEFAULT_MAX_DEPTH;
-        const thinkingTimeMs = requestThinkingTimeMs != null && Number(requestThinkingTimeMs) > 0
-            ? Math.floor(Number(requestThinkingTimeMs))
-            : null;
-        setBrain42SearchContext(config || {}, pliesPlayed ?? 0);
-        const startTime = Date.now();
-
-        try {
-            leafEvaluationsThisSearch = 0;
-            chess.loadGame(gameState);
-            if (!Array.isArray(chess.GameState.capturedPiecesList)) {
-                chess.GameState.capturedPiecesList = [];
-            }
-            const phase = applyRuntimeConfigForGame(chess);
-            const budgetLabel = thinkingTimeMs != null
-                ? `time=${thinkingTimeMs}ms`
-                : `depth=${maxDepth}`;
-            console.log(
-                `${LOG_PREFIX} Thinking... request=${requestId}, ${budgetLabel}, phase=${phase}, `
-                    + `plies=${currentSearchPliesPlayed(chess)}`,
-            );
-            chess.SearchMode = true;
-            const move = thinkingTimeMs != null
-                ? searchBestMoveWithTimeLimit(chess, thinkingTimeMs)
-                : searchBestMoveAtRoot(chess, maxDepth);
-            chess.SearchMode = false;
-
-            let out = move;
-            if (!out || out.source == null) {
-                out = getFirstLegalMove(chess);
-                if (out) {
-                    out.searchDepthReached = 0;
-                }
-                console.error(`${LOG_PREFIX} Worker: search returned empty; first legal fallback`);
-            } else {
-                const v = chess.validateMove(out.source, out.target, chess.Turn);
-                if (!v.valid) {
-                    out = getFirstLegalMove(chess);
-                    if (out) {
-                        out.searchDepthReached = 0;
-                    }
-                    console.error(`${LOG_PREFIX} Worker: chosen move failed validateMove; first legal fallback`, out);
-                }
-            }
-
-            const duration = Date.now() - startTime;
-            const depthReached = out && out.searchDepthReached != null ? out.searchDepthReached : "?";
-            console.log(
-                `${LOG_PREFIX} request=${requestId} done in ${duration}ms, `
-                    + `depth=${depthReached}, move=${bookMovePgn(chess, out)}, `
-                    + `leaf evaluations=${leafEvaluationsThisSearch}`,
-            );
-
-            if (out && out.source != null) {
-                out.turn = chess.Turn;
-                parentPort.postMessage({ requestId, move: out });
-            } else {
-                parentPort.postMessage({ requestId, error: "No move found" });
-            }
-        } catch (err) {
-            const duration = Date.now() - startTime;
-            console.error(
-                `${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms `
-                    + `(leaf evaluations before error: ${leafEvaluationsThisSearch}):`,
-                err,
-            );
-            parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
-        }
-    });
+    syncSearchDeadline(searchDeadlineMs);
+    if (shouldStopSearch()) {
+        return { requestId, moveIndex, score: null, leafEvaluations: 0 };
+    }
+    setBrain43SearchContext(config || {}, pliesPlayed ?? 0);
+    leafEvaluationsThisSearch = 0;
+    rootEvalChess.loadGame(gameState);
+    if (!Array.isArray(rootEvalChess.GameState.capturedPiecesList)) {
+        rootEvalChess.GameState.capturedPiecesList = [];
+    }
+    applyRuntimeConfigForGame(rootEvalChess);
+    rootEvalChess.SearchMode = true;
+    const searchAlpha = Number.isFinite(alpha) ? alpha : -Infinity;
+    const searchBeta = Number.isFinite(beta) ? beta : Infinity;
+    const score = evaluateSearchMove(
+        rootEvalChess,
+        move,
+        depthAfterRoot,
+        searchAlpha,
+        searchBeta,
+        1,
+    );
+    rootEvalChess.SearchMode = false;
+    return {
+        requestId,
+        moveIndex,
+        score: Number.isFinite(score) ? score : null,
+        leafEvaluations: leafEvaluationsThisSearch,
+    };
 }
+
+exports.evaluateRootMoveInWorker = evaluateRootMoveInWorker;

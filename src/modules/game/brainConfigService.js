@@ -148,6 +148,7 @@ const DEFAULT_CONFIGS = {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
     },
 };
+DEFAULT_CONFIGS.brain43 = JSON.parse(JSON.stringify(DEFAULT_CONFIGS.brain42));
 
 const ALLOWED_BRAINS = Object.keys(DEFAULT_CONFIGS);
 const SCORE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "king"];
@@ -285,8 +286,8 @@ function sanitizeAdaptiveDepthSettings(fallback, raw) {
     };
 }
 
-function sanitizeBrain42Config(rawConfig) {
-    const fallback = getDefaultConfig("brain42");
+function sanitizeBrain42StyleConfig(engineName, rawConfig) {
+    const fallback = getDefaultConfig(engineName);
     let raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
     if (raw.pieceScores && !raw.startGame) {
         raw = {
@@ -321,10 +322,21 @@ function sanitizeBrain42Config(rawConfig) {
     return { gamePhase, pawnFileValues, adaptiveDepth, startGame, midGame, endGame };
 }
 
+function sanitizeBrain42Config(rawConfig) {
+    return sanitizeBrain42StyleConfig("brain42", rawConfig);
+}
+
+function sanitizeBrain43Config(rawConfig) {
+    return sanitizeBrain42StyleConfig("brain43", rawConfig);
+}
+
 function sanitizeBrainConfig(engineName, rawConfig) {
     const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
     if (safeEngine === "brain42") {
         return sanitizeBrain42Config(rawConfig);
+    }
+    if (safeEngine === "brain43") {
+        return sanitizeBrain43Config(rawConfig);
     }
     const fallback = getDefaultConfig(safeEngine);
     const pieceScores = { ...fallback.pieceScores };
@@ -418,6 +430,7 @@ module.exports = {
     saveBrainConfig,
     sanitizeBrainConfig,
     sanitizeBrain42Config,
+    sanitizeBrain43Config,
     sanitizeAdaptiveDepthSettings,
     normalizeThinkingTimeSeconds,
     thinkingTimeSecondsToMs,

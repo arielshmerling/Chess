@@ -14,6 +14,9 @@ const DESKTOP_ROOT_FILES = [
     "ChessGame.js",
     "brain41.js",
     "brain42.js",
+    "brain43.js",
+    "brain43RootPool.js",
+    "brain43RootEvalWorker.js",
     "brainSearchTime.js",
     "openingBookJson.js",
     "openingBookLoader.js",
@@ -30,7 +33,7 @@ const DESKTOP_SRC_FILES = [
     "utils.js",
 ];
 
-const DESKTOP_BRAIN_CONFIGS = ["brain41.json", "brain42.json"];
+const DESKTOP_BRAIN_CONFIGS = ["brain41.json", "brain42.json", "brain43.json"];
 
 const DESKTOP_UI_PAGES = ["index.html", "play.html", "error.html"];
 

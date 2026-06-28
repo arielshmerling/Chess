@@ -37,6 +37,7 @@ let lastCheckNotifySide = null;
 const BOOKMARK_BRAIN_OPTIONS = [
     { value: "brain41", label: "Brain 4.1" },
     { value: "brain42", label: "Brain 4.2" },
+    { value: "brain43", label: "Brain 4.3" },
     { value: "brain4", label: "Brain 4.0" },
 ];
 const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
@@ -46,7 +47,7 @@ const BRAIN_CONFIG_PIECE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "k
 function getBookmarkBrainOptions() {
     if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__) {
         return BOOKMARK_BRAIN_OPTIONS.filter(function (opt) {
-            return opt.value === "brain41" || opt.value === "brain42";
+            return opt.value === "brain41" || opt.value === "brain42" || opt.value === "brain43";
         });
     }
     return BOOKMARK_BRAIN_OPTIONS;
@@ -2297,7 +2298,7 @@ async function promotionEventHandler(turn) {
         //menuSaveEventHandler();
         promotingMode = true;
         dialogOn = true;
-        showPromotionDialog((selectedPiece) => {
+        showPromotionDialog(turn, (selectedPiece) => {
             lastMove.selectedPiece = selectedPiece;
             game.completePromotion(lastMove);
             if (gameType === "OnlineGame" || gameType === "SinglePlayerGame") {
@@ -2327,11 +2328,11 @@ function promotionSelected(e) {
     promotionCallback(selectedPiece);
 }
 
-function showPromotionDialog(callback) {
+function showPromotionDialog(promotingColor, callback) {
 
     const chessboardDiv = document.getElementById("chessboard");
     const cloakDiv = createCloak();
-    const promotionBox = createPromotionBox();
+    const promotionBox = createPromotionBox(promotingColor);
     cloakDiv.appendChild(promotionBox);
     chessboardDiv.appendChild(cloakDiv);
 
@@ -2348,14 +2349,15 @@ function showPromotionDialog(callback) {
  *
  *     createPromotionBox()  
  */
-function createPromotionBox() {
+function createPromotionBox(promotingColor) {
 
 
     const promotionDivSelection = document.createElement("div");
     promotionDivSelection.setAttribute("class", "promotionSelectionBox");
     promotionDivSelection.setAttribute("id", "promotionSelectionBox");
+    const pieceUrls = promotingColor === "black" ? blackPiecesURL : whitePiecesURL;
     for (let i = game.KNIGHT; i <= game.QUEEN; i++) {
-        const piece = createPiece(whitePiecesURL[i]);
+        const piece = createPiece(pieceUrls[i]);
         piece.setAttribute("class", "promotionPiece");
         piece.setAttribute("alt", i);
         piece.onclick = promotionSelected;

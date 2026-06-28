@@ -23,6 +23,7 @@
                 "--darkSquare",
                 "--lightSquare",
                 "--optionSquare",
+                "--promotion-hover-background",
                 "--frame",
                 "--frame-forecolor",
             ],

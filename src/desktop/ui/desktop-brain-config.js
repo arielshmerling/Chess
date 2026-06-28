@@ -5,6 +5,7 @@
     "use strict";
 
     const ENGINE_OPTIONS = [
+        { value: "brain43", label: "Brain 4.3" },
         { value: "brain42", label: "Brain 4.2" },
         { value: "brain41", label: "Brain 4.1" },
         { value: "brain4", label: "Brain 4" },
@@ -58,7 +59,7 @@
     /** Panel edits flat sections; brain42 phased blocks (mid/end) stay on save. */
     function normalizeConfigForPanel(config, engine) {
         const copy = JSON.parse(JSON.stringify(config || {}));
-        if (engine !== "brain42" || !copy.startGame) {
+        if ((engine !== "brain42" && engine !== "brain43") || !copy.startGame) {
             return copy;
         }
         if (!copy.pieceScores && copy.startGame.pieceScores) {
@@ -97,7 +98,7 @@
 
     function prepareConfigForSave(draft, engine) {
         const copy = JSON.parse(JSON.stringify(draft || {}));
-        if (engine === "brain42" && copy.startGame) {
+        if ((engine === "brain42" || engine === "brain43") && copy.startGame) {
             if (copy.pieceScores) {
                 copy.startGame.pieceScores = copy.pieceScores;
                 delete copy.pieceScores;

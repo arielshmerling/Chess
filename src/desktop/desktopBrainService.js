@@ -1,5 +1,5 @@
 /**
- * In-process brain for desktop (Electron main). Uses ChessGame + brain41/brain42.
+ * In-process brain for desktop (Electron main). Uses ChessGame + brain41/brain42/brain43.
  */
 
 const path = require("path");
@@ -12,9 +12,25 @@ const {
 const runtime = require("./runtime");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
 
-const ALLOWED_ENGINES = ["brain41", "brain42"];
+const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
-let openingBookReady = null;
+const openingBookReadyByEngine = {};
+
+function ensureOpeningBookReady(engineName) {
+    if (engineName !== "brain42" && engineName !== "brain43") {
+        return Promise.resolve();
+    }
+    if (openingBookReadyByEngine[engineName]) {
+        return openingBookReadyByEngine[engineName];
+    }
+    const brainMod = require(path.join(__dirname, "..", engineName));
+    brainMod.preloadOpeningBook();
+    openingBookReadyByEngine[engineName] = brainMod.whenOpeningBookReady().catch((err) => {
+        console.error(`[desktopBrain] Opening book preload failed (${engineName}):`, err);
+        openingBookReadyByEngine[engineName] = null;
+    });
+    return openingBookReadyByEngine[engineName];
+}
 
 function ensureRuntime() {
     syncDesktopPathsForSharedModules();
@@ -34,22 +50,6 @@ function loadEngine(engineName) {
         BrainTimeoutFallbackError: mod.BrainTimeoutFallbackError || null,
         name,
     };
-}
-
-function ensureOpeningBookReady(engineName) {
-    if (engineName !== "brain42") {
-        return Promise.resolve();
-    }
-    if (openingBookReady) {
-        return openingBookReady;
-    }
-    const brain42 = require("../brain42");
-    brain42.preloadOpeningBook();
-    openingBookReady = brain42.whenOpeningBookReady().catch((err) => {
-        console.error("[desktopBrain] Opening book preload failed:", err);
-        openingBookReady = null;
-    });
-    return openingBookReady;
 }
 
 /**
@@ -146,9 +146,9 @@ async function evaluatePosition(opts) {
     }
 
     const config = brainConfigService.loadBrainConfig(engine);
-    if (engine === "brain42") {
-        const brain42 = require("../brain42");
-        return brain42.evaluatePositionDisplay(chessGame, {
+    if (engine === "brain42" || engine === "brain43") {
+        const brainMod = require(path.join(__dirname, "..", engine));
+        return brainMod.evaluatePositionDisplay(chessGame, {
             config,
             pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
         });

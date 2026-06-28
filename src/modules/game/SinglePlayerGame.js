@@ -5,7 +5,7 @@ const { Player } = require("./Player");
 const { SinglePlayerMessageProcessor } = require("./SinglePlayerMessageProcessor");
 const brainConfigService = require("./brainConfigService");
 
-const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41", "brain42"];
+const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41", "brain42", "brain43"];
 
 function loadEngine(engineName) {
     const name = (engineName && ALLOWED_ENGINES.includes(engineName)) ? engineName : "brain4";
@@ -53,8 +53,8 @@ class SinglePlayerGame extends GameBase {
             const engine = loadEngine(this.options.engine);
             const engineName = this.options.engine || "brain4";
             this.options.engineConfig = brainConfigService.loadBrainConfig(engineName);
-            if (engineName === "brain42") {
-                require(path.join(__dirname, "..", "..", "brain42")).preloadOpeningBook();
+            if (engineName === "brain42" || engineName === "brain43") {
+                require(path.join(__dirname, "..", "..", engineName)).preloadOpeningBook();
             }
             this._brainNextMoveFunc = engine.brainNextMoveFunc;
             this._brainName = engine.Name;
@@ -162,8 +162,8 @@ class SinglePlayerGame extends GameBase {
             }
             return Promise.resolve(null);
         };
-        if (this.options.engine === "brain42") {
-            return require(path.join(__dirname, "..", "..", "brain42"))
+        if (this.options.engine === "brain42" || this.options.engine === "brain43") {
+            return require(path.join(__dirname, "..", "..", this.options.engine))
                 .whenOpeningBookReady()
                 .then(run)
                 .catch((err) => {

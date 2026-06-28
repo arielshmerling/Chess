@@ -398,6 +398,7 @@
     var KEY_LABELS = {
         "--play-header-background": "Header panel background",
         "--play-footer-background": "Footer panel background",
+        "--promotion-hover-background": "Promotion piece hover background",
     };
 
     function labelForKey(key) {

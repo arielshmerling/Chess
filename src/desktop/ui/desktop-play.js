@@ -275,7 +275,7 @@
         if (reviewMode) {
             return "Review Mode";
         }
-        return "Game Mode";
+        return "Play Mode";
     }
 
     function updateMatchHeader() {
@@ -2625,7 +2625,7 @@
         animating = true;
         showStatus("Choose promotion piece", 0, "promotion");
         return new Promise(function (resolve) {
-            Board.showPromotionDialog(async function (selectedPiece) {
+            Board.showPromotionDialog(turn, async function (selectedPiece) {
                 let runBrainAfter = false;
                 try {
                     const pending = game.LastMove;

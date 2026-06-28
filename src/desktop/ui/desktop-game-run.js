@@ -29,6 +29,7 @@
     let engineSelect = null;
     const DEFAULT_THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
     const DEFAULT_ENGINE_OPTIONS = [
+        { value: "brain43", label: "Brain 4.3" },
         { value: "brain42", label: "Brain 4.2" },
         { value: "brain41", label: "Brain 4.1" },
     ];

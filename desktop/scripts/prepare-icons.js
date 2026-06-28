@@ -13,16 +13,52 @@ function run(cmd) {
     execSync(cmd, { stdio: "inherit" });
 }
 
+function copyFaviconIco() {
+    fs.copyFileSync(FAVICON, path.join(BUILD, "icon.ico"));
+}
+
+function writeWindowsIconPng(iconPng) {
+    const favicon = FAVICON.replace(/'/g, "''");
+    const out = iconPng.replace(/'/g, "''");
+    const scriptPath = path.join(BUILD, "extract-icon.ps1");
+    const script = [
+        "Add-Type -AssemblyName System.Drawing",
+        `$icon = New-Object System.Drawing.Icon('${favicon}')`,
+        "$bmp = $icon.ToBitmap()",
+        "$size = 512",
+        "$scaled = New-Object System.Drawing.Bitmap($size, $size)",
+        "$g = [System.Drawing.Graphics]::FromImage($scaled)",
+        "$g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic",
+        "$g.DrawImage($bmp, 0, 0, $size, $size)",
+        "$g.Dispose()",
+        "$bmp.Dispose()",
+        "$icon.Dispose()",
+        `$scaled.Save('${out}', [System.Drawing.Imaging.ImageFormat]::Png)`,
+        "$scaled.Dispose()",
+    ].join("\n");
+    fs.writeFileSync(scriptPath, script, "utf8");
+    try {
+        run(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`);
+    } finally {
+        fs.unlinkSync(scriptPath);
+    }
+}
+
 function main() {
     if (!fs.existsSync(FAVICON)) {
         console.error("[prepare-icons] Missing", FAVICON);
         process.exit(1);
     }
     fs.mkdirSync(BUILD, { recursive: true });
+    copyFaviconIco();
 
     if (process.platform !== "darwin") {
-        fs.copyFileSync(FAVICON, path.join(BUILD, "icon.ico"));
-        console.log("[prepare-icons] Copied icon.ico (run on macOS to regenerate PNG/ICNS)");
+        if (process.platform === "win32") {
+            writeWindowsIconPng(path.join(BUILD, "icon.png"));
+            console.log("[prepare-icons] Wrote icon.ico and icon.png from favicon");
+        } else {
+            console.log("[prepare-icons] Copied icon.ico (run on macOS/Windows to also generate icon.png/icon.icns)");
+        }
         return;
     }
 
@@ -54,13 +90,23 @@ function main() {
         run(`sips -z ${size} ${size} "${iconPng}" --out "${path.join(iconset, name)}"`);
     }
 
-    run(`iconutil -c icns "${iconset}" -o "${path.join(BUILD, "icon.icns")}"`);
-    fs.rmSync(iconset, { recursive: true });
+    let icnsOk = false;
+    try {
+        run(`iconutil -c icns "${iconset}" -o "${path.join(BUILD, "icon.icns")}"`);
+        icnsOk = true;
+    } catch (err) {
+        console.warn("[prepare-icons] icon.icns generation failed:", err.message);
+    }
+    fs.rmSync(iconset, { recursive: true, force: true });
     if (fs.existsSync(srcPng)) {
         fs.unlinkSync(srcPng);
     }
 
-    console.log("[prepare-icons] Wrote icon.png, icon.icns");
+    console.log(
+        icnsOk
+            ? "[prepare-icons] Wrote icon.ico, icon.png, icon.icns from favicon"
+            : "[prepare-icons] Wrote icon.ico and icon.png from favicon",
+    );
 }
 
 main();

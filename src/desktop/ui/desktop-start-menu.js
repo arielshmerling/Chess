@@ -65,6 +65,9 @@
         fields.innerHTML =
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgEngine">Engine</label>' +
             '<select name="engine" id="dlgEngine">' +
+            '<option value="brain43"' +
+            (last.engine === "brain43" ? " selected" : "") +
+            '>Brain 4.3</option>' +
             '<option value="brain42"' +
             (last.engine === "brain42" ? " selected" : "") +
             '>Brain 4.2</option>' +

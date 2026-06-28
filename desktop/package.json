@@ -12,10 +12,10 @@
     "stage": "node scripts/stage-app-bundle.js",
     "postinstall": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
     "prestart": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
-    "start": "electron .",
+    "start": "node scripts/launch-electron.js",
     "predist:win": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",
     "predist:win:dir": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",
-    "dist:win": "electron-builder --win --x64",
+    "dist:win": "node scripts/dist-win.js",
     "dist:win:dir": "electron-builder --win --x64 --dir",
     "zip:win:dir": "node scripts/zip-win-unpacked.js",
     "dist:win:dir:zip": "npm run dist:win:dir && npm run zip:win:dir",
@@ -55,7 +55,7 @@
           ]
         }
       ],
-      "signAndEditExecutable": false
+      "signExecutable": false
     },
     "nsis": {
       "oneClick": false,

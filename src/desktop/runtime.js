@@ -9,7 +9,7 @@ const path = require("path");
 /** Fixed 24-hex id (matches WS/Mongo id shape); not stored in MongoDB. */
 const GUEST_USER_ID = "00000000000000000000d001";
 const GUEST_USER_NAME = "Player";
-const DESKTOP_ENGINES = ["brain41", "brain42"];
+const DESKTOP_ENGINES = ["brain41", "brain42", "brain43"];
 
 let userDataRoot = null;
 let initialized = false;

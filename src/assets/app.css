@@ -901,7 +901,7 @@ body.research-mode .debug-game-id {
 
 
 .promotionPiece:hover {
-    background-color: var(--dark);
+    background-color: var(--promotion-hover-background, var(--dark));
     /* transition: 0.6s ease;*/
 }
 

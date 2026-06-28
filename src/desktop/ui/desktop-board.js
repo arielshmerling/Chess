@@ -1046,7 +1046,7 @@
         return true;
     }
 
-    function showPromotionDialog(onPick) {
+    function showPromotionDialog(promotingColor, onPick) {
         const boardRoot = document.getElementById("chessboard");
         if (!boardRoot) {
             return;
@@ -1055,8 +1055,7 @@
         if (existing) {
             existing.remove();
         }
-        const last = chessGame.LastMove;
-        const pieceUrls = last && last.piece && last.piece.color === "black" ? BLACK_PIECES : WHITE_PIECES;
+        const pieceUrls = promotingColor === "black" ? BLACK_PIECES : WHITE_PIECES;
         const cloak = document.createElement("div");
         cloak.className = "cloak desktop-promotion-cloak";
         cloak.id = "cloak";
