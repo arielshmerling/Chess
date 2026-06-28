@@ -1,7 +1,7 @@
 /**
  * Shmerling Chess — Electron main process.
  */
-const { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -178,7 +178,7 @@ function initDesktopBrainIpc() {
     const bundleRoot = resolveBundleRoot();
     const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
     const { computeMove, evaluatePosition } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
-    const { appendCompletedGame } = require(path.join(bundleRoot, "src/desktop/gameHistoryStore"));
+    const { appendCompletedGame, getGamesLogPath } = require(path.join(bundleRoot, "src/desktop/gameHistoryStore"));
     const { preloadOpeningBookAtStartup } = require(path.join(bundleRoot, "src/desktop/preloadOpeningBook"));
 
     runtime.init({ userDataPath: process.env.SHMERLING_USER_DATA });
@@ -197,6 +197,22 @@ function initDesktopBrainIpc() {
     ipcMain.handle("game:appendPgn", async (_event, payload) => {
         const filePath = await appendCompletedGame(payload || {});
         return { ok: true, filePath };
+    });
+
+    ipcMain.handle("game:openPgnFolder", async () => {
+        const filePath = getGamesLogPath();
+        const dir = path.dirname(filePath);
+        await fs.promises.mkdir(dir, { recursive: true });
+        try {
+            await fs.promises.access(filePath);
+            shell.showItemInFolder(filePath);
+        } catch {
+            const openErr = await shell.openPath(dir);
+            if (openErr) {
+                throw new Error(openErr);
+            }
+        }
+        return { ok: true, dir, filePath };
     });
 }
 

@@ -1253,6 +1253,18 @@
         console.log(JSON.stringify(game.GameState));
     }
 
+    async function openSavedGamesPgnFolder() {
+        if (!GameLog || typeof GameLog.openGamesLogFolder !== "function") {
+            showStatus("Open folder is only available in the desktop app", 3000, "info");
+            return;
+        }
+        try {
+            await GameLog.openGamesLogFolder();
+        } catch (err) {
+            showStatus(err.message || "Could not open games log folder", 0, "error");
+        }
+    }
+
     function handleKeyboardShortcuts(ev) {
         if (shouldIgnoreShortcutTarget(ev.target)) {
             return;
@@ -1260,6 +1272,17 @@
         if (ev.key === "F2") {
             ev.preventDefault();
             logGameState();
+            return;
+        }
+        if (
+            (ev.ctrlKey || ev.metaKey) &&
+            ev.shiftKey &&
+            !ev.altKey &&
+            ev.key &&
+            ev.key.toLowerCase() === "o"
+        ) {
+            ev.preventDefault();
+            openSavedGamesPgnFolder();
             return;
         }
         if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key && ev.key.toLowerCase() === "e") {

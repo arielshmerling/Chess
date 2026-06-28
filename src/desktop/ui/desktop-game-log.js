@@ -11,7 +11,15 @@
         return null;
     }
 
+    async function openGamesLogFolder() {
+        if (window.shmerling && typeof window.shmerling.invoke === "function") {
+            return window.shmerling.invoke("game:openPgnFolder");
+        }
+        return null;
+    }
+
     window.DesktopGameLog = {
         appendCompletedGame,
+        openGamesLogFolder,
     };
 })();
