@@ -2609,6 +2609,117 @@ describe("PGN Move Tests", () => {
             assert.deepEqual(convert("Ke2").target, { row: 6, col: 4 });
         });
 
+        describe("king moves via convertPGNMove", () => {
+            it("resolves a horizontal king move", () => {
+                loadEmptyForPgn([
+                    { row: 6, col: 4, color: "white", pieceType: game.KING },
+                    { row: 0, col: 7, color: "black", pieceType: game.KING },
+                ]);
+                const move = convert("Kd2");
+                assert.deepEqual(move.source, { row: 6, col: 4 });
+                assert.deepEqual(move.target, { row: 6, col: 3 });
+                assert.equal(move.piece, game.KING);
+            });
+
+            it("resolves a diagonal king move", () => {
+                loadEmptyForPgn([
+                    { row: 6, col: 4, color: "white", pieceType: game.KING },
+                    { row: 0, col: 7, color: "black", pieceType: game.KING },
+                ]);
+                const move = convert("Kf3");
+                assert.deepEqual(move.source, { row: 6, col: 4 });
+                assert.deepEqual(move.target, { row: 5, col: 5 });
+            });
+
+            it("resolves a king capture", () => {
+                loadEmptyForPgn([
+                    { row: 4, col: 4, color: "white", pieceType: game.KING },
+                    { row: 3, col: 3, color: "black", pieceType: game.PAWN },
+                    { row: 0, col: 7, color: "black", pieceType: game.KING },
+                ]);
+                const move = convert("Kxd5");
+                assert.deepEqual(move.source, { row: 4, col: 4 });
+                assert.deepEqual(move.target, { row: 3, col: 3 });
+                assert.equal(move.capture, true);
+            });
+
+            it("preserves check annotation from PGN", () => {
+                loadEmptyForPgn([
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                    { row: 0, col: 7, color: "black", pieceType: game.KING },
+                ]);
+                const move = convert("Ke2+");
+                assert.deepEqual(move.source, { row: 7, col: 4 });
+                assert.deepEqual(move.target, { row: 6, col: 4 });
+                assert.equal(move.check, true);
+            });
+
+            it("resolves a black king move", () => {
+                loadEmptyForPgn([
+                    { row: 0, col: 4, color: "black", pieceType: game.KING },
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                ], { turn: "black" });
+                const move = convert("Ke7", "black");
+                assert.deepEqual(move.source, { row: 0, col: 4 });
+                assert.deepEqual(move.target, { row: 1, col: 4 });
+            });
+
+            it("resolves white kingside castling through findSource", () => {
+                loadEmptyForPgn([
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                    { row: 7, col: 7, color: "white", pieceType: game.ROOK },
+                    { row: 0, col: 4, color: "black", pieceType: game.KING },
+                ], {
+                    whiteKingMoved: false,
+                    blackKingMoved: false,
+                    kingsideWhiteRookMoved: false,
+                    queensideWhiteRookMoved: false,
+                });
+                const move = convert("O-O");
+                assert.equal(move.castling, true);
+                assert.equal(move.kingSide, true);
+                assert.deepEqual(move.source, { row: 7, col: 4 });
+                assert.deepEqual(move.target, { row: 7, col: 6 });
+            });
+
+            it("resolves white queenside castling through findSource", () => {
+                loadEmptyForPgn([
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                    { row: 7, col: 0, color: "white", pieceType: game.ROOK },
+                    { row: 0, col: 4, color: "black", pieceType: game.KING },
+                ], {
+                    whiteKingMoved: false,
+                    blackKingMoved: false,
+                    kingsideWhiteRookMoved: false,
+                    queensideWhiteRookMoved: false,
+                });
+                const move = convert("O-O-O");
+                assert.equal(move.castling, true);
+                assert.equal(move.queenSide, true);
+                assert.deepEqual(move.source, { row: 7, col: 4 });
+                assert.deepEqual(move.target, { row: 7, col: 2 });
+            });
+
+            it("resolves black kingside castling through findSource", () => {
+                loadEmptyForPgn([
+                    { row: 0, col: 4, color: "black", pieceType: game.KING },
+                    { row: 0, col: 7, color: "black", pieceType: game.ROOK },
+                    { row: 7, col: 4, color: "white", pieceType: game.KING },
+                ], {
+                    turn: "black",
+                    whiteKingMoved: false,
+                    blackKingMoved: false,
+                    kingsideBlackRookMoved: false,
+                    queensideBlackRookMoved: false,
+                });
+                const move = convert("O-O", "black");
+                assert.equal(move.castling, true);
+                assert.equal(move.kingSide, true);
+                assert.deepEqual(move.source, { row: 0, col: 4 });
+                assert.deepEqual(move.target, { row: 0, col: 6 });
+            });
+        });
+
         it("returns explicit file+rank from long-form PGN without searching the board", () => {
             loadEmptyForPgn([
                 { row: 7, col: 0, color: "white", pieceType: game.QUEEN },
@@ -2633,6 +2744,163 @@ describe("PGN Move Tests", () => {
     });
 
 
+});
+
+describe("isResultMove", () => {
+    it("returns true for standard game result tokens", () => {
+        assert.equal(game.isResultMove({ moveStr: "1-0" }), true);
+        assert.equal(game.isResultMove({ moveStr: "0-1" }), true);
+        assert.equal(game.isResultMove({ moveStr: "1/2-1/2" }), true);
+        assert.equal(game.isResultMove({ moveStr: "*" }), true);
+    });
+
+    it("returns false for normal chess moves and other strings", () => {
+        assert.equal(game.isResultMove({ moveStr: "e4" }), false);
+        assert.equal(game.isResultMove({ moveStr: "Nf3" }), false);
+        assert.equal(game.isResultMove({ moveStr: "O-O" }), false);
+        assert.equal(game.isResultMove({ moveStr: "Qh5+" }), false);
+        assert.equal(game.isResultMove({ moveStr: "" }), false);
+    });
+});
+
+describe("getSimpleNotation", () => {
+    function moveObject(overrides = {}) {
+        return {
+            valid: true,
+            source: { row: 0, col: 0 },
+            target: { row: 0, col: 0 },
+            piece: { color: "white", pieceType: game.PAWN },
+            promotion: false,
+            check: false,
+            checkmate: false,
+            castling: false,
+            ...overrides,
+        };
+    }
+
+    it("formats a pawn move as source square plus destination square", () => {
+        game.startNewGame(true);
+        const move = game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        assert.equal(game.getSimpleNotation(move), "e2e4");
+    });
+
+    it("formats a piece move with piece letter and both squares", () => {
+        game.startNewGame(true);
+        const move = game.makeMove({ row: 7, col: 1 }, { row: 5, col: 2 });
+        assert.equal(game.getSimpleNotation(move), "Nb1c3");
+    });
+
+    it("returns O-O for kingside castling", () => {
+        game.loadGame(JSON.stringify({
+            board: Array.from({ length: 8 }, () => Array(8).fill(null)),
+            turn: "white",
+            capturedPiecesList: [],
+            check: false,
+            checkmate: false,
+            draw: false,
+            drawReason: "",
+            resigned: "",
+            outOfTime: "",
+            whiteKingMoved: false,
+            blackKingMoved: false,
+            whitePlayerView: true,
+            fiftyMovesCounter: 0,
+            promoting: false,
+            queensideWhiteRookMoved: false,
+            queensideBlackRookMoved: false,
+            kingsideWhiteRookMoved: false,
+            kingsideBlackRookMoved: false,
+        }));
+        game.GameState.board[7][4] = { color: "white", pieceType: game.KING };
+        game.GameState.board[7][7] = { color: "white", pieceType: game.ROOK };
+        game.GameState.board[0][4] = { color: "black", pieceType: game.KING };
+        const move = game.makeMove({ row: 7, col: 4 }, { row: 7, col: 6 });
+        assert.equal(game.getSimpleNotation(move), "O-O");
+    });
+
+    it("returns O-O-O for queenside castling", () => {
+        game.loadGame(JSON.stringify({
+            board: Array.from({ length: 8 }, () => Array(8).fill(null)),
+            turn: "white",
+            capturedPiecesList: [],
+            check: false,
+            checkmate: false,
+            draw: false,
+            drawReason: "",
+            resigned: "",
+            outOfTime: "",
+            whiteKingMoved: false,
+            blackKingMoved: false,
+            whitePlayerView: true,
+            fiftyMovesCounter: 0,
+            promoting: false,
+            queensideWhiteRookMoved: false,
+            queensideBlackRookMoved: false,
+            kingsideWhiteRookMoved: false,
+            kingsideBlackRookMoved: false,
+        }));
+        game.GameState.board[7][4] = { color: "white", pieceType: game.KING };
+        game.GameState.board[7][0] = { color: "white", pieceType: game.ROOK };
+        game.GameState.board[0][4] = { color: "black", pieceType: game.KING };
+        const move = game.makeMove({ row: 7, col: 4 }, { row: 7, col: 2 });
+        assert.equal(game.getSimpleNotation(move), "O-O-O");
+    });
+
+    it("appends promotion piece and check or checkmate suffixes", () => {
+        game.startNewGame(true);
+        const promotion = moveObject({
+            source: { row: 1, col: 6 },
+            target: { row: 0, col: 7 },
+            piece: { color: "white", pieceType: game.PAWN },
+            promotion: true,
+            selectedPiece: game.QUEEN,
+        });
+        assert.equal(game.getSimpleNotation(promotion), "g7h8=Q");
+
+        const check = moveObject({
+            source: { row: 7, col: 3 },
+            target: { row: 3, col: 7 },
+            piece: { color: "white", pieceType: game.QUEEN },
+            check: true,
+        });
+        assert.equal(game.getSimpleNotation(check), "Qd1h5+");
+
+        const mate = moveObject({
+            source: { row: 7, col: 3 },
+            target: { row: 3, col: 7 },
+            piece: { color: "white", pieceType: game.QUEEN },
+            checkmate: true,
+        });
+        assert.equal(game.getSimpleNotation(mate), "Qd1h5#");
+    });
+
+    it("uses flipped coordinates when whitePlayerView is false", () => {
+        game.loadGame(JSON.stringify({
+            board: Array.from({ length: 8 }, () => Array(8).fill(null)),
+            turn: "white",
+            capturedPiecesList: [],
+            check: false,
+            checkmate: false,
+            draw: false,
+            drawReason: "",
+            resigned: "",
+            outOfTime: "",
+            whiteKingMoved: true,
+            blackKingMoved: true,
+            whitePlayerView: false,
+            fiftyMovesCounter: 0,
+            promoting: false,
+            queensideWhiteRookMoved: true,
+            queensideBlackRookMoved: true,
+            kingsideWhiteRookMoved: true,
+            kingsideBlackRookMoved: true,
+        }));
+        game.GameState.board[6][4] = { color: "white", pieceType: game.PAWN };
+        game.GameState.board[7][4] = { color: "white", pieceType: game.KING };
+        game.GameState.board[0][4] = { color: "black", pieceType: game.KING };
+        const move = game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        assert.equal(game.getSimpleNotation(move), "d7d5");
+    });
 });
 
 describe("Rgex", () => {
