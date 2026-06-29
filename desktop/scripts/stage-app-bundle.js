@@ -62,7 +62,7 @@ const DESKTOP_ASSETS = [
     "images/shmerling.png",
 ];
 
-const DESKTOP_PIECE_SETS = ["obsidian-court", "storm-ivory", "ember-regalia"];
+const DESKTOP_PIECE_SETS = ["obsidian-court", "storm-ivory", "ember-regalia", "imperishable-army"];
 
 const DESKTOP_NPM_DEPS = {
     express: "^4.21.0",

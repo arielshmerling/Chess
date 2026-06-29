@@ -13,6 +13,7 @@ const VALID_PIECE_SETS = new Set([
     "obsidian-court",
     "storm-ivory",
     "ember-regalia",
+    "imperishable-army",
 ]);
 
 function normalizePieceSet(pieceSet) {

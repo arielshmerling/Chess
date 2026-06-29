@@ -14,6 +14,7 @@
         { id: "obsidian-court", name: "Obsidian Court" },
         { id: "storm-ivory", name: "Storm Ivory" },
         { id: "ember-regalia", name: "Ember Regalia" },
+        { id: "imperishable-army", name: "Imperishable Army" },
     ];
 
     function getSetById(setId) {
