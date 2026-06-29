@@ -72,6 +72,10 @@ function allMoves(game) {
 }
 
 describe("Brain 4.3 mate in three", () => {
+    after(() => {
+        brain43.shutdownWorkers();
+    });
+
     it("reference line delivers checkmate", () => {
         const game = loadPosition();
         for (const notation of MATE_LINE) {

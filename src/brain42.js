@@ -702,6 +702,14 @@ exports.brainNextMoveFunc = async (game, options) => {
 
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
 
+/** Terminates persistent search worker (tests / app shutdown). */
+exports.shutdownWorkers = function shutdownWorkers() {
+    if (!isMainThread) {
+        return;
+    }
+    terminatePersistentWorker("shutdown");
+};
+
 // --- Search (worker thread) -------------------------------------------------
 
 function pieceValue(game, pieceType) {

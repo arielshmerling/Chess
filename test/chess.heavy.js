@@ -1,7 +1,6 @@
 /**
- * Heavy / long-running tests.
- * Run separately from fast unit tests: npm run test:heavy
- * Do not include this file in the default npm test run.
+ * Heavy / long-running tests (not matched by **/*.test.js).
+ * Run separately: npm run test:heavy
  */
 /* eslint-disable */
 
