@@ -1,7 +1,7 @@
 {
   "name": "shmerling-desktop",
   "productName": "Shmerling Chess",
-  "version": "6.27.18.28",
+  "version": "6.28.19.22",
   "description": "Shmerling Chess — offline desktop",
   "author": "Shmerling Chess",
   "main": "main.js",
