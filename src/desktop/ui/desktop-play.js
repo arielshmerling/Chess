@@ -358,6 +358,7 @@
         const loser = game.Turn;
         showStatus("Time's up! " + loser + " lost", 5000, "timeout");
         game.OutOfTime = loser;
+        updateMovesTable(tableMovesFromGame());
         updateActionButtons();
         tryLogCompletedGame();
     }
@@ -386,7 +387,7 @@
         try {
             const bookmark = await Api.post(
                 "/bookmark",
-                bookmarkPayloadFromCurrentState(formatSaveGameName(), bookmarkMovesPayload()),
+                bookmarkPayloadFromCurrentState(formatAutoSaveGameName(), bookmarkMovesPayload()),
             );
             await mergeBookmarkIntoList(bookmark);
             savedListFilter = "games";
@@ -878,7 +879,6 @@
                       ? session.difficulty
                       : Settings.loadLastOptions().thinkingTimeSeconds,
             onPlay: runGameFromPanel,
-            onDisplayEvaluation: displayPositionEvaluation,
             onTurnChange: applySetupTurn,
             onComputerColorChange: applySetupComputerColor,
             onThinkingTimeChange: applySetupThinkingTime,
@@ -1295,10 +1295,6 @@
         if (!Board || !Board.isEvaluationOverlayActive || !Board.isEvaluationOverlayActive()) {
             return;
         }
-        const target = ev.target;
-        if (target && target.closest && target.closest(".desktop-play-game-run-eval")) {
-            return;
-        }
         clearDisplayedEvaluation();
     }
 
@@ -1640,7 +1636,7 @@
             },
             { type: "spacer" },
             { id: "resignBtn", label: "Resign", icon: "resign", onClick: onResign },
-            { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDraw },
+            { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDrawOfferClick },
             { type: "spacer" },
             { id: "undoBtn", label: "Undo", icon: "undo", onClick: onUndo },
             { id: "redoBtn", label: "Redo", icon: "redo", onClick: onRedo },
@@ -1715,6 +1711,54 @@
         return game.Moves.map(function (m) {
             return typeof m === "string" ? JSON.parse(m) : m;
         });
+    }
+
+    function isTableResultMove(move) {
+        if (!move) {
+            return false;
+        }
+        if (game && typeof game.isResultMove === "function") {
+            return game.isResultMove(move);
+        }
+        const str = move.moveStr || "";
+        return str === "1-0" || str === "0-1" || str === "1/2-1/2" || str === "*";
+    }
+
+    function appendGameResultToMoves(moves) {
+        const list = (moves || []).slice();
+        if (
+            !game
+            || !game.GameOver
+            || positionSetupMode
+            || configurationMode
+            || !game.ResultMove
+            || !game.ResultMove.moveStr
+        ) {
+            return list;
+        }
+        const resultStr = game.ResultMove.moveStr;
+        const last = list[list.length - 1];
+        if (last && last.moveStr === resultStr) {
+            return list;
+        }
+        if (last && isTableResultMove(last)) {
+            return list;
+        }
+        const resultMove = { moveStr: resultStr };
+        const lastColor = moveColorForTable(last);
+        if (lastColor === "white") {
+            resultMove.turn = "black";
+        } else if (lastColor === "black") {
+            resultMove.turn = "white";
+        } else if (list.length === 0) {
+            resultMove.turn = "black";
+        } else if (list.length % 2 === 1) {
+            resultMove.turn = "black";
+        } else {
+            resultMove.turn = "white";
+        }
+        list.push(resultMove);
+        return list;
     }
 
     function syncBoardFromGame() {
@@ -1794,13 +1838,50 @@
         setButtonDisabled("rematchBtn", animating || dialogOn);
     }
 
-    function formatSaveGameName() {
-        const now = new Date();
-        const stamp = now.toLocaleString(undefined, {
-            dateStyle: "short",
-            timeStyle: "short",
-        });
-        return "Saved — " + stamp;
+    function sessionPlayerNames(source) {
+        const src = source || session;
+        if (!src) {
+            return { white: "White", black: "Black" };
+        }
+        return {
+            white: src.whitePlayerName || "White",
+            black: src.blackPlayerName || "Black",
+        };
+    }
+
+    function formatPlayersVsTitle(source) {
+        const names = sessionPlayerNames(source);
+        return names.white + " vs. " + names.black;
+    }
+
+    function formatAutoSaveGameName() {
+        return formatPlayersVsTitle(session);
+    }
+
+    function formatManualSaveGameName() {
+        return "Saved — " + formatPlayersVsTitle(session);
+    }
+
+    function resolveSavedGamePlayers(entry) {
+        if (!entry) {
+            return { white: "White", black: "Black" };
+        }
+        if (entry.whitePlayerName && entry.blackPlayerName) {
+            return {
+                white: entry.whitePlayerName,
+                black: entry.blackPlayerName,
+            };
+        }
+        const engineName =
+            window.DesktopGameSettings && typeof window.DesktopGameSettings.brainLabel === "function"
+                ? window.DesktopGameSettings.brainLabel(entry.engine || "brain42")
+                : "Engine";
+        return { white: "Player", black: engineName };
+    }
+
+    function formatSavedGamePlayers(entry) {
+        const names = resolveSavedGamePlayers(entry);
+        return names.white + " vs. " + names.black;
     }
 
     function formatPositionSetupSaveName() {
@@ -1828,12 +1909,15 @@
 
     function bookmarkPayloadFromCurrentState(name, moves) {
         const state = game.GameState;
+        const players = sessionPlayerNames(session);
         const payload = {
             gameState: state,
             name: name,
             gameType: "SinglePlayerGame",
             moves: moves || [],
             engine: session.engine || "brain42",
+            whitePlayerName: players.white,
+            blackPlayerName: players.black,
             thinkingTimeSeconds:
                 typeof session.thinkingTimeSeconds === "number"
                     ? session.thinkingTimeSeconds
@@ -2107,16 +2191,22 @@
             if (color === "black") {
                 row.white = "-";
                 row.black = move.moveStr || "";
-                row.blackPly = i + 1;
+                if (!isTableResultMove(move)) {
+                    row.blackPly = i + 1;
+                }
                 rows.push(row);
                 i += 1;
             } else if (color === "white") {
                 row.white = move.moveStr || "";
-                row.whitePly = i + 1;
+                if (!isTableResultMove(move)) {
+                    row.whitePly = i + 1;
+                }
                 const next = i + 1 < moves.length ? moves[i + 1] : null;
                 if (next && moveColorForTable(next) === "black") {
                     row.black = next.moveStr || "";
-                    row.blackPly = i + 2;
+                    if (!isTableResultMove(next)) {
+                        row.blackPly = i + 2;
+                    }
                     i += 2;
                 } else {
                     i += 1;
@@ -2124,11 +2214,15 @@
                 rows.push(row);
             } else {
                 row.white = move.moveStr || "";
-                row.whitePly = i + 1;
+                if (!isTableResultMove(move)) {
+                    row.whitePly = i + 1;
+                }
                 const next = i + 1 < moves.length ? moves[i + 1] : null;
                 if (next) {
                     row.black = next.moveStr || "";
-                    row.blackPly = i + 2;
+                    if (!isTableResultMove(next)) {
+                        row.blackPly = i + 2;
+                    }
                     i += 2;
                 } else {
                     i += 1;
@@ -2262,6 +2356,10 @@
         const when = formatSavedGameDate(entry && entry.date);
         if (when) {
             parts.push("Saved: " + when);
+        }
+        const players = formatSavedGamePlayers(entry);
+        if (players) {
+            parts.push(players);
         }
         const id = savedGameId(entry);
         if (id) {
@@ -2635,6 +2733,11 @@
         meta.textContent = formatSavedGameDate(entry.date);
         details.appendChild(meta);
 
+        const playersLine = document.createElement("div");
+        playersLine.className = "desktop-play-saved-game-players";
+        playersLine.textContent = formatSavedGamePlayers(entry);
+        details.appendChild(playersLine);
+
         const actions = document.createElement("div");
         actions.className = "desktop-play-saved-game-actions";
         const infoTooltip = formatSavedGameInfoTooltip(entry);
@@ -2715,20 +2818,10 @@
         }
         setButtonDisabled("saveBtn", true);
         try {
-            const bookmark = await Api.post("/bookmark", {
-                gameState: state,
-                name: formatSaveGameName(),
-                gameType: "SinglePlayerGame",
-                moves: bookmarkMovesPayload(),
-                engine: session.engine || "brain42",
-                originState: reviewOriginStateStr || undefined,
-                depth:
-                    typeof session.thinkingTimeSeconds === "number"
-                        ? session.thinkingTimeSeconds
-                        : typeof session.difficulty === "number"
-                          ? session.difficulty
-                          : 10,
-            });
+            const bookmark = await Api.post(
+                "/bookmark",
+                bookmarkPayloadFromCurrentState(formatManualSaveGameName(), bookmarkMovesPayload()),
+            );
             if (bookmark && bookmark._id) {
                 savedGames = savedGames.filter(function (b) {
                     return String(b._id) !== String(bookmark._id);
@@ -2754,7 +2847,7 @@
         movesDiv.innerHTML = "";
         const table = document.createElement("table");
         table.className = "movesTable";
-        const displayMoves = moves != null ? moves : [];
+        const displayMoves = appendGameResultToMoves(moves != null ? moves : []);
         const reviewClicksEnabled = reviewMode && reviewFullMoves.length > 0;
         const rows = reviewClicksEnabled
             ? buildMoveTableCells(displayMoves)
@@ -3268,12 +3361,13 @@
         confirmDialog("Resign this game?", "You will lose the game.", function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
+            updateMovesTable(tableMovesFromGame());
             updateActionButtons();
             tryLogCompletedGame();
         });
     }
 
-    function onDraw() {
+    function onDrawOfferClick() {
         if (game.GameOver || $("drawBtn").disabled) {
             return;
         }

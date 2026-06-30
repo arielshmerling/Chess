@@ -799,6 +799,15 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-page .desktop-play-saved-game-meta {
+  margin: 0 0 4px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  opacity: 0.85;
+}
+
+.desktop-play-page .desktop-play-saved-game-players {
   margin: 0 0 6px;
   font-family: inherit;
   font-size: inherit;

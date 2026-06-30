@@ -12,7 +12,17 @@ exports.list = catchAsync(async (_req, res) => {
 
 exports.create = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { gameState, name, gameType, moves, engine, depth, originState } = req.body;
+    const {
+        gameState,
+        name,
+        gameType,
+        moves,
+        engine,
+        depth,
+        originState,
+        whitePlayerName,
+        blackPlayerName,
+    } = req.body;
     const bookmark = await bookmarkStore.addBookmark(
         userId,
         gameState,
@@ -22,13 +32,27 @@ exports.create = catchAsync(async (req, res) => {
         engine,
         depth,
         originState,
+        whitePlayerName,
+        blackPlayerName,
     );
     res.json(bookmark);
 });
 
 exports.update = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { id, name, gameType, date, gameState, moves, engine, depth, originState } = req.body;
+    const {
+        id,
+        name,
+        gameType,
+        date,
+        gameState,
+        moves,
+        engine,
+        depth,
+        originState,
+        whitePlayerName,
+        blackPlayerName,
+    } = req.body;
     if (!id) {
         res.send("ERROR");
         return;
@@ -44,6 +68,8 @@ exports.update = catchAsync(async (req, res) => {
         engine,
         depth,
         originState,
+        whitePlayerName,
+        blackPlayerName,
     );
     res.send("{\"status\":\"OK\"}");
 });

@@ -41,6 +41,8 @@ function toClientBookmark(doc) {
         moves: doc.moves || [],
         engine: doc.engine,
         depth: doc.depth,
+        whitePlayerName: doc.whitePlayerName,
+        blackPlayerName: doc.blackPlayerName,
     };
 }
 
@@ -49,7 +51,18 @@ exports.getAllUserBookmarks = async () => {
     return list.map(toClientBookmark);
 };
 
-exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, depth, originState) => {
+exports.addBookmark = async (
+    _userId,
+    gameState,
+    name,
+    gameType,
+    moves,
+    engine,
+    depth,
+    originState,
+    whitePlayerName,
+    blackPlayerName,
+) => {
     const list = await readAll();
     const id = randomUUID();
     const bookmark = {
@@ -63,6 +76,12 @@ exports.addBookmark = async (_userId, gameState, name, gameType, moves, engine, 
         depth: normalizeThinkingTimeSeconds(depth),
         date: new Date(),
     };
+    if (typeof whitePlayerName === "string" && whitePlayerName.trim()) {
+        bookmark.whitePlayerName = whitePlayerName.trim();
+    }
+    if (typeof blackPlayerName === "string" && blackPlayerName.trim()) {
+        bookmark.blackPlayerName = blackPlayerName.trim();
+    }
     if (originState != null && String(originState).trim()) {
         bookmark.originState =
             typeof originState === "string" ? originState : JSON.stringify(originState);
@@ -83,6 +102,8 @@ exports.updateBookmark = async (
     engine,
     depth,
     originState,
+    whitePlayerName,
+    blackPlayerName,
 ) => {
     const list = await readAll();
     const bookmark = list.find((b) => String(b._id) === String(id));
@@ -99,6 +120,20 @@ exports.updateBookmark = async (
     if (engine !== undefined) { bookmark.engine = runtime.normalizeEngine(engine); }
     if (depth !== undefined) {
         bookmark.depth = normalizeThinkingTimeSeconds(depth);
+    }
+    if (whitePlayerName !== undefined) {
+        if (whitePlayerName == null || !String(whitePlayerName).trim()) {
+            delete bookmark.whitePlayerName;
+        } else {
+            bookmark.whitePlayerName = String(whitePlayerName).trim();
+        }
+    }
+    if (blackPlayerName !== undefined) {
+        if (blackPlayerName == null || !String(blackPlayerName).trim()) {
+            delete bookmark.blackPlayerName;
+        } else {
+            bookmark.blackPlayerName = String(blackPlayerName).trim();
+        }
     }
     if (originState !== undefined) {
         if (originState == null || !String(originState).trim()) {
