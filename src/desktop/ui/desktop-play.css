@@ -1413,7 +1413,7 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-game-run-swatch.selected {
-  border: 1px solid var(--board-frame-background, #293241);
+  border: 1px solid var(--frame, #293241);
   box-shadow: none;
 }
 

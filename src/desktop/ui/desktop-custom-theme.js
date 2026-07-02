@@ -399,11 +399,6 @@
         "--play-header-background": "Header panel background",
         "--play-footer-background": "Footer panel background",
         "--promotion-hover-background": "Promotion piece hover background",
-        "--darkSquare": "Board Dark Square",
-        "--lightSquare": "Board Light Square",
-        "--optionSquare": "Board Option Square",
-        "--board-frame-background": "Board Frame Background Color",
-        "--board-frame-foreground": "Board Foreground Color",
     };
 
     function labelForKey(key) {

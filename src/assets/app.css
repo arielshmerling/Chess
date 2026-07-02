@@ -42,8 +42,8 @@
     --darkSquare: #98c1d9;
     --lightSquare: #e0fbfc;
     --optionSquare: rgb(92, 171, 125);
-    --board-frame-background: #293241;
-    --board-frame-foreground: #e0fbfc;
+    --frame: #293241;
+    --frame-forecolor: #e0fbfc;
     --body-background: #3d5a80;
 
     --table-header-bg: rgb(174, 185, 200);
@@ -932,8 +932,8 @@ body.research-mode .debug-game-id {
 }
 
 .frame {
-    background-color: var(--board-frame-background);
-    color: var(--board-frame-foreground, var(--light));
+    background-color: var(--frame);
+    color: var(--frame-forecolor, var(--light));
 }
 
 .checkAlert {
