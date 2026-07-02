@@ -399,6 +399,11 @@
         "--play-header-background": "Header panel background",
         "--play-footer-background": "Footer panel background",
         "--promotion-hover-background": "Promotion piece hover background",
+        "--darkSquare": "Board Dark Square",
+        "--lightSquare": "Board Light Square",
+        "--optionSquare": "Board Option Square",
+        "--board-frame-background": "Board Frame Background Color",
+        "--board-frame-foreground": "Board Foreground Color",
     };
 
     function labelForKey(key) {
@@ -406,6 +411,36 @@
             return KEY_LABELS[key];
         }
         return key.replace(/^--/, "").replace(/-/g, " ");
+    }
+
+    function propertySearchText(key, groupLabel) {
+        return (
+            (groupLabel || "") +
+            " " +
+            labelForKey(key) +
+            " " +
+            key.replace(/^--/, "").replace(/-/g, " ")
+        ).toLowerCase();
+    }
+
+    function applyFieldFilter(query) {
+        var container = document.getElementById("desktopCustomThemeFields");
+        if (!container) {
+            return;
+        }
+        var q = (query || "").trim().toLowerCase();
+        container.querySelectorAll(".desktop-custom-theme-group").forEach(function (section) {
+            var visibleRows = 0;
+            section.querySelectorAll(".desktop-custom-theme-row").forEach(function (row) {
+                var text = row.dataset.searchText || "";
+                var show = !q || text.indexOf(q) !== -1;
+                row.hidden = !show;
+                if (show) {
+                    visibleRows += 1;
+                }
+            });
+            section.hidden = visibleRows === 0;
+        });
     }
 
     function ensurePanel() {
@@ -437,6 +472,10 @@
             '  <button type="button" class="desktop-btn desktop-btn-gold desktop-custom-theme-save" id="desktopCustomThemeSave">Save</button>',
             '  <button type="button" class="desktop-btn desktop-custom-theme-delete" id="desktopCustomThemeDelete" hidden>Delete</button>',
             "</div>",
+            '<div class="desktop-custom-theme-search">',
+            '  <label class="desktop-custom-theme-search-label" for="desktopCustomThemeSearch">Search properties</label>',
+            '  <input type="search" id="desktopCustomThemeSearch" class="desktop-custom-theme-input desktop-custom-theme-search-input" placeholder="Filter by property name…" autocomplete="off" spellcheck="false">',
+            "</div>",
             '<div class="desktop-custom-theme-scroll" id="desktopCustomThemeFields"></div>',
             '<div class="desktop-custom-theme-footer">',
             '  <button type="button" class="desktop-btn" id="desktopCustomThemeCancel">Cancel</button>',
@@ -457,6 +496,7 @@
         var deleteBtn = document.getElementById("desktopCustomThemeDelete");
         var loadSel = document.getElementById("desktopCustomThemeLoad");
         var resetBtn = document.getElementById("desktopCustomThemeApplyBuiltin");
+        var searchInput = document.getElementById("desktopCustomThemeSearch");
         var header = panelEl.querySelector("[data-drag-handle]");
 
         closeBtn.addEventListener("click", closeEditor);
@@ -515,6 +555,12 @@
             renderFields();
             applyVars(draftVars);
         });
+
+        if (searchInput) {
+            searchInput.addEventListener("input", function () {
+                applyFieldFilter(searchInput.value);
+            });
+        }
 
         header.addEventListener("mousedown", startDrag);
         document.addEventListener("mousemove", onDrag);
@@ -667,6 +713,7 @@
                     draftVars[key] != null ? normalizeColorValue(String(draftVars[key])) : "";
                 var row = document.createElement("div");
                 row.className = "desktop-custom-theme-row";
+                row.dataset.searchText = propertySearchText(key, group.label);
 
                 var label = document.createElement("label");
                 label.className = "desktop-custom-theme-row-label";
@@ -748,6 +795,9 @@
 
             container.appendChild(section);
         });
+
+        var searchInput = document.getElementById("desktopCustomThemeSearch");
+        applyFieldFilter(searchInput ? searchInput.value : "");
     }
 
     function openEditor() {
@@ -774,6 +824,10 @@
         draftVars = mergeThemeVars(draftVars, fallback);
         referenceVars = cloneVars(draftVars);
         populateLoadSelect();
+        var searchInput = document.getElementById("desktopCustomThemeSearch");
+        if (searchInput) {
+            searchInput.value = "";
+        }
         renderFields();
         panelEl.hidden = false;
 

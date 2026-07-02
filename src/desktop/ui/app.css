@@ -253,7 +253,7 @@ body.desktop-has-topbar {
   right: 1.25rem;
   top: calc(var(--desktop-topbar-height, 51px) + 1rem);
   z-index: 1100;
-  width: min(420px, calc(100vw - 2rem));
+  width: min(480px, calc(100vw - 2rem));
   max-height: min(85vh, 720px);
   display: flex;
   flex-direction: column;
@@ -355,6 +355,25 @@ body.desktop-has-topbar {
   font-size: 0.8rem;
 }
 
+.desktop-custom-theme-search {
+  padding: 0.55rem 0.85rem 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.desktop-custom-theme-search-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.desktop-custom-theme-search-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .desktop-custom-theme-scroll {
   flex: 1;
   overflow-y: auto;
@@ -385,6 +404,11 @@ body.desktop-has-topbar {
 .desktop-custom-theme-row-label {
   font-size: 0.75rem;
   opacity: 0.85;
+}
+
+.desktop-custom-theme-row[hidden],
+.desktop-custom-theme-group[hidden] {
+  display: none;
 }
 
 .desktop-custom-theme-row-controls {

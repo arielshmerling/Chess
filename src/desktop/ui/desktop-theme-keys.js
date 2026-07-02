@@ -24,8 +24,8 @@
                 "--lightSquare",
                 "--optionSquare",
                 "--promotion-hover-background",
-                "--frame",
-                "--frame-forecolor",
+                "--board-frame-background",
+                "--board-frame-foreground",
             ],
         },
         {
