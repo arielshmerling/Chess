@@ -72,6 +72,98 @@ function savedGameStateToLookupKey(savedGameStateStr) {
     return compactArrayToLookupKey(savedGameStateToCompactArray(savedGameStateStr));
 }
 
+const BOARD_LAST_INDEX = 7;
+
+function parseSavedGameStateObject(savedGameStateStr) {
+    return JSON.parse(savedGameStateStr);
+}
+
+/** Opening book uses black-on-row-0 orientation; black-player view stores the board flipped. */
+function needsBookMoveCoordinateFlip(stateObj) {
+    return stateObj.whitePlayerView === false;
+}
+
+function flipBoard180(board) {
+    const flipped = [];
+    for (let r = 0; r < 8; r++) {
+        flipped[r] = [];
+        for (let c = 0; c < 8; c++) {
+            flipped[r][c] = board[BOARD_LAST_INDEX - r][BOARD_LAST_INDEX - c];
+        }
+    }
+    return flipped;
+}
+
+function canonicalizeSavedGameStateObject(stateObj) {
+    if (!needsBookMoveCoordinateFlip(stateObj)) {
+        return { stateObj, flipMoves: false };
+    }
+    return {
+        stateObj: {
+            ...stateObj,
+            board: flipBoard180(stateObj.board),
+            queensideWhiteRookMoved: !!stateObj.kingsideWhiteRookMoved,
+            kingsideWhiteRookMoved: !!stateObj.queensideWhiteRookMoved,
+            queensideBlackRookMoved: !!stateObj.kingsideBlackRookMoved,
+            kingsideBlackRookMoved: !!stateObj.queensideBlackRookMoved,
+        },
+        flipMoves: true,
+    };
+}
+
+/**
+ * @param {string} savedGameStateStr
+ * @returns {{ lookupKey: string, flipMoves: boolean }}
+ */
+function savedGameStateToCanonicalLookupKey(savedGameStateStr) {
+    const { stateObj, flipMoves } = canonicalizeSavedGameStateObject(
+        parseSavedGameStateObject(savedGameStateStr),
+    );
+    return {
+        lookupKey: savedGameStateToLookupKey(JSON.stringify(stateObj)),
+        flipMoves,
+    };
+}
+
+function flipSquare(square) {
+    return {
+        row: BOARD_LAST_INDEX - square.row,
+        col: BOARD_LAST_INDEX - square.col,
+    };
+}
+
+/**
+ * Map a book move from canonical orientation into the game's board coordinates.
+ * @param {object|null} move
+ * @param {boolean} flipMoves
+ * @returns {object|null}
+ */
+function transformBookMoveToGame(move, flipMoves) {
+    if (!move || !flipMoves) {
+        return move;
+    }
+    if (!move.source || !move.target) {
+        return move;
+    }
+    return {
+        ...move,
+        source: flipSquare(move.source),
+        target: flipSquare(move.target),
+    };
+}
+
+/**
+ * @param {object[]} moves
+ * @param {boolean} flipMoves
+ * @returns {object[]}
+ */
+function transformBookMovesToGame(moves, flipMoves) {
+    if (!flipMoves || !Array.isArray(moves)) {
+        return moves;
+    }
+    return moves.map((move) => transformBookMoveToGame(move, true));
+}
+
 /**
  * @param {object} move - completed move from ChessGame
  * @returns {{ source: { row: number, col: number }, target: { row: number, col: number }, pgn?: string }}
@@ -159,6 +251,9 @@ module.exports = {
     savedGameStateToCompactArray,
     compactArrayToLookupKey,
     savedGameStateToLookupKey,
+    savedGameStateToCanonicalLookupKey,
+    transformBookMoveToGame,
+    transformBookMovesToGame,
     moveToBookMove,
     parseBookMove,
     openingBookStateToLookupKey,

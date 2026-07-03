@@ -39,7 +39,10 @@ const {
 } = require("./brainSearchTime");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
-const { savedGameStateToLookupKey } = require("./openingBookJson");
+const {
+    savedGameStateToCanonicalLookupKey,
+    transformBookMovesToGame,
+} = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.3]";
@@ -609,7 +612,7 @@ function pickWeightedBookMove(options) {
 }
 
 function tryFindMatchState(game) {
-    const stateKey = savedGameStateToLookupKey(game.SavedGameState);
+    const { lookupKey: stateKey, flipMoves } = savedGameStateToCanonicalLookupKey(game.SavedGameState);
 
     if (!openingBookByStateKey) {
         console.log(
@@ -618,11 +621,14 @@ function tryFindMatchState(game) {
         return null;
     }
 
-    const options = openingBookByStateKey.get(stateKey) || [];
+    const bookOptions = openingBookByStateKey.get(stateKey) || [];
+    const options = transformBookMovesToGame(bookOptions, flipMoves);
     console.log(
         `${LOG_PREFIX} Opening book search: turn=${game.Turn},`
             + ` bookPositions=${openingBookByStateKey.size},`
-            + ` movesAtPosition=${options.length}\n${(stateKey)}`,
+            + ` movesAtPosition=${options.length}`
+            + (flipMoves ? " (view flipped)" : "")
+            + `\n${(stateKey)}`,
     );
 
     if (options.length === 0) {
