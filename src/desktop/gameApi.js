@@ -105,7 +105,7 @@ exports.getGameInfo = catchAsync(async (req, res) => {
     validate({ id: gameId }, "id");
     const game = gamesManagerService.getGameById(gameId);
     if (!game) {
-        return res.redirect("/app/");
+        return res.redirect("/app/play");
     }
     if (req.session) {
         req.session.gameId = gameId;
@@ -121,7 +121,7 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 exports.getGameMoves = catchAsync(async (req, res) => {
     const gameId = req.query.id || req.session.gameId;
     if (!gameId) {
-        return res.redirect("/app/");
+        return res.redirect("/app/play");
     }
     if (req.session) {
         req.session.gameId = gameId;

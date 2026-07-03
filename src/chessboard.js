@@ -405,7 +405,7 @@ function isPlayGamePage() {
 
 function getAppHomePath() {
     if (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__) {
-        return "/app/";
+        return "/app/play";
     }
     return "/home";
 }

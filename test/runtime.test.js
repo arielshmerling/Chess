@@ -42,6 +42,6 @@ describe("desktop runtime", function () {
         const ctx = createDesktopTestRuntime();
         tempDir = ctx.tempDir;
 
-        assert.strictEqual(ctx.runtime.getHomePath(), "/app/");
+        assert.strictEqual(ctx.runtime.getHomePath(), "/app/play");
     });
 });

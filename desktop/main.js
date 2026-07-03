@@ -232,7 +232,7 @@ function createWindow() {
         },
     });
 
-    mainWindow.loadURL(`http://127.0.0.1:${serverPort}/app/`);
+    mainWindow.loadURL(`http://127.0.0.1:${serverPort}/app/play`);
 
     mainWindow.on("closed", () => {
         mainWindow = null;

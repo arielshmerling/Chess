@@ -33,10 +33,12 @@ function mountDesktopRoutes(app) {
     app.use("/app/ui", express.static(UI_DIR));
 
     app.get("/", (_req, res) => {
-        res.redirect("/app/");
+        res.redirect("/app/play");
     });
 
-    app.get(["/app", "/app/"], sendUiPage("index.html"));
+    app.get(["/app", "/app/"], (_req, res) => {
+        res.redirect(302, "/app/play");
+    });
     app.get("/app/new-game", (_req, res) => res.redirect(302, "/app/play"));
     app.get("/app/play", sendUiPage("play.html"));
     app.get("/app/error", sendUiPage("error.html"));
@@ -52,12 +54,12 @@ function mountDesktopRoutes(app) {
     app.get("/app/api/ui-settings", requireLogin, uiSettingsApi.get);
     app.post("/app/api/ui-settings", requireLogin, uiSettingsApi.save);
 
-    app.get("/desktop", (_req, res) => res.redirect("/app/"));
-    app.get("/desktop/", (_req, res) => res.redirect("/app/"));
-    app.get("/login", (_req, res) => res.redirect("/app/"));
-    app.get("/home", (_req, res) => res.redirect("/app/"));
-    app.get("/mobile-home", (_req, res) => res.redirect("/app/"));
-    app.get("/friends", (_req, res) => res.redirect("/app/"));
+    app.get("/desktop", (_req, res) => res.redirect("/app/play"));
+    app.get("/desktop/", (_req, res) => res.redirect("/app/play"));
+    app.get("/login", (_req, res) => res.redirect("/app/play"));
+    app.get("/home", (_req, res) => res.redirect("/app/play"));
+    app.get("/mobile-home", (_req, res) => res.redirect("/app/play"));
+    app.get("/friends", (_req, res) => res.redirect("/app/play"));
 }
 
 module.exports = { mountDesktopRoutes, UI_DIR };

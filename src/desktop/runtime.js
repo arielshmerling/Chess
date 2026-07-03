@@ -140,7 +140,7 @@ function seedBrainConfigsIfMissing() {
 }
 
 function getHomePath() {
-    return isDesktopMode() ? "/app/" : "/home";
+    return isDesktopMode() ? "/app/play" : "/home";
 }
 
 function normalizeEngine(engine) {

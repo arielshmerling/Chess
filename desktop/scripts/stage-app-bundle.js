@@ -35,7 +35,7 @@ const DESKTOP_SRC_FILES = [
 
 const DESKTOP_BRAIN_CONFIGS = ["brain41.json", "brain42.json", "brain43.json"];
 
-const DESKTOP_UI_PAGES = ["index.html", "play.html", "error.html"];
+const DESKTOP_UI_PAGES = ["play.html", "error.html"];
 
 const DESKTOP_UI_EXCLUDE = new Set([]);
 

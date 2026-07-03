@@ -3445,7 +3445,7 @@
             return;
         }
         if (!gameActive) {
-            window.location.href = "/app/";
+            resetToIdleScreen();
             return;
         }
         const humanHasMoved = currentPlayerIsWhite
