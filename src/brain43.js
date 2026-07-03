@@ -738,7 +738,9 @@ exports.brainNextMoveFunc = async (game, options) => {
         const move = await createWorkerPromise(strState, workerSearchOptions);
         if (move && move.searchDepthReached != null) {
             console.log(
-                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, search depth=${move.searchDepthReached}`,
+                `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, `
+                    + `score=${move.score != null ? move.score : "n/a"}, `
+                    + `search depth=${move.searchDepthReached}`,
             );
         }
         return move;
@@ -2092,7 +2094,8 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                 bestMove = atDepth;
                 completedDepth = depth;
                 console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}`,
+                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}, `
+                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
                 );
             }
             if (shouldStopSearch()) {
@@ -2103,7 +2106,8 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         bestMove.searchDepthReached = completedDepth || 1;
         console.log(
             `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
-                + `best=${bookMovePgn(game, bestMove)}`,
+                + `best=${bookMovePgn(game, bestMove)}, `
+                + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
         return bestMove;
     } finally {

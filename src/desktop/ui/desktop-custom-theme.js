@@ -933,6 +933,9 @@
             swatch.className = "desktop-theme-swatch";
             swatch.style.background =
                 t.vars["--body-background"] || t.vars["--dark"] || "#333";
+            if (t.vars["--frame"]) {
+                swatch.style.borderColor = t.vars["--frame"];
+            }
             var label = document.createElement("span");
             label.className = "desktop-theme-name";
             label.textContent = t.name || "Custom";

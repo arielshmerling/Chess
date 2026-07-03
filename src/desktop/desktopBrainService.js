@@ -103,6 +103,14 @@ async function computeMove(opts) {
         return null;
     }
 
+    const scoreLabel =
+        brainMove.score != null && Number.isFinite(brainMove.score) ? brainMove.score : "n/a";
+    const depthLabel =
+        brainMove.searchDepthReached != null ? brainMove.searchDepthReached : "n/a";
+    console.log(
+        `[desktopBrain] ${loaded.name} selected move score=${scoreLabel} depth=${depthLabel}`,
+    );
+
     const turnBefore = chessGame.Turn;
     const result = chessGame.makeMove(brainMove.source, brainMove.target);
     if (!result || result.valid === false) {
@@ -121,6 +129,8 @@ async function computeMove(opts) {
         promotion: !!result.promotion,
         selectedPiece: result.selectedPiece,
         turn: turnBefore,
+        score: brainMove.score,
+        searchDepthReached: brainMove.searchDepthReached,
     };
 }
 

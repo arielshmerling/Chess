@@ -188,6 +188,7 @@ exports.brainNextMoveFunc = async (game, options) => {
         if (workerMove && workerMove.searchDepthReached != null) {
             console.log(
                 `${LOG_PREFIX} Move chosen: ${toSimpleNotationSafe(game, workerMove)}, `
+                    + `score=${workerMove.score != null ? workerMove.score : "n/a"}, `
                     + `search depth=${workerMove.searchDepthReached}`,
             );
         }
@@ -332,7 +333,8 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
                 bestMove = atDepth;
                 completedDepth = depth;
                 console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${toSimpleNotationSafe(localChess, bestMove)}`,
+                    `${LOG_PREFIX} Depth ${depth} completed, best=${toSimpleNotationSafe(localChess, bestMove)}, `
+                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
                 );
             }
             if (shouldStopSearch()) {
@@ -343,7 +345,8 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
         bestMove.searchDepthReached = completedDepth || 1;
         console.log(
             `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
-                + `best=${toSimpleNotationSafe(localChess, bestMove)}`,
+                + `best=${toSimpleNotationSafe(localChess, bestMove)}, `
+                + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
         return bestMove;
     } finally {

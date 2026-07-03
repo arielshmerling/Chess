@@ -3106,6 +3106,13 @@
                 showStatus("Engine could not find a move", 0, "error");
                 return;
             }
+            if (move.score != null && Number.isFinite(move.score)) {
+                console.log(
+                    "[Shmerling] Engine move score:",
+                    move.score,
+                    move.searchDepthReached != null ? `(depth ${move.searchDepthReached})` : "",
+                );
+            }
             if (move.promotion && move.selectedPiece == null) {
                 move.selectedPiece = game.QUEEN;
             }
