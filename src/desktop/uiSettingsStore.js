@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
         mouse: "drag",
         thinkingTimeSeconds: 10,
         showAvailableMoves: true,
+        immediateResign: false,
     },
 };
 
@@ -71,6 +72,7 @@ function normalizeGamePreferences(gamePreferences) {
         mouse: input.mouse === "double" ? "double" : "drag",
         thinkingTimeSeconds: normalizeThinkingTimeSeconds(input.thinkingTimeSeconds),
         showAvailableMoves: input.showAvailableMoves !== false,
+        immediateResign: input.immediateResign === true,
     };
 }
 

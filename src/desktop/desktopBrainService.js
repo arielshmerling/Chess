@@ -133,6 +133,8 @@ async function computeMove(opts) {
         turn: turnBefore,
         score: brainMove.score,
         searchDepthReached: brainMove.searchDepthReached,
+        opponentMateDetected: !!brainMove._opponentMateDetected,
+        opponentMateIn: brainMove.opponentMateIn,
     };
 }
 

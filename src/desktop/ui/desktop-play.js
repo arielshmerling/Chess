@@ -3106,6 +3106,19 @@
                 showStatus("Engine could not find a move", 0, "error");
                 return;
             }
+            if (move.opponentMateDetected) {
+                const mateNote =
+                    move.opponentMateIn != null && Number.isFinite(move.opponentMateIn)
+                        ? ` (mate in ${move.opponentMateIn})`
+                        : "";
+                console.log("[Shmerling] Engine detected forced loss" + mateNote);
+                if (Settings.loadGamePreferences().immediateResign) {
+                    engineThinking = false;
+                    updateActionButtons();
+                    engineResignFromLostPosition(move.opponentMateIn);
+                    return;
+                }
+            }
             if (move.score != null && Number.isFinite(move.score)) {
                 console.log(
                     "[Shmerling] Engine move score:",
@@ -3403,6 +3416,23 @@
             updateActionButtons();
             tryLogCompletedGame();
         });
+    }
+
+    function engineResignFromLostPosition(mateIn) {
+        if (!game || game.GameOver) {
+            return;
+        }
+        const player = currentPlayerIsWhite ? "Black" : "White";
+        game.resign(player);
+        const mateNote =
+            mateIn != null && Number.isFinite(mateIn) && mateIn > 0
+                ? ` (forced mate in ${mateIn})`
+                : "";
+        showStatus(`Engine resigns${mateNote}`, 5000, "info");
+        updateMovesTable(tableMovesFromGame());
+        updateHeaderTurn();
+        updateActionButtons();
+        tryLogCompletedGame();
     }
 
     function onDrawOfferClick() {

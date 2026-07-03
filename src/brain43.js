@@ -8,6 +8,14 @@ const {
     emitSearchProgress,
     dispatchWorkerProgressMessage,
 } = require("./brainSearchProgress");
+const {
+    LARGE_MATE_SCORE: MATE_SCORE,
+    LARGE_MATE_THRESHOLD: MATE_SCORE_WIN_THRESHOLD,
+    largeIsWinningMateScore: isWinningMateScore,
+    largeIsLosingMateScore: isLosingMateScore,
+    largeMatePliesFromScore: losingMatePliesFromScore,
+    tagOpponentMateOnMove,
+} = require("./brainMateScore");
 const path = require("path");
 const ROOT_EVAL_WORKER_SCRIPT = path.join(__dirname, "brain43RootEvalWorker.js");
 const { ChessGame } = require("./ChessGame");
@@ -42,14 +50,6 @@ const MIN_MS_FOR_NEXT_DEPTH = 50;
  * by depth; this only prevents a runaway loop in trivial/forced positions (e.g. lone-king endgames).
  */
 const MAX_TIMED_SEARCH_DEPTH = 64;
-/** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
-const MATE_SCORE = 9_000_000_000_000_000;
-/** Scores at or above this are forced mates for the side to move (MATE_SCORE − ply). */
-const MATE_SCORE_WIN_THRESHOLD = MATE_SCORE - 1024;
-
-function isWinningMateScore(score) {
-    return Number.isFinite(score) && score >= MATE_SCORE_WIN_THRESHOLD;
-}
 
 let brain43FullConfig = getDefaultConfig("brain43");
 /** Plies already played before the current search root (worker loadGame clears Moves). */
@@ -2203,6 +2203,14 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                     );
                     break;
                 }
+                if (isLosingMateScore(bestMove.score)) {
+                    const mateIn = losingMatePliesFromScore(bestMove.score);
+                    emitSearchProgress(
+                        `${LOG_PREFIX} Opponent mate found${mateIn != null ? ` (in ${mateIn})` : ""} `
+                            + `at depth ${completedDepth}, stopping search`,
+                    );
+                    break;
+                }
             } else {
                 break;
             }
@@ -2218,7 +2226,7 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                 + `best=${bookMovePgn(game, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
-        return bestMove;
+        return tagOpponentMateOnMove(bestMove, bestMove.score, "brain43");
     } finally {
         endTimedSearch();
     }
@@ -2229,6 +2237,7 @@ async function searchBestMoveAtRoot(game, baseMaxDepth) {
     const move = await searchAtFixedDepth(game, depthLimit);
     if (move) {
         move.searchDepthReached = depthLimit;
+        return tagOpponentMateOnMove(move, move.score, "brain43");
     }
     return move;
 }

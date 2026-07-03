@@ -4,6 +4,13 @@ const {
     emitSearchProgress,
     dispatchWorkerProgressMessage,
 } = require("./brainSearchProgress");
+const {
+    SMALL_MATE_SCORE: BRAIN41_MATE_SCORE,
+    smallIsWinningMateScore: isWinningMateScore,
+    smallIsLosingMateScore: isLosingMateScore,
+    smallMatePliesFromScore: losingMatePliesFromScore,
+    tagOpponentMateOnMove,
+} = require("./brainMateScore");
 const { ChessGame } = require("./ChessGame");
 const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
 const {
@@ -17,12 +24,6 @@ var chess;
 const DEFAULT_MAX_DEPTH = 2;
 const MAX_DEBUG_MOVES_TO_PRINT = 12;
 const LOG_PREFIX = "[Brain4.1]";
-/** Score assigned when the opponent is checkmated on the mover's turn. */
-const BRAIN41_MATE_SCORE = 9999;
-
-function isWinningMateScore(score) {
-    return Number.isFinite(score) && score >= BRAIN41_MATE_SCORE;
-}
 /** Worker safety timeout when search uses fixed depth (tests). */
 const BRAIN_MOVE_TIMEOUT_MS = 4 * 60 * 1000;
 /** Extra ms beyond user thinking time before main thread abandons the worker request. */
@@ -465,6 +466,14 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
                     );
                     break;
                 }
+                if (isLosingMateScore(bestMove.score)) {
+                    const mateIn = losingMatePliesFromScore(bestMove.score);
+                    emitSearchProgress(
+                        `${LOG_PREFIX} Opponent mate found${mateIn != null ? ` (in ${mateIn})` : ""} `
+                            + `at depth ${completedDepth}, stopping search`,
+                    );
+                    break;
+                }
             } else {
                 break;
             }
@@ -480,7 +489,7 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
                 + `best=${toSimpleNotationSafe(localChess, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
-        return bestMove;
+        return tagOpponentMateOnMove(bestMove, bestMove.score, "brain41");
     } finally {
         endTimedSearch();
     }
@@ -1052,6 +1061,7 @@ if (!isMainThread) {
             );
 
             if (move) {
+                tagOpponentMateOnMove(move, move.score, "brain41");
                 move.turn = chess.Turn;
                 parentPort.postMessage({ requestId, move });
             } else {

@@ -41,6 +41,11 @@
             '  <span class="desktop-check-box" aria-hidden="true"></span>',
             "  <span>Show available moves</span>",
             "</label>",
+            '<label class="desktop-check desktop-prefs-gameplay-check">',
+            '  <input type="checkbox" id="desktopPrefsImmediateResign" value="1">',
+            '  <span class="desktop-check-box" aria-hidden="true"></span>',
+            "  <span>Immediate resign</span>",
+            "</label>",
         ].join("");
     }
 
@@ -60,6 +65,11 @@
         var showMoves = document.getElementById("desktopPrefsShowMoves");
         if (showMoves) {
             showMoves.checked = prefs.showAvailableMoves !== false;
+        }
+
+        var immediateResign = document.getElementById("desktopPrefsImmediateResign");
+        if (immediateResign) {
+            immediateResign.checked = prefs.immediateResign === true;
         }
     }
 
@@ -91,6 +101,13 @@
         if (showMoves) {
             showMoves.addEventListener("change", function () {
                 Settings.saveGamePreferences({ showAvailableMoves: showMoves.checked });
+            });
+        }
+
+        var immediateResign = document.getElementById("desktopPrefsImmediateResign");
+        if (immediateResign) {
+            immediateResign.addEventListener("change", function () {
+                Settings.saveGamePreferences({ immediateResign: immediateResign.checked });
             });
         }
     }

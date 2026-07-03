@@ -26,6 +26,7 @@
         mouse: "drag",
         showAvailableMoves: true,
         allowUndo: true,
+        immediateResign: false,
         timeMinutes: 90,
     };
 
@@ -70,6 +71,7 @@
             mouse: input.mouse === "double" ? "double" : "drag",
             thinkingTimeSeconds: normalizeThinkingTimeSeconds(input.thinkingTimeSeconds),
             showAvailableMoves: input.showAvailableMoves !== false,
+            immediateResign: input.immediateResign === true,
         };
     }
 
@@ -113,6 +115,7 @@
             mouse: stored.mouse,
             thinkingTimeSeconds: stored.thinkingTimeSeconds,
             showAvailableMoves: stored.showAvailableMoves,
+            immediateResign: stored.immediateResign,
         });
     }
 
