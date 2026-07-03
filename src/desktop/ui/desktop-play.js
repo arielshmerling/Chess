@@ -1448,6 +1448,50 @@
         return currentPlayerIsWhite;
     }
 
+    function savedStateHumanIsWhite(stateStr) {
+        try {
+            const state = JSON.parse(stateStr || "{}");
+            if (typeof state.whitePlayerView === "boolean") {
+                return state.whitePlayerView;
+            }
+        } catch {
+            /* ignore */
+        }
+        return true;
+    }
+
+    function moveRecordWhitePlayerView(move) {
+        if (move && typeof move.whitePlayerView === "boolean") {
+            return move.whitePlayerView;
+        }
+        if (game && typeof game.WhitePlayerView === "boolean") {
+            return game.WhitePlayerView;
+        }
+        try {
+            const state = JSON.parse(reviewFinalStateStr || reviewOriginStateStr || "{}");
+            if (typeof state.whitePlayerView === "boolean") {
+                return state.whitePlayerView;
+            }
+        } catch {
+            /* ignore */
+        }
+        return true;
+    }
+
+    function moveNeedsCoordinateFlipForReplay(chess, move) {
+        return moveRecordWhitePlayerView(move) !== chess.WhitePlayerView;
+    }
+
+    function applySavedBoardOrientation(humanIsWhite) {
+        currentPlayerIsWhite = !!humanIsWhite;
+        if (Board.setPlayerView) {
+            Board.setPlayerView(currentPlayerIsWhite);
+        }
+        if (Board.setHumanColor) {
+            Board.setHumanColor(currentPlayerIsWhite);
+        }
+    }
+
     function prepareReviewStartPosition(chess) {
         if (
             reviewOriginStateStr
@@ -1471,7 +1515,7 @@
                 return false;
             }
             let m = typeof chess.cloneMove === "function" ? chess.cloneMove(raw) : raw;
-            if (!reviewBoardIsWhiteView()) {
+            if (moveNeedsCoordinateFlipForReplay(chess, raw)) {
                 m = chess.flipMove(m);
             }
             const result = chess.makeMove(m.source, m.target);
@@ -2537,8 +2581,13 @@
         clearReviewNavigation();
         try {
             const baseOpts = Settings.loadLastOptions();
+            const raw = entry.state != null ? entry.state : entry.gameState;
+            const stateStr =
+                typeof raw === "string" ? raw : JSON.stringify(raw || {});
+            const savedHumanIsWhite = savedStateHumanIsWhite(stateStr);
+            const parsedMoves = parseSavedGameMoves(entry);
             applySessionSettings({
-                color: baseOpts.color,
+                color: savedHumanIsWhite ? "white" : "black",
                 engine: entry.engine || baseOpts.engine,
                 thinkingTimeSeconds:
                     typeof entry.depth === "number"
@@ -2553,25 +2602,13 @@
                 allowUndo: baseOpts.allowUndo,
                 timeMinutes: baseOpts.timeMinutes,
             });
-            const raw = entry.state != null ? entry.state : entry.gameState;
-            const stateStr =
-                typeof raw === "string" ? raw : JSON.stringify(raw || {});
-            const parsedMoves = parseSavedGameMoves(entry);
             game.loadGame(stateStr);
             if (parsedMoves.length) {
                 game.loadMoves(parsedMoves);
             } else {
                 game.loadMoves([]);
             }
-            if (typeof game.WhitePlayerView === "boolean") {
-                currentPlayerIsWhite = game.WhitePlayerView;
-                if (Board.setPlayerView) {
-                    Board.setPlayerView(currentPlayerIsWhite);
-                }
-                if (Board.setHumanColor) {
-                    Board.setHumanColor(currentPlayerIsWhite);
-                }
-            }
+            applySavedBoardOrientation(savedHumanIsWhite);
             redoPairAvailable = false;
             lastCheckNotifySide = null;
             alertMode = false;
