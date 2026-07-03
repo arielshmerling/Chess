@@ -37,13 +37,7 @@ const DESKTOP_BRAIN_CONFIGS = ["brain41.json", "brain42.json", "brain43.json"];
 
 const DESKTOP_UI_PAGES = ["index.html", "play.html", "error.html"];
 
-const DESKTOP_UI_EXCLUDE = new Set([
-    "new-game.html",
-    "play-research.html",
-    "app.js",
-    "app-shell.js",
-    "desktop-chessboard-env.js",
-]);
+const DESKTOP_UI_EXCLUDE = new Set([]);
 
 const DESKTOP_SERVER_EXCLUDE = new Set([
     "gameApi.js",

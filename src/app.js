@@ -70,9 +70,6 @@ if (process.env.SHMERLING_MODE !== "desktop") {
     app.use("/", friendsRoutes);
 }
 
-//production script
-app.use(express.static("./client/build"));
-
 // WebSocket route handler (must be before catch-all route)
 // Note: gameManagerService will be set up in server.js after app is created
 let gameManagerService = null;
