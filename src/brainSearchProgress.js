@@ -5,6 +5,7 @@ const { isMainThread, parentPort } = require("worker_threads");
 const { requestSearchAbort } = require("./brainSearchTime");
 
 let workerRequestId = null;
+const abortedRequestIds = new Set();
 
 class SearchAbortedError extends Error {
     constructor(message = "Search aborted") {
@@ -31,6 +32,7 @@ function cancelWorkerSearch(worker, pendingRequests, reason = "Search aborted") 
         worker.postMessage({ type: "abort" });
     }
     for (const [requestId, pending] of pendingRequests.entries()) {
+        abortedRequestIds.add(requestId);
         clearTimeout(pending.timeout);
         pending.reject(new SearchAbortedError(reason));
         pendingRequests.delete(requestId);
@@ -59,6 +61,9 @@ function emitSearchProgress(message) {
 function dispatchWorkerProgressMessage(response, pendingRequests) {
     if (!response || response.type !== "progress" || response.requestId == null) {
         return false;
+    }
+    if (abortedRequestIds.has(response.requestId)) {
+        return true;
     }
     const pending = pendingRequests.get(response.requestId);
     if (pending && typeof pending.onProgress === "function") {

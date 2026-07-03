@@ -11,6 +11,7 @@ const {
 } = brainConfigService;
 const runtime = require("./runtime");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
+const { isSearchAbortedError } = require("../brainSearchProgress");
 
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
@@ -94,8 +95,8 @@ async function computeMove(opts) {
             onSearchProgress,
         });
     } catch (err) {
-        if (err instanceof SearchAbortedError || (err && err.name === "SearchAbortedError")) {
-            throw err;
+        if (isSearchAbortedError(err)) {
+            return null;
         }
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
             brainMove = err.fallbackMove;

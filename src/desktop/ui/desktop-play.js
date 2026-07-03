@@ -3114,9 +3114,9 @@
     }
 
     function completeUserResign() {
-        abortEngineSearch();
         const player = currentPlayerIsWhite ? "White" : "Black";
         game.resign(player);
+        abortEngineSearch();
         updateMovesTable(tableMovesFromGame());
         finishResignGame(player);
         tryLogCompletedGame();
@@ -3475,9 +3475,9 @@
         if (!game || game.GameOver) {
             return;
         }
-        abortEngineSearch();
         const player = currentPlayerIsWhite ? "Black" : "White";
         game.resign(player);
+        abortEngineSearch();
         updateMovesTable(tableMovesFromGame());
         finishResignGame(player);
         tryLogCompletedGame();
@@ -3572,9 +3572,9 @@
             return;
         }
         confirmDialog("Leave game?", "Your game will be resigned.", function () {
-            abortEngineSearch();
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
+            abortEngineSearch();
             tryLogCompletedGame();
             resetToIdleScreen();
         });
