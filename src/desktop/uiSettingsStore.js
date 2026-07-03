@@ -5,11 +5,18 @@
 const fs = require("fs").promises;
 const runtime = require("./runtime");
 
+const THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
+
 const DEFAULT_SETTINGS = {
     pieceSet: "storm-ivory",
     dockPanels: {
         leftCollapsed: true,
         rightCollapsed: true,
+    },
+    gamePreferences: {
+        mouse: "drag",
+        thinkingTimeSeconds: 10,
+        showAvailableMoves: true,
     },
 };
 
@@ -35,11 +42,44 @@ function normalizeDockPanels(dockPanels) {
     };
 }
 
+function normalizeThinkingTimeSeconds(value) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+        return DEFAULT_SETTINGS.gamePreferences.thinkingTimeSeconds;
+    }
+    if (THINKING_TIME_OPTIONS.includes(parsed)) {
+        return parsed;
+    }
+    if (parsed >= 1 && parsed <= THINKING_TIME_OPTIONS.length) {
+        return THINKING_TIME_OPTIONS[Math.min(parsed - 1, THINKING_TIME_OPTIONS.length - 1)];
+    }
+    let nearest = THINKING_TIME_OPTIONS[0];
+    let nearestDist = Math.abs(parsed - nearest);
+    for (let i = 1; i < THINKING_TIME_OPTIONS.length; i += 1) {
+        const dist = Math.abs(parsed - THINKING_TIME_OPTIONS[i]);
+        if (dist < nearestDist) {
+            nearest = THINKING_TIME_OPTIONS[i];
+            nearestDist = dist;
+        }
+    }
+    return nearest;
+}
+
+function normalizeGamePreferences(gamePreferences) {
+    const input = gamePreferences && typeof gamePreferences === "object" ? gamePreferences : {};
+    return {
+        mouse: input.mouse === "double" ? "double" : "drag",
+        thinkingTimeSeconds: normalizeThinkingTimeSeconds(input.thinkingTimeSeconds),
+        showAvailableMoves: input.showAvailableMoves !== false,
+    };
+}
+
 function normalizeSettings(raw) {
     const input = raw && typeof raw === "object" ? raw : {};
     return {
         pieceSet: normalizePieceSet(input.pieceSet),
         dockPanels: normalizeDockPanels(input.dockPanels),
+        gamePreferences: normalizeGamePreferences(input.gamePreferences),
     };
 }
 
@@ -65,6 +105,12 @@ async function writeAll(partial) {
         dockPanels: {
             ...current.dockPanels,
             ...(patch.dockPanels && typeof patch.dockPanels === "object" ? patch.dockPanels : {}),
+        },
+        gamePreferences: {
+            ...current.gamePreferences,
+            ...(patch.gamePreferences && typeof patch.gamePreferences === "object"
+                ? patch.gamePreferences
+                : {}),
         },
     };
     const next = normalizeSettings(merged);

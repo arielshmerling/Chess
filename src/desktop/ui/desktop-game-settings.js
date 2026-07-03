@@ -1,5 +1,5 @@
 /**
- * Local new-game options (no server session).
+ * New-game options and persistent gameplay preferences.
  */
 (function () {
     "use strict";
@@ -31,6 +31,16 @@
 
     const THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
 
+    let cachedGamePrefs = null;
+    let serverBootStarted = false;
+
+    function isDesktopApp() {
+        if (typeof window === "undefined" || !window.location) {
+            return false;
+        }
+        return window.location.pathname.indexOf("/app") === 0;
+    }
+
     function normalizeThinkingTimeSeconds(value) {
         const parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) {
@@ -54,6 +64,36 @@
         return nearest;
     }
 
+    function normalizeGamePreferences(prefs) {
+        const input = prefs && typeof prefs === "object" ? prefs : {};
+        return {
+            mouse: input.mouse === "double" ? "double" : "drag",
+            thinkingTimeSeconds: normalizeThinkingTimeSeconds(input.thinkingTimeSeconds),
+            showAvailableMoves: input.showAvailableMoves !== false,
+        };
+    }
+
+    function rememberGamePreferences(prefs) {
+        cachedGamePrefs = normalizeGamePreferences(prefs);
+    }
+
+    function readStoredOptions() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch {
+            return {};
+        }
+    }
+
+    function writeStoredOptions(opts) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(opts));
+        } catch {
+            /* ignore */
+        }
+    }
+
     function migrateSavedOptions(raw) {
         const opts = Object.assign({}, DEFAULTS, raw || {});
         if (opts.thinkingTimeSeconds == null && opts.difficulty != null) {
@@ -64,21 +104,116 @@
         return opts;
     }
 
-    function loadLastOptions() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? migrateSavedOptions(JSON.parse(raw)) : Object.assign({}, DEFAULTS);
-        } catch {
-            return Object.assign({}, DEFAULTS);
+    function loadGamePreferences() {
+        if (cachedGamePrefs) {
+            return Object.assign({}, cachedGamePrefs);
         }
+        const stored = migrateSavedOptions(readStoredOptions());
+        return normalizeGamePreferences({
+            mouse: stored.mouse,
+            thinkingTimeSeconds: stored.thinkingTimeSeconds,
+            showAvailableMoves: stored.showAvailableMoves,
+        });
+    }
+
+    function persistGamePreferencesToServer(prefs) {
+        if (!isDesktopApp()) {
+            return;
+        }
+        fetch("/app/api/ui-settings", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ gamePreferences: normalizeGamePreferences(prefs) }),
+        }).catch(function () {
+            /* ignore */
+        });
+    }
+
+    function notifyGamePreferencesChanged(prefs) {
+        if (typeof document === "undefined") {
+            return;
+        }
+        document.dispatchEvent(
+            new CustomEvent("shmerling-game-preferences-changed", {
+                detail: normalizeGamePreferences(prefs),
+            })
+        );
+    }
+
+    function saveGamePreferences(partial) {
+        const next = normalizeGamePreferences(Object.assign({}, loadGamePreferences(), partial || {}));
+        rememberGamePreferences(next);
+        const stored = migrateSavedOptions(readStoredOptions());
+        writeStoredOptions(Object.assign({}, stored, next));
+        persistGamePreferencesToServer(next);
+        notifyGamePreferencesChanged(next);
+        return next;
+    }
+
+    function loadLastOptions() {
+        const stored = migrateSavedOptions(readStoredOptions());
+        const gamePrefs = loadGamePreferences();
+        return Object.assign({}, stored, gamePrefs);
     }
 
     function saveLastOptions(opts) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(opts));
-        } catch {
-            /* ignore */
+        const gamePrefs = loadGamePreferences();
+        const merged = Object.assign({}, opts, gamePrefs);
+        writeStoredOptions(merged);
+    }
+
+    function saveNewGameOptions(opts) {
+        const stored = migrateSavedOptions(readStoredOptions());
+        const gamePrefs = loadGamePreferences();
+        writeStoredOptions(
+            Object.assign({}, stored, gamePrefs, {
+                color: opts.color,
+                engine: opts.engine,
+                allowUndo: opts.allowUndo,
+                timeMinutes: opts.timeMinutes,
+            })
+        );
+    }
+
+    function loadGamePreferencesFromServer() {
+        if (!isDesktopApp()) {
+            return Promise.resolve();
         }
+        return fetch("/app/api/ui-settings", {
+            method: "GET",
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+        })
+            .then(function (res) {
+                if (!res.ok) {
+                    return null;
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.gamePreferences) {
+                    const next = normalizeGamePreferences(data.gamePreferences);
+                    rememberGamePreferences(next);
+                    const stored = migrateSavedOptions(readStoredOptions());
+                    writeStoredOptions(Object.assign({}, stored, next));
+                    notifyGamePreferencesChanged(next);
+                }
+            })
+            .catch(function () {
+                /* ignore */
+            });
+    }
+
+    function bootGamePreferences() {
+        if (serverBootStarted || typeof document === "undefined") {
+            return;
+        }
+        serverBootStarted = true;
+        loadGamePreferencesFromServer();
     }
 
     function brainLabel(engine) {
@@ -117,12 +252,24 @@
             : DEFAULTS.engine;
     }
 
+    if (typeof document !== "undefined") {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", bootGamePreferences);
+        } else {
+            bootGamePreferences();
+        }
+    }
+
     window.DesktopGameSettings = {
         DEFAULTS,
         ENGINE_OPTIONS,
         THINKING_TIME_OPTIONS,
         loadLastOptions,
         saveLastOptions,
+        saveNewGameOptions,
+        loadGamePreferences,
+        saveGamePreferences,
+        loadGamePreferencesFromServer,
         buildSession,
         brainLabel,
         normalizeEngine,

@@ -39,6 +39,10 @@
         '          <h3 class="desktop-prefs-section-title">Piece set</h3>',
         '          <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="Piece sets"></div>',
         "        </section>",
+        '        <section class="desktop-prefs-section desktop-prefs-section--gameplay">',
+        '          <h3 class="desktop-prefs-section-title">Gameplay</h3>',
+        '          <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
+        "        </section>",
         "      </div>",
         "    </div>",
         "  </div>",
@@ -78,6 +82,7 @@
                 syncThemeButtons();
                 refreshCustomThemeList();
                 refreshPieceSetButtons();
+                refreshGameplayPrefs();
             }
         }
 
@@ -133,9 +138,25 @@
         document.addEventListener("shmerling-theme-changed", syncThemeButtons);
         document.addEventListener("shmerling-custom-themes-changed", refreshCustomThemeList);
         document.addEventListener("shmerling-piece-set-changed", refreshPieceSetButtons);
+        document.addEventListener("shmerling-game-preferences-changed", refreshGameplayPrefs);
         syncThemeButtons();
         refreshCustomThemeList();
         refreshPieceSetButtons();
+        mountGameplayPrefs();
+    }
+
+    function mountGameplayPrefs() {
+        var container = document.getElementById("desktopPrefsGameplay");
+        if (!container || !window.DesktopPrefsGameplay) {
+            return;
+        }
+        window.DesktopPrefsGameplay.mount(container);
+    }
+
+    function refreshGameplayPrefs() {
+        if (window.DesktopPrefsGameplay && typeof window.DesktopPrefsGameplay.refresh === "function") {
+            window.DesktopPrefsGameplay.refresh();
+        }
     }
 
     function refreshPieceSetButtons() {

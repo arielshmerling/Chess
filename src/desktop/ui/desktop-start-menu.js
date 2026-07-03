@@ -23,41 +23,17 @@
         const form = document.createElement("form");
         form.className = "desktop-form desktop-form--new-game";
 
-        const row = document.createElement("div");
-        row.className = "desktop-new-game-row";
-
-        function colorBlock() {
-            const sec = document.createElement("section");
-            sec.className = "desktop-new-game-block";
-            sec.innerHTML =
-                '<h2 class="desktop-form-section-title">Your color</h2>' +
-                '<div class="desktop-option-group desktop-option-group--equal" role="radiogroup">' +
-                '<label class="desktop-option-pill"><input type="radio" name="color" value="white"' +
-                (last.color !== "black" ? " checked" : "") +
-                '><span>White</span></label>' +
-                '<label class="desktop-option-pill"><input type="radio" name="color" value="black"' +
-                (last.color === "black" ? " checked" : "") +
-                "><span>Black</span></label></div>";
-            return sec;
-        }
-
-        function mouseBlock() {
-            const sec = document.createElement("section");
-            sec.className = "desktop-new-game-block";
-            sec.innerHTML =
-                '<h2 class="desktop-form-section-title">Mouse control</h2>' +
-                '<div class="desktop-option-group desktop-option-group--equal" role="radiogroup">' +
-                '<label class="desktop-option-pill"><input type="radio" name="mouse" value="drag"' +
-                (last.mouse !== "double" ? " checked" : "") +
-                '><span>Drag</span></label>' +
-                '<label class="desktop-option-pill"><input type="radio" name="mouse" value="double"' +
-                (last.mouse === "double" ? " checked" : "") +
-                "><span>Double-click</span></label></div>";
-            return sec;
-        }
-
-        row.appendChild(colorBlock());
-        row.appendChild(mouseBlock());
+        const row = document.createElement("section");
+        row.className = "desktop-new-game-block";
+        row.innerHTML =
+            '<h2 class="desktop-form-section-title">Your color</h2>' +
+            '<div class="desktop-option-group desktop-option-group--equal" role="radiogroup">' +
+            '<label class="desktop-option-pill"><input type="radio" name="color" value="white"' +
+            (last.color !== "black" ? " checked" : "") +
+            '><span>White</span></label>' +
+            '<label class="desktop-option-pill"><input type="radio" name="color" value="black"' +
+            (last.color === "black" ? " checked" : "") +
+            "><span>Black</span></label></div>";
         form.appendChild(row);
 
         const fields = document.createElement("section");
@@ -74,16 +50,6 @@
             '<option value="brain41"' +
             (last.engine === "brain41" ? " selected" : "") +
             '>Brain 4.1</option></select></div>' +
-            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgThinkingTime" id="dlgDiffLabel">Thinking time (seconds)</label>' +
-            '<select name="thinkingTimeSeconds" id="dlgThinkingTime" aria-labelledby="dlgDiffLabel">' +
-            Settings.THINKING_TIME_OPTIONS.map(function (seconds) {
-                const selected =
-                    seconds === Settings.normalizeThinkingTimeSeconds(last.thinkingTimeSeconds)
-                        ? " selected"
-                        : "";
-                return '<option value="' + seconds + '"' + selected + ">" + seconds + "s</option>";
-            }).join("") +
-            "</select></div>" +
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">Time per side (minutes)</label>' +
             '<input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +
             (last.timeMinutes || 90) +
@@ -93,9 +59,6 @@
         const checks = document.createElement("div");
         checks.className = "desktop-form-checks";
         checks.innerHTML =
-            '<label class="desktop-check"><input type="checkbox" name="showMoves" value="1"' +
-            (last.showAvailableMoves !== false ? " checked" : "") +
-            '><span class="desktop-check-box" aria-hidden="true"></span><span>Show available moves</span></label>' +
             '<label class="desktop-check"><input type="checkbox" name="allowUndo" value="1"' +
             (last.allowUndo !== false ? " checked" : "") +
             '><span class="desktop-check-box" aria-hidden="true"></span><span>Allow undo</span></label>';
@@ -123,18 +86,21 @@
 
         function submit() {
             const fd = new FormData(form);
+            const gamePrefs = Settings.loadGamePreferences();
             const payload = {
                 color: fd.get("color") || "white",
                 engine: fd.get("engine") || "brain42",
-                thinkingTimeSeconds: parseInt(fd.get("thinkingTimeSeconds"), 10) || 10,
-                mouse: fd.get("mouse") || "drag",
-                showAvailableMoves: fd.get("showMoves") === "1",
                 allowUndo: fd.get("allowUndo") === "1",
                 timeMinutes: parseInt(fd.get("timeMinutes"), 10) || 90,
+                mouse: gamePrefs.mouse,
+                thinkingTimeSeconds: gamePrefs.thinkingTimeSeconds,
+                showAvailableMoves: gamePrefs.showAvailableMoves,
             };
-            payload.thinkingTimeSeconds = Settings.normalizeThinkingTimeSeconds(payload.thinkingTimeSeconds);
+            payload.thinkingTimeSeconds = Settings.normalizeThinkingTimeSeconds(
+                payload.thinkingTimeSeconds,
+            );
             payload.difficulty = payload.thinkingTimeSeconds;
-            Settings.saveLastOptions(payload);
+            Settings.saveNewGameOptions(payload);
             closeNewGameDialog();
             onStart(payload);
         }

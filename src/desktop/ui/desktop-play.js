@@ -3150,6 +3150,28 @@
         syncGameRunPanelOptions();
     }
 
+    function applyGamePreferences(prefs) {
+        const next = prefs || Settings.loadGamePreferences();
+        if (session) {
+            const thinkingTime = Settings.normalizeThinkingTimeSeconds(next.thinkingTimeSeconds);
+            session = Object.assign({}, session, {
+                mousePreference: next.mouse === "double" ? "double" : "drag",
+                showAvailableMoves: next.showAvailableMoves !== false,
+                thinkingTimeSeconds: thinkingTime,
+                difficulty: thinkingTime,
+            });
+            updateMatchHeader();
+            syncGameRunPanelOptions();
+        }
+        Board.setPreferences({
+            mouse: next.mouse === "double" ? "double" : "drag",
+            showAvailableMoves: next.showAvailableMoves !== false,
+        });
+        if (Board.refreshHumanPieceInput) {
+            Board.refreshHumanPieceInput();
+        }
+    }
+
     async function beginNewGame(opts) {
         applySessionSettings(opts);
         assignNewGameId();
@@ -3523,9 +3545,10 @@
         ensureGameRunPanel();
         Board.setGame(game);
         Board.setPlayerView(true);
+        const idlePrefs = Settings.loadGamePreferences();
         Board.setPreferences({
-            mouse: "drag",
-            showAvailableMoves: true,
+            mouse: idlePrefs.mouse,
+            showAvailableMoves: idlePrefs.showAvailableMoves,
         });
         Board.setHumanMoveHandler(onHumanMove);
         Board.mount("chessboard");
@@ -3550,6 +3573,9 @@
     document.addEventListener("DOMContentLoaded", function () {
         document.addEventListener("click", handleDismissEvaluationOnClick, true);
         document.addEventListener("keydown", handleKeyboardShortcuts);
+        document.addEventListener("shmerling-game-preferences-changed", function (e) {
+            applyGamePreferences(e.detail);
+        });
         if (Dialog && Dialog.setLockHandlers) {
             Dialog.setLockHandlers(function (locked) {
                 dialogOn = locked;
