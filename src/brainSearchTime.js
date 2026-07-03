@@ -35,6 +35,20 @@ function wasSearchTimedOut() {
     return searchTimeExceeded;
 }
 
+/** Typical next iterative depth needs at least this multiple of the previous depth's runtime. */
+const NEXT_DEPTH_TIME_FACTOR = 1.15;
+
+function estimateMinMsForNextDepth(lastDepthMs, floorMs = 50) {
+    if (!Number.isFinite(lastDepthMs) || lastDepthMs <= 0) {
+        return floorMs;
+    }
+    return Math.max(floorMs, Math.ceil(lastDepthMs * NEXT_DEPTH_TIME_FACTOR));
+}
+
+function hasBudgetForNextDepth(lastDepthMs, floorMs = 50) {
+    return getRemainingSearchMs() >= estimateMinMsForNextDepth(lastDepthMs, floorMs);
+}
+
 function getSearchDeadlineMs() {
     return searchDeadlineMs;
 }
@@ -54,4 +68,7 @@ module.exports = {
     getSearchDeadlineMs,
     syncSearchDeadline,
     wasSearchTimedOut,
+    NEXT_DEPTH_TIME_FACTOR,
+    estimateMinMsForNextDepth,
+    hasBudgetForNextDepth,
 };

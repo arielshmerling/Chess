@@ -186,8 +186,17 @@ function initDesktopBrainIpc() {
         console.error("[desktop] Opening book preload in main:", err);
     });
 
-    ipcMain.handle("brain:computeMove", async (_event, payload) => {
-        return computeMove(payload);
+    ipcMain.handle("brain:computeMove", async (event, payload) => {
+        const onSearchProgress = (message) => {
+            console.log(message);
+            if (event.sender && !event.sender.isDestroyed()) {
+                event.sender.send("brain:searchProgress", { message });
+            }
+        };
+        return computeMove({
+            ...(payload || {}),
+            onSearchProgress,
+        });
     });
 
     ipcMain.handle("brain:evaluatePosition", async (_event, payload) => {

@@ -17,6 +17,11 @@
  * depth increases are scaled down when many pieces remain (avoids deep search on checks in the middlegame).
  */
 const { Worker, isMainThread, parentPort } = require("worker_threads");
+const {
+    setWorkerSearchRequestId,
+    emitSearchProgress,
+    dispatchWorkerProgressMessage,
+} = require("./brainSearchProgress");
 const { ChessGame } = require("./ChessGame");
 const {
     getDefaultConfig,
@@ -28,6 +33,7 @@ const {
     endTimedSearch,
     shouldStopSearch,
     getRemainingSearchMs,
+    estimateMinMsForNextDepth,
 } = require("./brainSearchTime");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const { savedGameStateToLookupKey } = require("./openingBookJson");
@@ -47,6 +53,12 @@ const MIN_MS_FOR_NEXT_DEPTH = 50;
 const MAX_TIMED_SEARCH_DEPTH = 64;
 /** Magnitude of a loss when the side to move is mated; dominates any material total (finite for stable arithmetic). */
 const MATE_SCORE = 9_000_000_000_000_000;
+/** Scores at or above this are forced mates for the side to move (MATE_SCORE − ply). */
+const MATE_SCORE_WIN_THRESHOLD = MATE_SCORE - 1024;
+
+function isWinningMateScore(score) {
+    return Number.isFinite(score) && score >= MATE_SCORE_WIN_THRESHOLD;
+}
 
 let chess;
 let brain42FullConfig = getDefaultConfig("brain42");
@@ -393,6 +405,9 @@ function getOrCreateWorker() {
         persistentWorker = new Worker(__filename);
 
         persistentWorker.on("message", (response) => {
+            if (dispatchWorkerProgressMessage(response, pendingRequests)) {
+                return;
+            }
             const { requestId, move, error } = response;
             const pending = pendingRequests.get(requestId);
             if (pending) {
@@ -474,7 +489,12 @@ function createWorkerPromise(strState, searchOptions) {
             }
         }, timeoutMs);
 
-        pendingRequests.set(requestId, { resolve, reject, timeout });
+        pendingRequests.set(requestId, {
+            resolve,
+            reject,
+            timeout,
+            onProgress: searchOptions?.onSearchProgress,
+        });
         const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
             ? `time ${thinkingTimeMs}ms`
             : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
@@ -544,6 +564,79 @@ function logTiedBestMoveOptions(game, options, bestScore) {
     console.log(
         `${LOG_PREFIX} Equal best score ${bestScore}; ${options.length} tied move(s): ${pgns.join(", ")}`,
     );
+}
+
+function sameRootMove(a, b) {
+    return a && b
+        && a.source && b.source && a.target && b.target
+        && a.source.row === b.source.row && a.source.col === b.source.col
+        && a.target.row === b.target.row && a.target.col === b.target.col
+        && !!a.promotion === !!b.promotion
+        && a.selectedPiece === b.selectedPiece;
+}
+
+function logSearchBestIfChanged(game, previousBest, candidate, score, depthLabel) {
+    if (!candidate) {
+        return;
+    }
+    if (previousBest && sameRootMove(previousBest, candidate)) {
+        return;
+    }
+    const scoreLabel = score != null && Number.isFinite(score) ? score : "n/a";
+    emitSearchProgress(
+        `${LOG_PREFIX} Search best (${depthLabel}, in progress): ${bookMovePgn(game, candidate)}, score=${scoreLabel}`,
+    );
+}
+
+function logSearchDepthCompleted(game, depth, pick) {
+    if (!pick) {
+        return;
+    }
+    const scoreLabel = pick.score != null && Number.isFinite(pick.score) ? pick.score : "n/a";
+    emitSearchProgress(
+        `${LOG_PREFIX} Depth ${depth} completed: ${bookMovePgn(game, pick)}, score=${scoreLabel}`,
+    );
+}
+
+function logSearchDepthCompletedPartial(game, depth, pick) {
+    if (!pick) {
+        return;
+    }
+    const scoreLabel = pick.score != null && Number.isFinite(pick.score) ? pick.score : "n/a";
+    emitSearchProgress(
+        `${LOG_PREFIX} Depth ${depth} completed (partial): ${bookMovePgn(game, pick)}, score=${scoreLabel}`,
+    );
+}
+
+function logSearchDepthAborted(depth) {
+    emitSearchProgress(`${LOG_PREFIX} Depth ${depth} aborted (time, incomplete)`);
+}
+
+function finalizeRootSearchPick(game, depthLimit, ordered, tiedBest, bestScore, partial) {
+    if (tiedBest.length === 0) {
+        if (partial) {
+            logSearchDepthAborted(depthLimit);
+            return null;
+        }
+        const fallback = ordered[0];
+        if (fallback) {
+            logSearchDepthCompleted(game, depthLimit, fallback);
+        }
+        return fallback;
+    }
+    const pick = tiedBest[0];
+    if (tiedBest.length > 1) {
+        logTiedBestMoveOptions(game, tiedBest, bestScore);
+        console.log(`${LOG_PREFIX} Tie-break: ${bookMovePgn(game, pick)} (first by move order / static bonus)`);
+    }
+    pick.score = bestScore;
+    if (partial) {
+        pick._searchDepthPartial = true;
+        logSearchDepthCompletedPartial(game, depthLimit, pick);
+    } else {
+        logSearchDepthCompleted(game, depthLimit, pick);
+    }
+    return pick;
 }
 
 function pickWeightedBookMove(options) {
@@ -635,6 +728,7 @@ exports.brainNextMoveFunc = async (game, options) => {
     const workerSearchOptions = {
         config: brain42FullConfig,
         pliesPlayed,
+        onSearchProgress: options?.onSearchProgress,
     };
     if (options?.thinkingTimeMs != null && Number(options.thinkingTimeMs) > 0) {
         workerSearchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
@@ -655,10 +749,11 @@ exports.brainNextMoveFunc = async (game, options) => {
     try {
         const move = await createWorkerPromise(strState, workerSearchOptions);
         if (move && move.searchDepthReached != null) {
+            const partialNote = move._searchDepthPartial ? " (partial)" : "";
             console.log(
                 `${LOG_PREFIX} Move chosen: ${bookMovePgn(game, move)}, `
                     + `score=${move.score != null ? move.score : "n/a"}, `
-                    + `search depth=${move.searchDepthReached}`,
+                    + `search depth=${move.searchDepthReached}${partialNote}`,
             );
         }
         return move;
@@ -1719,6 +1814,9 @@ function negamax(game, depthRemaining, alpha, beta, ply = 0) {
         }
         const move = ordered[i];
         const score = evaluateSearchMove(game, move, depthRemaining - 1, alpha, beta, ply);
+        if (isWinningMateScore(score)) {
+            return score;
+        }
         if (score > best) {
             best = score;
         }
@@ -1762,16 +1860,18 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
     const beta = Infinity;
     const tiedBest = [];
     let bestScore = -Infinity;
+    let loggedLeader = null;
 
     for (let i = 0; i < ordered.length; i++) {
         if (shouldStopSearch()) {
-            return null;
+            return finalizeRootSearchPick(game, depthLimit, ordered, tiedBest, bestScore, true);
         }
         const move = ordered[i];
         const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
         if (!Number.isFinite(score)) {
             continue;
         }
+        const prevLeader = tiedBest.length > 0 ? tiedBest[0] : null;
         if (score > bestScore) {
             bestScore = score;
             tiedBest.length = 0;
@@ -1789,21 +1889,23 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
                 tiedBest.push(move);
             }
         }
+        const leader = tiedBest.length > 0 ? tiedBest[0] : null;
+        if (leader && (!prevLeader || !sameRootMove(prevLeader, leader))) {
+            logSearchBestIfChanged(game, loggedLeader, leader, bestScore, `depth ${depthLimit}`);
+            loggedLeader = leader;
+        }
         if (score > alpha) {
             alpha = score;
         }
+        if (isWinningMateScore(bestScore)) {
+            emitSearchProgress(
+                `${LOG_PREFIX} Mate found (depth ${depthLimit}): ${bookMovePgn(game, tiedBest[0])}, stopping search`,
+            );
+            break;
+        }
     }
 
-    if (tiedBest.length === 0) {
-        return ordered[0];
-    }
-    const pick = tiedBest[0];
-    if (tiedBest.length > 1) {
-        logTiedBestMoveOptions(game, tiedBest, bestScore);
-        console.log(`${LOG_PREFIX} Tie-break: ${bookMovePgn(game, pick)} (first by move order / static bonus)`);
-    }
-    pick.score = bestScore;
-    return pick;
+    return finalizeRootSearchPick(game, depthLimit, ordered, tiedBest, bestScore, false);
 }
 
 function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
@@ -1823,22 +1925,41 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         const ordered = orderMovesCapturesFirst(game, moves);
         let bestMove = ordered[0];
         let completedDepth = 0;
+        let lastDepthMs = 0;
 
         for (let depth = 1; depth <= MAX_TIMED_SEARCH_DEPTH; depth += 1) {
             if (shouldStopSearch()) {
                 break;
             }
-            if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
+            if (lastDepthMs > 0) {
+                const needed = estimateMinMsForNextDepth(lastDepthMs, MIN_MS_FOR_NEXT_DEPTH);
+                const remaining = getRemainingSearchMs();
+                if (remaining < needed) {
+                    emitSearchProgress(
+                        `${LOG_PREFIX} Skipping depth ${depth} (~${needed}ms needed, ${remaining}ms left)`,
+                    );
+                    break;
+                }
+            } else if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
                 break;
             }
+            const depthStart = Date.now();
             const atDepth = searchAtFixedDepth(game, depth, MAX_TIMED_SEARCH_DEPTH);
+            const depthElapsed = Date.now() - depthStart;
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
-                console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}, `
-                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
-                );
+                if (depthElapsed > 0) {
+                    lastDepthMs = depthElapsed;
+                }
+                if (isWinningMateScore(bestMove.score)) {
+                    emitSearchProgress(
+                        `${LOG_PREFIX} Mate found at depth ${completedDepth}, stopping search`,
+                    );
+                    break;
+                }
+            } else {
+                break;
             }
             if (shouldStopSearch()) {
                 break;
@@ -1846,8 +1967,9 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         }
 
         bestMove.searchDepthReached = completedDepth || 1;
+        const partialNote = bestMove._searchDepthPartial ? " (partial)" : "";
         console.log(
-            `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
+            `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}${partialNote}, `
                 + `best=${bookMovePgn(game, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
@@ -1888,6 +2010,8 @@ if (!isMainThread) {
             parentPort.postMessage({ requestId: request?.requestId || 0, error: "Invalid request format" });
             return;
         }
+
+        setWorkerSearchRequestId(requestId);
 
         const maxDepth = requestMaxDepth != null
             ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth)))

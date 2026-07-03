@@ -64,6 +64,7 @@ async function computeMove(opts) {
         thinkingTimeSeconds,
         difficulty,
         pliesPlayed,
+        onSearchProgress,
     } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
@@ -90,6 +91,7 @@ async function computeMove(opts) {
             thinkingTimeMs,
             config,
             pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
+            onSearchProgress,
         });
     } catch (err) {
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
