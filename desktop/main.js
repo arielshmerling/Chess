@@ -177,7 +177,7 @@ function initDesktopBrainIpc() {
     process.env.NODE_ENV = process.env.NODE_ENV || "production";
     const bundleRoot = resolveBundleRoot();
     const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
-    const { computeMove, evaluatePosition } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
+    const { computeMove, evaluatePosition, abortSearch } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
     const { appendCompletedGame, getGamesLogPath } = require(path.join(bundleRoot, "src/desktop/gameHistoryStore"));
     const { preloadOpeningBookAtStartup } = require(path.join(bundleRoot, "src/desktop/preloadOpeningBook"));
 
@@ -201,6 +201,11 @@ function initDesktopBrainIpc() {
 
     ipcMain.handle("brain:evaluatePosition", async (_event, payload) => {
         return evaluatePosition(payload);
+    });
+
+    ipcMain.handle("brain:abortSearch", async () => {
+        abortSearch("Search aborted");
+        return { ok: true };
     });
 
     ipcMain.handle("game:appendPgn", async (_event, payload) => {

@@ -1768,6 +1768,12 @@ body.desktop-play-page .desktop-play-main {
   opacity: 1;
 }
 
+/* Resignation: red square on the resigning king (same as checkmate) */
+.desktop-play-page #innerBoard .square.king-resigned {
+  background-color: #b03434 !important;
+  box-shadow: inset 0 0 0 2px #e87878;
+}
+
 /* Draw: green squares on both kings */
 .desktop-play-page #innerBoard .square.king-in-draw {
   background-color: #5a9e52 !important;

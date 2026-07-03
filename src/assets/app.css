@@ -1070,6 +1070,12 @@ body.research-mode .debug-game-id {
     opacity: 1;
 }
 
+/* Resignation: tip the resigning player's king onto its side */
+#innerBoard .square.king-resigned img {
+    transform: rotate(90deg);
+    transform-origin: center center;
+}
+
 
 .draggable {
     position: relative;

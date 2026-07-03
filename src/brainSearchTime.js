@@ -2,18 +2,34 @@
 
 let searchDeadlineMs = 0;
 let searchTimeExceeded = false;
+let searchAborted = false;
 
 function beginTimedSearch(thinkingTimeMs) {
     searchDeadlineMs = Date.now() + Math.max(1, Math.floor(Number(thinkingTimeMs) || 1));
     searchTimeExceeded = false;
+    searchAborted = false;
 }
 
 function endTimedSearch() {
     searchDeadlineMs = 0;
     searchTimeExceeded = false;
+    searchAborted = false;
+}
+
+function requestSearchAbort() {
+    searchAborted = true;
+    searchTimeExceeded = true;
+    searchDeadlineMs = 0;
+}
+
+function clearSearchAbort() {
+    searchAborted = false;
 }
 
 function shouldStopSearch() {
+    if (searchAborted) {
+        return true;
+    }
     if (searchTimeExceeded) {
         return true;
     }
@@ -63,6 +79,8 @@ function syncSearchDeadline(deadlineMs) {
 module.exports = {
     beginTimedSearch,
     endTimedSearch,
+    requestSearchAbort,
+    clearSearchAbort,
     shouldStopSearch,
     getRemainingSearchMs,
     getSearchDeadlineMs,

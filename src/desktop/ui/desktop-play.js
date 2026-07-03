@@ -3071,6 +3071,57 @@
         return true;
     }
 
+    function stopGameClocks() {
+        if (whiteHandle) {
+            clearInterval(whiteHandle);
+            whiteHandle = null;
+        }
+        if (blackHandle) {
+            clearInterval(blackHandle);
+            blackHandle = null;
+        }
+    }
+
+    function abortEngineSearch() {
+        if (Engine && typeof Engine.abortSearch === "function") {
+            Engine.abortSearch();
+        }
+        engineThinking = false;
+        animating = false;
+    }
+
+    function isSearchAbortedError(err) {
+        return !!(err && (err.name === "SearchAbortedError" || err.message === "Search aborted"));
+    }
+
+    function resignStatusMessage(resignedColor) {
+        const isWhite = String(resignedColor).toLowerCase() === "white";
+        const name = session
+            ? (isWhite ? session.whitePlayerName : session.blackPlayerName) || (isWhite ? "White" : "Black")
+            : (isWhite ? "White" : "Black");
+        return "Game over. " + name + " resign.";
+    }
+
+    function finishResignGame(resignedColor) {
+        alertMode = true;
+        stopGameClocks();
+        showStatus(resignStatusMessage(resignedColor), 0, "info");
+        if (Board.applyResignedKingTilt && resignedColor) {
+            Board.applyResignedKingTilt(resignedColor);
+        }
+        updateHeaderTurn();
+        updateActionButtons();
+    }
+
+    function completeUserResign() {
+        abortEngineSearch();
+        const player = currentPlayerIsWhite ? "White" : "Black";
+        game.resign(player);
+        updateMovesTable(tableMovesFromGame());
+        finishResignGame(player);
+        tryLogCompletedGame();
+    }
+
     async function runEngineMove() {
         if (
             !game ||
@@ -3102,6 +3153,9 @@
                     : session.difficulty,
                 pliesPlayed: game.Moves ? game.Moves.length : 0,
             });
+            if (game.GameOver) {
+                return;
+            }
             if (!move) {
                 showStatus("Engine could not find a move", 0, "error");
                 return;
@@ -3115,7 +3169,7 @@
                 if (Settings.loadGamePreferences().immediateResign) {
                     engineThinking = false;
                     updateActionButtons();
-                    engineResignFromLostPosition(move.opponentMateIn);
+                    engineResignFromLostPosition();
                     return;
                 }
             }
@@ -3142,6 +3196,9 @@
                 showStatus("", 0, "info");
             }
         } catch (err) {
+            if (isSearchAbortedError(err) || game.GameOver) {
+                return;
+            }
             console.error(err);
             showStatus(err.message || "Engine error", 0, "error");
         } finally {
@@ -3410,28 +3467,19 @@
             return;
         }
         confirmDialog("Resign this game?", "You will lose the game.", function () {
-            const player = currentPlayerIsWhite ? "White" : "Black";
-            game.resign(player);
-            updateMovesTable(tableMovesFromGame());
-            updateActionButtons();
-            tryLogCompletedGame();
+            completeUserResign();
         });
     }
 
-    function engineResignFromLostPosition(mateIn) {
+    function engineResignFromLostPosition() {
         if (!game || game.GameOver) {
             return;
         }
+        abortEngineSearch();
         const player = currentPlayerIsWhite ? "Black" : "White";
         game.resign(player);
-        const mateNote =
-            mateIn != null && Number.isFinite(mateIn) && mateIn > 0
-                ? ` (forced mate in ${mateIn})`
-                : "";
-        showStatus(`Engine resigns${mateNote}`, 5000, "info");
         updateMovesTable(tableMovesFromGame());
-        updateHeaderTurn();
-        updateActionButtons();
+        finishResignGame(player);
         tryLogCompletedGame();
     }
 
@@ -3524,6 +3572,7 @@
             return;
         }
         confirmDialog("Leave game?", "Your game will be resigned.", function () {
+            abortEngineSearch();
             const player = currentPlayerIsWhite ? "White" : "Black";
             game.resign(player);
             tryLogCompletedGame();

@@ -7,6 +7,9 @@ const {
     setWorkerSearchRequestId,
     emitSearchProgress,
     dispatchWorkerProgressMessage,
+    handleWorkerAbortMessage,
+    cancelWorkerSearch,
+    SearchAbortedError,
 } = require("./brainSearchProgress");
 const {
     LARGE_MATE_SCORE: MATE_SCORE,
@@ -32,6 +35,7 @@ const {
     getSearchDeadlineMs,
     syncSearchDeadline,
     estimateMinMsForNextDepth,
+    clearSearchAbort,
 } = require("./brainSearchTime");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
@@ -482,12 +486,21 @@ function terminatePersistentWorker(reason) {
     worker.terminate();
 }
 
+function cancelActiveSearch(reason = "Search aborted") {
+    if (!isMainThread) {
+        return;
+    }
+    cancelWorkerSearch(persistentWorker, pendingRequests, reason);
+    shutdownRootWorkerPool();
+}
+
 function createWorkerPromise(strState, searchOptions) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
             return;
         }
+        clearSearchAbort();
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
         const thinkingTimeMs = searchOptions?.thinkingTimeMs;
@@ -767,6 +780,9 @@ exports.brainNextMoveFunc = async (game, options) => {
         }
         return move;
     } catch (err) {
+        if (err instanceof SearchAbortedError) {
+            throw err;
+        }
         if (err && err.message === "Brain move timeout") {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
@@ -807,6 +823,8 @@ exports.brainNextMoveFunc = async (game, options) => {
 };
 
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
+exports.cancelActiveSearch = cancelActiveSearch;
+exports.SearchAbortedError = SearchAbortedError;
 
 /** Terminates persistent search worker and root eval pool (tests / app shutdown). */
 exports.shutdownWorkers = function shutdownWorkers() {
@@ -2306,6 +2324,9 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
+        if (handleWorkerAbortMessage(request)) {
+            return;
+        }
         const {
             requestId,
             gameState,

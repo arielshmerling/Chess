@@ -94,6 +94,9 @@ async function computeMove(opts) {
             onSearchProgress,
         });
     } catch (err) {
+        if (err instanceof SearchAbortedError || (err && err.name === "SearchAbortedError")) {
+            throw err;
+        }
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
             brainMove = err.fallbackMove;
         } else {
@@ -171,9 +174,23 @@ async function evaluatePosition(opts) {
     throw new Error(`Evaluation display is not supported for engine "${engine}"`);
 }
 
+function abortSearch(reason = "Search aborted") {
+    for (const engineName of ALLOWED_ENGINES) {
+        try {
+            const mod = require(path.join(__dirname, "..", engineName));
+            if (typeof mod.cancelActiveSearch === "function") {
+                mod.cancelActiveSearch(reason);
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+}
+
 module.exports = {
     computeMove,
     evaluatePosition,
+    abortSearch,
     ensureRuntime,
     normalizeThinkingTimeSeconds,
     thinkingTimeSecondsToMs,

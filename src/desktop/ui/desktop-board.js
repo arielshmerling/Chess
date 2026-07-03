@@ -492,7 +492,38 @@
         }
         for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
             for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
-                guiBoard[i][j].classList.remove("king-in-draw", "king-in-check", "king-in-checkmate");
+                guiBoard[i][j].classList.remove(
+                    "king-in-draw",
+                    "king-in-check",
+                    "king-in-checkmate",
+                    "king-resigned",
+                );
+            }
+        }
+    }
+
+    function applyResignedKingTilt(resignedColor) {
+        if (!chessGame || !guiBoard[0][0] || !resignedColor) {
+            return;
+        }
+        const color = String(resignedColor).toLowerCase();
+        const stateBoard = chessGame.GameState && chessGame.GameState.board;
+        if (!stateBoard) {
+            return;
+        }
+        const kingType = chessGame.KING;
+        for (let r = 0; r < chessGame.BOARD_ROWS; r++) {
+            for (let c = 0; c < chessGame.BOARD_COLUMNS; c++) {
+                guiBoard[r][c].classList.remove("king-resigned");
+            }
+        }
+        for (let r = 0; r < chessGame.BOARD_ROWS; r++) {
+            for (let c = 0; c < chessGame.BOARD_COLUMNS; c++) {
+                const p = stateBoard[r][c];
+                if (p && p.pieceType === kingType && p.color === color) {
+                    guiBoard[r][c].classList.add("king-resigned");
+                    return;
+                }
             }
         }
     }
@@ -500,6 +531,12 @@
     function applyEndgameKingHighlights() {
         if (!chessGame || !guiBoard[0][0] || setupModeActive) {
             clearKingHighlights();
+            return;
+        }
+        const resigned = chessGame.GameState && chessGame.GameState.resigned;
+        if (resigned) {
+            clearKingHighlights();
+            applyResignedKingTilt(resigned);
             return;
         }
         if (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw)) {
@@ -1334,6 +1371,7 @@
         toggleLastMoveArrow: toggleLastMoveArrow,
         applyCheckedHighlight: applyCheckedHighlight,
         applyDrawHighlight: applyDrawHighlight,
+        applyResignedKingTilt: applyResignedKingTilt,
         clearKingHighlights: clearKingHighlights,
         setSetupMode: setSetupMode,
         mutateSetupBoard: mutateSetupBoard,

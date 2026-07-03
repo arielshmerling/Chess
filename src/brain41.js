@@ -3,6 +3,9 @@ const {
     setWorkerSearchRequestId,
     emitSearchProgress,
     dispatchWorkerProgressMessage,
+    handleWorkerAbortMessage,
+    cancelWorkerSearch,
+    SearchAbortedError,
 } = require("./brainSearchProgress");
 const {
     SMALL_MATE_SCORE: BRAIN41_MATE_SCORE,
@@ -19,6 +22,7 @@ const {
     shouldStopSearch,
     getRemainingSearchMs,
     estimateMinMsForNextDepth,
+    clearSearchAbort,
 } = require("./brainSearchTime");
 var chess;
 const DEFAULT_MAX_DEPTH = 2;
@@ -125,12 +129,21 @@ function terminatePersistentWorker(reason) {
     worker.terminate();
 }
 
+function cancelActiveSearch(reason = "Search aborted") {
+    if (!isMainThread) {
+        return;
+    }
+    cancelWorkerSearch(persistentWorker, pendingRequests, reason);
+}
+
 function createWorkerPromise(strState, searchOptions) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
             return;
         }
+
+        clearSearchAbort();
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
@@ -219,6 +232,9 @@ exports.brainNextMoveFunc = async (game, options) => {
         }
         return workerMove;
     } catch (err) {
+        if (err instanceof SearchAbortedError) {
+            throw err;
+        }
         if (err && err.message === "Brain move timeout") {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
@@ -260,6 +276,8 @@ exports.brainNextMoveFunc = async (game, options) => {
 };
 
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
+exports.cancelActiveSearch = cancelActiveSearch;
+exports.SearchAbortedError = SearchAbortedError;
 
 function logAtPly(ply, message) {
     const indent = "  ".repeat(Math.max(0, ply - 1));
@@ -1015,6 +1033,9 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
+        if (handleWorkerAbortMessage(request)) {
+            return;
+        }
         const {
             requestId,
             gameState,
