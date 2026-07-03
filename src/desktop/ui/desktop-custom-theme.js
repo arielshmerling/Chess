@@ -399,6 +399,9 @@
         "--play-header-background": "Header panel background",
         "--play-footer-background": "Footer panel background",
         "--promotion-hover-background": "Promotion piece hover background",
+        "--moves-cell-space-color": "Moves cells space color",
+        "--game-item-border-color": "Game item border color",
+        "--game-mode-frame-color": "Game mode frame color",
     };
 
     function labelForKey(key) {

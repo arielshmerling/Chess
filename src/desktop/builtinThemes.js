@@ -5,6 +5,9 @@
 const blueTheme = {
     "--panel-background": "#4e829f",
     "--panel-border": "#618ea8",
+    "--moves-cell-space-color": "#618ea8",
+    "--game-item-border-color": "#618ea8",
+    "--game-mode-frame-color": "#618ea8",
     "--textbox-background": "#98c1d9",
     "--textbox-forecolor": "#2c4668",
     "--textbox-highlight": "#e5e5e5",
@@ -93,6 +96,9 @@ const blueTheme = {
 const darkTheme = {
     "--panel-background": "#2D3134",
     "--panel-border": "#3b3b3b",
+    "--moves-cell-space-color": "#3b3b3b",
+    "--game-item-border-color": "#3b3b3b",
+    "--game-mode-frame-color": "#3b3b3b",
     "--textbox-background": "#4C4C4C",
     "--textbox-forecolor": "#A5A5A5",
     "--textbox-highlight": "#e5e5e5",

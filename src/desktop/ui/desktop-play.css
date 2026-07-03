@@ -166,7 +166,7 @@ body.desktop-play-page .desktop-play-main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.2));
+  border: 1px solid var(--game-mode-frame-color, var(--panel-border, rgba(255, 255, 255, 0.2)));
   border-radius: 4px;
   padding: 0.15rem 0.5rem;
 }
@@ -659,7 +659,7 @@ body.desktop-play-page .desktop-play-main {
 .desktop-play-page .desktop-play-moves-list table.movesTable td {
   padding: 2px 3px;
   margin: 0;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--moves-cell-space-color, var(--panel-border));
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -703,7 +703,7 @@ body.desktop-play-page .desktop-play-main {
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--game-item-border-color, var(--panel-border));
   border-radius: 4px;
   background-color: var(--moves-cell-bg, rgba(0, 0, 0, 0.2));
   color: var(--moves-cell-text, inherit);
@@ -774,7 +774,7 @@ body.desktop-play-page .desktop-play-main {
   font: inherit;
   color: inherit;
   background: var(--textbox-background, rgba(0, 0, 0, 0.25));
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--game-item-border-color, var(--panel-border));
   border-radius: 3px;
 }
 
@@ -782,7 +782,7 @@ body.desktop-play-page .desktop-play-main {
   display: none;
   box-sizing: border-box;
   padding: 6px;
-  border-top: 1px solid var(--panel-border);
+  border-top: 1px solid var(--game-item-border-color, var(--panel-border));
   background-color: rgba(0, 0, 0, 0.12);
 }
 
@@ -830,7 +830,7 @@ body.desktop-play-page .desktop-play-main {
   width: 26px;
   height: 26px;
   padding: 2px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--game-item-border-color, var(--panel-border));
   border-radius: 3px;
   background: rgba(0, 0, 0, 0.2);
   background-image: none;

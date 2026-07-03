@@ -1566,7 +1566,7 @@ table.movesTable td {
     text-align: center;
     padding: 4px;
     border: 1px solid white;
-    border-color: var(--panel-border);
+    border-color: var(--moves-cell-space-color, var(--panel-border));
     margin: 0px;
 }
 

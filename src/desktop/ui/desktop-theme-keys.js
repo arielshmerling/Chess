@@ -44,6 +44,14 @@
             ],
         },
         {
+            label: "Play dock borders",
+            keys: [
+                "--moves-cell-space-color",
+                "--game-item-border-color",
+                "--game-mode-frame-color",
+            ],
+        },
+        {
             label: "Panels",
             keys: ["--panel-background", "--panel-border"],
         },
