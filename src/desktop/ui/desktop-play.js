@@ -760,6 +760,7 @@
         setConfigurationUi(false);
         showStatus("");
         updateActionButtons();
+        restoreSidebarPreferences();
         return true;
     }
 
@@ -819,13 +820,19 @@
         enterConfigurationMode();
     }
 
+    function restoreSidebarPreferences() {
+        if (window.DesktopDockPanels && typeof DesktopDockPanels.applySavedPreferences === "function") {
+            DesktopDockPanels.applySavedPreferences();
+        }
+    }
+
     function expandMovesSidebar() {
         const sidebar = $("desktopPlaySidebarMoves");
         if (!sidebar) {
             return;
         }
         if (window.DesktopDockPanels && DesktopDockPanels.setSidebarCollapsed) {
-            DesktopDockPanels.setSidebarCollapsed(sidebar, false);
+            DesktopDockPanels.setSidebarCollapsed(sidebar, false, { persist: false });
             return;
         }
         sidebar.classList.remove("desktop-play-sidebar--collapsed");
@@ -1119,6 +1126,7 @@
         }
         updateGameRunPanelVisibility();
         updateActionButtons();
+        restoreSidebarPreferences();
     }
 
     function formatEvaluationTotalText(result) {
@@ -1414,6 +1422,7 @@
         updateMatchHeader();
         updateActionButtons();
         updateGameRunPanelVisibility();
+        restoreSidebarPreferences();
     }
 
     function clearReviewNavigation() {

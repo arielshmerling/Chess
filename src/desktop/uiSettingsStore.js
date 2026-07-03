@@ -7,6 +7,10 @@ const runtime = require("./runtime");
 
 const DEFAULT_SETTINGS = {
     pieceSet: "storm-ivory",
+    dockPanels: {
+        leftCollapsed: true,
+        rightCollapsed: true,
+    },
 };
 
 const VALID_PIECE_SETS = new Set([
@@ -23,10 +27,19 @@ function normalizePieceSet(pieceSet) {
     return DEFAULT_SETTINGS.pieceSet;
 }
 
+function normalizeDockPanels(dockPanels) {
+    const input = dockPanels && typeof dockPanels === "object" ? dockPanels : {};
+    return {
+        leftCollapsed: input.leftCollapsed !== false,
+        rightCollapsed: input.rightCollapsed !== false,
+    };
+}
+
 function normalizeSettings(raw) {
     const input = raw && typeof raw === "object" ? raw : {};
     return {
         pieceSet: normalizePieceSet(input.pieceSet),
+        dockPanels: normalizeDockPanels(input.dockPanels),
     };
 }
 
@@ -45,10 +58,16 @@ async function readAll() {
 
 async function writeAll(partial) {
     const current = await readAll();
-    const next = normalizeSettings({
+    const patch = partial && typeof partial === "object" ? partial : {};
+    const merged = {
         ...current,
-        ...(partial && typeof partial === "object" ? partial : {}),
-    });
+        ...patch,
+        dockPanels: {
+            ...current.dockPanels,
+            ...(patch.dockPanels && typeof patch.dockPanels === "object" ? patch.dockPanels : {}),
+        },
+    };
+    const next = normalizeSettings(merged);
     const filePath = runtime.getSettingsFilePath();
     await fs.writeFile(filePath, JSON.stringify(next, null, 2), "utf8");
     return next;

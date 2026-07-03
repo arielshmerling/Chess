@@ -225,11 +225,17 @@ function createWindow() {
         minHeight: 720,
         title: APP_NAME,
         icon: icon.isEmpty() ? undefined : icon,
+        show: false,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
             preload: resolvePreloadPath(),
         },
+    });
+
+    mainWindow.once("ready-to-show", () => {
+        mainWindow.maximize();
+        mainWindow.show();
     });
 
     mainWindow.loadURL(`http://127.0.0.1:${serverPort}/app/play`);
