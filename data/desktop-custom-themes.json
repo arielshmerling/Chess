@@ -1,5 +1,5 @@
 {
-  "activeTheme": "custom:custom-mr44vor5",
+  "activeTheme": "blue",
   "themes": [
     {
       "id": "custom-mp9zer1t",
@@ -234,15 +234,15 @@
         "--lightSquare": "#c1b6d3",
         "--optionSquare": "#8c5dac",
         "--promotion-hover-background": "#b897c9",
-        "--frame": "#293241",
+        "--frame": "#503693",
         "--frame-forecolor": "#e0fbfc",
         "--play-header-background": "#141414",
         "--play-footer-background": "#474747",
-        "--play-clock-background": "rgba(115, 85, 185, 0.25)",
+        "--play-clock-background": "rgba(28, 27, 34, 0.25)",
         "--play-clock-border": "rgba(142, 109, 232, 0.08)",
         "--play-clock-text": "#9d90bb",
-        "--play-clock-active-border": "rgba(78, 48, 154, 0.65)",
-        "--play-clock-active-background": "rgba(78, 48, 154, 0.12)",
+        "--play-clock-active-border": "rgba(112, 71, 215, 0.65)",
+        "--play-clock-active-background": "rgba(91, 75, 129, 0.12)",
         "--play-clock-active-ring": "rgba(130, 69, 191, 0.2)",
         "--play-game-id-text": "#666666",
         "--turnClock": "invert(0.)",
@@ -251,9 +251,9 @@
         "--game-mode-frame-color": "#7441ec",
         "--panel-background": "#2D3134",
         "--panel-border": "#3b3b3b",
-        "--button-background": "#4C4C4C",
+        "--button-background": "#242424",
         "--button-forecolor": "#A5A5A5",
-        "--textbox-background": "#4C4C4C",
+        "--textbox-background": "#0c0c0c",
         "--textbox-forecolor": "#A5A5A5",
         "--moves-panel-bg": "#1d1a1e",
         "--moves-dock-title-background": "#4e3099",
@@ -291,7 +291,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.2)",
         "--dialog-inner-border": "#3b3b3b"
       },
-      "updatedAt": 1783037290204
+      "updatedAt": 1783037917926
     },
     {
       "id": "custom-mr45iwvr",
@@ -319,9 +319,9 @@
         "--play-clock-active-ring": "rgba(212, 175, 55, 0.2)",
         "--play-game-id-text": "#666666",
         "--turnClock": "invert(0.5)",
-        "--moves-cell-space-color": "#618ea8",
-        "--game-item-border-color": "#618ea8",
-        "--game-mode-frame-color": "#618ea8",
+        "--moves-cell-space-color": "#2d3134",
+        "--game-item-border-color": "#404040",
+        "--game-mode-frame-color": "#d4b038",
         "--panel-background": "#2D3134",
         "--panel-border": "#5c5c5c",
         "--button-background": "#4C4C4C",
@@ -364,7 +364,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.2)",
         "--dialog-inner-border": "#3b3b3b"
       },
-      "updatedAt": 1783036140339
+      "updatedAt": 1783037962681
     }
   ]
 }
