@@ -1,19 +1,4 @@
 const { Worker, isMainThread, parentPort } = require("worker_threads");
-const {
-    setWorkerSearchRequestId,
-    emitSearchProgress,
-    dispatchWorkerProgressMessage,
-    handleWorkerAbortMessage,
-    cancelWorkerSearch,
-    SearchAbortedError,
-} = require("./brainSearchProgress");
-const {
-    SMALL_MATE_SCORE: BRAIN41_MATE_SCORE,
-    smallIsWinningMateScore: isWinningMateScore,
-    smallIsLosingMateScore: isLosingMateScore,
-    smallMatePliesFromScore: losingMatePliesFromScore,
-    tagOpponentMateOnMove,
-} = require("./brainMateScore");
 const { ChessGame } = require("./ChessGame");
 const { getDefaultConfig, sanitizeBrainConfig } = require("./modules/game/brainConfigService");
 const {
@@ -21,8 +6,6 @@ const {
     endTimedSearch,
     shouldStopSearch,
     getRemainingSearchMs,
-    estimateMinMsForNextDepth,
-    clearSearchAbort,
 } = require("./brainSearchTime");
 var chess;
 const DEFAULT_MAX_DEPTH = 2;
@@ -68,9 +51,6 @@ function getOrCreateWorker() {
         persistentWorker = new Worker(__filename);
 
         persistentWorker.on("message", (response) => {
-            if (dispatchWorkerProgressMessage(response, pendingRequests)) {
-                return;
-            }
             const { requestId, move, error } = response;
             const pending = pendingRequests.get(requestId);
 
@@ -129,21 +109,12 @@ function terminatePersistentWorker(reason) {
     worker.terminate();
 }
 
-function cancelActiveSearch(reason = "Search aborted") {
-    if (!isMainThread) {
-        return;
-    }
-    cancelWorkerSearch(persistentWorker, pendingRequests, reason);
-}
-
 function createWorkerPromise(strState, searchOptions) {
     return new Promise((resolve, reject) => {
         if (!isMainThread) {
             reject(new Error("createWorkerPromise called from worker thread"));
             return;
         }
-
-        clearSearchAbort();
 
         const requestId = ++requestIdCounter;
         const worker = getOrCreateWorker();
@@ -164,12 +135,7 @@ function createWorkerPromise(strState, searchOptions) {
             }
         }, timeoutMs);
 
-        pendingRequests.set(requestId, {
-            resolve,
-            reject,
-            timeout,
-            onProgress: searchOptions?.onSearchProgress,
-        });
+        pendingRequests.set(requestId, { resolve, reject, timeout });
         const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
             ? `time ${thinkingTimeMs}ms`
             : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
@@ -209,10 +175,7 @@ exports.brainNextMoveFunc = async (game, options) => {
         return move;
     }
 
-    const workerSearchOptions = {
-        config: runtimeConfig,
-        onSearchProgress: options?.onSearchProgress,
-    };
+    const workerSearchOptions = { config: runtimeConfig };
     if (options?.thinkingTimeMs != null && Number(options.thinkingTimeMs) > 0) {
         workerSearchOptions.thinkingTimeMs = Math.floor(Number(options.thinkingTimeMs));
         console.log(`${LOG_PREFIX} Search budget: ${workerSearchOptions.thinkingTimeMs}ms`);
@@ -223,18 +186,14 @@ exports.brainNextMoveFunc = async (game, options) => {
     try {
         const workerMove = await createWorkerPromise(strState, workerSearchOptions);
         if (workerMove && workerMove.searchDepthReached != null) {
-            const partialNote = workerMove._searchDepthPartial ? " (partial)" : "";
             console.log(
                 `${LOG_PREFIX} Move chosen: ${toSimpleNotationSafe(game, workerMove)}, `
                     + `score=${workerMove.score != null ? workerMove.score : "n/a"}, `
-                    + `search depth=${workerMove.searchDepthReached}${partialNote}`,
+                    + `search depth=${workerMove.searchDepthReached}`,
             );
         }
         return workerMove;
     } catch (err) {
-        if (err instanceof SearchAbortedError) {
-            throw err;
-        }
         if (err && err.message === "Brain move timeout") {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
@@ -276,8 +235,6 @@ exports.brainNextMoveFunc = async (game, options) => {
 };
 
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
-exports.cancelActiveSearch = cancelActiveSearch;
-exports.SearchAbortedError = SearchAbortedError;
 
 function logAtPly(ply, message) {
     const indent = "  ".repeat(Math.max(0, ply - 1));
@@ -295,63 +252,6 @@ function toSimpleNotationSafe(localChess, move) {
         const t = move?.target || {};
         return `${s.row},${s.col}->${t.row},${t.col}`;
     }
-}
-
-function sameRootMove(a, b) {
-    return a && b
-        && a.source && b.source && a.target && b.target
-        && a.source.row === b.source.row && a.source.col === b.source.col
-        && a.target.row === b.target.row && a.target.col === b.target.col
-        && !!a.promotion === !!b.promotion
-        && a.selectedPiece === b.selectedPiece;
-}
-
-function logSearchBestIfChanged(localChess, previousBest, candidate, score, depthLabel) {
-    if (!candidate) {
-        return;
-    }
-    if (previousBest && sameRootMove(previousBest, candidate)) {
-        return;
-    }
-    const scoreLabel = score != null && Number.isFinite(score) ? score : "n/a";
-    emitSearchProgress(
-        `${LOG_PREFIX} Search best (${depthLabel}, in progress): ${toSimpleNotationSafe(localChess, candidate)}, `
-            + `score=${scoreLabel}`,
-    );
-}
-
-function logSearchDepthCompleted(localChess, depth, pick) {
-    if (!pick) {
-        return;
-    }
-    const scoreLabel = pick.score != null && Number.isFinite(pick.score) ? pick.score : "n/a";
-    emitSearchProgress(
-        `${LOG_PREFIX} Depth ${depth} completed: ${toSimpleNotationSafe(localChess, pick)}, score=${scoreLabel}`,
-    );
-}
-
-function logSearchDepthCompletedPartial(localChess, depth, pick) {
-    if (!pick) {
-        return;
-    }
-    const scoreLabel = pick.score != null && Number.isFinite(pick.score) ? pick.score : "n/a";
-    emitSearchProgress(
-        `${LOG_PREFIX} Depth ${depth} completed (partial): ${toSimpleNotationSafe(localChess, pick)}, score=${scoreLabel}`,
-    );
-}
-
-function logSearchDepthAborted(depth) {
-    emitSearchProgress(`${LOG_PREFIX} Depth ${depth} aborted (time, incomplete)`);
-}
-
-function returnPartialRootBest(localChess, maxDepth, runningRootBest) {
-    if (!runningRootBest) {
-        logSearchDepthAborted(maxDepth);
-        return null;
-    }
-    runningRootBest._searchDepthPartial = true;
-    logSearchDepthCompletedPartial(localChess, maxDepth, runningRootBest);
-    return runningRootBest;
 }
 
 function summarizeTopMoves(localChess, scoredMoves) {
@@ -386,9 +286,6 @@ function suggestMove(localChess, maxDepth, ply = 1) {
     }
 
     if (shouldStopSearch()) {
-        if (ply === 1) {
-            return returnPartialRootBest(localChess, maxDepth, null);
-        }
         return null;
     }
 
@@ -397,48 +294,20 @@ function suggestMove(localChess, maxDepth, ply = 1) {
         return moves[0];
     }
 
-    let runningRootBest = null;
     for (let i = 0; i < moves.length; i++) {
         if (shouldStopSearch()) {
-            if (ply === 1) {
-                return returnPartialRootBest(localChess, maxDepth, runningRootBest);
-            }
             return null;
         }
         const move = moves[i];
         move.score = scoreMove(localChess, move, maxDepth, ply);
-        if (ply === 1 && Number.isFinite(move.score)) {
-            if (!runningRootBest || move.score > runningRootBest.score) {
-                logSearchBestIfChanged(
-                    localChess,
-                    runningRootBest,
-                    move,
-                    move.score,
-                    `depth ${maxDepth}`,
-                );
-                runningRootBest = move;
-            }
-            if (isWinningMateScore(move.score)) {
-                emitSearchProgress(
-                    `${LOG_PREFIX} Mate found (depth ${maxDepth}): ${toSimpleNotationSafe(localChess, move)}, stopping search`,
-                );
-                break;
-            }
-        }
     }
 
     if (shouldStopSearch()) {
-        if (ply === 1) {
-            return returnPartialRootBest(localChess, maxDepth, runningRootBest);
-        }
         return null;
     }
 
     const finalResult = findBestMove(localChess, moves, ply);
     logAtPly(ply, `Exit ply=${ply}, selected=${toSimpleNotationSafe(localChess, finalResult)}, score=${finalResult?.score}`);
-    if (ply === 1 && finalResult) {
-        logSearchDepthCompleted(localChess, maxDepth, finalResult);
-    }
     return finalResult;
 }
 
@@ -451,49 +320,22 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
         }
         let bestMove = fallback;
         let completedDepth = 0;
-        let lastDepthMs = 0;
 
         for (let depth = 1; depth <= MAX_ITERATIVE_DEPTH; depth += 1) {
             if (shouldStopSearch()) {
                 break;
             }
-            if (lastDepthMs > 0) {
-                const needed = estimateMinMsForNextDepth(lastDepthMs, MIN_MS_FOR_NEXT_DEPTH);
-                const remaining = getRemainingSearchMs();
-                if (remaining < needed) {
-                    emitSearchProgress(
-                        `${LOG_PREFIX} Skipping depth ${depth} (~${needed}ms needed, ${remaining}ms left)`,
-                    );
-                    break;
-                }
-            } else if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
+            if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
                 break;
             }
-            const depthStart = Date.now();
             const atDepth = suggestMove(localChess, depth, 1);
-            const depthElapsed = Date.now() - depthStart;
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
-                if (depthElapsed > 0) {
-                    lastDepthMs = depthElapsed;
-                }
-                if (isWinningMateScore(bestMove.score)) {
-                    emitSearchProgress(
-                        `${LOG_PREFIX} Mate found at depth ${completedDepth}, stopping search`,
-                    );
-                    break;
-                }
-                if (isLosingMateScore(bestMove.score)) {
-                    const mateIn = losingMatePliesFromScore(bestMove.score);
-                    emitSearchProgress(
-                        `${LOG_PREFIX} Opponent mate found${mateIn != null ? ` (in ${mateIn})` : ""} `
-                            + `at depth ${completedDepth}, stopping search`,
-                    );
-                    break;
-                }
-            } else {
-                break;
+                console.log(
+                    `${LOG_PREFIX} Depth ${depth} completed, best=${toSimpleNotationSafe(localChess, bestMove)}, `
+                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+                );
             }
             if (shouldStopSearch()) {
                 break;
@@ -501,13 +343,12 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
         }
 
         bestMove.searchDepthReached = completedDepth || 1;
-        const partialNote = bestMove._searchDepthPartial ? " (partial)" : "";
         console.log(
-            `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}${partialNote}, `
+            `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
                 + `best=${toSimpleNotationSafe(localChess, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
         );
-        return tagOpponentMateOnMove(bestMove, bestMove.score, "brain41");
+        return bestMove;
     } finally {
         endTimedSearch();
     }
@@ -915,8 +756,10 @@ function scoreMove(localChess, move, maxDepth, ply) {
     }
 
     if (localChess.Checkmate) {
-        score = BRAIN41_MATE_SCORE;
-    } else if (localChess.Draw) {
+        score = 9999;
+    }
+
+    if (localChess.Draw) {
         score = getDrawLeafScoreForMover(localChess, movingPlayer, runtimeConfig.specialEvaluations);
     }
 
@@ -924,7 +767,7 @@ function scoreMove(localChess, move, maxDepth, ply) {
         score += 2.5;
     }
 
-    if (!localChess.Checkmate && ply < maxDepth) {
+    if (ply < maxDepth) {
         if (shouldStopSearch()) {
             localChess.undo();
             return score;
@@ -1033,9 +876,6 @@ if (!isMainThread) {
     console.log(`${LOG_PREFIX} worker thread initialized`);
 
     parentPort.on("message", (request) => {
-        if (handleWorkerAbortMessage(request)) {
-            return;
-        }
         const {
             requestId,
             gameState,
@@ -1049,8 +889,6 @@ if (!isMainThread) {
             parentPort.postMessage({ requestId: request?.requestId || 0, error: "Invalid request format" });
             return;
         }
-
-        setWorkerSearchRequestId(requestId);
 
         const maxDepth = requestMaxDepth != null ? Math.min(6, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
         const thinkingTimeMs = requestThinkingTimeMs != null && Number(requestThinkingTimeMs) > 0
@@ -1082,7 +920,6 @@ if (!isMainThread) {
             );
 
             if (move) {
-                tagOpponentMateOnMove(move, move.score, "brain41");
                 move.turn = chess.Turn;
                 parentPort.postMessage({ requestId, move });
             } else {

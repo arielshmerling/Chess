@@ -2,34 +2,18 @@
 
 let searchDeadlineMs = 0;
 let searchTimeExceeded = false;
-let searchAborted = false;
 
 function beginTimedSearch(thinkingTimeMs) {
     searchDeadlineMs = Date.now() + Math.max(1, Math.floor(Number(thinkingTimeMs) || 1));
     searchTimeExceeded = false;
-    searchAborted = false;
 }
 
 function endTimedSearch() {
     searchDeadlineMs = 0;
     searchTimeExceeded = false;
-    searchAborted = false;
-}
-
-function requestSearchAbort() {
-    searchAborted = true;
-    searchTimeExceeded = true;
-    searchDeadlineMs = 0;
-}
-
-function clearSearchAbort() {
-    searchAborted = false;
 }
 
 function shouldStopSearch() {
-    if (searchAborted) {
-        return true;
-    }
     if (searchTimeExceeded) {
         return true;
     }
@@ -51,20 +35,6 @@ function wasSearchTimedOut() {
     return searchTimeExceeded;
 }
 
-/** Typical next iterative depth needs at least this multiple of the previous depth's runtime. */
-const NEXT_DEPTH_TIME_FACTOR = 1.15;
-
-function estimateMinMsForNextDepth(lastDepthMs, floorMs = 50) {
-    if (!Number.isFinite(lastDepthMs) || lastDepthMs <= 0) {
-        return floorMs;
-    }
-    return Math.max(floorMs, Math.ceil(lastDepthMs * NEXT_DEPTH_TIME_FACTOR));
-}
-
-function hasBudgetForNextDepth(lastDepthMs, floorMs = 50) {
-    return getRemainingSearchMs() >= estimateMinMsForNextDepth(lastDepthMs, floorMs);
-}
-
 function getSearchDeadlineMs() {
     return searchDeadlineMs;
 }
@@ -79,14 +49,9 @@ function syncSearchDeadline(deadlineMs) {
 module.exports = {
     beginTimedSearch,
     endTimedSearch,
-    requestSearchAbort,
-    clearSearchAbort,
     shouldStopSearch,
     getRemainingSearchMs,
     getSearchDeadlineMs,
     syncSearchDeadline,
     wasSearchTimedOut,
-    NEXT_DEPTH_TIME_FACTOR,
-    estimateMinMsForNextDepth,
-    hasBudgetForNextDepth,
 };

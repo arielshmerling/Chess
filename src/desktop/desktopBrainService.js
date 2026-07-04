@@ -11,7 +11,6 @@ const {
 } = brainConfigService;
 const runtime = require("./runtime");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
-const { isSearchAbortedError } = require("../brainSearchProgress");
 
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
@@ -65,7 +64,6 @@ async function computeMove(opts) {
         thinkingTimeSeconds,
         difficulty,
         pliesPlayed,
-        onSearchProgress,
     } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
@@ -92,12 +90,8 @@ async function computeMove(opts) {
             thinkingTimeMs,
             config,
             pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
-            onSearchProgress,
         });
     } catch (err) {
-        if (isSearchAbortedError(err)) {
-            return null;
-        }
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
             brainMove = err.fallbackMove;
         } else {
@@ -137,8 +131,6 @@ async function computeMove(opts) {
         turn: turnBefore,
         score: brainMove.score,
         searchDepthReached: brainMove.searchDepthReached,
-        opponentMateDetected: !!brainMove._opponentMateDetected,
-        opponentMateIn: brainMove.opponentMateIn,
     };
 }
 
@@ -175,23 +167,9 @@ async function evaluatePosition(opts) {
     throw new Error(`Evaluation display is not supported for engine "${engine}"`);
 }
 
-function abortSearch(reason = "Search aborted") {
-    for (const engineName of ALLOWED_ENGINES) {
-        try {
-            const mod = require(path.join(__dirname, "..", engineName));
-            if (typeof mod.cancelActiveSearch === "function") {
-                mod.cancelActiveSearch(reason);
-            }
-        } catch {
-            /* ignore */
-        }
-    }
-}
-
 module.exports = {
     computeMove,
     evaluatePosition,
-    abortSearch,
     ensureRuntime,
     normalizeThinkingTimeSeconds,
     thinkingTimeSecondsToMs,
