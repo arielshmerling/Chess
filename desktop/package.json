@@ -11,7 +11,6 @@
     "patch:app-name": "node scripts/patch-electron-app-name.js",
     "stage": "node scripts/stage-app-bundle.js",
     "postinstall": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
-    "prestart": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js",
     "start": "node scripts/launch-electron.js",
     "predist:win": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",
     "predist:win:dir": "node scripts/prepare-icons.js && node scripts/patch-electron-app-name.js && npm run stage",

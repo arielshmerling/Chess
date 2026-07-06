@@ -1,5 +1,6 @@
 /**
  * Builds desktop app icons from src/favicon.ico (macOS uses sips + iconutil).
+ * Skips when outputs are newer than the favicon (postinstall / manual runs).
  */
 const fs = require("fs");
 const path = require("path");
@@ -10,7 +11,35 @@ const FAVICON = path.join(ROOT, "src", "favicon.ico");
 const BUILD = path.join(__dirname, "..", "build");
 
 function run(cmd) {
-    execSync(cmd, { stdio: "inherit" });
+    execSync(cmd, { stdio: "pipe" });
+}
+
+function requiredOutputs() {
+    const outputs = [path.join(BUILD, "icon.ico")];
+    if (process.platform === "darwin") {
+        outputs.push(path.join(BUILD, "icon.png"), path.join(BUILD, "icon.icns"));
+    } else if (process.platform === "win32") {
+        outputs.push(path.join(BUILD, "icon.png"));
+    }
+    return outputs;
+}
+
+function iconsUpToDate() {
+    let faviconMtime;
+    try {
+        faviconMtime = fs.statSync(FAVICON).mtimeMs;
+    } catch {
+        return false;
+    }
+    for (const filePath of requiredOutputs()) {
+        if (!fs.existsSync(filePath)) {
+            return false;
+        }
+        if (fs.statSync(filePath).mtimeMs < faviconMtime) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function copyFaviconIco() {
@@ -49,6 +78,11 @@ function main() {
         console.error("[prepare-icons] Missing", FAVICON);
         process.exit(1);
     }
+    if (iconsUpToDate()) {
+        console.log("[prepare-icons] Icons up to date (favicon unchanged)");
+        return;
+    }
+
     fs.mkdirSync(BUILD, { recursive: true });
     copyFaviconIco();
 
