@@ -1471,6 +1471,7 @@ class ChessGame {
             this.#state.lastMove.piece.pieceType == this.PAWN &&
             this.#state.lastMove.piece.color == this.opponent(color) &&
             this.#state.lastMove.target.row == settings.ennPassantRow &&
+            Math.abs(this.#state.lastMove.source.row - this.#state.lastMove.target.row) == 2 && // the last move was a double step
             this.#state.lastMove.target.col == source.col - 1
 
         ) { return true; }
@@ -1484,6 +1485,7 @@ class ChessGame {
             this.#state.lastMove.piece.pieceType == this.PAWN &&
             this.#state.lastMove.piece.color == this.opponent(color) &&
             this.#state.lastMove.target.row == settings.ennPassantRow &&
+            Math.abs(this.#state.lastMove.source.row - this.#state.lastMove.target.row) == 2 && // the last move was a double step
             this.#state.lastMove.target.col == source.col + 1
         ) { return true; }
 

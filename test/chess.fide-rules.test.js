@@ -544,6 +544,60 @@ describe("FIDE rules — Phase 3: special moves edge cases", () => {
                 "No en passant when black pawn only advanced one square"
             );
         });
+
+        it("rejects a diagonal pawn move to an empty square when the enemy pawn stepped one square onto the en-passant rank", () => {
+            // Regression: a white pawn already on the en-passant rank (e5) with a black pawn one
+            // square ahead (f6). Black plays the single step f6-f5, landing beside the white pawn.
+            // #validatePawnMove used to accept e5-f6 as en passant (it omitted the double-step
+            // check that #ennPassantDone enforces), but the capture was never executed, so the
+            // pawn slid diagonally onto an empty square without taking anything — an illegal move.
+            game.loadGame(emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 2, col: 5, color: "black", pieceType: PAWN }, // f6
+                { row: 3, col: 4, color: "white", pieceType: PAWN }, // e5
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "black" }));
+
+            play(game, { row: 2, col: 5 }, { row: 3, col: 5 }); // f6-f5 (single step)
+
+            assert.equal(
+                game.validateMove({ row: 3, col: 4 }, { row: 2, col: 5 }, "white").valid,
+                false,
+                "e5-f6 must be illegal: black's f-pawn advanced one square, not two"
+            );
+
+            const flat = [];
+            for (const group of game.possibleMoves(game.square(3, 4))) {
+                if (Array.isArray(group)) flat.push(...group);
+                else flat.push(group);
+            }
+            assert.ok(
+                !flat.some((m) => m.target.row === 2 && m.target.col === 5),
+                "e5 pawn must not be offered the diagonal f6 square"
+            );
+            assert.ok(
+                flat.some((m) => m.target.row === 2 && m.target.col === 4),
+                "e5 pawn should still be able to advance to e6"
+            );
+        });
+
+        it("still allows a genuine en passant when the capturing pawn is on the en-passant rank", () => {
+            // Same geometry as the regression case, but this time black makes the legal double
+            // push f7-f5, so white e5xf6 en passant must be legal and must remove the f5 pawn.
+            game.loadGame(emptyBoard([
+                { row: 0, col: 0, color: "black", pieceType: KING },
+                { row: 1, col: 5, color: "black", pieceType: PAWN }, // f7
+                { row: 3, col: 4, color: "white", pieceType: PAWN }, // e5
+                { row: 7, col: 4, color: "white", pieceType: KING },
+            ], { turn: "black" }));
+
+            play(game, { row: 1, col: 5 }, { row: 3, col: 5 }); // f7-f5 (double step)
+
+            const ep = game.makeMove({ row: 3, col: 4 }, { row: 2, col: 5 }); // e5 x f6 e.p.
+            assert.equal(ep.ennPassant, true, "double push allows en passant");
+            assert.equal(game.GameState.board[3][5], null, "captured f5 pawn is removed");
+            assert.equal(game.GameState.board[2][5].pieceType, PAWN, "white pawn lands on f6");
+        });
     });
 
     describe("Castling (Article 3.8 — king and rook move together)", () => {
