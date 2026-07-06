@@ -30,7 +30,10 @@ const {
     getRemainingSearchMs,
 } = require("./brainSearchTime");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
-const { savedGameStateToLookupKey } = require("./openingBookJson");
+const {
+    savedGameStateToCanonicalLookupKey,
+    transformBookMovesToGame,
+} = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.2]";
@@ -565,20 +568,23 @@ function pickWeightedBookMove(options) {
 }
 
 function tryFindMatchState(game) {
-    const stateKey = savedGameStateToLookupKey(game.SavedGameState);
+    // Book entries use canonical (whitePlayerView:true) coordinates. When the human plays black
+    // the board is flipped; look up the canonical key and map moves back to game coordinates.
+    const { lookupKey, flipMoves } = savedGameStateToCanonicalLookupKey(game.SavedGameState);
 
     if (!openingBookByStateKey) {
         console.log(
-            `${LOG_PREFIX} Opening book search (book not loaded): turn=${game.Turn}\n${(stateKey)}`,
+            `${LOG_PREFIX} Opening book search (book not loaded): turn=${game.Turn}\n${(lookupKey)}`,
         );
         return null;
     }
 
-    const options = openingBookByStateKey.get(stateKey) || [];
+    const stored = openingBookByStateKey.get(lookupKey) || [];
+    const options = transformBookMovesToGame(stored, flipMoves);
     console.log(
         `${LOG_PREFIX} Opening book search: turn=${game.Turn},`
             + ` bookPositions=${openingBookByStateKey.size},`
-            + ` movesAtPosition=${options.length}\n${(stateKey)}`,
+            + ` movesAtPosition=${options.length}\n${(lookupKey)}`,
     );
 
     if (options.length === 0) {

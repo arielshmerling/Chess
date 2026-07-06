@@ -21,7 +21,10 @@ const {
 } = require("./brainSearchTime");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
-const { savedGameStateToLookupKey } = require("./openingBookJson");
+const {
+    savedGameStateToCanonicalLookupKey,
+    transformBookMovesToGame,
+} = require("./openingBookJson");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.3]";
@@ -581,20 +584,25 @@ function pickWeightedBookMove(options) {
 }
 
 function tryFindMatchState(game) {
-    const stateKey = savedGameStateToLookupKey(game.SavedGameState);
+    // The book is stored in the canonical (whitePlayerView:true) orientation. When the human plays
+    // black the board is flipped (whitePlayerView:false), so we must look up the canonical key and
+    // flip the stored moves back into the game's coordinates. Using the raw key here caused every
+    // book lookup to miss whenever the board was flipped (brain playing white -> always "Thinking").
+    const { lookupKey, flipMoves } = savedGameStateToCanonicalLookupKey(game.SavedGameState);
 
     if (!openingBookByStateKey) {
         console.log(
-            `${LOG_PREFIX} Opening book search (book not loaded): turn=${game.Turn}\n${(stateKey)}`,
+            `${LOG_PREFIX} Opening book search (book not loaded): turn=${game.Turn}\n${(lookupKey)}`,
         );
         return null;
     }
 
-    const options = openingBookByStateKey.get(stateKey) || [];
+    const stored = openingBookByStateKey.get(lookupKey) || [];
+    const options = transformBookMovesToGame(stored, flipMoves);
     console.log(
         `${LOG_PREFIX} Opening book search: turn=${game.Turn},`
             + ` bookPositions=${openingBookByStateKey.size},`
-            + ` movesAtPosition=${options.length}\n${(stateKey)}`,
+            + ` movesAtPosition=${options.length}\n${(lookupKey)}`,
     );
 
     if (options.length === 0) {
