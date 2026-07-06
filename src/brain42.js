@@ -29,6 +29,14 @@ const {
     shouldStopSearch,
     getRemainingSearchMs,
 } = require("./brainSearchTime");
+const {
+    reportDepthCompleted,
+    reportSearchMessage,
+    reportSearchProgress,
+    reportSearchThinking,
+    flushWorkerProgress,
+    setWorkerSearchProgressRequestId,
+} = require("./brainSearchProgress");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const {
     savedGameStateToCanonicalLookupKey,
@@ -396,7 +404,11 @@ function getOrCreateWorker() {
         persistentWorker = new Worker(__filename);
 
         persistentWorker.on("message", (response) => {
-            const { requestId, move, error } = response;
+            const { requestId, move, error, progress } = response;
+            if (progress) {
+                reportSearchProgress(progress);
+                return;
+            }
             const pending = pendingRequests.get(requestId);
             if (pending) {
                 pendingRequests.delete(requestId);
@@ -1812,7 +1824,7 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
     return pick;
 }
 
-function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
+async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
     beginTimedSearch(thinkingTimeMs);
     try {
         const moves = collectLegalMoves(game);
@@ -1841,10 +1853,13 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
-                console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}, `
-                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+                reportDepthCompleted(
+                    LOG_PREFIX,
+                    depth,
+                    bookMovePgn(game, bestMove),
+                    bestMove.score,
                 );
+                await flushWorkerProgress();
             }
             if (shouldStopSearch()) {
                 break;
@@ -1852,10 +1867,11 @@ function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         }
 
         bestMove.searchDepthReached = completedDepth || 1;
-        console.log(
+        reportSearchMessage(
             `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
                 + `best=${bookMovePgn(game, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+            "finished",
         );
         return bestMove;
     } finally {
@@ -1868,6 +1884,7 @@ function searchBestMoveAtRoot(game, baseMaxDepth) {
     const move = searchAtFixedDepth(game, depthLimit);
     if (move) {
         move.searchDepthReached = depthLimit;
+        reportDepthCompleted(LOG_PREFIX, depthLimit, bookMovePgn(game, move), move.score);
     }
     return move;
 }
@@ -1895,6 +1912,9 @@ if (!isMainThread) {
             return;
         }
 
+        setWorkerSearchProgressRequestId(requestId);
+
+        (async () => {
         const maxDepth = requestMaxDepth != null
             ? Math.min(MAX_SEARCH_DEPTH, Math.max(1, Number(requestMaxDepth)))
             : DEFAULT_MAX_DEPTH;
@@ -1914,13 +1934,16 @@ if (!isMainThread) {
             const budgetLabel = thinkingTimeMs != null
                 ? `time=${thinkingTimeMs}ms`
                 : `depth=${maxDepth}`;
-            console.log(
-                `${LOG_PREFIX} Thinking... request=${requestId}, ${budgetLabel}, phase=${phase}, `
-                    + `plies=${currentSearchPliesPlayed(chess)}`,
+            reportSearchThinking(
+                LOG_PREFIX,
+                budgetLabel,
+                phase,
+                currentSearchPliesPlayed(chess),
+                requestId,
             );
             chess.SearchMode = true;
             const move = thinkingTimeMs != null
-                ? searchBestMoveWithTimeLimit(chess, thinkingTimeMs)
+                ? await searchBestMoveWithTimeLimit(chess, thinkingTimeMs)
                 : searchBestMoveAtRoot(chess, maxDepth);
             chess.SearchMode = false;
 
@@ -1965,5 +1988,6 @@ if (!isMainThread) {
             );
             parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
         }
+        })();
     });
 }

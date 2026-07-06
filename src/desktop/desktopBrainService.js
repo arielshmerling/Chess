@@ -11,6 +11,10 @@ const {
 } = brainConfigService;
 const runtime = require("./runtime");
 const { syncDesktopPathsForSharedModules } = require("./syncDataPaths");
+const {
+    setSearchProgressReporter,
+    clearSearchProgressReporter,
+} = require("../brainSearchProgress");
 
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
@@ -54,9 +58,10 @@ function loadEngine(engineName) {
 
 /**
  * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, pliesPlayed?: number }} opts
+ * @param {(progress: object) => void} [onProgress]
  * @returns {Promise<object|null>} move object (source/target) for client ChessGame
  */
-async function computeMove(opts) {
+async function computeMove(opts, onProgress) {
     ensureRuntime();
     const {
         gameState,
@@ -85,6 +90,14 @@ async function computeMove(opts) {
     const config = brainConfigService.loadBrainConfig(engine);
 
     let brainMove;
+    setSearchProgressReporter((progress) => {
+        if (progress && progress.message) {
+            console.log(progress.message);
+        }
+        if (typeof onProgress === "function") {
+            onProgress(progress);
+        }
+    });
     try {
         brainMove = await loaded.brainNextMoveFunc(chessGame, {
             thinkingTimeMs,
@@ -97,6 +110,8 @@ async function computeMove(opts) {
         } else {
             throw err;
         }
+    } finally {
+        clearSearchProgressReporter();
     }
 
     if (!brainMove || brainMove.source == null || brainMove.target == null) {

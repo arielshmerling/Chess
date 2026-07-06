@@ -7,6 +7,13 @@ const {
     shouldStopSearch,
     getRemainingSearchMs,
 } = require("./brainSearchTime");
+const {
+    reportDepthCompleted,
+    reportSearchProgress,
+    reportSearchThinking,
+    flushWorkerProgress,
+    setWorkerSearchProgressRequestId,
+} = require("./brainSearchProgress");
 var chess;
 const DEFAULT_MAX_DEPTH = 2;
 const MAX_DEBUG_MOVES_TO_PRINT = 12;
@@ -51,7 +58,11 @@ function getOrCreateWorker() {
         persistentWorker = new Worker(__filename);
 
         persistentWorker.on("message", (response) => {
-            const { requestId, move, error } = response;
+            const { requestId, move, error, progress } = response;
+            if (progress) {
+                reportSearchProgress(progress);
+                return;
+            }
             const pending = pendingRequests.get(requestId);
 
             if (pending) {
@@ -332,10 +343,13 @@ function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
-                console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${toSimpleNotationSafe(localChess, bestMove)}, `
-                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+                reportDepthCompleted(
+                    LOG_PREFIX,
+                    depth,
+                    toSimpleNotationSafe(localChess, bestMove),
+                    bestMove.score,
                 );
+                await flushWorkerProgress();
             }
             if (shouldStopSearch()) {
                 break;
@@ -890,6 +904,8 @@ if (!isMainThread) {
             return;
         }
 
+        setWorkerSearchProgressRequestId(requestId);
+
         const maxDepth = requestMaxDepth != null ? Math.min(6, Math.max(1, Number(requestMaxDepth))) : DEFAULT_MAX_DEPTH;
         const thinkingTimeMs = requestThinkingTimeMs != null && Number(requestThinkingTimeMs) > 0
             ? Math.floor(Number(requestThinkingTimeMs))
@@ -897,7 +913,7 @@ if (!isMainThread) {
         runtimeConfig = sanitizeBrainConfig("brain41", config || {});
         const startTime = Date.now();
         const budgetLabel = thinkingTimeMs != null ? `time=${thinkingTimeMs}ms` : `depth=${maxDepth}`;
-        console.log(`${LOG_PREFIX} Thinking... request=${requestId}, ${budgetLabel}`);
+        reportSearchThinking(LOG_PREFIX, budgetLabel, null, null, requestId);
 
         try {
             positionsEvaluatedThisSearch = 0;

@@ -19,6 +19,14 @@ const {
     getSearchDeadlineMs,
     syncSearchDeadline,
 } = require("./brainSearchTime");
+const {
+    reportDepthCompleted,
+    reportSearchMessage,
+    reportSearchProgress,
+    reportSearchThinking,
+    flushWorkerProgress,
+    setWorkerSearchProgressRequestId,
+} = require("./brainSearchProgress");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const {
@@ -420,7 +428,11 @@ function getOrCreateWorker() {
         persistentWorker = new Worker(__filename);
 
         persistentWorker.on("message", (response) => {
-            const { requestId, move, error } = response;
+            const { requestId, move, error, progress } = response;
+            if (progress) {
+                reportSearchProgress(progress);
+                return;
+            }
             const pending = pendingRequests.get(requestId);
             if (pending) {
                 pendingRequests.delete(requestId);
@@ -643,9 +655,11 @@ async function runBrain43SearchLocal(game, searchOptions) {
         const budgetLabel = thinkingTimeMs != null
             ? `time=${thinkingTimeMs}ms`
             : `depth=${maxDepth}`;
-        console.log(
-            `${LOG_PREFIX} Thinking... ${budgetLabel}, phase=${phase}, `
-                + `plies=${currentSearchPliesPlayed(game)}`,
+        reportSearchThinking(
+            LOG_PREFIX,
+            budgetLabel,
+            phase,
+            currentSearchPliesPlayed(game),
         );
         game.SearchMode = true;
         try {
@@ -2120,10 +2134,13 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;
-                console.log(
-                    `${LOG_PREFIX} Depth ${depth} completed, best=${bookMovePgn(game, bestMove)}, `
-                        + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+                reportDepthCompleted(
+                    LOG_PREFIX,
+                    depth,
+                    bookMovePgn(game, bestMove),
+                    bestMove.score,
                 );
+                await flushWorkerProgress();
             }
             if (shouldStopSearch()) {
                 break;
@@ -2131,10 +2148,11 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         }
 
         bestMove.searchDepthReached = completedDepth || 1;
-        console.log(
+        reportSearchMessage(
             `${LOG_PREFIX} Timed search finished: depth=${bestMove.searchDepthReached}, `
                 + `best=${bookMovePgn(game, bestMove)}, `
                 + `score=${bestMove.score != null ? bestMove.score : "n/a"}`,
+            "finished",
         );
         return bestMove;
     } finally {
@@ -2147,6 +2165,8 @@ async function searchBestMoveAtRoot(game, baseMaxDepth) {
     const move = await searchAtFixedDepth(game, depthLimit);
     if (move) {
         move.searchDepthReached = depthLimit;
+        reportDepthCompleted(LOG_PREFIX, depthLimit, bookMovePgn(game, move), move.score);
+        await flushWorkerProgress();
     }
     return move;
 }
@@ -2249,6 +2269,8 @@ if (!isMainThread) {
             parentPort.postMessage({ requestId: request?.requestId || 0, error: "Invalid request format" });
             return;
         }
+
+        setWorkerSearchProgressRequestId(requestId);
 
         (async () => {
             const maxDepth = requestMaxDepth != null
