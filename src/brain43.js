@@ -46,6 +46,11 @@ let runtimeConfig = { pieceScores: {}, specialEvaluations: {} };
 /** @type {ReturnType<typeof createRootWorkerPool>|null} */
 let rootWorkerPool = null;
 let rootEvalRequestCounter = 0;
+/**
+ * Alpha-beta cutoffs are always on in production. Tests can disable them to force an exhaustive
+ * minimax and assert that pruning returns the identical best move and score.
+ */
+let searchPruningEnabled = true;
 
 function getRootWorkerPool() {
     if (!isMainThread) {
@@ -1748,23 +1753,30 @@ function scoreTerminalNoMoves(game, ply = 0) {
 }
 
 /**
- * Score a legal move from the current node (negamax): static bonuses, then recurse unless terminal.
- * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above horizon false mates.
+ * Score a legal move from the current node using standard negamax: apply the move, then return the
+ * negated value of the resulting position. All material and positional terms live in the leaf
+ * evaluation ({@link evaluateLeafPosition}); no per-move bonus is folded into the backed-up value.
+ *
+ * Folding a per-move bonus `q` into the returned score (as older revisions did) both double-counted
+ * captured material (once in `q`, once in the leaf) and made alpha-beta unsound, because the child
+ * was searched with an `[-beta, -alpha]` window that was not shifted by `q`. Once alpha was raised
+ * by a strong line, sibling subtrees were pruned at the wrong bounds and returned inflated scores,
+ * so an inferior quiet move could outrank a winning capture. Keeping the value as pure
+ * `-negamax(child)` makes alpha-beta return exactly the unpruned minimax value.
+ *
+ * `staticMoveBonus` is still used for move ordering and root tie-breaking, never for the value here.
+ * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above longer ones.
  */
 function evaluateSearchMove(game, move, depthRemaining, alpha, beta, ply) {
-    const q = staticMoveBonus(game, move);
     return withAppliedMove(game, move, () => {
         if (game.Checkmate) {
             return MATE_SCORE - ply;
         }
-        const mover = game.Turn === "white" ? "black" : "white";
         if (game.Draw) {
+            const mover = game.Turn === "white" ? "black" : "white";
             return getDrawLeafScoreForMover(game, mover, specialEvaluations());
         }
-        if (game.Moves.length > 50 && game.Check) {
-            return q + 2.5 - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
-        }
-        return q - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
+        return -negamax(game, depthRemaining, -beta, -alpha, ply + 1);
     });
 }
 
@@ -1808,7 +1820,7 @@ function negamax(game, depthRemaining, alpha, beta, ply = 0) {
         if (score > alpha) {
             alpha = score;
         }
-        if (alpha >= beta) {
+        if (searchPruningEnabled && alpha >= beta) {
             break;
         }
     }
@@ -1949,14 +1961,21 @@ function searchAtFixedDepthSequential(game, maxDepth, depthCap = MAX_SEARCH_DEPT
             return null;
         }
         const move = ordered[i];
+        const alphaBefore = alpha;
         const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
         if (!Number.isFinite(score)) {
             continue;
         }
-        mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef);
-        if (score > alpha) {
-            alpha = score;
+        // With an (alpha, +Infinity) window a move only yields an EXACT score when it beats alpha.
+        // A score <= alpha is a fail-low upper bound (the move is no better than the current best),
+        // and its value is clamped near alpha. Merging such bounds would let a losing move tie the
+        // best score and win the static-bonus tie-break — e.g. a queen sac scored at the alpha
+        // bound instead of its true (much worse) value. Skip fail-lows, like the parallel path does.
+        if (i > 0 && score <= alphaBefore) {
+            continue;
         }
+        mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef);
+        alpha = score;
     }
 
     return finalizeRootSearchPick(game, ordered, tiedBest, bestScoreRef.value);
@@ -2177,6 +2196,26 @@ function evaluateRootMoveInWorker(request) {
 }
 
 exports.evaluateRootMoveInWorker = evaluateRootMoveInWorker;
+
+/** Internal search primitives exposed for unit tests only (not part of the public brain API). */
+exports.__testHooks = {
+    setBrain43SearchContext,
+    applyRuntimeConfigForGame,
+    searchAtFixedDepthSequential,
+    evaluateSearchMove,
+    negamax,
+    collectLegalMoves,
+    orderMovesCapturesFirst,
+    withAppliedMove,
+    staticMoveBonus,
+    evaluateLeafPosition,
+    materialDifferenceForSideToMove,
+    positionalBonusesForSideToMove,
+    setSearchPruningEnabled(enabled) {
+        searchPruningEnabled = enabled !== false;
+    },
+    MATE_SCORE,
+};
 
 let workerChess = null;
 
