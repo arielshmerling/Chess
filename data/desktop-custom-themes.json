@@ -297,7 +297,7 @@
       "id": "custom-mr45iwvr",
       "name": "New Dawn",
       "vars": {
-        "--darker": "#1a1a1a",
+        "--darker": "#1c1c1c",
         "--dark": "#87722b",
         "--semiDark": "#555555",
         "--semiLight": "#888888",
@@ -318,7 +318,7 @@
         "--play-clock-active-background": "rgba(212, 175, 55, 0.12)",
         "--play-clock-active-ring": "rgba(212, 175, 55, 0.2)",
         "--play-game-id-text": "#666666",
-        "--turnClock": "invert(0.5)",
+        "--turnClock": "invert(0.4)",
         "--moves-cell-space-color": "#2d3134",
         "--game-item-border-color": "#404040",
         "--game-mode-frame-color": "#d4b038",
@@ -364,7 +364,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.2)",
         "--dialog-inner-border": "#3b3b3b"
       },
-      "updatedAt": 1783082457064
+      "updatedAt": 1783301380058
     },
     {
       "id": "custom-mr47v24o",
