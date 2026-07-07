@@ -1920,3 +1920,58 @@ body.desktop-play-page .desktop-play-main {
 .desktop-play-dialog--new-game .desktop-play-dialog-actions {
   margin-top: 0.75rem;
 }
+
+.desktop-context-menu {
+  position: fixed;
+  z-index: 1500;
+  min-width: 11rem;
+  max-width: min(18rem, 92vw);
+  padding: 0.35rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--game-item-border-color, rgba(255, 255, 255, 0.14));
+  background: var(--dialog-background, #1e2430);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.desktop-context-menu-header {
+  padding: 0.35rem 0.85rem 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.72);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-context-menu-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.desktop-context-menu-item:hover:not(:disabled),
+.desktop-context-menu-item:focus-visible:not(:disabled) {
+  background: var(--moves-cell-highlight-bg, rgba(255, 255, 255, 0.1));
+  outline: none;
+}
+
+.desktop-context-menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.desktop-context-menu-separator {
+  height: 1px;
+  margin: 0.35rem 0.5rem;
+  background: var(--game-item-border-color, rgba(255, 255, 255, 0.12));
+}

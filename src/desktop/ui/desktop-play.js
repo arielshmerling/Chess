@@ -2487,6 +2487,50 @@
         return btn;
     }
 
+    function savedGameActionsBlocked() {
+        return animating || engineThinking || dialogOn;
+    }
+
+    function showSavedGameContextMenu(ev, entry, bookmarkId) {
+        if (!window.DesktopContextMenu || !entry) {
+            return;
+        }
+        const blocked = savedGameActionsBlocked();
+        const isPosition = isSavedPositionEntry(entry);
+        const label = entry.name || (isPosition ? "Saved position" : "Saved game");
+        const items = [
+            { header: true, label: label },
+            {
+                label: isPosition ? "Load position" : "Load game",
+                disabled: blocked,
+                onClick: function () {
+                    loadSavedGame(bookmarkId);
+                },
+            },
+            {
+                label: "Edit position",
+                disabled: blocked,
+                onClick: function () {
+                    editSavedGame(bookmarkId);
+                },
+            },
+            {
+                label: "Rename",
+                onClick: function () {
+                    startRenameSavedGame(bookmarkId);
+                },
+            },
+            { separator: true },
+            {
+                label: "Delete",
+                onClick: function () {
+                    deleteSavedGame(bookmarkId);
+                },
+            },
+        ];
+        window.DesktopContextMenu.show(ev.clientX, ev.clientY, items);
+    }
+
     function startRenameSavedGame(bookmarkId) {
         renamingSavedGameId = bookmarkId;
         expandedSavedGameId = bookmarkId;
@@ -2805,6 +2849,12 @@
         );
         details.appendChild(actions);
         div.appendChild(details);
+
+        div.addEventListener("contextmenu", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            showSavedGameContextMenu(ev, entry, id);
+        });
 
         return div;
     }
