@@ -609,7 +609,7 @@
                 ? Settings.normalizeEngine(engine)
                 : engine === "brain41"
                   ? "brain41"
-                  : "brain42";
+                  : "brain43";
         session = Settings.buildSession({
             color: currentPlayerIsWhite ? "white" : "black",
             engine: engineId,
@@ -780,7 +780,7 @@
         expandMovesSidebar();
         ensureConfigurationPanel();
         if (BrainConfig && BrainConfig.syncEngine) {
-            const engine = session && session.engine ? session.engine : "brain42";
+            const engine = session && session.engine ? session.engine : "brain43";
             BrainConfig.syncEngine(engine);
         }
         showStatus("Configuration mode — edit values and save", 0, "info");
@@ -796,7 +796,7 @@
             return;
         }
         BrainConfig.mountPanel(panel, {
-            initialEngine: session && session.engine ? session.engine : "brain42",
+            initialEngine: session && session.engine ? session.engine : "brain43",
         });
         configurationPanelMounted = true;
     }
@@ -1231,7 +1231,7 @@
             showStatus("Evaluating position…", 0, "info");
             const result = await Engine.evaluatePosition({
                 gameState: state,
-                engine: (session && session.engine) || "brain42",
+                engine: (session && session.engine) || "brain43",
                 pliesPlayed: game.Moves ? game.Moves.length : 0,
             });
             if (Board && Board.showEvaluationOverlay) {
@@ -1927,7 +1927,7 @@
         }
         const engineName =
             window.DesktopGameSettings && typeof window.DesktopGameSettings.brainLabel === "function"
-                ? window.DesktopGameSettings.brainLabel(entry.engine || "brain42")
+                ? window.DesktopGameSettings.brainLabel(entry.engine || "brain43")
                 : "Engine";
         return { white: "Player", black: engineName };
     }
@@ -1968,7 +1968,7 @@
             name: name,
             gameType: "SinglePlayerGame",
             moves: moves || [],
-            engine: session.engine || "brain42",
+            engine: session.engine || "brain43",
             whitePlayerName: players.white,
             blackPlayerName: players.black,
             thinkingTimeSeconds:
@@ -2055,7 +2055,7 @@
                 gameType: entry.gameType || "SinglePlayerGame",
                 gameState: game.GameState,
                 moves: [],
-                engine: session.engine || "brain42",
+                engine: session.engine || "brain43",
                 depth:
                     typeof session.thinkingTimeSeconds === "number"
                         ? session.thinkingTimeSeconds
@@ -2066,7 +2066,7 @@
             });
             entry.state = JSON.stringify(game.GameState);
             entry.moves = [];
-            entry.engine = session.engine || "brain42";
+            entry.engine = session.engine || "brain43";
             entry.depth =
                 typeof session.thinkingTimeSeconds === "number"
                     ? session.thinkingTimeSeconds

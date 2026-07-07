@@ -148,7 +148,7 @@ function normalizeEngine(engine) {
     if (DESKTOP_ENGINES.includes(name)) {
         return name;
     }
-    return "brain41";
+    return "brain43";
 }
 
 module.exports = {

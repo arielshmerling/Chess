@@ -35,7 +35,7 @@ describe("desktop runtime", function () {
         assert.strictEqual(runtime.normalizeEngine("brain42"), "brain42");
         assert.strictEqual(runtime.normalizeEngine("brain43"), "brain43");
         assert.strictEqual(runtime.normalizeEngine("brain41"), "brain41");
-        assert.strictEqual(runtime.normalizeEngine("unknown"), "brain41");
+        assert.strictEqual(runtime.normalizeEngine("unknown"), "brain43");
     });
 
     it("uses desktop home path when in desktop mode", function () {

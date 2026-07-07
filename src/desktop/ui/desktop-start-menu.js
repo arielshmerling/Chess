@@ -89,7 +89,7 @@
             const gamePrefs = Settings.loadGamePreferences();
             const payload = {
                 color: fd.get("color") || "white",
-                engine: fd.get("engine") || "brain42",
+                engine: fd.get("engine") || "brain43",
                 allowUndo: fd.get("allowUndo") === "1",
                 timeMinutes: parseInt(fd.get("timeMinutes"), 10) || 90,
                 mouse: gamePrefs.mouse,

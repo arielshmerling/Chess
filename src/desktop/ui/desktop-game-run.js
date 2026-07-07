@@ -11,7 +11,7 @@
     let runTurn = "white";
     let runComputerIsWhite = false;
     let runThinkingTimeSeconds = 10;
-    let runEngine = "brain42";
+    let runEngine = "brain43";
     let onPlay = null;
     let onTurnChange = null;
     let onComputerColorChange = null;
@@ -173,7 +173,7 @@
         const allowed = engineOptionsList().map(function (o) {
             return o.value;
         });
-        return allowed.indexOf(engine) !== -1 ? engine : "brain42";
+        return allowed.indexOf(engine) !== -1 ? engine : "brain43";
     }
 
     function setEngineSelection(engine) {
@@ -262,7 +262,7 @@
         if (options.initialEngine) {
             return options.initialEngine;
         }
-        return "brain42";
+        return "brain43";
     }
 
     function mount(container, options) {

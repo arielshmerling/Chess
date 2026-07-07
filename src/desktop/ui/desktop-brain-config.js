@@ -32,7 +32,7 @@
     let discardBtn = null;
 
     const state = {
-        engine: "brain42",
+        engine: "brain43",
         saved: null,
         draft: null,
         dirty: false,
@@ -264,7 +264,7 @@
             return o.value === engineName;
         })
             ? engineName
-            : "brain42";
+            : "brain43";
         state.engine = safe;
         if (engineSelect) {
             engineSelect.value = safe;
@@ -405,7 +405,7 @@
         panelRoot.appendChild(actions);
 
         const initial =
-            options && options.initialEngine ? options.initialEngine : "brain42";
+            options && options.initialEngine ? options.initialEngine : "brain43";
         loadEngine(initial).catch(function (err) {
             console.error("[BrainConfig]", err);
         });

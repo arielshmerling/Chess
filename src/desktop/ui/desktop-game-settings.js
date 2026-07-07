@@ -21,7 +21,7 @@
 
     const DEFAULTS = {
         color: "white",
-        engine: "brain42",
+        engine: "brain43",
         thinkingTimeSeconds: 10,
         mouse: "drag",
         showAvailableMoves: true,

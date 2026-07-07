@@ -88,7 +88,7 @@ function ensureRuntime() {
 }
 
 function loadEngine(engineName) {
-    const name = engineName && ALLOWED_ENGINES.includes(engineName) ? engineName : "brain42";
+    const name = engineName && ALLOWED_ENGINES.includes(engineName) ? engineName : "brain43";
     const mod = require(path.join(__dirname, "..", name));
     return {
         brainNextMoveFunc: mod.brainNextMoveFunc,
@@ -107,7 +107,7 @@ async function computeMove(opts, onProgress) {
     searchAbortRequested = false;
     const {
         gameState,
-        engine = "brain42",
+        engine = "brain43",
         thinkingTimeSeconds,
         difficulty,
         pliesPlayed,
@@ -240,7 +240,7 @@ async function computeMove(opts, onProgress) {
  */
 async function evaluatePosition(opts) {
     ensureRuntime();
-    const { gameState, engine = "brain42", pliesPlayed } = opts || {};
+    const { gameState, engine = "brain43", pliesPlayed } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
     }
