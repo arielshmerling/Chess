@@ -27,6 +27,7 @@ const {
     flushWorkerProgress,
     setWorkerSearchProgressRequestId,
 } = require("./brainSearchProgress");
+const { isProvenMateLossScore } = require("./mateScore");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const {
@@ -2152,6 +2153,13 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                     bestMove.score,
                 );
                 await flushWorkerProgress();
+                if (isProvenMateLossScore(bestMove.score)) {
+                    reportSearchMessage(
+                        `${LOG_PREFIX} Proven loss mate at depth ${depth}; stopping timed search early`,
+                        "proven-loss-mate",
+                    );
+                    break;
+                }
             }
             if (shouldStopSearch()) {
                 break;

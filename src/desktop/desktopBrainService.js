@@ -16,6 +16,10 @@ const {
     clearSearchProgressReporter,
 } = require("../brainSearchProgress");
 const { detectForcedLossMate, collectLegalMoves } = require("./forcedMateDetection");
+const {
+    isProvenMateLossScore,
+    opponentMateInFromLossScore,
+} = require("../mateScore");
 
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
@@ -180,6 +184,21 @@ async function computeMove(opts, onProgress) {
 
     if (!brainMove || brainMove.source == null || brainMove.target == null) {
         return null;
+    }
+
+    if (immediateResign === true && isProvenMateLossScore(brainMove.score)) {
+        const turnBefore = chessGame.Turn;
+        const opponentMateIn = opponentMateInFromLossScore(brainMove.score);
+        console.log(
+            `[desktopBrain] Search proved forced loss; opponent mate in ${opponentMateIn ?? "?"}`,
+        );
+        return {
+            opponentMateDetected: true,
+            opponentMateIn,
+            source: brainMove.source,
+            target: brainMove.target,
+            turn: turnBefore,
+        };
     }
 
     const scoreLabel =

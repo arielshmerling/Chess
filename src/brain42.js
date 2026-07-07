@@ -37,6 +37,7 @@ const {
     flushWorkerProgress,
     setWorkerSearchProgressRequestId,
 } = require("./brainSearchProgress");
+const { isProvenMateLossScore } = require("./mateScore");
 const { loadOpeningBookEntries } = require("./openingBookLoader");
 const {
     savedGameStateToCanonicalLookupKey,
@@ -1871,6 +1872,13 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                     bestMove.score,
                 );
                 await flushWorkerProgress();
+                if (isProvenMateLossScore(bestMove.score)) {
+                    reportSearchMessage(
+                        `${LOG_PREFIX} Proven loss mate at depth ${depth}; stopping timed search early`,
+                        "proven-loss-mate",
+                    );
+                    break;
+                }
             }
             if (shouldStopSearch()) {
                 break;
