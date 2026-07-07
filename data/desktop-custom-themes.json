@@ -1,5 +1,5 @@
 {
-  "activeTheme": "custom:custom-mr45iwvr",
+  "activeTheme": "custom:custom-mqcodd0j",
   "themes": [
     {
       "id": "custom-mp9zer1t",
@@ -35,7 +35,7 @@
         "--button-background": "#707070",
         "--button-forecolor": "#a7a7a7",
         "--textbox-background": "#969696",
-        "--textbox-forecolor": "#787878",
+        "--textbox-forecolor": "#000000",
         "--moves-panel-bg": "#b9bcc0",
         "--moves-dock-title-background": "#9d9d9d",
         "--moves-dock-title-text": "rgba(255, 255, 255, 0.95)",
@@ -72,7 +72,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1783082312996
+      "updatedAt": 1783391615357
     },
     {
       "id": "custom-mpa8c3z4",
@@ -181,7 +181,7 @@
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
         "--textbox-background": "#98c1d9",
-        "--textbox-forecolor": "#5487c9",
+        "--textbox-forecolor": "#a0c8fd",
         "--moves-panel-bg": "#354c69",
         "--moves-dock-title-background": "#354d68",
         "--moves-dock-title-text": "rgba(255, 255, 255, 0.55)",
@@ -218,7 +218,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1783039989138
+      "updatedAt": 1783391653957
     },
     {
       "id": "custom-mr44vor5",

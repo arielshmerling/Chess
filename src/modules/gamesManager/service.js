@@ -8,6 +8,11 @@ const {
     OPENING_BOOK_BASENAME,
     loadOpeningBookEntries,
 } = require("../../openingBookLoader");
+const {
+    savedGameStateToCanonicalLookupKey,
+    compactArrayToLookupKey,
+    moveToBookMove,
+} = require("../../openingBookJson");
 
 function getOpeningBookFilePath() {
     return path.join(__dirname, "..", "..", "..", "data", OPENING_BOOK_BASENAME);
@@ -16,6 +21,7 @@ function getOpeningBookFilePath() {
 exports.getOpeningBookFilePath = getOpeningBookFilePath;
 exports.OPENING_BOOK_BASENAME = OPENING_BOOK_BASENAME;
 exports.loadOpeningBookEntries = () => loadOpeningBookEntries(getOpeningBookFilePath());
+exports.writeOpeningBookJsonFile = writeOpeningBookJsonFile;
 
 /**
  * @returns {Promise<number>}
@@ -686,6 +692,14 @@ exports.readPGNGames = catchAsync(async (files, readOptions = {}) => {
         console.log("Adding games from:" + fileList[i]);
         const games = await pgnReader.readFile(fileList[i]);
         local = local.concat(games);
+        if (typeof readOptions.maxGames === "number" && readOptions.maxGames > 0 && local.length >= readOptions.maxGames) {
+            local = local.slice(0, readOptions.maxGames);
+            console.log(`[PGN] maxGames=${readOptions.maxGames}: stopping after ${local.length} games`);
+            if (onProgress) {
+                onProgress({ phase: "reading", fileIndex: i + 1, fileTotal, gamesLoaded: local.length });
+            }
+            break;
+        }
         console.log(`added ${games.length} games`);
         console.log(`total ${local.length} games`);
         if (onProgress) {
@@ -777,6 +791,7 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
         console.log(`Replay game ${gameNumber}/${totalGames}`);
         let gameMove = 0;
         let pliesPlayed = 0;
+        movesArr.length = 0;
         try {
             const chess = new ChessGame();
             chess.startNewGame();
@@ -804,7 +819,8 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
                         await stateDoc.save();
                     }
                     if (openingBookOutputPath && openingBookByPair) {
-                        const compactState = savedGameStateToCompactArray(gameStateBeforeMove);
+                        const { lookupKey } = savedGameStateToCanonicalLookupKey(gameStateBeforeMove);
+                        const compactState = JSON.parse(lookupKey);
                         const bookMove = moveToBookMove(actual);
                         const pairKey = compactArrayToLookupKey(compactState) + "\0" + JSON.stringify(bookMove);
                         openingBookTotalAppearances += 1;

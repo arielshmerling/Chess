@@ -97,6 +97,30 @@ function loadEngine(engineName) {
     };
 }
 
+/** IPC sends GameState only; restore move SANs so line-book prefix lookup works. */
+function normalizeMovesForBook(moves) {
+    if (!Array.isArray(moves)) {
+        return [];
+    }
+    const out = [];
+    for (let i = 0; i < moves.length; i++) {
+        const raw = moves[i];
+        let move = raw;
+        if (typeof raw === "string") {
+            try {
+                move = JSON.parse(raw);
+            } catch {
+                move = { moveStr: raw };
+            }
+        }
+        const moveStr = move && typeof move.moveStr === "string" ? move.moveStr.trim() : "";
+        if (moveStr) {
+            out.push({ ...move, moveStr });
+        }
+    }
+    return out;
+}
+
 /**
  * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, pliesPlayed?: number, immediateResign?: boolean }} opts
  * @param {(progress: object) => void} [onProgress]
@@ -107,6 +131,7 @@ async function computeMove(opts, onProgress) {
     searchAbortRequested = false;
     const {
         gameState,
+        moves,
         engine = "brain43",
         thinkingTimeSeconds,
         difficulty,
@@ -121,6 +146,10 @@ async function computeMove(opts, onProgress) {
 
     const chessGame = new ChessGame(true);
     chessGame.loadGame(JSON.stringify(gameState));
+    const bookMoves = normalizeMovesForBook(moves);
+    if (bookMoves.length > 0) {
+        chessGame.loadMoves(bookMoves);
+    }
 
     if (chessGame.GameOver) {
         return null;
@@ -275,4 +304,5 @@ module.exports = {
     ensureRuntime,
     normalizeThinkingTimeSeconds,
     thinkingTimeSecondsToMs,
+    normalizeMovesForBook,
 };

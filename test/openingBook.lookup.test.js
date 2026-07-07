@@ -1,7 +1,6 @@
 /**
  * Opening book lookup when the board is stored in black-player view (whitePlayerView:false).
- * Regression: brain42/brain43 used raw state keys and missed the book whenever the human
- * played black (engine as white on move 1).
+ * Line-based book uses move-prefix strings, so orientation does not affect lookup.
  *
  * Run: npx mocha ./test/openingBook.lookup.test.js
  */
@@ -9,37 +8,50 @@
 
 const assert = require("assert");
 const { ChessGame } = require("../src/ChessGame");
-const { loadOpeningBookEntries } = require("../src/openingBookLoader");
 const {
-    savedGameStateToLookupKey,
-    savedGameStateToCanonicalLookupKey,
-} = require("../src/openingBookJson");
+    loadOpeningBookPrefixIndex,
+    movePrefixFromGame,
+    candidateMovesForGame,
+} = require("../src/openingBookLines");
 
 describe("Opening book lookup (flipped board)", () => {
-    /** @type {Set<string>} */
-    let bookKeys;
+    /** @type {Map<string, Map<string, number>>} */
+    let prefixIndex;
 
     before(async function () {
         this.timeout(30000);
-        const entries = await loadOpeningBookEntries();
-        bookKeys = new Set(entries.map((e) => e.state));
-        assert.ok(bookKeys.size > 0, "opening book should load");
+        const loaded = await loadOpeningBookPrefixIndex();
+        prefixIndex = loaded.prefixIndex;
+        assert.ok(loaded.lineCount > 0, "opening book lines should load");
     });
 
-    it("raw key misses the initial position when whitePlayerView is false", () => {
-        const game = new ChessGame();
-        game.startNewGame(false);
-        const raw = savedGameStateToLookupKey(game.SavedGameState);
-        assert.strictEqual(game.GameState.whitePlayerView, false);
-        assert.ok(!bookKeys.has(raw), "flipped raw key should not be in the book");
+    it("empty prefix has first-move options", () => {
+        const bucket = prefixIndex.get("");
+        assert.ok(bucket && bucket.size > 0, "start position should have book moves");
     });
 
-    it("canonical key hits the initial position when whitePlayerView is false", () => {
+    it("move prefix is the same when whitePlayerView is false", () => {
+        const upright = new ChessGame();
+        upright.startNewGame(true);
+        const flipped = new ChessGame();
+        flipped.startNewGame(false);
+        assert.strictEqual(movePrefixFromGame(upright), "");
+        assert.strictEqual(movePrefixFromGame(flipped), "");
+    });
+
+    it("prefix lookup offers black replies after 1.e4 on flipped view", () => {
+        const upright = new ChessGame();
+        upright.startNewGame(true);
+        const e4 = upright.convertPGNMove({ moveStr: "e4", color: "white" });
+        upright.makeMove(e4.source, e4.target);
+
         const game = new ChessGame();
         game.startNewGame(false);
-        const { lookupKey, flipMoves } = savedGameStateToCanonicalLookupKey(game.SavedGameState);
-        assert.ok(bookKeys.has(lookupKey), "canonical key should match the book");
-        assert.strictEqual(flipMoves, true);
+        game.loadMoves(upright.Moves.slice());
+
+        assert.strictEqual(movePrefixFromGame(game), "e4");
+        const { options } = candidateMovesForGame(game, prefixIndex);
+        assert.ok(options.length > 0, "book should offer black replies after 1.e4");
     });
 
     for (const engine of ["brain42", "brain43"]) {

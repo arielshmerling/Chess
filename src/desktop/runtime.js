@@ -34,6 +34,8 @@ function init(opts) {
     fs.mkdirSync(path.join(userDataRoot, "brain-config"), { recursive: true });
     seedBrainConfigsIfMissing();
     seedOpeningBookIfMissing();
+    seedOpeningBook2IfMissing();
+    seedOpeningBookLinesIfMissing();
     initialized = true;
 }
 
@@ -89,10 +91,28 @@ function getBundledOpeningBookPath() {
     return path.join(__dirname, "..", "..", "data", "opening-book-states.json");
 }
 
+function getBundledOpeningBook2Path() {
+    return path.join(__dirname, "..", "..", "data", "opening-book-2-states.json");
+}
+
+function getBundledOpeningBookLinesPath() {
+    return path.join(__dirname, "..", "..", "data", "opening-book-lines.txt");
+}
+
 /** Writable copy in userData (used for reads when present). */
 function getUserOpeningBookPath() {
     ensureInitialized();
     return path.join(userDataRoot, "opening-book-states.json");
+}
+
+function getUserOpeningBook2Path() {
+    ensureInitialized();
+    return path.join(userDataRoot, "opening-book-2-states.json");
+}
+
+function getUserOpeningBookLinesPath() {
+    ensureInitialized();
+    return path.join(userDataRoot, "opening-book-lines.txt");
 }
 
 /**
@@ -107,6 +127,30 @@ function resolveOpeningBookPath() {
     return getBundledOpeningBookPath();
 }
 
+/**
+ * Secondary opening book (opening-specific PGNs).
+ * @returns {string}
+ */
+function resolveOpeningBook2Path() {
+    const userCopy = getUserOpeningBook2Path();
+    if (fs.existsSync(userCopy)) {
+        return userCopy;
+    }
+    return getBundledOpeningBook2Path();
+}
+
+/**
+ * Line-based opening book (prefix lookup).
+ * @returns {string}
+ */
+function resolveOpeningBookLinesPath() {
+    const userCopy = getUserOpeningBookLinesPath();
+    if (fs.existsSync(userCopy)) {
+        return userCopy;
+    }
+    return getBundledOpeningBookLinesPath();
+}
+
 function seedOpeningBookIfMissing() {
     if (!userDataRoot) {
         return;
@@ -116,6 +160,34 @@ function seedOpeningBookIfMissing() {
         return;
     }
     const bundled = getBundledOpeningBookPath();
+    if (fs.existsSync(bundled)) {
+        fs.copyFileSync(bundled, dest);
+    }
+}
+
+function seedOpeningBook2IfMissing() {
+    if (!userDataRoot) {
+        return;
+    }
+    const dest = path.join(userDataRoot, "opening-book-2-states.json");
+    if (fs.existsSync(dest)) {
+        return;
+    }
+    const bundled = getBundledOpeningBook2Path();
+    if (fs.existsSync(bundled)) {
+        fs.copyFileSync(bundled, dest);
+    }
+}
+
+function seedOpeningBookLinesIfMissing() {
+    if (!userDataRoot) {
+        return;
+    }
+    const dest = path.join(userDataRoot, "opening-book-lines.txt");
+    if (fs.existsSync(dest)) {
+        return;
+    }
+    const bundled = getBundledOpeningBookLinesPath();
     if (fs.existsSync(bundled)) {
         fs.copyFileSync(bundled, dest);
     }
@@ -166,8 +238,14 @@ module.exports = {
     getBundledCustomThemesPath,
     getBrainConfigDir,
     getBundledOpeningBookPath,
+    getBundledOpeningBook2Path,
+    getBundledOpeningBookLinesPath,
     getUserOpeningBookPath,
+    getUserOpeningBook2Path,
+    getUserOpeningBookLinesPath,
     resolveOpeningBookPath,
+    resolveOpeningBook2Path,
+    resolveOpeningBookLinesPath,
     getHomePath,
     normalizeEngine,
 };

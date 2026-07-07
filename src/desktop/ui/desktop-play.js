@@ -3230,6 +3230,7 @@
         try {
             const move = await Engine.computeMove({
                 gameState: game.GameState,
+                moves: tableMovesFromGame(),
                 engine: session.engine,
                 thinkingTimeSeconds: session.thinkingTimeSeconds != null
                     ? session.thinkingTimeSeconds

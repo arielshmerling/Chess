@@ -29,11 +29,11 @@ const {
 } = require("./brainSearchProgress");
 const { isProvenMateLossScore } = require("./mateScore");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
-const { loadOpeningBookEntries } = require("./openingBookLoader");
 const {
-    savedGameStateToCanonicalLookupKey,
-    transformBookMovesToGame,
-} = require("./openingBookJson");
+    preloadOpeningBook: preloadSharedOpeningBook,
+    whenOpeningBookReady: whenSharedOpeningBookReady,
+    tryFindLineBookMove,
+} = require("./brainOpeningBook");
 
 const DEFAULT_MAX_DEPTH = 2;
 const LOG_PREFIX = "[Brain4.3]";
@@ -319,88 +319,14 @@ function applyRuntimeConfigForGame(game) {
     };
 })();
 
-/** @type {Map<string, object[]>|null} compact state lookup key → book moves */
-let openingBookByStateKey = null;
-/** @type {Promise<Map<string, object[]>>|null} */
-let openingBookLoadPromise = null;
-
-function bookMovesEqual(a, b) {
-    return a
-        && b
-        && a.source
-        && b.source
-        && a.target
-        && b.target
-        && a.source.row === b.source.row
-        && a.source.col === b.source.col
-        && a.target.row === b.target.row
-        && a.target.col === b.target.col;
-}
-
-function addOpeningBookEntry(map, stateKey, move, weight) {
-    if (typeof stateKey !== "string" || !stateKey || !move) {
-        return;
-    }
-    const w = Number.isFinite(weight) && weight > 0 ? Math.floor(weight) : 1;
-    let list = map.get(stateKey);
-    if (!list) {
-        list = [];
-        map.set(stateKey, list);
-    }
-    const existing = list.find((m) => bookMovesEqual(m, move));
-    if (existing) {
-        existing.weight = (existing.weight || 1) + w;
-        if (!existing.pgn && move.pgn) {
-            existing.pgn = move.pgn;
-        }
-    } else {
-        list.push({
-            source: { row: move.source.row, col: move.source.col },
-            target: { row: move.target.row, col: move.target.col },
-            pgn: move.pgn,
-            weight: w,
-        });
-    }
-}
-
-function beginOpeningBookLoad() {
-    if (openingBookByStateKey) {
-        return Promise.resolve(openingBookByStateKey);
-    }
-    if (!openingBookLoadPromise) {
-        openingBookLoadPromise = loadOpeningBookEntries()
-            .then((entries) => {
-                const map = new Map();
-                for (const e of entries) {
-                    if (!e.state || !e.move) {
-                        continue;
-                    }
-                    addOpeningBookEntry(map, e.state, e.move, e.weight);
-                }
-                openingBookByStateKey = map;
-                const distinctLists = new Set(map.values());
-                console.log(
-                    `${LOG_PREFIX} Opening book: ${entries.length} entries, ${distinctLists.size} distinct positions`,
-                );
-                return map;
-            })
-            .catch((err) => {
-                console.error(`${LOG_PREFIX} Opening book load failed:`, err.message || err);
-                openingBookByStateKey = new Map();
-                return openingBookByStateKey;
-            });
-    }
-    return openingBookLoadPromise;
-}
-
 /** Start loading the opening book in the background (idempotent). */
 exports.preloadOpeningBook = function preloadOpeningBook() {
-    beginOpeningBookLoad();
+    preloadSharedOpeningBook(LOG_PREFIX);
 };
 
 /** Resolves when the opening book is loaded (starts load if needed). */
 exports.whenOpeningBookReady = function whenOpeningBookReady() {
-    return beginOpeningBookLoad();
+    return whenSharedOpeningBookReady(LOG_PREFIX);
 };
 
 /** Counts {@link evaluateLeafPosition} invocations per search; reset before each request. */
@@ -545,10 +471,6 @@ function isBookMoveStillLegal(game, move) {
     return !!game.validateMove(move.source, move.target, game.Turn).valid;
 }
 
-function formatStateForLog(stateKey) {
-    return stateKey;
-}
-
 function bookMovePgn(game, bookMove) {
     if (bookMove && typeof bookMove.pgn === "string" && bookMove.pgn) {
         return bookMove.pgn;
@@ -578,67 +500,12 @@ function logTiedBestMoveOptions(game, options, bestScore) {
     );
 }
 
-function pickWeightedBookMove(options) {
-    if (options.length === 0) {
-        return null;
-    }
-    let total = 0;
-    for (let i = 0; i < options.length; i++) {
-        total += options[i].weight || 1;
-    }
-    let r = Math.random() * total;
-    for (let i = 0; i < options.length; i++) {
-        r -= options[i].weight || 1;
-        if (r <= 0) {
-            return options[i];
-        }
-    }
-    return options[options.length - 1];
-}
-
 function tryFindMatchState(game) {
-    // The book is stored in the canonical (whitePlayerView:true) orientation. When the human plays
-    // black the board is flipped (whitePlayerView:false), so we must look up the canonical key and
-    // flip the stored moves back into the game's coordinates. Using the raw key here caused every
-    // book lookup to miss whenever the board was flipped (brain playing white -> always "Thinking").
-    const { lookupKey, flipMoves } = savedGameStateToCanonicalLookupKey(game.SavedGameState);
-
-    if (!openingBookByStateKey) {
-        console.log(
-            `${LOG_PREFIX} Opening book search (book not loaded): turn=${game.Turn}\n${(lookupKey)}`,
-        );
-        return null;
-    }
-
-    const stored = openingBookByStateKey.get(lookupKey) || [];
-    const options = transformBookMovesToGame(stored, flipMoves);
-    console.log(
-        `${LOG_PREFIX} Opening book search: turn=${game.Turn},`
-            + ` bookPositions=${openingBookByStateKey.size},`
-            + ` movesAtPosition=${options.length}\n${(lookupKey)}`,
-    );
-
-    if (options.length === 0) {
-        console.log(`${LOG_PREFIX} Opening book miss: no entry for this state key (turn=${game.Turn})`);
-        return null;
-    }
-
-    logOpeningBookOptions(game, options);
-
-    const legal = options.filter((m) => isBookMoveStillLegal(game, m));
-    if (legal.length === 0) {
-        console.warn(
-            `${LOG_PREFIX} Opening book: ${options.length} stored move(s) but none legal at this position`,
-        );
-        return null;
-    }
-
-    const pick = pickWeightedBookMove(legal);
-    console.log(
-        `${LOG_PREFIX} Opening book pick: ${bookMovePgn(game, pick)}`
-            + ` (weight ${pick.weight || 1}, ${legal.length} legal option(s))`,
-    );
-    return pick;
+    return tryFindLineBookMove(game, LOG_PREFIX, {
+        isBookMoveStillLegal,
+        bookMovePgn,
+        logOpeningBookOptions,
+    });
 }
 
 async function runBrain43SearchLocal(game, searchOptions) {

@@ -9,6 +9,7 @@ const {
 } = require("./openingBookJson");
 
 const OPENING_BOOK_BASENAME = "opening-book-states.json";
+const OPENING_BOOK_2_BASENAME = "opening-book-2-states.json";
 
 function resolveOpeningBookFilePath() {
     if (process.env.SHMERLING_MODE === "desktop") {
@@ -17,6 +18,15 @@ function resolveOpeningBookFilePath() {
         return runtime.resolveOpeningBookPath();
     }
     return path.join(__dirname, "..", "data", OPENING_BOOK_BASENAME);
+}
+
+function resolveOpeningBook2FilePath() {
+    if (process.env.SHMERLING_MODE === "desktop") {
+        const runtime = require("./desktop/runtime");
+        runtime.ensureInitialized();
+        return runtime.resolveOpeningBook2Path();
+    }
+    return path.join(__dirname, "..", "data", OPENING_BOOK_2_BASENAME);
 }
 
 function parseOpeningBookMove(move) {
@@ -105,9 +115,28 @@ async function loadOpeningBookEntries(filePath) {
     }
 }
 
+/** Load primary + secondary opening books and merge entry lists (weights combined in brain). */
+async function loadMergedOpeningBookEntries() {
+    const paths = [resolveOpeningBookFilePath(), resolveOpeningBook2FilePath()];
+    const merged = [];
+    for (let i = 0; i < paths.length; i++) {
+        const entries = await loadOpeningBookEntries(paths[i]);
+        if (entries.length) {
+            console.log(
+                `[opening book] Loaded ${entries.length} entries from ${path.basename(paths[i])}`,
+            );
+            merged.push(...entries);
+        }
+    }
+    return merged;
+}
+
 module.exports = {
     OPENING_BOOK_BASENAME,
+    OPENING_BOOK_2_BASENAME,
     resolveOpeningBookFilePath,
+    resolveOpeningBook2FilePath,
     loadOpeningBookEntries,
+    loadMergedOpeningBookEntries,
     parseOpeningBookFileText,
 };

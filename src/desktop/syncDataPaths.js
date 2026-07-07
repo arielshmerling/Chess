@@ -9,25 +9,32 @@ const runtime = require("./runtime");
 
 const REPO_DATA_DIR = path.join(__dirname, "..", "..", "data");
 const OPENING_BOOK_BASENAME = "opening-book-states.json";
+const OPENING_BOOK_2_BASENAME = "opening-book-2-states.json";
+const OPENING_BOOK_LINES_BASENAME = "opening-book-lines.txt";
 
 function getRepoOpeningBookPath() {
     return path.join(REPO_DATA_DIR, OPENING_BOOK_BASENAME);
 }
 
-function getUserOpeningBookPathSafe() {
+function getRepoOpeningBook2Path() {
+    return path.join(REPO_DATA_DIR, OPENING_BOOK_2_BASENAME);
+}
+
+function getRepoOpeningBookLinesPath() {
+    return path.join(REPO_DATA_DIR, OPENING_BOOK_LINES_BASENAME);
+}
+
+function getUserOpeningBookPathSafe(basename) {
     if (runtime.getUserDataRoot()) {
-        return runtime.getUserOpeningBookPath();
+        return path.join(runtime.getUserDataRoot(), basename);
     }
     if (process.env.SHMERLING_USER_DATA) {
-        return path.join(process.env.SHMERLING_USER_DATA, OPENING_BOOK_BASENAME);
+        return path.join(process.env.SHMERLING_USER_DATA, basename);
     }
     return null;
 }
 
-function syncOpeningBookForSharedLoader() {
-    const repoPath = getRepoOpeningBookPath();
-    const userPath = getUserOpeningBookPathSafe();
-
+function syncOpeningBookPair(repoPath, userPath) {
     const repoExists = fs.existsSync(repoPath);
     const userExists = userPath && fs.existsSync(userPath);
 
@@ -56,6 +63,21 @@ function syncOpeningBookForSharedLoader() {
     } else {
         fs.copyFileSync(userPath, repoPath);
     }
+}
+
+function syncOpeningBookForSharedLoader() {
+    syncOpeningBookPair(
+        getRepoOpeningBookPath(),
+        getUserOpeningBookPathSafe(OPENING_BOOK_BASENAME),
+    );
+    syncOpeningBookPair(
+        getRepoOpeningBook2Path(),
+        getUserOpeningBookPathSafe(OPENING_BOOK_2_BASENAME),
+    );
+    syncOpeningBookPair(
+        getRepoOpeningBookLinesPath(),
+        getUserOpeningBookPathSafe(OPENING_BOOK_LINES_BASENAME),
+    );
 }
 
 function syncBrainConfigsForSinglePlayerGame() {
