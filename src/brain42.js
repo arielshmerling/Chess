@@ -1564,23 +1564,25 @@ function scoreTerminalNoMoves(game, ply = 0) {
 }
 
 /**
- * Score a legal move from the current node (negamax): static bonuses, then recurse unless terminal.
- * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above horizon false mates.
+ * Score a legal move from the current node using standard negamax: apply the move, then return the
+ * negated value of the resulting position. All material and positional terms live in the leaf
+ * evaluation ({@link evaluateLeafPosition}); no per-move bonus is folded into the backed-up value.
+ *
+ * Folding a per-move bonus into the returned score double-counted captured material and made
+ * alpha-beta unsound at the root (fail-low bounds could tie and win static-bonus tie-breaks).
+ * `staticMoveBonus` is only for move ordering and root tie-breaking.
+ * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above longer ones.
  */
 function evaluateSearchMove(game, move, depthRemaining, alpha, beta, ply) {
-    const q = staticMoveBonus(game, move);
     return withAppliedMove(game, move, () => {
         if (game.Checkmate) {
             return MATE_SCORE - ply;
         }
-        const mover = game.Turn === "white" ? "black" : "white";
         if (game.Draw) {
+            const mover = game.Turn === "white" ? "black" : "white";
             return getDrawLeafScoreForMover(game, mover, specialEvaluations());
         }
-        if (game.Moves.length > 50 && game.Check) {
-            return q + 2.5 - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
-        }
-        return q - negamax(game, depthRemaining, -beta, -alpha, ply + 1);
+        return -negamax(game, depthRemaining, -beta, -alpha, ply + 1);
     });
 }
 
@@ -1644,55 +1646,31 @@ function logSearchPlan(rootMoves, totalPieces, maxDepth, depthNote) {
     );
 }
 
-function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
-    const depthLimit = clampSearchDepth(maxDepth, depthCap);
-    const moves = collectLegalMoves(game);
-    if (moves.length === 0) {
-        return null;
+function mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef) {
+    if (!Number.isFinite(score)) {
+        return bestScoreRef.value;
     }
-    const mateNow = findImmediateMatingMove(game, moves);
-    if (mateNow) {
-        mateNow.score = MATE_SCORE;
-        return mateNow;
-    }
-    const ordered = orderMovesCapturesFirst(game, moves);
-    const depthAfterRoot = Math.max(0, depthLimit - 1);
-    let alpha = -Infinity;
-    const beta = Infinity;
-    const tiedBest = [];
-    let bestScore = -Infinity;
-
-    for (let i = 0; i < ordered.length; i++) {
-        if (shouldStopSearch()) {
-            return null;
-        }
-        const move = ordered[i];
-        const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
-        if (!Number.isFinite(score)) {
-            continue;
-        }
-        if (score > bestScore) {
-            bestScore = score;
+    if (score > bestScoreRef.value) {
+        bestScoreRef.value = score;
+        tiedBest.length = 0;
+        tiedBest.push(move);
+    } else if (score === bestScoreRef.value) {
+        const q = staticMoveBonus(game, move);
+        const prevQ =
+            tiedBest.length > 0
+                ? staticMoveBonus(game, tiedBest[0])
+                : -Infinity;
+        if (q > prevQ) {
             tiedBest.length = 0;
             tiedBest.push(move);
-        } else if (score === bestScore) {
-            const q = staticMoveBonus(game, move);
-            const prevQ =
-                tiedBest.length > 0
-                    ? staticMoveBonus(game, tiedBest[0])
-                    : -Infinity;
-            if (q > prevQ) {
-                tiedBest.length = 0;
-                tiedBest.push(move);
-            } else if (q === prevQ) {
-                tiedBest.push(move);
-            }
-        }
-        if (score > alpha) {
-            alpha = score;
+        } else if (q === prevQ) {
+            tiedBest.push(move);
         }
     }
+    return bestScoreRef.value;
+}
 
+function finalizeRootSearchPick(game, ordered, tiedBest, bestScore) {
     if (tiedBest.length === 0) {
         return ordered[0];
     }
@@ -1703,6 +1681,69 @@ function searchAtFixedDepth(game, maxDepth, depthCap = MAX_SEARCH_DEPTH) {
     }
     pick.score = bestScore;
     return pick;
+}
+
+/** True when two moves share source/target (and promotion choice). */
+function sameRootMove(a, b) {
+    return a && b
+        && a.source && b.source && a.target && b.target
+        && a.source.row === b.source.row && a.source.col === b.source.col
+        && a.target.row === b.target.row && a.target.col === b.target.col
+        && !!a.promotion === !!b.promotion
+        && a.selectedPiece === b.selectedPiece;
+}
+
+/** Move `preferred` to the front of `ordered` (iterative-deepening PV seeding). */
+function orderWithPreferredFirst(ordered, preferred) {
+    if (!preferred) {
+        return ordered;
+    }
+    const idx = ordered.findIndex((m) => sameRootMove(m, preferred));
+    if (idx > 0) {
+        const copy = ordered.slice();
+        const [pv] = copy.splice(idx, 1);
+        copy.unshift(pv);
+        return copy;
+    }
+    return ordered;
+}
+
+function searchAtFixedDepth(game, maxDepth, preferredFirstMove, depthCap = MAX_SEARCH_DEPTH) {
+    const depthLimit = clampSearchDepth(maxDepth, depthCap);
+    const moves = collectLegalMoves(game);
+    if (moves.length === 0) {
+        return null;
+    }
+    const mateNow = findImmediateMatingMove(game, moves);
+    if (mateNow) {
+        mateNow.score = MATE_SCORE;
+        return mateNow;
+    }
+    const ordered = orderWithPreferredFirst(orderMovesCapturesFirst(game, moves), preferredFirstMove);
+    const depthAfterRoot = Math.max(0, depthLimit - 1);
+    let alpha = -Infinity;
+    const beta = Infinity;
+    const tiedBest = [];
+    const bestScoreRef = { value: -Infinity };
+
+    for (let i = 0; i < ordered.length; i++) {
+        if (shouldStopSearch()) {
+            return null;
+        }
+        const move = ordered[i];
+        const alphaBefore = alpha;
+        const score = evaluateSearchMove(game, move, depthAfterRoot, alpha, beta, 1);
+        if (!Number.isFinite(score)) {
+            continue;
+        }
+        if (i > 0 && score <= alphaBefore) {
+            continue;
+        }
+        mergeRootMoveScore(game, move, score, tiedBest, bestScoreRef);
+        alpha = score;
+    }
+
+    return finalizeRootSearchPick(game, ordered, tiedBest, bestScoreRef.value);
 }
 
 async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
@@ -1731,7 +1772,12 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
             if (getRemainingSearchMs() < MIN_MS_FOR_NEXT_DEPTH) {
                 break;
             }
-            const atDepth = searchAtFixedDepth(game, depth, MAX_TIMED_SEARCH_DEPTH);
+            const atDepth = searchAtFixedDepth(
+                game,
+                depth,
+                completedDepth > 0 ? bestMove : null,
+                MAX_TIMED_SEARCH_DEPTH,
+            );
             if (atDepth) {
                 bestMove = atDepth;
                 completedDepth = depth;

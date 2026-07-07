@@ -635,23 +635,42 @@ exports.parseGames = (gameDocs) => {
 };
 
 
-exports.getPGNFiles = catchAsync(async () => {
+async function listPgnFilesInDirectory(dir) {
     const fs = require("fs").promises;
     const path = require("path");
-    const dir = path.join(__dirname, "./pgn/");
     const dirents = await fs.readdir(dir, { withFileTypes: true });
-    const files = await Promise.all(dirents.map(async (dirent) => {
-        const res = path.resolve(dir, dirent.name);
-        return res;
-    }));
-    return Array.prototype.concat(...files);
+    return dirents
+        .filter((d) => d.isFile() && d.name.toLowerCase().endsWith(".pgn"))
+        .map((d) => path.resolve(dir, d.name))
+        .sort((a, b) => a.localeCompare(b));
+}
+
+exports.getPGNFiles = catchAsync(async () => {
+    const path = require("path");
+    const rootDir = path.join(__dirname, "./pgn/");
+    const openingsDir = path.join(rootDir, "Opennings");
+    const files = await listPgnFilesInDirectory(rootDir);
+    try {
+        const openingFiles = await listPgnFilesInDirectory(openingsDir);
+        files.push(...openingFiles);
+    } catch (e) {
+        if (!e || e.code !== "ENOENT") {
+            throw e;
+        }
+    }
+    return files.sort((a, b) => a.localeCompare(b));
 });
 
 exports.readPGNGames = catchAsync(async (files, readOptions = {}) => {
     const onProgress = typeof readOptions.onProgress === "function" ? readOptions.onProgress : null;
     const checkAbort = typeof readOptions.checkAbort === "function" ? readOptions.checkAbort : null;
     lastPgnReadInterrupted = false;
-    let fileList = files.slice();
+    let fileList = files.slice().filter((filePath) => /\.pgn$/i.test(path.basename(filePath)));
+    if (fileList.length === 0) {
+        console.warn("[PGN] No .pgn files in file list");
+        pgnGames = [];
+        return pgnGames;
+    }
     if (readOptions.firstFileOnly && fileList.length > 1) {
         fileList = fileList.sort().slice(0, 1);
         console.log(`[PGN] firstFileOnly: using ${path.basename(fileList[0])} only`);
