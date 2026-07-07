@@ -20,6 +20,42 @@ const { detectForcedLossMate, collectLegalMoves } = require("./forcedMateDetecti
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
 const openingBookReadyByEngine = {};
+let searchAbortRequested = false;
+
+class SearchAbortedError extends Error {
+    constructor() {
+        super("Search aborted");
+        this.name = "SearchAbortedError";
+    }
+}
+
+function isSearchAbortedError(err) {
+    return !!(
+        err
+        && (err.name === "SearchAbortedError" || err.message === "Search aborted")
+    );
+}
+
+function abortSearch() {
+    searchAbortRequested = true;
+    for (let i = 0; i < ALLOWED_ENGINES.length; i++) {
+        const engineName = ALLOWED_ENGINES[i];
+        try {
+            const mod = require(path.join(__dirname, "..", engineName));
+            if (typeof mod.abortActiveSearch === "function") {
+                mod.abortActiveSearch();
+            }
+        } catch (err) {
+            console.warn(`[desktopBrain] abortActiveSearch failed (${engineName}):`, err.message);
+        }
+    }
+}
+
+function throwIfSearchAborted() {
+    if (searchAbortRequested) {
+        throw new SearchAbortedError();
+    }
+}
 
 function ensureOpeningBookReady(engineName) {
     if (engineName !== "brain42" && engineName !== "brain43") {
@@ -64,6 +100,7 @@ function loadEngine(engineName) {
  */
 async function computeMove(opts, onProgress) {
     ensureRuntime();
+    searchAbortRequested = false;
     const {
         gameState,
         engine = "brain42",
@@ -84,6 +121,8 @@ async function computeMove(opts, onProgress) {
     if (chessGame.GameOver) {
         return null;
     }
+
+    throwIfSearchAborted();
 
     const forcedLoss = detectForcedLossMate(chessGame);
     if (forcedLoss.detected && immediateResign === true) {
@@ -123,7 +162,11 @@ async function computeMove(opts, onProgress) {
             config,
             pliesPlayed: Number.isFinite(pliesPlayed) ? pliesPlayed : 0,
         });
+        throwIfSearchAborted();
     } catch (err) {
+        if (isSearchAbortedError(err)) {
+            throw new SearchAbortedError();
+        }
         if (loaded.BrainTimeoutFallbackError && err instanceof loaded.BrainTimeoutFallbackError) {
             brainMove = err.fallbackMove;
         } else {
@@ -132,6 +175,8 @@ async function computeMove(opts, onProgress) {
     } finally {
         clearSearchProgressReporter();
     }
+
+    throwIfSearchAborted();
 
     if (!brainMove || brainMove.source == null || brainMove.target == null) {
         return null;
@@ -206,6 +251,8 @@ async function evaluatePosition(opts) {
 module.exports = {
     computeMove,
     evaluatePosition,
+    abortSearch,
+    SearchAbortedError,
     ensureRuntime,
     normalizeThinkingTimeSeconds,
     thinkingTimeSecondsToMs,

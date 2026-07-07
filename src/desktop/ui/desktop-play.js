@@ -3190,6 +3190,9 @@
             if (game.GameOver) {
                 return;
             }
+            if (move && move.searchAborted) {
+                return;
+            }
             if (move && move.opponentMateDetected) {
                 const mateNote =
                     move.opponentMateIn != null && Number.isFinite(move.opponentMateIn)

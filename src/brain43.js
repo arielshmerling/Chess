@@ -458,7 +458,7 @@ function getOrCreateWorker() {
         });
 
         persistentWorker.on("exit", (code) => {
-            if (code !== 0) {
+            if (code !== 0 && pendingRequests.size > 0) {
                 console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
             }
             for (const [, pending] of pendingRequests.entries()) {
@@ -772,6 +772,9 @@ exports.brainNextMoveFunc = async (game, options) => {
         }
         return move;
     } catch (err) {
+        if (err && err.message === "Search aborted") {
+            throw err;
+        }
         if (err && err.message === "Brain move timeout") {
             const fallbackMove = getFirstLegalMove(game);
             if (!fallbackMove) {
@@ -812,6 +815,14 @@ exports.brainNextMoveFunc = async (game, options) => {
 };
 
 exports.BrainTimeoutFallbackError = BrainTimeoutFallbackError;
+
+/** Stops an in-flight worker search (user abort / new game). */
+exports.abortActiveSearch = function abortActiveSearch() {
+    if (!isMainThread) {
+        return;
+    }
+    terminatePersistentWorker("Search aborted");
+};
 
 /** Terminates persistent search worker and root eval pool (tests / app shutdown). */
 exports.shutdownWorkers = function shutdownWorkers() {
