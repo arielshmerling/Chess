@@ -1,6 +1,5 @@
 /**
- * Keeps repo `data/` and desktop userData opening books in sync (newer file wins).
- * Previously userData always overwrote repo on every start, clobbering dev edits in `data/`.
+ * Keeps repo `data/` and desktop userData opening book in sync (newer file wins).
  */
 
 const fs = require("fs");
@@ -8,28 +7,18 @@ const path = require("path");
 const runtime = require("./runtime");
 
 const REPO_DATA_DIR = path.join(__dirname, "..", "..", "data");
-const OPENING_BOOK_BASENAME = "opening-book-states.json";
-const OPENING_BOOK_2_BASENAME = "opening-book-2-states.json";
 const OPENING_BOOK_LINES_BASENAME = "opening-book-lines.txt";
-
-function getRepoOpeningBookPath() {
-    return path.join(REPO_DATA_DIR, OPENING_BOOK_BASENAME);
-}
-
-function getRepoOpeningBook2Path() {
-    return path.join(REPO_DATA_DIR, OPENING_BOOK_2_BASENAME);
-}
 
 function getRepoOpeningBookLinesPath() {
     return path.join(REPO_DATA_DIR, OPENING_BOOK_LINES_BASENAME);
 }
 
-function getUserOpeningBookPathSafe(basename) {
+function getUserOpeningBookLinesPathSafe() {
     if (runtime.getUserDataRoot()) {
-        return path.join(runtime.getUserDataRoot(), basename);
+        return path.join(runtime.getUserDataRoot(), OPENING_BOOK_LINES_BASENAME);
     }
     if (process.env.SHMERLING_USER_DATA) {
-        return path.join(process.env.SHMERLING_USER_DATA, basename);
+        return path.join(process.env.SHMERLING_USER_DATA, OPENING_BOOK_LINES_BASENAME);
     }
     return null;
 }
@@ -66,18 +55,7 @@ function syncOpeningBookPair(repoPath, userPath) {
 }
 
 function syncOpeningBookForSharedLoader() {
-    syncOpeningBookPair(
-        getRepoOpeningBookPath(),
-        getUserOpeningBookPathSafe(OPENING_BOOK_BASENAME),
-    );
-    syncOpeningBookPair(
-        getRepoOpeningBook2Path(),
-        getUserOpeningBookPathSafe(OPENING_BOOK_2_BASENAME),
-    );
-    syncOpeningBookPair(
-        getRepoOpeningBookLinesPath(),
-        getUserOpeningBookPathSafe(OPENING_BOOK_LINES_BASENAME),
-    );
+    syncOpeningBookPair(getRepoOpeningBookLinesPath(), getUserOpeningBookLinesPathSafe());
 }
 
 function syncBrainConfigsForSinglePlayerGame() {

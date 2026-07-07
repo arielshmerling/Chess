@@ -4,15 +4,34 @@
  */
 const fs = require("fs").promises;
 const path = require("path");
-const {
-    transformBookMoveToGame,
-} = require("./openingBookJson");
-
 const { ChessGame } = require("./ChessGame");
 
 const OPENING_BOOK_LINES_BASENAME = "opening-book-lines.txt";
 /** Half-moves (SAN tokens) stored per game line. */
 const DEFAULT_MAX_LINE_PLIES = 15;
+const BOARD_LAST_INDEX = 7;
+
+function flipSquare(square) {
+    return {
+        row: BOARD_LAST_INDEX - square.row,
+        col: BOARD_LAST_INDEX - square.col,
+    };
+}
+
+/** Map a book move from upright replay into the game's board coordinates. */
+function transformBookMoveToGame(move, flipMoves) {
+    if (!move || !flipMoves) {
+        return move;
+    }
+    if (!move.source || !move.target) {
+        return move;
+    }
+    return {
+        ...move,
+        source: flipSquare(move.source),
+        target: flipSquare(move.target),
+    };
+}
 
 function resolveOpeningBookLinesPath() {
     if (process.env.SHMERLING_MODE === "desktop") {

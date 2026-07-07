@@ -142,7 +142,7 @@ exports.stopGenerateState = (req, res) => {
 };
 
 /**
- * Server-Sent Events: replay PGNs into Mongo (`mode=mongo`) or binary opening book (`mode=book`).
+ * Server-Sent Events: replay PGNs into Mongo (`mode=mongo`) or line opening book (`mode=book`).
  */
 exports.generateStateStream = async (req, res) => {
     if (!gamesManagerService.tryAcquireGenerateStateLock()) {
@@ -186,7 +186,7 @@ exports.generateStateStream = async (req, res) => {
                 mode,
                 stopped: true,
                 cancelledBeforeRead: true,
-                file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+                file: mode === "book" ? gamesManagerService.getOpeningBookLinesPath() : null,
             });
             return;
         }
@@ -209,7 +209,7 @@ exports.generateStateStream = async (req, res) => {
                 mode,
                 stopped: true,
                 cancelledAfterRead: true,
-                file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+                file: mode === "book" ? gamesManagerService.getOpeningBookLinesPath() : null,
             });
             return;
         }
@@ -219,12 +219,16 @@ exports.generateStateStream = async (req, res) => {
             message: `Replaying ${pgnGames.length} games…`,
             totalGames: pgnGames.length,
         });
-        const result = await gamesManagerService.replayPGNGames(pgnGames, {
-            saveToDB: mode === "mongo",
-            openingBookOutputPath: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : undefined,
-            onProgress: (e) => send({ type: "progress", segment: "replay", ...e }),
-            checkAbort,
-        });
+        const result = mode === "book"
+            ? await gamesManagerService.regenerateOpeningBookLines(pgnGames, {
+                onProgress: (e) => send({ type: "progress", segment: "replay", ...e }),
+                checkAbort,
+            })
+            : await gamesManagerService.replayPGNGames(pgnGames, {
+                saveToDB: true,
+                onProgress: (e) => send({ type: "progress", segment: "replay", ...e }),
+                checkAbort,
+            });
         send({
             type: "done",
             ok: true,
@@ -233,7 +237,7 @@ exports.generateStateStream = async (req, res) => {
             gamesCompleted: result && result.gamesCompleted != null ? result.gamesCompleted : undefined,
             entryCount: result && result.positionCount != null ? result.positionCount : undefined,
             bookUnchanged: mode === "book" && result && result.stopped && result.positionCount == null,
-            file: mode === "book" ? gamesManagerService.getOpeningBookFilePath() : null,
+            file: mode === "book" ? gamesManagerService.getOpeningBookLinesPath() : null,
         });
     } catch (err) {
         console.error("[generateStateStream]", err);

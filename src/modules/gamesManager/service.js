@@ -5,53 +5,27 @@ const { ChessGame } = require("../../ChessGame");
 const { Game, State } = require("../game/model");
 const catchAsync = require("../../utils/catchAsync");
 const {
-    OPENING_BOOK_BASENAME,
-    loadOpeningBookEntries,
-} = require("../../openingBookLoader");
-const {
-    savedGameStateToCanonicalLookupKey,
-    compactArrayToLookupKey,
-    moveToBookMove,
-} = require("../../openingBookJson");
+    OPENING_BOOK_LINES_BASENAME,
+    DEFAULT_MAX_LINE_PLIES,
+    loadOpeningBookLines,
+    extractLineFromPgnGame,
+    writeOpeningBookLinesFile,
+} = require("../../openingBookLines");
 
-function getOpeningBookFilePath() {
-    return path.join(__dirname, "..", "..", "..", "data", OPENING_BOOK_BASENAME);
+function getOpeningBookLinesPath() {
+    return path.join(__dirname, "..", "..", "..", "data", OPENING_BOOK_LINES_BASENAME);
 }
 
-exports.getOpeningBookFilePath = getOpeningBookFilePath;
-exports.OPENING_BOOK_BASENAME = OPENING_BOOK_BASENAME;
-exports.loadOpeningBookEntries = () => loadOpeningBookEntries(getOpeningBookFilePath());
-exports.writeOpeningBookJsonFile = writeOpeningBookJsonFile;
+exports.getOpeningBookLinesPath = getOpeningBookLinesPath;
+exports.OPENING_BOOK_LINES_BASENAME = OPENING_BOOK_LINES_BASENAME;
 
 /**
  * @returns {Promise<number>}
  */
 exports.getOpeningBookEntryCount = async () => {
-    const entries = await exports.loadOpeningBookEntries();
-    return entries.length;
+    const lines = await loadOpeningBookLines(getOpeningBookLinesPath());
+    return lines.length;
 };
-
-/**
- * Writes the opening book as JSONL: metadata line, then one compact entry per line.
- * @param {{ generatedAt: string, entries: { state: number[], move: object }[] }} book
- * @param {string} outputPath
- */
-async function writeOpeningBookJsonFile(book, outputPath) {
-    await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    const tempPath = `${outputPath}.${process.pid}.${Date.now()}.tmp`;
-    const handle = await fs.open(tempPath, "w");
-    try {
-        const write = (chunk) => handle.write(chunk);
-        await write(`${JSON.stringify({ generatedAt: book.generatedAt })}\n`);
-        const entries = book.entries || [];
-        for (let i = 0; i < entries.length; i++) {
-            await write(`${JSON.stringify(entries[i])}\n`);
-        }
-    } finally {
-        await handle.close();
-    }
-    await fs.rename(tempPath, outputPath);
-}
 
 /** Not yet finished (same set used for stale cleanup and “active” counts). */
 const NON_TERMINAL_GAME_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
@@ -747,13 +721,12 @@ exports.releaseGenerateStateLock = () => {
 /**
  * Replays PGN games through ChessGame (same logic as addGamesToDB).
  * When saveToDB is true, each state is persisted; when false, no DB writes (for tests).
- * When openingBookOutputPath is set, each new unique state–move pair is collected as compact JSONL entries and written at the end.
+ * When saveToDB is true, each state is persisted; when false, no DB writes (for tests).
  * @param {Object[]} games - PGN game objects from readPGNGames
- * @param {{ saveToDB?: boolean, openingBookOutputPath?: string, maxGames?: number, maxMovesPerGame?: number, onProgress?: (e: object) => void, checkAbort?: () => boolean }} [options]
- * @returns {Promise<{ gamesCompleted: number, positionCount?: number, stopped?: boolean }|void>}
+ * @param {{ saveToDB?: boolean, maxGames?: number, maxMovesPerGame?: number, onProgress?: (e: object) => void, checkAbort?: () => boolean }} [options]
+ * @returns {Promise<{ gamesCompleted: number, stopped?: boolean }|void>}
  */
 exports.replayPGNGames = catchAsync(async (games, options = {}) => {
-    const openingBookOutputPath = options.openingBookOutputPath;
     const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
     const checkAbort = typeof options.checkAbort === "function" ? options.checkAbort : null;
     const maxGames = options.maxGames;
@@ -766,15 +739,11 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
     if (typeof maxMovesPerGame === "number" && maxMovesPerGame > 0) {
         console.log(`[replayPGNGames] maxMovesPerGame=${maxMovesPerGame}: first ${maxMovesPerGame} half-moves per game`);
     }
-    const saveToDB = options.saveToDB !== undefined
-        ? options.saveToDB
-        : !openingBookOutputPath;
+    const saveToDB = options.saveToDB === true;
     const totalGames = gamesToReplay.length;
     let gameNum = 0;
     let game;
     const movesArr = [];
-    const openingBookByPair = openingBookOutputPath ? new Map() : null;
-    let openingBookTotalAppearances = 0;
     let replayStoppedByUser = false;
 
     if (onProgress) {
@@ -818,23 +787,6 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
                         });
                         await stateDoc.save();
                     }
-                    if (openingBookOutputPath && openingBookByPair) {
-                        const { lookupKey } = savedGameStateToCanonicalLookupKey(gameStateBeforeMove);
-                        const compactState = JSON.parse(lookupKey);
-                        const bookMove = moveToBookMove(actual);
-                        const pairKey = compactArrayToLookupKey(compactState) + "\0" + JSON.stringify(bookMove);
-                        openingBookTotalAppearances += 1;
-                        const existing = openingBookByPair.get(pairKey);
-                        if (existing) {
-                            existing.weight += 1;
-                        } else {
-                            openingBookByPair.set(pairKey, {
-                                state: compactState,
-                                move: bookMove,
-                                weight: 1,
-                            });
-                        }
-                    }
                     pliesPlayed += 1;
                     if (typeof maxMovesPerGame === "number" && maxMovesPerGame > 0 && pliesPlayed >= maxMovesPerGame) {
                         break;
@@ -871,46 +823,6 @@ exports.replayPGNGames = catchAsync(async (games, options = {}) => {
     if (saveToDB) {
         console.log(gameNum + " games added");
     }
-
-    if (openingBookOutputPath && openingBookByPair) {
-        const openingBookEntries = Array.from(openingBookByPair.values());
-        const entryCount = openingBookEntries.length;
-        const shouldWrite = !replayStoppedByUser || entryCount > 0;
-
-        let finalizedEntryCount = null;
-        if (shouldWrite) {
-            if (onProgress) {
-                onProgress({
-                    phase: "writing",
-                    current: totalGames,
-                    total: totalGames,
-                    gamesCompleted: gameNum,
-                    message: "Writing JSON opening book…",
-                });
-            }
-            await writeOpeningBookJsonFile(
-                {
-                    generatedAt: new Date().toISOString(),
-                    entries: openingBookEntries,
-                },
-                openingBookOutputPath,
-            );
-            finalizedEntryCount = entryCount;
-            console.log(
-                `Opening book JSON written: ${openingBookOutputPath} (${finalizedEntryCount} unique state–move pairs`
-                    + (openingBookTotalAppearances ? ` from ${openingBookTotalAppearances} appearances` : "")
-                    + (replayStoppedByUser ? ", stopped early" : "")
-                    + ")",
-            );
-        } else {
-            console.log("[replayPGNGames] Stopped before any book entries; existing opening book file unchanged.");
-        }
-        return {
-            gamesCompleted: gameNum,
-            positionCount: shouldWrite ? finalizedEntryCount : undefined,
-            stopped: replayStoppedByUser,
-        };
-    }
     return { gamesCompleted: gameNum, stopped: replayStoppedByUser };
 });
 
@@ -919,15 +831,82 @@ exports.addGamesToDB = catchAsync(async (games) => {
 });
 
 /**
- * Same PGN replay as {@link exports.addGamesToDB}, but writes the JSON opening book only (no Mongo).
+ * Rebuild the line-based opening book from PGN games (one SAN line per game).
+ * @param {Object[]} games
+ * @param {{ maxGames?: number, maxMovesPerGame?: number, onProgress?: (e: object) => void, checkAbort?: () => boolean }} [options]
+ */
+exports.regenerateOpeningBookLines = catchAsync(async (games, options = {}) => {
+    const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+    const checkAbort = typeof options.checkAbort === "function" ? options.checkAbort : null;
+    const maxPlies = typeof options.maxMovesPerGame === "number" && options.maxMovesPerGame > 0
+        ? options.maxMovesPerGame
+        : DEFAULT_MAX_LINE_PLIES;
+    let gamesToProcess = games;
+    if (typeof options.maxGames === "number" && options.maxGames > 0 && games.length > options.maxGames) {
+        gamesToProcess = games.slice(0, options.maxGames);
+    }
+
+    const totalGames = gamesToProcess.length;
+    const lines = [];
+    let stopped = false;
+
+    if (onProgress) {
+        onProgress({ phase: "replaying", current: 0, total: totalGames, gamesCompleted: 0 });
+    }
+
+    for (let i = 0; i < gamesToProcess.length; i++) {
+        if (checkAbort && checkAbort()) {
+            stopped = true;
+            break;
+        }
+        const line = extractLineFromPgnGame(gamesToProcess[i], maxPlies);
+        if (line) {
+            lines.push(line);
+        }
+        if (onProgress) {
+            onProgress({
+                phase: "replaying",
+                current: i + 1,
+                total: totalGames,
+                gamesCompleted: lines.length,
+            });
+        }
+    }
+
+    const shouldWrite = !stopped || lines.length > 0;
+    let lineCount = null;
+    if (shouldWrite) {
+        if (onProgress) {
+            onProgress({
+                phase: "writing",
+                current: totalGames,
+                total: totalGames,
+                gamesCompleted: lines.length,
+                message: "Writing opening book lines…",
+            });
+        }
+        const outPath = getOpeningBookLinesPath();
+        await writeOpeningBookLinesFile(lines, outPath, {
+            maxPlies,
+            generatedAt: new Date().toISOString(),
+        });
+        lineCount = lines.length;
+        console.log(`Opening book lines written: ${outPath} (${lineCount} game lines${stopped ? ", stopped early" : ""})`);
+    } else {
+        console.log("[regenerateOpeningBookLines] Stopped before any lines; existing book unchanged.");
+    }
+
+    return {
+        gamesCompleted: lines.length,
+        positionCount: shouldWrite ? lineCount : undefined,
+        stopped,
+    };
+});
+
+/**
  * @param {Object[]} games
  * @param {{ maxGames?: number, maxMovesPerGame?: number }} [options]
  */
 exports.addGamesToOpeningBook = catchAsync(async (games, options = {}) => {
-    return await exports.replayPGNGames(games, {
-        saveToDB: false,
-        openingBookOutputPath: getOpeningBookFilePath(),
-        maxGames: options.maxGames,
-        maxMovesPerGame: options.maxMovesPerGame,
-    });
+    return await exports.regenerateOpeningBookLines(games, options);
 });

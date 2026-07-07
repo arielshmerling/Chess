@@ -234,14 +234,14 @@ exports.generateState = async (req, res) => {
     res.redirect("list");
 };
 
-/** Admin-only: replay PGNs into `data/opening-book-states.json`; does not write Mongo. */
+/** Admin-only: rebuild `data/opening-book-lines.txt` from PGNs; does not write Mongo. */
 exports.generateOpeningBook = async (req, res) => {
     const files = await gamesManagerService.getPGNFiles();
     const pgnGames = await gamesManagerService.readPGNGames(files);
     const stats = await gamesManagerService.addGamesToOpeningBook(pgnGames);
     res.type("json").send({
         ok: true,
-        file: gamesManagerService.getOpeningBookFilePath(),
+        file: gamesManagerService.getOpeningBookLinesPath(),
         gamesCompleted: stats && stats.gamesCompleted != null ? stats.gamesCompleted : null,
         entryCount: stats && stats.positionCount != null ? stats.positionCount : null,
     });

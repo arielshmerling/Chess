@@ -18,8 +18,6 @@ const DESKTOP_ROOT_FILES = [
     "brain43RootPool.js",
     "brain43RootEvalWorker.js",
     "brainSearchTime.js",
-    "openingBookJson.js",
-    "openingBookLoader.js",
     "openingBookLines.js",
     "brainOpeningBook.js",
     "gameStateCompact.js",
@@ -141,12 +139,7 @@ function main() {
     copyDirFiltered(uiDir, uiDest, { excludeNames: DESKTOP_UI_EXCLUDE });
 
     ensureDir(path.join(BUNDLE, "data"));
-    for (const name of [
-        "opening-book-states.json",
-        "opening-book-2-states.json",
-        "opening-book-lines.txt",
-        "desktop-custom-themes.json",
-    ]) {
+    for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json"]) {
         const src = path.join(ROOT, "data", name);
         if (fs.existsSync(src)) {
             copyFile(src, path.join(BUNDLE, "data", name));

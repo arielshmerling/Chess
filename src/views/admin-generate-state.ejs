@@ -12,7 +12,7 @@
       <div class="panel-body admin-panel-body admin-generate-state-body">
         <p class="admin-generate-state-intro">
           Replays all PGN files under the server’s games manager folder into either the <strong>State</strong> Mongo collection
-          or the local JSON opening book (<code>data/opening-book-states.json</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
+          or the line-based opening book (<code>data/opening-book-lines.txt</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
         </p>
         <fieldset class="admin-generate-state-targets">
           <legend class="admin-generate-state-legend">Target</legend>
@@ -22,7 +22,7 @@
           </label>
           <label class="admin-generate-state-radio-label">
             <input type="radio" name="generate-target" value="book">
-            <span>JSON file — write opening book (<code>opening-book-states.json</code>)</span>
+            <span>Line file — write opening book (<code>opening-book-lines.txt</code>)</span>
           </label>
         </fieldset>
         <div class="admin-generate-state-actions">
@@ -136,7 +136,7 @@
             if (data.bookUnchanged) {
               parts.push("Existing opening book was not modified.");
             } else if (data.mode === "book" && data.entryCount != null) {
-              parts.push(data.entryCount + " position(s) in " + (data.file || "opening book") + ".");
+              parts.push(data.entryCount + " game line(s) in " + (data.file || "opening book") + ".");
             }
             if (data.cancelledBeforeRead) {
               parts.push("Cancelled before reading PGNs.");
@@ -149,7 +149,7 @@
             }
             statusEl.textContent = parts.join(" ");
           } else if (data.mode === "book") {
-            statusEl.textContent = "Done. " + (data.entryCount != null ? data.entryCount + " positions → " : "") + (data.file || "opening book");
+            statusEl.textContent = "Done. " + (data.entryCount != null ? data.entryCount + " game lines → " : "") + (data.file || "opening book");
           } else {
             statusEl.textContent = "Done. MongoDB State collection updated"
               + (data.gamesCompleted != null ? " (" + data.gamesCompleted + " games replayed ok)" : "") + ".";
