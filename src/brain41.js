@@ -322,7 +322,7 @@ function suggestMove(localChess, maxDepth, ply = 1) {
     return finalResult;
 }
 
-function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
+async function suggestMoveWithTimeLimit(localChess, thinkingTimeMs) {
     beginTimedSearch(thinkingTimeMs);
     try {
         const fallback = getFirstLegalMove(localChess);
@@ -915,36 +915,38 @@ if (!isMainThread) {
         const budgetLabel = thinkingTimeMs != null ? `time=${thinkingTimeMs}ms` : `depth=${maxDepth}`;
         reportSearchThinking(LOG_PREFIX, budgetLabel, null, null, requestId);
 
-        try {
-            positionsEvaluatedThisSearch = 0;
-            chess.loadGame(gameState);
-            chess.SearchMode = true;
-            let move = thinkingTimeMs != null
-                ? suggestMoveWithTimeLimit(chess, thinkingTimeMs)
-                : suggestMove(chess, maxDepth, 1);
-            if (move && move.searchDepthReached == null) {
-                move.searchDepthReached = maxDepth;
-            }
-            chess.SearchMode = false;
+        (async () => {
+            try {
+                positionsEvaluatedThisSearch = 0;
+                chess.loadGame(gameState);
+                chess.SearchMode = true;
+                let move = thinkingTimeMs != null
+                    ? await suggestMoveWithTimeLimit(chess, thinkingTimeMs)
+                    : suggestMove(chess, maxDepth, 1);
+                if (move && move.searchDepthReached == null) {
+                    move.searchDepthReached = maxDepth;
+                }
+                chess.SearchMode = false;
 
-            const duration = Date.now() - startTime;
-            const depthReached = move && move.searchDepthReached != null ? move.searchDepthReached : "?";
-            console.log(
-                `${LOG_PREFIX} request=${requestId} done in ${duration}ms, `
-                    + `depth=${depthReached}, move=${toSimpleNotationSafe(chess, move)}, `
-                    + `positions evaluated=${positionsEvaluatedThisSearch}`,
-            );
+                const duration = Date.now() - startTime;
+                const depthReached = move && move.searchDepthReached != null ? move.searchDepthReached : "?";
+                console.log(
+                    `${LOG_PREFIX} request=${requestId} done in ${duration}ms, `
+                        + `depth=${depthReached}, move=${toSimpleNotationSafe(chess, move)}, `
+                        + `positions evaluated=${positionsEvaluatedThisSearch}`,
+                );
 
-            if (move) {
-                move.turn = chess.Turn;
-                parentPort.postMessage({ requestId, move });
-            } else {
-                parentPort.postMessage({ requestId, error: "No move found" });
+                if (move) {
+                    move.turn = chess.Turn;
+                    parentPort.postMessage({ requestId, move });
+                } else {
+                    parentPort.postMessage({ requestId, error: "No move found" });
+                }
+            } catch (err) {
+                const duration = Date.now() - startTime;
+                console.error(`${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms:`, err);
+                parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
             }
-        } catch (err) {
-            const duration = Date.now() - startTime;
-            console.error(`${LOG_PREFIX} Worker error request=${requestId} after ${duration}ms:`, err);
-            parentPort.postMessage({ requestId, error: err.message || "Unknown error in worker thread" });
-        }
+        })();
     });
 }

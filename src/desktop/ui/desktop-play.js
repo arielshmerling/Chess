@@ -239,7 +239,7 @@
         }
         if (!gameActive && !positionSetupMode && !configurationMode) {
             if (reviewMode && boardHasPieces()) {
-                return "Review mode — set move, color, engine, and think time in the header, then press Play";
+                return "";
             }
             if (boardHasPieces()) {
                 return "Set move, color, engine, and think time in the header, then press Play";
@@ -2653,11 +2653,7 @@
             setCurrentGameId(null);
             enterReviewMode();
             syncGameRunPanelOptions();
-            showStatus(
-                "Review mode — click a move to step through the game, then press Play to continue",
-                0,
-                "info",
-            );
+            showStatus("");
         } catch (err) {
             showStatus(err.message || "Could not load saved game", 0, "error");
         } finally {
@@ -3189,15 +3185,12 @@
                     ? session.thinkingTimeSeconds
                     : session.difficulty,
                 pliesPlayed: game.Moves ? game.Moves.length : 0,
+                immediateResign: Settings.loadGamePreferences().immediateResign === true,
             });
             if (game.GameOver) {
                 return;
             }
-            if (!move) {
-                showStatus("Engine could not find a move", 0, "error");
-                return;
-            }
-            if (move.opponentMateDetected) {
+            if (move && move.opponentMateDetected) {
                 const mateNote =
                     move.opponentMateIn != null && Number.isFinite(move.opponentMateIn)
                         ? ` (mate in ${move.opponentMateIn})`
@@ -3209,6 +3202,10 @@
                     engineResignFromLostPosition();
                     return;
                 }
+            }
+            if (!move) {
+                showStatus("Engine could not find a move", 0, "error");
+                return;
             }
             if (move.score != null && Number.isFinite(move.score)) {
                 console.log(

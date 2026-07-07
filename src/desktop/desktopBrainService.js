@@ -15,6 +15,7 @@ const {
     setSearchProgressReporter,
     clearSearchProgressReporter,
 } = require("../brainSearchProgress");
+const { detectForcedLossMate, collectLegalMoves } = require("./forcedMateDetection");
 
 const ALLOWED_ENGINES = ["brain41", "brain42", "brain43"];
 
@@ -57,7 +58,7 @@ function loadEngine(engineName) {
 }
 
 /**
- * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, pliesPlayed?: number }} opts
+ * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, pliesPlayed?: number, immediateResign?: boolean }} opts
  * @param {(progress: object) => void} [onProgress]
  * @returns {Promise<object|null>} move object (source/target) for client ChessGame
  */
@@ -69,6 +70,7 @@ async function computeMove(opts, onProgress) {
         thinkingTimeSeconds,
         difficulty,
         pliesPlayed,
+        immediateResign,
     } = opts || {};
     if (!gameState) {
         throw new Error("Missing game state");
@@ -81,6 +83,23 @@ async function computeMove(opts, onProgress) {
 
     if (chessGame.GameOver) {
         return null;
+    }
+
+    const forcedLoss = detectForcedLossMate(chessGame);
+    if (forcedLoss.detected && immediateResign === true) {
+        const turnBefore = chessGame.Turn;
+        const escapeMoves = collectLegalMoves(chessGame);
+        const firstMove = escapeMoves.length > 0 ? escapeMoves[0] : null;
+        console.log(
+            `[desktopBrain] Forced loss detected; opponent mate in ${forcedLoss.opponentMateIn ?? "?"}`,
+        );
+        return {
+            opponentMateDetected: true,
+            opponentMateIn: forcedLoss.opponentMateIn,
+            source: firstMove ? firstMove.source : null,
+            target: firstMove ? firstMove.target : null,
+            turn: turnBefore,
+        };
     }
 
     const loaded = loadEngine(engine);
@@ -146,6 +165,8 @@ async function computeMove(opts, onProgress) {
         turn: turnBefore,
         score: brainMove.score,
         searchDepthReached: brainMove.searchDepthReached,
+        opponentMateDetected: forcedLoss.detected,
+        opponentMateIn: forcedLoss.detected ? forcedLoss.opponentMateIn : undefined,
     };
 }
 
