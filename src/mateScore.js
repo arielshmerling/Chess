@@ -15,6 +15,47 @@ function isProvenMateScore(score) {
     return isProvenMateLossScore(score) || isProvenMateWinScore(score);
 }
 
+function rootSearchMovesEqual(a, b) {
+    return !!(
+        a
+        && b
+        && a.source
+        && b.source
+        && a.target
+        && b.target
+        && a.source.row === b.source.row
+        && a.source.col === b.source.col
+        && a.target.row === b.target.row
+        && a.target.col === b.target.col
+    );
+}
+
+/**
+ * Stop iterative deepening when the same root move is a proven mate win two depths in a row.
+ * @param {{ source: object, target: object, score?: number }|null} previousBest
+ * @param {{ source: object, target: object, score?: number }|null} currentBest
+ */
+function shouldStopOnStableProvenMateWin(previousBest, currentBest) {
+    if (!previousBest || !currentBest) {
+        return false;
+    }
+    return isProvenMateWinScore(previousBest.score)
+        && isProvenMateWinScore(currentBest.score)
+        && rootSearchMovesEqual(previousBest, currentBest);
+}
+
+/** Shallow snapshot for cross-depth mate-stability comparison. */
+function snapshotRootSearchMove(move) {
+    if (!move || move.source == null || move.target == null) {
+        return null;
+    }
+    return {
+        source: { row: move.source.row, col: move.source.col },
+        target: { row: move.target.row, col: move.target.col },
+        score: move.score,
+    };
+}
+
 /** Full moves until opponent delivers mate, from a root loss score (-MATE_SCORE + ply). */
 function opponentMateInFromLossScore(score) {
     if (!isProvenMateLossScore(score)) {
@@ -34,4 +75,7 @@ module.exports = {
     isProvenMateWinScore,
     isProvenMateScore,
     opponentMateInFromLossScore,
+    rootSearchMovesEqual,
+    shouldStopOnStableProvenMateWin,
+    snapshotRootSearchMove,
 };

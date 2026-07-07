@@ -27,7 +27,7 @@ const {
     flushWorkerProgress,
     setWorkerSearchProgressRequestId,
 } = require("./brainSearchProgress");
-const { isProvenMateLossScore } = require("./mateScore");
+const { isProvenMateLossScore, isProvenMateWinScore, shouldStopOnStableProvenMateWin, snapshotRootSearchMove } = require("./mateScore");
 const { createRootWorkerPool, MAX_ROOT_WORKERS } = require("./brain43RootPool");
 const {
     preloadOpeningBook: preloadSharedOpeningBook,
@@ -1994,6 +1994,7 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
         const ordered = orderMovesCapturesFirst(game, moves);
         let bestMove = ordered[0];
         let completedDepth = 0;
+        let previousDepthBest = null;
 
         for (let depth = 1; depth <= MAX_TIMED_SEARCH_DEPTH; depth += 1) {
             if (shouldStopSearch()) {
@@ -2027,6 +2028,16 @@ async function searchBestMoveWithTimeLimit(game, thinkingTimeMs) {
                     );
                     break;
                 }
+                if (shouldStopOnStableProvenMateWin(previousDepthBest, bestMove)) {
+                    reportSearchMessage(
+                        `${LOG_PREFIX} Stable proven mate win at depth ${depth}; stopping timed search early`,
+                        "proven-win-mate",
+                    );
+                    break;
+                }
+                previousDepthBest = isProvenMateWinScore(bestMove.score)
+                    ? snapshotRootSearchMove(bestMove)
+                    : null;
             }
             if (shouldStopSearch()) {
                 break;
