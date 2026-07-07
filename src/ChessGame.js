@@ -70,7 +70,7 @@ class ChessGame {
 
         this.#state = new ChessGameState();
         this.#state.whitePlayerView = isWhitePlayerView;
-        console.log("Chess Game Created");
+        //console.log("Chess Game Created");
     }
 
     //Getters/Setters
