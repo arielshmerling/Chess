@@ -88,6 +88,12 @@
     let reviewPlyIndex = 0;
     /** When set, Play continues from this ply and drops later moves. */
     let reviewBranchPly = null;
+    let reviewPlaybackPlaying = false;
+    let reviewPlaybackToken = 0;
+    let reviewNavMounted = false;
+    /** @type {{ start?: HTMLButtonElement, back?: HTMLButtonElement, playPause?: HTMLButtonElement, forward?: HTMLButtonElement, end?: HTMLButtonElement, playIcon?: HTMLElement, pauseIcon?: HTMLElement }|null} */
+    let reviewNavEls = null;
+    const REVIEW_PLAYBACK_STEP_DELAY_MS = 500;
     let positionSetupSnapshot = null;
     let playSessionReady = false;
     let positionSetupPanelMounted = false;
@@ -120,6 +126,21 @@
             '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
         configuration:
             '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    };
+
+    const REVIEW_NAV_ICONS = {
+        start:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6V6zm3.5 6L18 18V6L9.5 12z" fill="currentColor"/></svg>',
+        back:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6v12z" fill="currentColor"/></svg>',
+        play:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg>',
+        pause:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" fill="currentColor"/></svg>',
+        forward:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6v12z" fill="currentColor"/></svg>',
+        end:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6h2v12h-2V6zM6 18V6l8.5 6L6 18z" fill="currentColor"/></svg>',
     };
 
     function $(id) {
@@ -314,6 +335,9 @@
         }
         if (configurationMode) {
             return "Configuration mode";
+        }
+        if (reviewPlaybackPlaying) {
+            return "Playback Mode";
         }
         if (reviewMode) {
             return "Review Mode";
@@ -1446,18 +1470,23 @@
         updateActionButtons();
         updateGameRunPanelVisibility();
         refreshReviewMovesTable();
+        updateReviewNavBar();
     }
 
     function exitReviewMode() {
         if (!reviewMode) {
+            stopReviewPlayback();
+            updateReviewNavBar();
             return;
         }
+        stopReviewPlayback();
         reviewMode = false;
         clearReviewNavigation();
         updateMatchHeader();
         updateActionButtons();
         updateGameRunPanelVisibility();
         restoreSidebarPreferences();
+        updateReviewNavBar();
     }
 
     function clearReviewNavigation() {
@@ -1668,7 +1697,251 @@
         updateHeaderTurn();
     }
 
+    function reviewMoveForAnimation(move) {
+        let m = cloneReviewMove(move);
+        if (!m || m.source == null || m.target == null) {
+            return null;
+        }
+        if (moveNeedsCoordinateFlipForReplay(game, move)) {
+            m = game.flipMove(m);
+        }
+        return m;
+    }
+
+    function stopReviewPlayback() {
+        if (!reviewPlaybackPlaying) {
+            updateReviewNavBar();
+            return;
+        }
+        reviewPlaybackPlaying = false;
+        reviewPlaybackToken += 1;
+        updateMatchHeader();
+        updateReviewNavBar();
+    }
+
+    function reviewPlaybackDelay(ms) {
+        const token = reviewPlaybackToken;
+        return new Promise(function (resolve) {
+            setTimeout(function () {
+                resolve(token === reviewPlaybackToken && reviewPlaybackPlaying);
+            }, ms);
+        });
+    }
+
+    async function animateReviewStepForward() {
+        if (!reviewMode || reviewPlyIndex >= reviewFullMoves.length) {
+            return false;
+        }
+        const raw = reviewFullMoves[reviewPlyIndex];
+        if (typeof game.isResultMove === "function" && game.isResultMove(raw)) {
+            reviewPlyIndex += 1;
+            reviewBranchPly =
+                reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
+            game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            refreshReviewMovesTable();
+            return true;
+        }
+        const animMove = reviewMoveForAnimation(raw);
+        if (!animMove) {
+            return false;
+        }
+        animating = true;
+        try {
+            await Board.animateMove(animMove);
+            if (!applyReviewMove(game, raw)) {
+                Board.syncFromGameState();
+                return false;
+            }
+            reviewPlyIndex += 1;
+            reviewBranchPly =
+                reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
+            game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            syncReviewBoardFromGame();
+            refreshReviewMovesTable();
+            return true;
+        } catch (err) {
+            console.warn("[desktop-play] Review playback step failed:", err);
+            Board.syncFromGameState();
+            return false;
+        } finally {
+            animating = false;
+            if (Board.clearBoardAnimating) {
+                Board.clearBoardAnimating();
+            }
+        }
+    }
+
+    async function startReviewPlayback() {
+        if (
+            !reviewMode
+            || !reviewFullMoves.length
+            || reviewPlaybackPlaying
+            || reviewPlyIndex >= reviewFullMoves.length
+        ) {
+            return;
+        }
+        reviewPlaybackPlaying = true;
+        const token = reviewPlaybackToken;
+        updateMatchHeader();
+        updateReviewNavBar();
+        while (
+            reviewPlaybackPlaying
+            && token === reviewPlaybackToken
+            && reviewPlyIndex < reviewFullMoves.length
+        ) {
+            const ok = await animateReviewStepForward();
+            if (!ok || !reviewPlaybackPlaying || token !== reviewPlaybackToken) {
+                break;
+            }
+            if (reviewPlyIndex >= reviewFullMoves.length) {
+                break;
+            }
+            const stillPlaying = await reviewPlaybackDelay(REVIEW_PLAYBACK_STEP_DELAY_MS);
+            if (!stillPlaying) {
+                break;
+            }
+        }
+        if (token === reviewPlaybackToken) {
+            stopReviewPlayback();
+        }
+    }
+
+    function createReviewNavButton(label, iconKey, className, onClick) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "desktop-play-review-nav-btn" + (className ? " " + className : "");
+        btn.setAttribute("aria-label", label);
+        btn.title = label;
+        btn.innerHTML = REVIEW_NAV_ICONS[iconKey] || "";
+        btn.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            onClick();
+        });
+        return btn;
+    }
+
+    function ensureReviewNavBar() {
+        const nav = $("desktopPlayReviewNav");
+        if (!nav || reviewNavMounted) {
+            return;
+        }
+        reviewNavMounted = true;
+        nav.innerHTML = "";
+
+        const startBtn = createReviewNavButton("Start", "start", "", function () {
+            if (!reviewMode || reviewPlaybackPlaying) {
+                return;
+            }
+            stopReviewPlayback();
+            showReviewAtPly(0);
+        });
+        const backBtn = createReviewNavButton("Back", "back", "", function () {
+            if (!reviewMode || reviewPlaybackPlaying || reviewPlyIndex <= 0) {
+                return;
+            }
+            stopReviewPlayback();
+            showReviewAtPly(reviewPlyIndex - 1);
+        });
+
+        const playPauseBtn = document.createElement("button");
+        playPauseBtn.type = "button";
+        playPauseBtn.className =
+            "desktop-play-review-nav-btn desktop-play-review-nav-btn--playpause";
+        playPauseBtn.setAttribute("aria-label", "Play");
+        playPauseBtn.title = "Play";
+        const playIcon = document.createElement("span");
+        playIcon.className = "desktop-play-review-nav-play-icon";
+        playIcon.innerHTML = REVIEW_NAV_ICONS.play;
+        playIcon.setAttribute("aria-hidden", "true");
+        const pauseIcon = document.createElement("span");
+        pauseIcon.className = "desktop-play-review-nav-pause-icon";
+        pauseIcon.innerHTML = REVIEW_NAV_ICONS.pause;
+        pauseIcon.hidden = true;
+        pauseIcon.setAttribute("aria-hidden", "true");
+        playPauseBtn.appendChild(playIcon);
+        playPauseBtn.appendChild(pauseIcon);
+        playPauseBtn.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            if (!reviewMode || !reviewFullMoves.length) {
+                return;
+            }
+            if (reviewPlaybackPlaying) {
+                stopReviewPlayback();
+            } else {
+                startReviewPlayback();
+            }
+        });
+
+        const forwardBtn = createReviewNavButton("Forward", "forward", "", function () {
+            if (
+                !reviewMode
+                || reviewPlaybackPlaying
+                || reviewPlyIndex >= reviewFullMoves.length
+            ) {
+                return;
+            }
+            stopReviewPlayback();
+            showReviewAtPly(reviewPlyIndex + 1);
+        });
+        const endBtn = createReviewNavButton("End", "end", "", function () {
+            if (!reviewMode || reviewPlaybackPlaying) {
+                return;
+            }
+            stopReviewPlayback();
+            showReviewAtPly(reviewFullMoves.length);
+        });
+
+        nav.appendChild(startBtn);
+        nav.appendChild(backBtn);
+        nav.appendChild(playPauseBtn);
+        nav.appendChild(forwardBtn);
+        nav.appendChild(endBtn);
+
+        reviewNavEls = {
+            start: startBtn,
+            back: backBtn,
+            playPause: playPauseBtn,
+            forward: forwardBtn,
+            end: endBtn,
+            playIcon: playIcon,
+            pauseIcon: pauseIcon,
+        };
+        updateReviewNavBar();
+    }
+
+    function updateReviewNavBar() {
+        const nav = $("desktopPlayReviewNav");
+        if (!nav) {
+            return;
+        }
+        if (!reviewNavMounted) {
+            ensureReviewNavBar();
+        }
+        const show = reviewMode && reviewFullMoves.length > 0;
+        nav.hidden = !show;
+        if (!show || !reviewNavEls) {
+            return;
+        }
+        const atStart = reviewPlyIndex <= 0;
+        const atEnd = reviewPlyIndex >= reviewFullMoves.length;
+        const playing = reviewPlaybackPlaying;
+        reviewNavEls.start.disabled = playing || atStart;
+        reviewNavEls.back.disabled = playing || atStart;
+        reviewNavEls.forward.disabled = playing || atEnd;
+        reviewNavEls.end.disabled = playing || atEnd;
+        reviewNavEls.playPause.disabled = !playing && atEnd;
+        if (reviewNavEls.playIcon) {
+            reviewNavEls.playIcon.hidden = playing;
+        }
+        if (reviewNavEls.pauseIcon) {
+            reviewNavEls.pauseIcon.hidden = !playing;
+        }
+        reviewNavEls.playPause.setAttribute("aria-label", playing ? "Pause" : "Play");
+        reviewNavEls.playPause.title = playing ? "Pause" : "Play";
+    }
+
     function showReviewAtPly(ply) {
+        stopReviewPlayback();
         if (!reviewMode || !reviewFullMoves.length) {
             return;
         }
@@ -1679,6 +1952,7 @@
         syncReviewBoardFromGame();
         refreshReviewMovesTable();
         syncGameRunPanelOptions();
+        updateReviewNavBar();
     }
 
     function movesForDisplay() {
@@ -1690,7 +1964,14 @@
     }
 
     function onReviewMoveClick(ply) {
-        if (!reviewMode || !reviewFullMoves.length || animating || engineThinking || dialogOn) {
+        if (
+            !reviewMode
+            || !reviewFullMoves.length
+            || animating
+            || engineThinking
+            || dialogOn
+            || reviewPlaybackPlaying
+        ) {
             return;
         }
         showReviewAtPly(ply);
@@ -4057,6 +4338,7 @@
             });
         }
         buildActionRail();
+        ensureReviewNavBar();
         startSession().catch(function (err) {
             showStatus(err.message || "Could not load game", 0, "error");
             console.error(err);
