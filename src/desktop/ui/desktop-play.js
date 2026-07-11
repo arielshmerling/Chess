@@ -76,6 +76,8 @@
     let reviewMode = false;
     let reviewFullMoves = [];
     let reviewOriginStateStr = null;
+    /** Starting position for the active game; survives exitReviewMode for auto-save. */
+    let playOriginStateStr = null;
     let reviewFinalStateStr = null;
     let reviewPlyIndex = 0;
     /** When set, Play continues from this ply and drops later moves. */
@@ -1022,9 +1024,9 @@
         }
         game.loadGame(JSON.stringify(state));
         game.loadMoves(continuedMoves);
-        if (continuedMoves.length === 0) {
-            reviewOriginStateStr = JSON.stringify(state);
-        }
+        const playOriginSnapshot =
+            reviewOriginStateStr ||
+            (continuedMoves.length === 0 ? JSON.stringify(state) : null);
         applyGameRunPanelOptions(setupOpts);
         assignNewGameId();
         gameHistoryLogged = false;
@@ -1045,6 +1047,9 @@
         gameActive = true;
         exitConfigurationIfGameStarting();
         exitReviewMode();
+        if (playOriginSnapshot) {
+            setPlayOriginState(playOriginSnapshot);
+        }
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -1359,7 +1364,7 @@
         state.capturedPiecesList = state.capturedPiecesList || [];
         game.loadGame(JSON.stringify(state));
         game.loadMoves([]);
-        reviewOriginStateStr = JSON.stringify(state);
+        const playOriginSnapshot = JSON.stringify(state);
         applyGameRunPanelOptions(setupOpts);
         whiteTimer = initialClockSeconds();
         blackTimer = initialClockSeconds();
@@ -1375,6 +1380,7 @@
         gameActive = true;
         exitConfigurationIfGameStarting();
         exitReviewMode();
+        setPlayOriginState(playOriginSnapshot);
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -1454,6 +1460,19 @@
         reviewFinalStateStr = null;
         reviewPlyIndex = 0;
         reviewBranchPly = null;
+    }
+
+    function setPlayOriginState(stateOrStr) {
+        if (stateOrStr == null) {
+            playOriginStateStr = null;
+            return;
+        }
+        playOriginStateStr =
+            typeof stateOrStr === "string" ? stateOrStr : JSON.stringify(stateOrStr);
+    }
+
+    function clearPlayOriginState() {
+        playOriginStateStr = null;
     }
 
     function reviewBoardIsWhiteView() {
@@ -2007,8 +2026,9 @@
                       ? session.difficulty
                       : 10,
         };
-        if (reviewOriginStateStr) {
-            payload.originState = reviewOriginStateStr;
+        const originState = playOriginStateStr || reviewOriginStateStr;
+        if (originState) {
+            payload.originState = originState;
         }
         return payload;
     }
@@ -2763,6 +2783,7 @@
     function applyBookmarkEntryToBoard(entry) {
         loadingBookmark = true;
         clearReviewNavigation();
+        clearPlayOriginState();
         try {
             const baseOpts = Settings.loadLastOptions();
             const raw = entry.state != null ? entry.state : entry.gameState;
@@ -3520,7 +3541,6 @@
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
         game.startNewGame(currentPlayerIsWhite);
-        reviewOriginStateStr = JSON.stringify(game.GameState);
         clearDisplayedEvaluation();
         resetClocks();
         redoPairAvailable = false;
@@ -3533,6 +3553,7 @@
         gameActive = true;
         exitConfigurationIfGameStarting();
         exitReviewMode();
+        setPlayOriginState(game.GameState);
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
@@ -3854,6 +3875,7 @@
             setPositionSetupUi(false);
         }
         exitReviewMode();
+        clearPlayOriginState();
         gameActive = false;
         positionSetupSnapshot = null;
         document.body.classList.remove("desktop-play-has-active-game");
