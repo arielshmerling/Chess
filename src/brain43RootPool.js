@@ -81,17 +81,12 @@ function createRootWorkerPool(workerScript) {
     }
 
     function terminate() {
-        for (const worker of workers) {
-            try {
-                worker.terminate();
-            } catch {
-                /* ignore */
-            }
-        }
+        const activeWorkers = workers.slice();
         workers.length = 0;
         idleWorkers.length = 0;
         waitQueue.length = 0;
         pending.clear();
+        return Promise.all(activeWorkers.map((worker) => worker.terminate().catch(() => {})));
     }
 
     return { runTask, terminate, maxWorkers: MAX_ROOT_WORKERS };

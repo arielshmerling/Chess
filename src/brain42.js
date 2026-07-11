@@ -321,16 +321,20 @@ exports.Name = "Brain 4.2";
 let persistentWorker = null;
 let requestIdCounter = 0;
 const pendingRequests = new Map();
+/** Ensures a replaced worker has fully exited before spawning another. */
+let workerShutdownPromise = Promise.resolve();
 
-function getOrCreateWorker() {
+async function getOrCreateWorker() {
     if (!isMainThread) {
         throw new Error("getOrCreateWorker called from worker thread");
     }
     if (!persistentWorker) {
+        await workerShutdownPromise;
         console.log(`${LOG_PREFIX} Creating persistent worker thread...`);
-        persistentWorker = new Worker(__filename);
+        const worker = new Worker(__filename);
+        persistentWorker = worker;
 
-        persistentWorker.on("message", (response) => {
+        worker.on("message", (response) => {
             const { requestId, move, error, progress } = response;
             if (progress) {
                 reportSearchProgress(progress);
@@ -350,17 +354,19 @@ function getOrCreateWorker() {
             }
         });
 
-        persistentWorker.on("error", (err) => {
+        worker.on("error", (err) => {
             console.error(`${LOG_PREFIX} Persistent worker thread error:`, err);
             for (const [, pending] of pendingRequests.entries()) {
                 clearTimeout(pending.timeout);
                 pending.reject(err);
             }
             pendingRequests.clear();
-            persistentWorker = null;
+            if (persistentWorker === worker) {
+                persistentWorker = null;
+            }
         });
 
-        persistentWorker.on("exit", (code) => {
+        worker.on("exit", (code) => {
             if (code !== 0 && pendingRequests.size > 0) {
                 console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
             }
@@ -369,7 +375,9 @@ function getOrCreateWorker() {
                 pending.reject(new Error(`Worker thread exited with code ${code}`));
             }
             pendingRequests.clear();
-            persistentWorker = null;
+            if (persistentWorker === worker) {
+                persistentWorker = null;
+            }
         });
     }
     return persistentWorker;
@@ -377,7 +385,7 @@ function getOrCreateWorker() {
 
 function terminatePersistentWorker(reason) {
     if (!persistentWorker) {
-        return;
+        return workerShutdownPromise;
     }
     console.warn(`${LOG_PREFIX} Terminating worker: ${reason}`);
     const worker = persistentWorker;
@@ -387,17 +395,19 @@ function terminatePersistentWorker(reason) {
         pending.reject(new Error(reason || "Worker terminated"));
     }
     pendingRequests.clear();
-    worker.terminate();
+    workerShutdownPromise = workerShutdownPromise
+        .then(() => worker.terminate())
+        .catch(() => {});
+    return workerShutdownPromise;
 }
 
 function createWorkerPromise(strState, searchOptions) {
-    return new Promise((resolve, reject) => {
+    return (async () => {
         if (!isMainThread) {
-            reject(new Error("createWorkerPromise called from worker thread"));
-            return;
+            throw new Error("createWorkerPromise called from worker thread");
         }
         const requestId = ++requestIdCounter;
-        const worker = getOrCreateWorker();
+        const worker = await getOrCreateWorker();
         const thinkingTimeMs = searchOptions?.thinkingTimeMs;
         const maxDepth = searchOptions?.maxDepth;
         const config = searchOptions?.config;
@@ -406,30 +416,32 @@ function createWorkerPromise(strState, searchOptions) {
             ? Math.max(1000, Math.floor(Number(thinkingTimeMs)) + THINKING_TIME_SAFETY_BUFFER_MS)
             : BRAIN_MOVE_TIMEOUT_MS;
 
-        const timeout = setTimeout(() => {
-            const pending = pendingRequests.get(requestId);
-            if (pending) {
-                pendingRequests.delete(requestId);
-                console.error(`${LOG_PREFIX} move timeout for request ${requestId} after ${timeoutMs}ms`);
-                terminatePersistentWorker("Brain move timeout");
-                reject(new Error("Brain move timeout"));
-            }
-        }, timeoutMs);
+        return await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                const pending = pendingRequests.get(requestId);
+                if (pending) {
+                    pendingRequests.delete(requestId);
+                    console.error(`${LOG_PREFIX} move timeout for request ${requestId} after ${timeoutMs}ms`);
+                    terminatePersistentWorker("Brain move timeout");
+                    reject(new Error("Brain move timeout"));
+                }
+            }, timeoutMs);
 
-        pendingRequests.set(requestId, { resolve, reject, timeout });
-        const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
-            ? `time ${thinkingTimeMs}ms`
-            : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
-        console.log(`${LOG_PREFIX} Sending request ${requestId} (${label})`);
-        worker.postMessage({
-            requestId,
-            gameState: strState,
-            thinkingTimeMs,
-            maxDepth,
-            config,
-            pliesPlayed,
+            pendingRequests.set(requestId, { resolve, reject, timeout });
+            const label = thinkingTimeMs != null && Number(thinkingTimeMs) > 0
+                ? `time ${thinkingTimeMs}ms`
+                : `depth ${maxDepth != null ? maxDepth : DEFAULT_MAX_DEPTH}`;
+            console.log(`${LOG_PREFIX} Sending request ${requestId} (${label})`);
+            worker.postMessage({
+                requestId,
+                gameState: strState,
+                thinkingTimeMs,
+                maxDepth,
+                config,
+                pliesPlayed,
+            });
         });
-    });
+    })();
 }
 
 class BrainTimeoutFallbackError extends Error {
@@ -604,11 +616,11 @@ exports.abortActiveSearch = function abortActiveSearch() {
 };
 
 /** Terminates persistent search worker (tests / app shutdown). */
-exports.shutdownWorkers = function shutdownWorkers() {
+exports.shutdownWorkers = async function shutdownWorkers() {
     if (!isMainThread) {
         return;
     }
-    terminatePersistentWorker("shutdown");
+    await terminatePersistentWorker("shutdown");
 };
 
 // --- Search (worker thread) -------------------------------------------------
