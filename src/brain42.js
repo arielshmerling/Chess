@@ -323,68 +323,88 @@ let requestIdCounter = 0;
 const pendingRequests = new Map();
 /** Ensures a replaced worker has fully exited before spawning another. */
 let workerShutdownPromise = Promise.resolve();
+/** Serializes worker creation so concurrent callers share one spawn. */
+let workerCreatePromise = null;
+
+function attachPersistentWorkerHandlers(worker) {
+    worker.on("message", (response) => {
+        const { requestId, move, error, progress } = response;
+        if (progress) {
+            reportSearchProgress(progress);
+            return;
+        }
+        const pending = pendingRequests.get(requestId);
+        if (pending) {
+            pendingRequests.delete(requestId);
+            clearTimeout(pending.timeout);
+            if (error) {
+                pending.reject(new Error(error));
+            } else if (move) {
+                pending.resolve(move);
+            } else {
+                pending.reject(new Error("Worker returned null move"));
+            }
+        }
+    });
+
+    worker.on("error", (err) => {
+        console.error(`${LOG_PREFIX} Persistent worker thread error:`, err);
+        for (const [, pending] of pendingRequests.entries()) {
+            clearTimeout(pending.timeout);
+            pending.reject(err);
+        }
+        pendingRequests.clear();
+        if (persistentWorker === worker) {
+            persistentWorker = null;
+        }
+    });
+
+    worker.on("exit", (code) => {
+        if (code !== 0 && pendingRequests.size > 0) {
+            console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
+        }
+        for (const [, pending] of pendingRequests.entries()) {
+            clearTimeout(pending.timeout);
+            pending.reject(new Error(`Worker thread exited with code ${code}`));
+        }
+        pendingRequests.clear();
+        if (persistentWorker === worker) {
+            persistentWorker = null;
+        }
+    });
+}
+
+function spawnPersistentWorker() {
+    console.log(`${LOG_PREFIX} Creating persistent worker thread...`);
+    const worker = new Worker(__filename);
+    persistentWorker = worker;
+    attachPersistentWorkerHandlers(worker);
+    return worker;
+}
 
 async function getOrCreateWorker() {
     if (!isMainThread) {
         throw new Error("getOrCreateWorker called from worker thread");
     }
-    if (!persistentWorker) {
-        await workerShutdownPromise;
-        console.log(`${LOG_PREFIX} Creating persistent worker thread...`);
-        const worker = new Worker(__filename);
-        persistentWorker = worker;
-
-        worker.on("message", (response) => {
-            const { requestId, move, error, progress } = response;
-            if (progress) {
-                reportSearchProgress(progress);
-                return;
+    if (persistentWorker) {
+        return persistentWorker;
+    }
+    if (!workerCreatePromise) {
+        workerCreatePromise = (async () => {
+            await workerShutdownPromise;
+            if (persistentWorker) {
+                return persistentWorker;
             }
-            const pending = pendingRequests.get(requestId);
-            if (pending) {
-                pendingRequests.delete(requestId);
-                clearTimeout(pending.timeout);
-                if (error) {
-                    pending.reject(new Error(error));
-                } else if (move) {
-                    pending.resolve(move);
-                } else {
-                    pending.reject(new Error("Worker returned null move"));
-                }
-            }
-        });
-
-        worker.on("error", (err) => {
-            console.error(`${LOG_PREFIX} Persistent worker thread error:`, err);
-            for (const [, pending] of pendingRequests.entries()) {
-                clearTimeout(pending.timeout);
-                pending.reject(err);
-            }
-            pendingRequests.clear();
-            if (persistentWorker === worker) {
-                persistentWorker = null;
-            }
-        });
-
-        worker.on("exit", (code) => {
-            if (code !== 0 && pendingRequests.size > 0) {
-                console.error(`${LOG_PREFIX} Persistent worker thread exited with code ${code}`);
-            }
-            for (const [, pending] of pendingRequests.entries()) {
-                clearTimeout(pending.timeout);
-                pending.reject(new Error(`Worker thread exited with code ${code}`));
-            }
-            pendingRequests.clear();
-            if (persistentWorker === worker) {
-                persistentWorker = null;
-            }
+            return spawnPersistentWorker();
+        })().finally(() => {
+            workerCreatePromise = null;
         });
     }
-    return persistentWorker;
+    return workerCreatePromise;
 }
 
 function terminatePersistentWorker(reason) {
-    if (!persistentWorker) {
+    if (!persistentWorker && !workerCreatePromise) {
         return workerShutdownPromise;
     }
     console.warn(`${LOG_PREFIX} Terminating worker: ${reason}`);
@@ -396,7 +416,17 @@ function terminatePersistentWorker(reason) {
     }
     pendingRequests.clear();
     workerShutdownPromise = workerShutdownPromise
-        .then(() => worker.terminate())
+        .then(() => (workerCreatePromise ? workerCreatePromise.catch(() => {}) : undefined))
+        .then(async () => {
+            if (worker) {
+                await worker.terminate().catch(() => {});
+            }
+            if (persistentWorker) {
+                const stray = persistentWorker;
+                persistentWorker = null;
+                await stray.terminate().catch(() => {});
+            }
+        })
         .catch(() => {});
     return workerShutdownPromise;
 }
