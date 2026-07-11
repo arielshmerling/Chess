@@ -1071,15 +1071,15 @@
         if (Board.updateCaptureLists && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
         }
+        exitReviewMode();
+        if (playOriginSnapshot) {
+            setPlayOriginState(playOriginSnapshot);
+        }
         updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         updateMatchHeader();
         updateHeaderTurn();
         gameActive = true;
         exitConfigurationIfGameStarting();
-        exitReviewMode();
-        if (playOriginSnapshot) {
-            setPlayOriginState(playOriginSnapshot);
-        }
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
