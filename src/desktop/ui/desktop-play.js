@@ -71,6 +71,8 @@
     let renamingSavedGameId = null;
     /** @type {Set<string>} */
     const selectedSavedGameIds = new Set();
+    /** @type {Map<string, ReturnType<typeof setTimeout>>} */
+    const savedGameSingleClickTimers = new Map();
     let positionSetupMode = false;
     let configurationMode = false;
     let reviewMode = false;
@@ -78,7 +80,11 @@
     let reviewOriginStateStr = null;
     /** Starting position for the active game; survives exitReviewMode for auto-save. */
     let playOriginStateStr = null;
+    /** Full move list from a loaded bookmark, shown in the panel until play adds moves. */
+    let loadedBookmarkDisplayMoves = null;
     let reviewFinalStateStr = null;
+    /** Game result (1-0, 0-1, etc.) from loaded bookmark; kept for review at earlier plies. */
+    let reviewResultMoveStr = null;
     let reviewPlyIndex = 0;
     /** When set, Play continues from this ply and drops later moves. */
     let reviewBranchPly = null;
@@ -1041,7 +1047,7 @@
         if (Board.updateCaptureLists && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
         }
-        updateMovesTable(movesForMovesTable(continuedMoves));
+        updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         updateMatchHeader();
         updateHeaderTurn();
         gameActive = true;
@@ -1458,8 +1464,22 @@
         reviewFullMoves = [];
         reviewOriginStateStr = null;
         reviewFinalStateStr = null;
+        reviewResultMoveStr = null;
         reviewPlyIndex = 0;
         reviewBranchPly = null;
+    }
+
+    function syncReviewResultMoveFromGame() {
+        if (
+            game &&
+            game.GameOver &&
+            game.ResultMove &&
+            game.ResultMove.moveStr
+        ) {
+            reviewResultMoveStr = game.ResultMove.moveStr;
+            return;
+        }
+        reviewResultMoveStr = null;
     }
 
     function setPlayOriginState(stateOrStr) {
@@ -1473,6 +1493,30 @@
 
     function clearPlayOriginState() {
         playOriginStateStr = null;
+    }
+
+    function syncLoadedBookmarkDisplayMoves(moves) {
+        loadedBookmarkDisplayMoves =
+            moves && moves.length ? moves.map(cloneReviewMove) : null;
+    }
+
+    function clearLoadedBookmarkDisplayMoves() {
+        loadedBookmarkDisplayMoves = null;
+    }
+
+    function movesForPanelDisplay() {
+        if (reviewMode && reviewFullMoves.length) {
+            return reviewFullMoves;
+        }
+        const played = tableMovesFromGame();
+        if (
+            played.length === 0 &&
+            loadedBookmarkDisplayMoves &&
+            loadedBookmarkDisplayMoves.length
+        ) {
+            return loadedBookmarkDisplayMoves;
+        }
+        return played;
     }
 
     function reviewBoardIsWhiteView() {
@@ -1638,10 +1682,7 @@
     }
 
     function movesForDisplay() {
-        if (reviewMode && reviewFullMoves.length) {
-            return reviewFullMoves;
-        }
-        return tableMovesFromGame();
+        return movesForPanelDisplay();
     }
 
     function refreshReviewMovesTable() {
@@ -1821,17 +1862,18 @@
 
     function appendGameResultToMoves(moves) {
         const list = (moves || []).slice();
-        if (
-            !game
-            || !game.GameOver
-            || positionSetupMode
-            || configurationMode
-            || !game.ResultMove
-            || !game.ResultMove.moveStr
-        ) {
+        if (positionSetupMode || configurationMode) {
             return list;
         }
-        const resultStr = game.ResultMove.moveStr;
+        let resultStr = null;
+        if (game && game.GameOver && game.ResultMove && game.ResultMove.moveStr) {
+            resultStr = game.ResultMove.moveStr;
+        } else if (reviewMode && reviewResultMoveStr) {
+            resultStr = reviewResultMoveStr;
+        }
+        if (!resultStr) {
+            return list;
+        }
         const last = list[list.length - 1];
         if (last && last.moveStr === resultStr) {
             return list;
@@ -2643,6 +2685,13 @@
                 },
             },
             {
+                label: "Load to start",
+                disabled: blocked,
+                onClick: function () {
+                    loadSavedGame(bookmarkId, { atStart: true });
+                },
+            },
+            {
                 label: "Edit position",
                 disabled: blocked,
                 onClick: function () {
@@ -2791,6 +2840,7 @@
                 typeof raw === "string" ? raw : JSON.stringify(raw || {});
             const savedHumanIsWhite = savedStateHumanIsWhite(stateStr);
             const parsedMoves = parseSavedGameMoves(entry);
+            syncLoadedBookmarkDisplayMoves(parsedMoves);
             applySessionSettings({
                 color: savedHumanIsWhite ? "white" : "black",
                 engine: entry.engine || baseOpts.engine,
@@ -2826,6 +2876,7 @@
                 Board.updateCaptureLists(game.GameState.capturedPiecesList);
             }
             initReviewNavigation(stateStr, parsedMoves, entry.originState);
+            syncReviewResultMoveFromGame();
             refreshReviewMovesTable();
             pauseClocksForSetup();
             gameActive = false;
@@ -2855,7 +2906,31 @@
         return true;
     }
 
-    async function loadSavedGame(bookmarkId) {
+    function cancelSavedGameSingleClick(bookmarkId) {
+        const id = String(bookmarkId);
+        const timer = savedGameSingleClickTimers.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            savedGameSingleClickTimers.delete(id);
+        }
+    }
+
+    function scheduleSavedGameSingleClick(bookmarkId, onFire) {
+        cancelSavedGameSingleClick(bookmarkId);
+        const id = String(bookmarkId);
+        const timer = setTimeout(function () {
+            savedGameSingleClickTimers.delete(id);
+            onFire();
+        }, 280);
+        savedGameSingleClickTimers.set(id, timer);
+    }
+
+    /**
+     * @param {string|number} bookmarkId
+     * @param {{ atStart?: boolean }} [options]
+     */
+    async function loadSavedGame(bookmarkId, options) {
+        options = options || {};
         if (!game || animating || engineThinking || dialogOn) {
             return;
         }
@@ -2865,6 +2940,7 @@
         if (!entry) {
             return;
         }
+        const hasMoves = parseSavedGameMoves(entry).length > 0;
         animating = true;
         updateActionButtons();
         try {
@@ -2873,6 +2949,11 @@
             editingSavedGameId = null;
             setCurrentGameId(null);
             enterReviewMode();
+            if (options.atStart && hasMoves) {
+                showReviewAtPly(0);
+            } else {
+                refreshReviewMovesTable();
+            }
             syncGameRunPanelOptions();
             showStatus("");
         } catch (err) {
@@ -2965,7 +3046,14 @@
             const label = entry.name || "Saved game";
             nameSpan.textContent = label;
             const when = formatSavedGameDate(entry.date);
-            nameSpan.title = when ? label + " — " + when : label;
+            const hasSavedMoves = parseSavedGameMoves(entry).length > 0;
+            if (hasSavedMoves) {
+                nameSpan.title = when
+                    ? label + " — " + when + " (double-click to load from start)"
+                    : label + " (double-click to load from start)";
+            } else {
+                nameSpan.title = when ? label + " — " + when : label;
+            }
             nameSpan.setAttribute("role", "button");
             nameSpan.setAttribute("tabindex", "0");
             nameSpan.addEventListener("click", function (ev) {
@@ -2974,7 +3062,19 @@
                     return;
                 }
                 clearSavedGameSelection();
-                loadSavedGame(id);
+                scheduleSavedGameSingleClick(id, function () {
+                    loadSavedGame(id);
+                });
+            });
+            nameSpan.addEventListener("dblclick", function (ev) {
+                ev.stopPropagation();
+                ev.preventDefault();
+                if (handleSavedGameMultiSelectClick(ev, id)) {
+                    return;
+                }
+                cancelSavedGameSingleClick(id);
+                clearSavedGameSelection();
+                loadSavedGame(id, { atStart: true });
             });
             nameSpan.addEventListener("keydown", function (ev) {
                 if (ev.key === "Enter" || ev.key === " ") {
@@ -3215,7 +3315,7 @@
         if (reviewMode) {
             refreshReviewMovesTable();
         } else {
-            updateMovesTable(tableMovesFromGame());
+            updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         }
 
         if (gameState.draw) {
@@ -3540,6 +3640,7 @@
         assignNewGameId();
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
+        clearLoadedBookmarkDisplayMoves();
         game.startNewGame(currentPlayerIsWhite);
         clearDisplayedEvaluation();
         resetClocks();
@@ -3876,6 +3977,7 @@
         }
         exitReviewMode();
         clearPlayOriginState();
+        clearLoadedBookmarkDisplayMoves();
         gameActive = false;
         positionSetupSnapshot = null;
         document.body.classList.remove("desktop-play-has-active-game");
