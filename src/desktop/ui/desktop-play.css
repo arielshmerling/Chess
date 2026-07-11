@@ -732,6 +732,17 @@ body.desktop-play-page .desktop-play-main {
   cursor: pointer;
 }
 
+.desktop-play-page .desktop-play-saved-game.desktop-play-saved-position {
+  font-weight: bold;
+}
+
+.desktop-play-page .desktop-play-saved-game.desktop-play-saved-position .desktop-play-saved-game-name,
+.desktop-play-page .desktop-play-saved-game.desktop-play-saved-position .desktop-play-saved-game-turn,
+.desktop-play-page .desktop-play-saved-game.desktop-play-saved-position .desktop-play-saved-game-meta,
+.desktop-play-page .desktop-play-saved-game.desktop-play-saved-position .desktop-play-saved-game-players {
+  font-weight: bold;
+}
+
 .desktop-play-page .desktop-play-saved-game-expand {
   flex-shrink: 0;
   min-width: 22px;

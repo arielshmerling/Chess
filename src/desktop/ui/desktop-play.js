@@ -2739,6 +2739,9 @@
         const id = savedGameId(entry);
         const div = document.createElement("div");
         div.className = "desktop-play-saved-game";
+        if (isSavedPositionEntry(entry)) {
+            div.classList.add("desktop-play-saved-position");
+        }
         div.dataset.bookmarkId = id;
         if (expandedSavedGameId === id) {
             div.classList.add("expanded");
@@ -2777,7 +2780,8 @@
             nameSpan.className = "desktop-play-saved-game-name";
             const label = entry.name || "Saved game";
             nameSpan.textContent = label;
-            nameSpan.title = label + " — click to load position on board";
+            const when = formatSavedGameDate(entry.date);
+            nameSpan.title = when ? label + " — " + when : label;
             nameSpan.setAttribute("role", "button");
             nameSpan.setAttribute("tabindex", "0");
             nameSpan.addEventListener("click", function (ev) {
