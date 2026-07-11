@@ -42,7 +42,29 @@
     let loadingBookmark = false;
     let savedGames = [];
     /** @type {"games"|"positions"} */
-    let savedListFilter = "games";
+    const SAVED_LIST_FILTER_STORAGE_KEY = "shmerlingSavedListFilter";
+
+    function loadPersistedSavedListFilter() {
+        try {
+            const stored = localStorage.getItem(SAVED_LIST_FILTER_STORAGE_KEY);
+            if (stored === "positions" || stored === "games") {
+                return stored;
+            }
+        } catch {
+            /* ignore */
+        }
+        return "games";
+    }
+
+    function persistSavedListFilter(filter) {
+        try {
+            localStorage.setItem(SAVED_LIST_FILTER_STORAGE_KEY, filter);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    let savedListFilter = loadPersistedSavedListFilter();
     let expandedSavedGameId = null;
     let lastLoadedSavedGameId = null;
     let editingSavedGameId = null;
@@ -390,7 +412,6 @@
                 bookmarkPayloadFromCurrentState(formatAutoSaveGameName(), bookmarkMovesPayload()),
             );
             await mergeBookmarkIntoList(bookmark);
-            savedListFilter = "games";
             updateSavedListFilterUi();
             renderSavedGamesList();
         } catch (err) {
@@ -2342,6 +2363,7 @@
             return;
         }
         savedListFilter = next;
+        persistSavedListFilter(next);
         updateSavedListFilterUi();
         renderSavedGamesList();
     }
