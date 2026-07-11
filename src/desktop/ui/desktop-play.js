@@ -69,6 +69,8 @@
     let lastLoadedSavedGameId = null;
     let editingSavedGameId = null;
     let renamingSavedGameId = null;
+    /** @type {Set<string>} */
+    const selectedSavedGameIds = new Set();
     let positionSetupMode = false;
     let configurationMode = false;
     let reviewMode = false;
@@ -2364,11 +2366,13 @@
         }
         savedListFilter = next;
         persistSavedListFilter(next);
+        clearSavedGameSelection();
         updateSavedListFilterUi();
         renderSavedGamesList();
     }
 
     function ensureSavedListFilterControls() {
+        ensureSavedGamesListDeselect();
         const filtersRoot = document.querySelector(".desktop-play-saved-list-filters");
         if (!filtersRoot || filtersRoot.dataset.wired === "1") {
             updateSavedListFilterUi();
@@ -2513,9 +2517,98 @@
         return animating || engineThinking || dialogOn;
     }
 
+    function isMultiSelectModifier(ev) {
+        return !!(ev && (ev.metaKey || ev.ctrlKey));
+    }
+
+    function isSavedGameSelected(bookmarkId) {
+        return selectedSavedGameIds.has(String(bookmarkId));
+    }
+
+    function syncSavedGameSelectionUi() {
+        const gamesDiv = $("gamesDiv");
+        if (!gamesDiv) {
+            return;
+        }
+        gamesDiv.querySelectorAll(".desktop-play-saved-game").forEach(function (el) {
+            const id = el.dataset.bookmarkId;
+            el.classList.toggle("is-selected", id != null && selectedSavedGameIds.has(id));
+            el.setAttribute(
+                "aria-selected",
+                id != null && selectedSavedGameIds.has(id) ? "true" : "false",
+            );
+        });
+    }
+
+    function clearSavedGameSelection() {
+        if (selectedSavedGameIds.size === 0) {
+            return;
+        }
+        selectedSavedGameIds.clear();
+        syncSavedGameSelectionUi();
+    }
+
+    function toggleSavedGameSelection(bookmarkId) {
+        const id = String(bookmarkId);
+        if (selectedSavedGameIds.has(id)) {
+            selectedSavedGameIds.delete(id);
+        } else {
+            selectedSavedGameIds.add(id);
+        }
+        syncSavedGameSelectionUi();
+    }
+
+    function pruneSavedGameSelection() {
+        const visibleIds = new Set(
+            savedEntriesForFilter(savedListFilter).map(function (entry) {
+                return savedGameId(entry);
+            }),
+        );
+        let changed = false;
+        selectedSavedGameIds.forEach(function (id) {
+            if (!visibleIds.has(id)) {
+                selectedSavedGameIds.delete(id);
+                changed = true;
+            }
+        });
+        if (changed) {
+            syncSavedGameSelectionUi();
+        }
+    }
+
+    function ensureSavedGamesListDeselect() {
+        const gamesDiv = $("gamesDiv");
+        if (!gamesDiv || gamesDiv.dataset.deselectWired === "1") {
+            return;
+        }
+        gamesDiv.dataset.deselectWired = "1";
+        gamesDiv.addEventListener("click", function (ev) {
+            if (!ev.target.closest(".desktop-play-saved-game")) {
+                clearSavedGameSelection();
+            }
+        });
+    }
+
     function showSavedGameContextMenu(ev, entry, bookmarkId) {
         if (!window.DesktopContextMenu || !entry) {
             return;
+        }
+        const sid = String(bookmarkId);
+        if (selectedSavedGameIds.size > 1 && selectedSavedGameIds.has(sid)) {
+            const count = selectedSavedGameIds.size;
+            window.DesktopContextMenu.show(ev.clientX, ev.clientY, [
+                { header: true, label: count + " items selected" },
+                {
+                    label: "Delete",
+                    onClick: function () {
+                        deleteSavedGames(Array.from(selectedSavedGameIds));
+                    },
+                },
+            ]);
+            return;
+        }
+        if (selectedSavedGameIds.size > 1) {
+            clearSavedGameSelection();
         }
         const blocked = savedGameActionsBlocked();
         const isPosition = isSavedPositionEntry(entry);
@@ -2605,41 +2698,66 @@
         renderSavedGamesList();
     }
 
-    async function deleteSavedGame(bookmarkId) {
-        const entry = savedGames.find(function (b) {
-            return savedGameId(b) === String(bookmarkId);
-        });
-        if (!entry || !Api.post) {
+    async function deleteSavedGames(bookmarkIds) {
+        const ids = Array.from(new Set((bookmarkIds || []).map(String))).filter(Boolean);
+        if (!ids.length || !Api.post) {
             return;
         }
+        const toDelete = ids
+            .map(function (id) {
+                return savedGames.find(function (b) {
+                    return savedGameId(b) === id;
+                });
+            })
+            .filter(Boolean);
+        if (!toDelete.length) {
+            clearSavedGameSelection();
+            return;
+        }
+        let deleted = 0;
         try {
-            const result = await Api.post("/deleteBookmark", { id: entry._id || entry.id });
-            const ok = result && (result.status === "OK" || result === "OK");
-            if (!ok) {
-                throw new Error("Delete failed");
-            }
-            savedGames = savedGames.filter(function (b) {
-                return savedGameId(b) !== String(bookmarkId);
-            });
-            if (expandedSavedGameId === String(bookmarkId)) {
-                expandedSavedGameId = null;
-            }
-            if (renamingSavedGameId === String(bookmarkId)) {
-                renamingSavedGameId = null;
-            }
-            if (editingSavedGameId === String(bookmarkId)) {
-                editingSavedGameId = null;
-            }
-            if (lastLoadedSavedGameId === String(bookmarkId)) {
-                lastLoadedSavedGameId = null;
-                exitReviewMode();
+            for (let i = 0; i < toDelete.length; i++) {
+                const entry = toDelete[i];
+                const id = savedGameId(entry);
+                const result = await Api.post("/deleteBookmark", { id: entry._id || entry.id });
+                const ok = result && (result.status === "OK" || result === "OK");
+                if (!ok) {
+                    throw new Error("Delete failed");
+                }
+                savedGames = savedGames.filter(function (b) {
+                    return savedGameId(b) !== id;
+                });
+                selectedSavedGameIds.delete(id);
+                if (expandedSavedGameId === id) {
+                    expandedSavedGameId = null;
+                }
+                if (renamingSavedGameId === id) {
+                    renamingSavedGameId = null;
+                }
+                if (editingSavedGameId === id) {
+                    editingSavedGameId = null;
+                }
+                if (lastLoadedSavedGameId === id) {
+                    lastLoadedSavedGameId = null;
+                    exitReviewMode();
+                }
+                deleted += 1;
             }
             renderSavedGamesList();
             updateGameRunPanelVisibility();
-            showStatus("Game deleted", 2000, "info");
+            showStatus(
+                deleted === 1 ? "Game deleted" : deleted + " items deleted",
+                2000,
+                "info",
+            );
         } catch (err) {
-            showStatus(err.message || "Could not delete game", 0, "error");
+            renderSavedGamesList();
+            showStatus(err.message || "Could not delete selected items", 0, "error");
         }
+    }
+
+    async function deleteSavedGame(bookmarkId) {
+        await deleteSavedGames([bookmarkId]);
     }
 
     function applyBookmarkEntryToBoard(entry) {
@@ -2698,6 +2816,22 @@
         } finally {
             loadingBookmark = false;
         }
+    }
+
+    function handleSavedGameMultiSelectClick(ev, bookmarkId) {
+        if (!isMultiSelectModifier(ev)) {
+            return false;
+        }
+        if (ev.target.closest(".desktop-play-saved-game-icon-btn")) {
+            return false;
+        }
+        if (ev.target.closest(".desktop-play-saved-game-rename-input")) {
+            return false;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleSavedGameSelection(bookmarkId);
+        return true;
     }
 
     async function loadSavedGame(bookmarkId) {
@@ -2768,6 +2902,10 @@
         if (expandedSavedGameId === id) {
             div.classList.add("expanded");
         }
+        if (isSavedGameSelected(id)) {
+            div.classList.add("is-selected");
+        }
+        div.setAttribute("aria-selected", isSavedGameSelected(id) ? "true" : "false");
 
         const row = document.createElement("div");
         row.className = "desktop-play-saved-game-row";
@@ -2777,6 +2915,9 @@
             "aria-expanded",
             expandedSavedGameId === id ? "true" : "false",
         );
+        row.addEventListener("click", function (ev) {
+            handleSavedGameMultiSelectClick(ev, id);
+        });
 
         if (renamingSavedGameId === id) {
             const renameInput = document.createElement("input");
@@ -2808,12 +2949,20 @@
             nameSpan.setAttribute("tabindex", "0");
             nameSpan.addEventListener("click", function (ev) {
                 ev.stopPropagation();
+                if (handleSavedGameMultiSelectClick(ev, id)) {
+                    return;
+                }
+                clearSavedGameSelection();
                 loadSavedGame(id);
             });
             nameSpan.addEventListener("keydown", function (ev) {
                 if (ev.key === "Enter" || ev.key === " ") {
                     ev.preventDefault();
                     ev.stopPropagation();
+                    if (handleSavedGameMultiSelectClick(ev, id)) {
+                        return;
+                    }
+                    clearSavedGameSelection();
                     loadSavedGame(id);
                 }
             });
@@ -2900,11 +3049,13 @@
                     ? "No saved positions yet."
                     : "No saved games yet.";
             gamesDiv.appendChild(empty);
+            clearSavedGameSelection();
             return;
         }
         entries.forEach(function (entry) {
             gamesDiv.appendChild(createSavedGameItem(entry));
         });
+        pruneSavedGameSelection();
     }
 
     async function loadSavedGames() {
