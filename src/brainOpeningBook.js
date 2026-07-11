@@ -1,6 +1,7 @@
 /**
  * Shared line-based opening book for brain42 / brain43.
  */
+const { ChessGame } = require("./ChessGame");
 const {
     loadOpeningBookPrefixIndex,
     movePrefixFromGame,
@@ -67,6 +68,60 @@ function whenOpeningBookReady(logPrefix) {
     return beginOpeningBookLoad(logPrefix);
 }
 
+function boardsEqual(a, b) {
+    if (!a || !b || a.length !== 8 || b.length !== 8) {
+        return false;
+    }
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const pa = a[row][col];
+            const pb = b[row][col];
+            if (pa == null && pb == null) {
+                continue;
+            }
+            if (!pa || !pb || pa.color !== pb.color || pa.pieceType !== pb.pieceType) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/** @type {object[][]|null} */
+let standardStartingBoards = null;
+
+function getStandardStartingBoards() {
+    if (!standardStartingBoards) {
+        const upright = new ChessGame();
+        upright.startNewGame(true);
+        const flipped = new ChessGame();
+        flipped.startNewGame(false);
+        standardStartingBoards = [upright.GameState.board, flipped.GameState.board];
+    }
+    return standardStartingBoards;
+}
+
+function isStandardStartingPosition(game) {
+    const board = game && game.GameState && game.GameState.board;
+    if (!board) {
+        return false;
+    }
+    const refs = getStandardStartingBoards();
+    return boardsEqual(board, refs[0]) || boardsEqual(board, refs[1]);
+}
+
+/**
+ * Line book needs SAN move history, except at the real starting position (empty move list).
+ * Custom positions loaded without moves must not hit prefix "" (would play 1.e4 etc.).
+ */
+function shouldUseOpeningBook(game) {
+    const moveCount = game && Array.isArray(game.Moves) ? game.Moves.length : 0;
+    if (moveCount > 0) {
+        return true;
+    }
+    return isStandardStartingPosition(game);
+}
+
 /**
  * @param {import("./ChessGame")} game
  * @param {string} logPrefix
@@ -74,6 +129,13 @@ function whenOpeningBookReady(logPrefix) {
  * @returns {object|null}
  */
 function tryFindLineBookMove(game, logPrefix, helpers) {
+    if (!shouldUseOpeningBook(game)) {
+        console.log(
+            `${logPrefix} Opening book skipped: no move history and not the standard start`,
+        );
+        return null;
+    }
+
     const prefix = movePrefixFromGame(game);
 
     if (!prefixIndex) {
@@ -118,6 +180,8 @@ module.exports = {
     preloadOpeningBook,
     whenOpeningBookReady,
     tryFindLineBookMove,
+    shouldUseOpeningBook,
+    isStandardStartingPosition,
     pickWeightedBookMove,
     movePrefixFromGame,
 };

@@ -12,6 +12,7 @@ const {
     candidateMovesForGame,
     extractLineFromPgnGame,
 } = require("../src/openingBookLines");
+const { shouldUseOpeningBook } = require("../src/brainOpeningBook");
 
 describe("opening book lines", () => {
     it("buildPrefixIndex aggregates weights per prefix", () => {
@@ -61,5 +62,31 @@ describe("opening book lines", () => {
         const { options } = candidateMovesForGame(game, prefixIndex);
         const sans = options.map((o) => o.pgn).sort();
         assert.deepStrictEqual(sans, ["Bc4", "Nf3"]);
+    });
+
+    it("shouldUseOpeningBook allows book at standard start with no moves", () => {
+        const game = new ChessGame();
+        game.startNewGame(true);
+        assert.strictEqual(shouldUseOpeningBook(game), true);
+    });
+
+    it("shouldUseOpeningBook rejects custom positions without move history", () => {
+        const game = new ChessGame();
+        game.startNewGame(true);
+        const e4 = game.convertPGNMove({ moveStr: "e4", color: "white" });
+        game.makeMove(e4.source, e4.target);
+        const state = JSON.parse(JSON.stringify(game.GameState));
+        const custom = new ChessGame();
+        custom.loadGame(JSON.stringify(state));
+        custom.loadMoves([]);
+        assert.strictEqual(shouldUseOpeningBook(custom), false);
+    });
+
+    it("shouldUseOpeningBook allows positions loaded with move history", () => {
+        const game = new ChessGame();
+        game.startNewGame(true);
+        const e4 = game.convertPGNMove({ moveStr: "e4", color: "white" });
+        game.makeMove(e4.source, e4.target);
+        assert.strictEqual(shouldUseOpeningBook(game), true);
     });
 });
