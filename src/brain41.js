@@ -26,20 +26,9 @@ const THINKING_TIME_SAFETY_BUFFER_MS = 400;
 const MIN_MS_FOR_NEXT_DEPTH = 50;
 const MAX_ITERATIVE_DEPTH = 6;
 let runtimeConfig = getDefaultConfig("brain41");
-let lastLoggedRuntimeConfigJson = null;
 
 /** Increments inside {@link scoreMove}; reset once per worker search. One count per branching evaluation (static score + recurse). */
 let positionsEvaluatedThisSearch = 0;
-
-/** Logs the effective brain41 config when it changes (avoids per-move spam in main thread and worker). */
-function logRuntimeConfigIfChanged(config, where) {
-    const serialized = JSON.stringify(config);
-    if (lastLoggedRuntimeConfigJson === serialized) {
-        return;
-    }
-    lastLoggedRuntimeConfigJson = serialized;
-    console.log(`${LOG_PREFIX} Using configuration [${where}]:`, serialized);
-}
 
 exports.Name = "Brain 4.1";
 
@@ -173,7 +162,6 @@ function getFirstLegalMove(game) {
 
 exports.brainNextMoveFunc = async (game, options) => {
     runtimeConfig = sanitizeBrainConfig("brain41", options?.config || {});
-    logRuntimeConfigIfChanged(runtimeConfig, "main");
     const state = game.GameState;
     const strState = JSON.stringify(state);
     const maxDepth = options?.maxDepth != null ? Math.min(6, Math.max(1, Number(options.maxDepth))) : DEFAULT_MAX_DEPTH;

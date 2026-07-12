@@ -221,12 +221,6 @@ function buildMinimalMacMenu() {
                     click: () => showAboutPanel(),
                 },
                 { type: "separator" },
-                {
-                    label: "Show Log",
-                    accelerator: "CmdOrCtrl+L",
-                    click: () => showLogWindow(),
-                },
-                { type: "separator" },
                 { role: "quit" },
             ],
         },
@@ -379,12 +373,6 @@ function createWindow() {
         if (input.key === "F12" && !input.control && !input.meta && !input.alt && !input.shift) {
             event.preventDefault();
             toggleApplicationMenu();
-            return;
-        }
-        const withAccel = process.platform === "darwin" ? input.meta : input.control;
-        if (withAccel && !input.alt && !input.shift && String(input.key).toLowerCase() === "l") {
-            event.preventDefault();
-            showLogWindow();
         }
     });
 

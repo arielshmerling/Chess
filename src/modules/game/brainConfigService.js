@@ -360,19 +360,14 @@ function loadBrainConfig(engineName) {
     if (!fs.existsSync(filePath)) {
         const defaults = getDefaultConfig(safeEngine);
         fs.writeFileSync(filePath, JSON.stringify(defaults, null, 2), "utf8");
-        console.log(`[BrainConfig] Wrote default ${safeEngine} to ${filePath}: ${JSON.stringify(defaults)}`);
         return defaults;
     }
     try {
         const raw = fs.readFileSync(filePath, "utf8");
-        const loaded = sanitizeBrainConfig(safeEngine, JSON.parse(raw));
-        console.log(`[BrainConfig] Loaded ${safeEngine} from ${filePath}: ${JSON.stringify(loaded)}`);
-        return loaded;
+        return sanitizeBrainConfig(safeEngine, JSON.parse(raw));
     } catch (error) {
         console.error(`[BrainConfig] Failed reading ${safeEngine} config, using defaults:`, error);
-        const fallback = getDefaultConfig(safeEngine);
-        console.log(`[BrainConfig] Using defaults for ${safeEngine}: ${JSON.stringify(fallback)}`);
-        return fallback;
+        return getDefaultConfig(safeEngine);
     }
 }
 
