@@ -85,6 +85,8 @@
     let reviewFinalStateStr = null;
     /** Game result (1-0, 0-1, etc.) from loaded bookmark; kept for review at earlier plies. */
     let reviewResultMoveStr = null;
+    /** Resigning side from the loaded bookmark final state (for review playback). */
+    let reviewResignedColor = null;
     let reviewPlyIndex = 0;
     /** When set, Play continues from this ply and drops later moves. */
     let reviewBranchPly = null;
@@ -1494,6 +1496,7 @@
         reviewOriginStateStr = null;
         reviewFinalStateStr = null;
         reviewResultMoveStr = null;
+        reviewResignedColor = null;
         reviewPlyIndex = 0;
         reviewBranchPly = null;
     }
@@ -1509,6 +1512,48 @@
             return;
         }
         reviewResultMoveStr = null;
+    }
+
+    function resignedColorFromStateStr(stateStr) {
+        try {
+            const state = JSON.parse(stateStr || "{}");
+            const resigned = state.resigned;
+            if (!resigned || !String(resigned).trim()) {
+                return null;
+            }
+            return String(resigned).toLowerCase();
+        } catch {
+            return null;
+        }
+    }
+
+    function reviewChessMoveCount() {
+        if (!reviewFullMoves.length) {
+            return 0;
+        }
+        return reviewFullMoves.filter(function (move) {
+            return !(typeof game.isResultMove === "function" && game.isResultMove(move));
+        }).length;
+    }
+
+    function shouldApplyReviewResignationHighlight() {
+        return (
+            reviewMode
+            && reviewResignedColor
+            && reviewPlyIndex >= reviewChessMoveCount()
+        );
+    }
+
+    function applyReviewResignationHighlightIfNeeded() {
+        if (!shouldApplyReviewResignationHighlight() || !reviewResignedColor) {
+            return;
+        }
+        if (game && game.GameState && !game.GameState.resigned) {
+            game.resign(reviewResignedColor);
+        }
+        if (Board.applyResignedKingTilt) {
+            Board.applyResignedKingTilt(reviewResignedColor);
+        }
     }
 
     function setPlayOriginState(stateOrStr) {
@@ -1621,6 +1666,8 @@
     }
 
     function applyReviewMove(chess, move) {
+        const previousOnUpdate = chess.OnUpdate;
+        chess.OnUpdate = null;
         try {
             const raw = cloneReviewMove(move);
             if (!raw || raw.source == null || raw.target == null) {
@@ -1648,6 +1695,8 @@
         } catch (err) {
             console.warn("[desktop-play] Review move failed:", err);
             return false;
+        } finally {
+            chess.OnUpdate = previousOnUpdate;
         }
     }
 
@@ -1660,7 +1709,13 @@
                 break;
             }
         }
-        game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+        const previousOnUpdate = game.OnUpdate;
+        game.OnUpdate = null;
+        try {
+            game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+        } finally {
+            game.OnUpdate = previousOnUpdate;
+        }
     }
 
     function cloneReviewMove(move) {
@@ -1674,6 +1729,7 @@
         const loaded = moves && moves.length ? moves : tableMovesFromGame();
         reviewFullMoves = loaded.map(cloneReviewMove);
         reviewFinalStateStr = finalStateStr;
+        reviewResignedColor = resignedColorFromStateStr(finalStateStr);
         if (bookmarkOrigin && String(bookmarkOrigin).trim()) {
             reviewOriginStateStr = String(bookmarkOrigin);
         } else if (!loaded.length) {
@@ -1689,7 +1745,13 @@
 
     function syncReviewBoardFromGame() {
         Board.clearArrows();
+        if (shouldApplyReviewResignationHighlight() && reviewResignedColor) {
+            if (game && game.GameState && !game.GameState.resigned) {
+                game.resign(reviewResignedColor);
+            }
+        }
         Board.syncFromGameState();
+        applyReviewResignationHighlightIfNeeded();
         clearDisplayedEvaluation();
         if (game.GameState && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
@@ -1737,7 +1799,14 @@
             reviewPlyIndex += 1;
             reviewBranchPly =
                 reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
-            game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            const previousOnUpdateResult = game.OnUpdate;
+            game.OnUpdate = null;
+            try {
+                game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            } finally {
+                game.OnUpdate = previousOnUpdateResult;
+            }
+            syncReviewBoardFromGame();
             refreshReviewMovesTable();
             return true;
         }
@@ -1755,7 +1824,13 @@
             reviewPlyIndex += 1;
             reviewBranchPly =
                 reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
-            game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            const previousOnUpdateStep = game.OnUpdate;
+            game.OnUpdate = null;
+            try {
+                game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+            } finally {
+                game.OnUpdate = previousOnUpdateStep;
+            }
             syncReviewBoardFromGame();
             refreshReviewMovesTable();
             return true;
@@ -3589,6 +3664,9 @@
         if (!Board.isBoardAnimating()) {
             Board.drawBoard(gameState.board);
             Board.updateCaptureLists(gameState.capturedPiecesList || []);
+            if (reviewMode) {
+                applyReviewResignationHighlightIfNeeded();
+            }
         }
         if (positionSetupMode || loadingBookmark) {
             return;

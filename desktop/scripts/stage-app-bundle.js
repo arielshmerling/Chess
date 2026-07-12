@@ -18,6 +18,8 @@ const DESKTOP_ROOT_FILES = [
     "brain43RootPool.js",
     "brain43RootEvalWorker.js",
     "brainSearchTime.js",
+    "brainSearchProgress.js",
+    "mateScore.js",
     "openingBookLines.js",
     "brainOpeningBook.js",
     "gameStateCompact.js",

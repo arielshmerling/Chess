@@ -1871,6 +1871,11 @@ body.desktop-play-page .desktop-play-main {
   box-shadow: inset 0 0 0 2px #e87878;
 }
 
+.desktop-play-page #innerBoard .square.king-resigned img {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+
 /* Draw: green squares on both kings */
 .desktop-play-page #innerBoard .square.king-in-draw {
   background-color: #5a9e52 !important;
