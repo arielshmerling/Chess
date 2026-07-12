@@ -18,7 +18,7 @@
     "desktop:dist:win": "cd desktop && npm install && npm run dist:win",
     "desktop:dist:win:dir": "cd desktop && npm install && npm run dist:win:dir",
     "desktop:dist:win:zip": "cd desktop && npm install && npm run dist:win:dir:zip",
-    "desktop:git:release": "node desktop/scripts/git-publish-release.js"
+    "desktop:git:release": "node scripts/git-publish-release.js"
   },
   "keywords": [],
   "author": "",
