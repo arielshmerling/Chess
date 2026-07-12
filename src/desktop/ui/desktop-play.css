@@ -9,6 +9,7 @@ body.desktop-play-page {
   overflow: hidden;
   gap: 0;
   --desktop-play-rail-width: 80px;
+  --desktop-play-actions-scale: 1;
   --desktop-play-sidebar-width: 220px;
   --desktop-play-header-height: 64px;
   --desktop-play-footer-height: 58px;
@@ -53,12 +54,12 @@ body.desktop-play-page .desktop-play-main {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 0.5rem 0;
-  gap: 0.1rem;
+  padding: calc(0.5rem * var(--desktop-play-actions-scale)) 0;
+  gap: calc(0.1rem * var(--desktop-play-actions-scale));
   background: #0c0c0c;
   border-right: 1px solid rgba(255, 255, 255, 0.07);
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .desktop-play-action {
@@ -66,15 +67,16 @@ body.desktop-play-page .desktop-play-main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.7rem 0.25rem;
-  margin: 0 0.35rem;
+  gap: calc(0.3rem * var(--desktop-play-actions-scale));
+  padding: calc(0.7rem * var(--desktop-play-actions-scale)) calc(0.25rem * var(--desktop-play-actions-scale));
+  margin: 0 calc(0.35rem * var(--desktop-play-actions-scale));
   border: none;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--desktop-play-actions-scale));
   background: transparent;
   color: rgba(255, 255, 255, 0.82);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
 }
 
 .desktop-play-action:hover:not(:disabled) {
@@ -100,8 +102,8 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-action-icon {
-  width: 26px;
-  height: 26px;
+  width: calc(26px * var(--desktop-play-actions-scale));
+  height: calc(26px * var(--desktop-play-actions-scale));
   flex-shrink: 0;
 }
 
@@ -117,7 +119,7 @@ body.desktop-play-page .desktop-play-main {
 }
 
 .desktop-play-action-label {
-  font-size: 0.62rem;
+  font-size: calc(0.62rem * var(--desktop-play-actions-scale));
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -128,7 +130,11 @@ body.desktop-play-page .desktop-play-main {
 
 .desktop-play-actions-spacer {
   flex: 1;
-  min-height: 0.5rem;
+  min-height: calc(0.5rem * var(--desktop-play-actions-scale));
+}
+
+body.desktop-play-actions--compact .desktop-play-actions-spacer {
+  flex: 0 0 calc(0.2rem * var(--desktop-play-actions-scale));
 }
 
 /* Area to the right of the action rail: header + main content */

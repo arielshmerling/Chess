@@ -2175,6 +2175,9 @@
             rail.appendChild(btn);
         });
         updateActionButtons();
+        if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
+            window.DesktopBoardScale.refresh();
+        }
     }
 
     function isHumanTurn() {
