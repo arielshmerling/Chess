@@ -20,14 +20,11 @@ function printAppleSiliconHelp() {
 [dist:win] Cannot build the NSIS installer on Apple Silicon without Rosetta.
 electron-builder's makensis tool is Intel (x86_64) only.
 
-Options:
-  1. Portable zip (no installer, works on Apple Silicon):
-     npm run dist:win:zip
+Prefer releasing via GitHub Actions instead of building locally:
+  npm run desktop:git:release
 
-  2. Install Rosetta, then retry:
-     softwareupdate --install-rosetta --agree-to-license
-
-  3. Release installers are built on GitHub Actions (windows-latest).
+Or install Rosetta and retry:
+  softwareupdate --install-rosetta --agree-to-license
 `);
 }
 

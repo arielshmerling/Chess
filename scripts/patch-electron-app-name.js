@@ -97,7 +97,7 @@ function patchPlist() {
 function patchAboutIcon() {
     const electronIcns = path.join(BRANDED_APP, "Contents", "Resources", "electron.icns");
     if (!fs.existsSync(OUR_ICNS)) {
-        console.warn("[patch-electron-app-name] build/icon.icns missing; run prepare:icons");
+        console.warn("[patch-electron-app-name] build/icon.icns missing; run npm run desktop:setup");
         return;
     }
     if (!fs.existsSync(path.dirname(electronIcns))) {
