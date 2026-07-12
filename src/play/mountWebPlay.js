@@ -33,6 +33,7 @@ function mountWebPlayRoutes(app) {
 
     app.get("/api/play/prefer-page", requireLogin, playPrefsApi.getPreferPlayPage);
     app.post("/api/play/prefer-page", requireLogin, playPrefsApi.setPreferPlayPage);
+    app.get("/api/play/launch-context", requireLogin, playPrefsApi.getLaunchContext);
 
     app.get("/play", requireLogin, (req, res) => {
         if (!canAccessPlayPage(req)) {

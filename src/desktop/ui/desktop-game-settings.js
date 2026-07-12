@@ -233,10 +233,11 @@
     function buildSession(opts) {
         const humanWhite = opts.color !== "black";
         const engineName = brainLabel(opts.engine);
+        const displayName = opts.username || GUEST_NAME;
         return {
-            username: GUEST_NAME,
-            whitePlayerName: humanWhite ? GUEST_NAME : engineName,
-            blackPlayerName: humanWhite ? engineName : GUEST_NAME,
+            username: displayName,
+            whitePlayerName: humanWhite ? displayName : engineName,
+            blackPlayerName: humanWhite ? engineName : displayName,
             engine: opts.engine || DEFAULTS.engine,
             thinkingTimeSeconds: normalizeThinkingTimeSeconds(
                 opts.thinkingTimeSeconds != null ? opts.thinkingTimeSeconds : opts.difficulty,

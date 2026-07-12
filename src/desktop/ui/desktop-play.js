@@ -3994,6 +3994,142 @@
         }
     }
 
+    function isWebPlayPage() {
+        return !!(
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isWebPlayPage === "function"
+            && window.ShmerlingPlayShell.isWebPlayPage()
+        );
+    }
+
+    function normalizeLaunchEngine(raw) {
+        const engine = typeof raw === "string" ? raw.trim() : "";
+        if (engine === "brain43" || engine === "brain42" || engine === "brain41") {
+            return engine;
+        }
+        if (engine === "brain4") {
+            return "brain43";
+        }
+        return Settings.normalizeEngine(engine);
+    }
+
+    function mergeStoredLaunchOptions(target, source) {
+        if (!source || typeof source !== "object") {
+            return target;
+        }
+        if (source.color === "white" || source.color === "black") {
+            target.color = source.color;
+        }
+        if (source.engine) {
+            target.engine = normalizeLaunchEngine(source.engine);
+        }
+        const difficulty = Number(source.difficulty);
+        if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
+            target.thinkingTimeSeconds = difficulty;
+            target.difficulty = difficulty;
+        }
+        const timeMinutes = Number(source.timeMinutes);
+        if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {
+            target.timeMinutes = timeMinutes;
+        }
+        if (source.mouse === "drag" || source.mouse === "double") {
+            target.mouse = source.mouse;
+        }
+        if (source.showAvailableMoves === true || source.showAvailableMoves === false) {
+            target.showAvailableMoves = source.showAvailableMoves;
+        }
+        return target;
+    }
+
+    function applyUrlLaunchOptions(target) {
+        try {
+            const params = new URLSearchParams(window.location.search || "");
+            if (params.get("color") === "white" || params.get("color") === "black") {
+                target.color = params.get("color");
+            }
+            if (params.get("engine")) {
+                target.engine = normalizeLaunchEngine(params.get("engine"));
+            }
+            const difficulty = parseInt(params.get("difficulty"), 10);
+            if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
+                target.thinkingTimeSeconds = difficulty;
+                target.difficulty = difficulty;
+            }
+            const timeMinutes = parseInt(params.get("timeMinutes"), 10);
+            if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {
+                target.timeMinutes = timeMinutes;
+            }
+            const mouse = params.get("mouse");
+            if (mouse === "drag" || mouse === "double") {
+                target.mouse = mouse;
+            }
+            if (params.get("showMoves") === "1") {
+                target.showAvailableMoves = true;
+            } else if (params.get("showMoves") === "0") {
+                target.showAvailableMoves = false;
+            }
+        } catch {
+            /* ignore malformed query string */
+        }
+        return target;
+    }
+
+    async function resolveWebAutoStartOptions() {
+        const opts = Settings.loadLastOptions();
+        try {
+            if (Api && typeof Api.get === "function") {
+                const ctx = await Api.get("/api/play/launch-context");
+                if (ctx && ctx.lastGameOptions) {
+                    mergeStoredLaunchOptions(opts, ctx.lastGameOptions);
+                }
+                if (ctx && ctx.username) {
+                    opts.username = ctx.username;
+                }
+            }
+        } catch (err) {
+            console.warn("[Play] Could not load launch context:", err);
+        }
+        applyUrlLaunchOptions(opts);
+        Settings.saveLastOptions(opts);
+        return opts;
+    }
+
+    function clearWebLaunchQueryString() {
+        if (!isWebPlayPage() || !window.history || !window.history.replaceState) {
+            return;
+        }
+        if ((window.location.search || "").length > 0) {
+            window.history.replaceState({}, "", "/play");
+        }
+    }
+
+    function getWebHomeHref() {
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.getPlayHomeHref === "function"
+        ) {
+            return window.ShmerlingPlayShell.getPlayHomeHref();
+        }
+        return "/home";
+    }
+
+    function leavePlayShell() {
+        if (isWebPlayPage()) {
+            window.location.href = getWebHomeHref();
+            return;
+        }
+        resetToIdleScreen();
+    }
+
+    async function maybeAutoStartWebGame() {
+        if (!isWebPlayPage()) {
+            return;
+        }
+        const opts = await resolveWebAutoStartOptions();
+        await beginNewGame(opts);
+        clearWebLaunchQueryString();
+    }
+
     async function beginNewGame(opts) {
         applySessionSettings(opts);
         assignNewGameId();
@@ -4303,18 +4439,18 @@
         }
         if (positionSetupMode) {
             exitPositionSetupMode(true);
-            resetToIdleScreen();
+            leavePlayShell();
             return;
         }
         if (!gameActive) {
-            resetToIdleScreen();
+            leavePlayShell();
             return;
         }
         const humanHasMoved = currentPlayerIsWhite
             ? game.Moves.length >= 1
             : game.Moves.length >= 2;
         if (!humanHasMoved) {
-            resetToIdleScreen();
+            leavePlayShell();
             return;
         }
         confirmDialog("Leave game?", "Your game will be resigned.", function () {
@@ -4322,7 +4458,7 @@
             game.resign(player);
             abortEngineSearch();
             tryLogCompletedGame();
-            resetToIdleScreen();
+            leavePlayShell();
         });
     }
 
@@ -4399,9 +4535,14 @@
         updateMovesTable([]);
         updateHeaderTurn();
         updateMatchHeader();
-        showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+        if (!isWebPlayPage()) {
+            showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+        }
         playSessionReady = true;
         updateActionButtons();
+        if (isWebPlayPage()) {
+            await maybeAutoStartWebGame();
+        }
     }
 
     document.addEventListener("DOMContentLoaded", function () {

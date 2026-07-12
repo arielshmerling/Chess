@@ -4,6 +4,7 @@
 
 const catchAsync = require("../utils/catchAsync");
 const ExpressError = require("../utils/ExpressError");
+const { User } = require("../modules/user/model");
 const webPlayPrefsStore = require("./webPlayPrefsStore");
 
 exports.getPreferPlayPage = catchAsync(async (req, res) => {
@@ -26,5 +27,16 @@ exports.setPreferPlayPage = catchAsync(async (req, res) => {
     res.json({
         ok: true,
         preferPlayPage: enabled,
+    });
+});
+
+exports.getLaunchContext = catchAsync(async (req, res) => {
+    const user = await User.findById(req.session.user_id)
+        .select("username lastGameOptions")
+        .lean();
+    res.json({
+        ok: true,
+        username: user && user.username ? user.username : req.session.user_name || "Player",
+        lastGameOptions: user && user.lastGameOptions ? user.lastGameOptions : null,
     });
 });
