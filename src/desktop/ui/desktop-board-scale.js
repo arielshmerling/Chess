@@ -7,8 +7,11 @@
 
     const BASE_BOARD_HEIGHT = 440;
     const FRAME_EXTRA = 40;
-    const MAX_SCALE = 1.4;
-    const MIN_SCALE = 0.35;
+    /** Smallest board edge (excluding outer frame). */
+    const MIN_BOARD_SIZE = 396;
+    const MIN_SCALE = MIN_BOARD_SIZE / BASE_BOARD_HEIGHT;
+    /** Fallback only when layout size is not yet measurable. */
+    const DEFAULT_SCALE = 1.4;
     const PADDING = 16;
 
     let scheduled = false;
@@ -23,11 +26,11 @@
         const availH = Math.max(0, main.clientHeight - PADDING * 2);
         const fitW = (availW - FRAME_EXTRA) / BASE_BOARD_HEIGHT;
         const fitH = (availH - FRAME_EXTRA) / BASE_BOARD_HEIGHT;
-        let scale = Math.min(MAX_SCALE, fitW, fitH);
-        if (!Number.isFinite(scale)) {
-            scale = MAX_SCALE;
+        let scale = Math.min(fitW, fitH);
+        if (!Number.isFinite(scale) || scale <= 0) {
+            scale = DEFAULT_SCALE;
         }
-        scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+        scale = Math.max(MIN_SCALE, scale);
         document.body.style.setProperty("--board-scale", String(scale));
     }
 
