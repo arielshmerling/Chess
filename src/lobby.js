@@ -1,6 +1,6 @@
 /*global startGame */
 
-function getPlayGameBasePath() {
+function getClassicPlayGameBasePath() {
     try {
         const p = window.location.pathname || "";
         if (p === "/mobile-game" || p.indexOf("/mobile-game") === 0) {
@@ -13,6 +13,31 @@ function getPlayGameBasePath() {
         /* pathname unavailable */
     }
     return "/game";
+}
+
+function getPlayGameBasePath(opts) {
+    const options = opts && typeof opts === "object" ? opts : {};
+    if (options.forOnlineSession) {
+        return getClassicPlayGameBasePath();
+    }
+    try {
+        const p = window.location.pathname || "";
+        if (p === "/play" || p.indexOf("/play/") === 0) {
+            return "/play";
+        }
+        if (p === "/mobile-game" || p.indexOf("/mobile-game") === 0) {
+            return "/mobile-game";
+        }
+        if (p === "/mobile-home" || p.indexOf("/mobile-home") === 0) {
+            return "/mobile-game";
+        }
+    } catch {
+        /* pathname unavailable */
+    }
+    if (window.__SHMERLING_PREFER_PLAY_PAGE__) {
+        return "/play";
+    }
+    return getClassicPlayGameBasePath();
 }
 
 /* eslint-disable-next-line no-unused-vars */

@@ -54,24 +54,28 @@ function getUserDataRoot() {
     return userDataRoot;
 }
 
-function getBookmarksFilePath() {
+function requireUserDataRoot() {
     ensureInitialized();
-    return path.join(userDataRoot, "bookmarks.json");
+    if (!userDataRoot) {
+        throw new Error("desktop runtime: userDataRoot is not initialized");
+    }
+    return userDataRoot;
+}
+
+function getBookmarksFilePath() {
+    return path.join(requireUserDataRoot(), "bookmarks.json");
 }
 
 function getGamesDir() {
-    ensureInitialized();
-    return path.join(userDataRoot, "games");
+    return path.join(requireUserDataRoot(), "games");
 }
 
 function getSettingsFilePath() {
-    ensureInitialized();
-    return path.join(userDataRoot, "settings.json");
+    return path.join(requireUserDataRoot(), "settings.json");
 }
 
 function getCustomThemesFilePath() {
-    ensureInitialized();
-    return path.join(userDataRoot, "custom-themes.json");
+    return path.join(requireUserDataRoot(), "custom-themes.json");
 }
 
 /** Shipped preset themes (edit to bundle themes with the product). */
@@ -80,8 +84,7 @@ function getBundledCustomThemesPath() {
 }
 
 function getBrainConfigDir() {
-    ensureInitialized();
-    return path.join(userDataRoot, "brain-config");
+    return path.join(requireUserDataRoot(), "brain-config");
 }
 
 function getBundledOpeningBookLinesPath() {
@@ -89,8 +92,7 @@ function getBundledOpeningBookLinesPath() {
 }
 
 function getUserOpeningBookLinesPath() {
-    ensureInitialized();
-    return path.join(userDataRoot, "opening-book-lines.txt");
+    return path.join(requireUserDataRoot(), "opening-book-lines.txt");
 }
 
 /**

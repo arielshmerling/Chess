@@ -4,9 +4,19 @@
 (function () {
     "use strict";
 
+    function getHomeHref() {
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.getPlayHomeHref === "function"
+        ) {
+            return window.ShmerlingPlayShell.getPlayHomeHref();
+        }
+        return "/app/play";
+    }
+
     var TOPBAR_HTML = [
         '<header class="desktop-topbar" role="banner">',
-        '  <a href="/app/play" class="desktop-topbar-logo" aria-label="Shmerling Chess home">',
+        '  <a href="' + getHomeHref() + '" class="desktop-topbar-logo" aria-label="Shmerling Chess home">',
         '    <img src="/images/shmerling.png" alt="">',
         "  </a>",
         '  <div class="desktop-topbar-spacer"></div>',

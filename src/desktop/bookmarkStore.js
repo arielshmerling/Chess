@@ -5,6 +5,7 @@
 const fs = require("fs").promises;
 const { randomUUID } = require("crypto");
 const { normalizeThinkingTimeSeconds } = require("../modules/game/brainConfigService");
+const { toClientBookmark } = require("../play/bookmarkShape");
 const runtime = require("./runtime");
 
 async function readAll() {
@@ -29,26 +30,13 @@ async function writeAll(bookmarks) {
 /**
  * Shape compatible with existing bookmark UI (_id, id, state, moves, engine, depth).
  */
-function toClientBookmark(doc) {
-    return {
-        _id: doc._id,
-        id: doc.id || doc._id,
-        name: doc.name,
-        date: doc.date,
-        gameType: doc.gameType,
-        state: doc.state,
-        originState: doc.originState,
-        moves: doc.moves || [],
-        engine: doc.engine,
-        depth: doc.depth,
-        whitePlayerName: doc.whitePlayerName,
-        blackPlayerName: doc.blackPlayerName,
-    };
+function toStoredClientBookmark(doc) {
+    return toClientBookmark(doc);
 }
 
 exports.getAllUserBookmarks = async () => {
     const list = await readAll();
-    return list.map(toClientBookmark);
+    return list.map(toStoredClientBookmark);
 };
 
 exports.addBookmark = async (
@@ -88,7 +76,7 @@ exports.addBookmark = async (
     }
     list.push(bookmark);
     await writeAll(list);
-    return toClientBookmark(bookmark);
+    return toStoredClientBookmark(bookmark);
 };
 
 exports.updateBookmark = async (

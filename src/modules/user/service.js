@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const ExpressError = require("../../utils/ExpressError");
 const { notifyAdminPrivilegeChange } = require("../../utils/adminPrivilegeNotify");
 const gamesManagerService = require("../gamesManager/service");
+const { toClientBookmark } = require("../../play/bookmarkShape");
 
 const EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
@@ -163,37 +164,69 @@ exports.registerNewUser = async (username, password, email, level) => {
 
 exports.getAllUserBookmarks = async (userId) => {
     const user = await User.findOne({ _id: userId }).populate("bookmarks");
-    const bookmarks = user.bookmarks;
-    return bookmarks;
+    const bookmarks = user && user.bookmarks ? user.bookmarks : [];
+    return bookmarks.map((doc) => toClientBookmark(doc));
 };
 
 
-exports.addBookmark = async (userId, gameState, name, gameType, moves, engine, depth) => {
-    try {
-        const user = await User.findOne({ _id: userId });
-        if (user) {
-            const parsedDepth = Number(depth);
-            const bookmarkDoc = new Bookmark({
-                state: JSON.stringify(gameState),
-                name,
-                gameType,
-                moves,
-                engine: (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain41",
-                depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3,
-            });
-            await bookmarkDoc.save();
-            user.bookmarks.push(bookmarkDoc._id);
-            await user.save();
-        }
-    } catch (error) {
-        console.error(error);
+exports.addBookmark = async (
+    userId,
+    gameState,
+    name,
+    gameType,
+    moves,
+    engine,
+    depth,
+    originState,
+    whitePlayerName,
+    blackPlayerName,
+) => {
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+        return null;
     }
+    const parsedDepth = Number(depth);
+    const bookmarkDoc = new Bookmark({
+        state: typeof gameState === "string" ? gameState : JSON.stringify(gameState),
+        name,
+        gameType,
+        moves: Array.isArray(moves) ? moves : [],
+        engine: (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain41",
+        depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3,
+    });
+    if (originState != null && String(originState).trim()) {
+        bookmarkDoc.originState =
+            typeof originState === "string" ? originState : JSON.stringify(originState);
+    }
+    if (typeof whitePlayerName === "string" && whitePlayerName.trim()) {
+        bookmarkDoc.whitePlayerName = whitePlayerName.trim();
+    }
+    if (typeof blackPlayerName === "string" && blackPlayerName.trim()) {
+        bookmarkDoc.blackPlayerName = blackPlayerName.trim();
+    }
+    await bookmarkDoc.save();
+    user.bookmarks.push(bookmarkDoc._id);
+    await user.save();
+    return toClientBookmark(bookmarkDoc);
 };
 
-exports.updateBookmark = async (userId, id, date, name, gameType, gameState, moves, engine, depth) => {
+exports.updateBookmark = async (
+    userId,
+    id,
+    date,
+    name,
+    gameType,
+    gameState,
+    moves,
+    engine,
+    depth,
+    originState,
+    whitePlayerName,
+    blackPlayerName,
+) => {
     try {
         const user = await User.findOne({ _id: userId });
-        const userBookmark = user.bookmarks.find((o) => o._id == id);
+        const userBookmark = user && user.bookmarks.find((o) => o._id == id);
         const bookmarkDoc = await Bookmark.findOne({ _id: id });
         if (bookmarkDoc && userBookmark) {
             if (name !== undefined) {bookmarkDoc.name = name;}
@@ -214,11 +247,33 @@ exports.updateBookmark = async (userId, id, date, name, gameType, gameState, mov
                 const parsedDepth = Number(depth);
                 bookmarkDoc.depth = Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3;
             }
+            if (originState !== undefined) {
+                if (originState == null || !String(originState).trim()) {
+                    bookmarkDoc.originState = undefined;
+                } else {
+                    bookmarkDoc.originState =
+                        typeof originState === "string" ? originState : JSON.stringify(originState);
+                }
+            }
+            if (whitePlayerName !== undefined) {
+                bookmarkDoc.whitePlayerName =
+                    whitePlayerName == null || !String(whitePlayerName).trim()
+                        ? undefined
+                        : String(whitePlayerName).trim();
+            }
+            if (blackPlayerName !== undefined) {
+                bookmarkDoc.blackPlayerName =
+                    blackPlayerName == null || !String(blackPlayerName).trim()
+                        ? undefined
+                        : String(blackPlayerName).trim();
+            }
             await bookmarkDoc.save();
+            return toClientBookmark(bookmarkDoc);
         }
     } catch (error) {
         console.error(error);
     }
+    return null;
 };
 
 exports.applyBookmark = async (userId, gameId, bookarkId) => {

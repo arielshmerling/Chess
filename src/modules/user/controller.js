@@ -48,11 +48,36 @@ exports.getBookmarks = catchAsync(async (req, res) => {
 
 exports.setBookmark = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { gameState, name, gameType, moves, engine, depth } = req.body;
+    const {
+        gameState,
+        name,
+        gameType,
+        moves,
+        engine,
+        depth,
+        originState,
+        whitePlayerName,
+        blackPlayerName,
+    } = req.body;
 
     if (userId) {
-        await userService.addBookmark(userId, gameState, name, gameType, moves, engine, depth);
-        res.send("OK");
+        const bookmark = await userService.addBookmark(
+            userId,
+            gameState,
+            name,
+            gameType,
+            moves,
+            engine,
+            depth,
+            originState,
+            whitePlayerName,
+            blackPlayerName,
+        );
+        if (!bookmark) {
+            res.status(400).json({ ok: false, message: "Could not save bookmark" });
+            return;
+        }
+        res.json(bookmark);
     }
     else {
         console.log("Bad request. No userId");
@@ -62,10 +87,35 @@ exports.setBookmark = catchAsync(async (req, res) => {
 
 exports.updateBookmark = catchAsync(async (req, res) => {
     const userId = req.session.user_id;
-    const { id, name, gameType, date, gameState, moves, engine, depth } = req.body;
+    const {
+        id,
+        name,
+        gameType,
+        date,
+        gameState,
+        moves,
+        engine,
+        depth,
+        originState,
+        whitePlayerName,
+        blackPlayerName,
+    } = req.body;
 
     if (id) {
-        await userService.updateBookmark(userId, id, date, name, gameType, gameState, moves, engine, depth);
+        await userService.updateBookmark(
+            userId,
+            id,
+            date,
+            name,
+            gameType,
+            gameState,
+            moves,
+            engine,
+            depth,
+            originState,
+            whitePlayerName,
+            blackPlayerName,
+        );
         res.send("{ \"status\": \"OK\" }");
     }
     else {
@@ -109,6 +159,7 @@ exports.login = catchAsync(async (req, res) => {
         req.session.user_id = foundUser.id;
         req.session.user_name = foundUser.username;
         req.session.admin = foundUser.admin;
+        req.session.preferPlayPage = !!(foundUser.admin && foundUser.preferPlayPage);
         foundUser.lastLogin = Date.now();
         await foundUser.save();
         const redirectUrl = res.locals.returnTo || "/Home";

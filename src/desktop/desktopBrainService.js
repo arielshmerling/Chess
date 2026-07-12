@@ -78,6 +78,9 @@ function ensureOpeningBookReady(engineName) {
 }
 
 function ensureRuntime() {
+    if (!runtime.isDesktopMode()) {
+        return;
+    }
     syncDesktopPathsForSharedModules();
     if (!runtime.getUserDataRoot()) {
         const userData = process.env.SHMERLING_USER_DATA;

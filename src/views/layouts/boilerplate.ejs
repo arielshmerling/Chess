@@ -19,6 +19,9 @@
   <script src="/customValidation.js"></script>
   <script src="/siteDialogs.js"></script>
   <% if (typeof username !== 'undefined' && username) { %>
+  <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+    window.__SHMERLING_PREFER_PLAY_PAGE__ = <%= (typeof preferPlayPage !== 'undefined' && preferPlayPage) ? 'true' : 'false' %>;
+  </script>
   <script src="/lobbyPresence.js"></script>
   <script src="/friendGameInvite.js"></script>
   <% } %>
@@ -52,6 +55,34 @@
       setInterval(ping, 45000);
     })();
   </script>
+  <% if (admin) { %>
+  <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+    (function () {
+      var toggle = document.getElementById("preferPlayPageSwitch");
+      if (!toggle) { return; }
+      toggle.addEventListener("change", function () {
+        fetch("/api/play/prefer-page", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ preferPlayPage: toggle.checked }),
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data && data.ok) {
+              window.__SHMERLING_PREFER_PLAY_PAGE__ = !!data.preferPlayPage;
+            }
+          })
+          .catch(function () {
+            toggle.checked = !toggle.checked;
+          });
+      });
+    })();
+  </script>
+  <% } %>
   <% } %>
 
 </body>

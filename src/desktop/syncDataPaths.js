@@ -59,7 +59,14 @@ function syncOpeningBookForSharedLoader() {
 }
 
 function syncBrainConfigsForSinglePlayerGame() {
-    const srcDir = runtime.getBrainConfigDir();
+    if (!runtime.isDesktopMode()) {
+        return;
+    }
+    const userDataRoot = runtime.getUserDataRoot();
+    if (!userDataRoot) {
+        return;
+    }
+    const srcDir = path.join(userDataRoot, "brain-config");
     const destDir = path.join(__dirname, "..", "config", "brains");
     if (!fs.existsSync(srcDir)) {
         return;
@@ -74,6 +81,9 @@ function syncBrainConfigsForSinglePlayerGame() {
 }
 
 function syncDesktopPathsForSharedModules() {
+    if (!runtime.isDesktopMode()) {
+        return;
+    }
     syncOpeningBookForSharedLoader();
     syncBrainConfigsForSinglePlayerGame();
 }

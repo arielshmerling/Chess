@@ -333,7 +333,7 @@
         pendingInviterJoiningGameId = null;
         pendingInviterJoiningUntil = 0;
       }
-      window.location.href = (typeof getPlayGameBasePath === "function" ? getPlayGameBasePath() : "/game") + "?id=" + encodeURIComponent(gid2);
+      window.location.href = (typeof getPlayGameBasePath === "function" ? getPlayGameBasePath({ forOnlineSession: true }) : "/game") + "?id=" + encodeURIComponent(gid2);
       return;
     }
     var inviteBtn = t.closest(".friends-btn-invite");

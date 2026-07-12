@@ -91,7 +91,7 @@
         var pathFn = typeof window !== "undefined" ? window.getPlayGameBasePath : null;
         if (typeof pathFn === "function") {
             try {
-                return pathFn();
+                return pathFn({ forOnlineSession: true });
             } catch {
                 /* ignore */
             }

@@ -30,6 +30,18 @@ const bookmarkSchema = new mongoose.Schema({
         type: Date,
         default: mongoose.default.now,
     },
+
+    originState: {
+        type: String,
+    },
+
+    whitePlayerName: {
+        type: String,
+    },
+
+    blackPlayerName: {
+        type: String,
+    },
 });
 
 
@@ -46,6 +58,24 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         required: [true, "admin cannot be blank"],
         default: false,
+    },
+
+    /** Admin-only: route lobby / active-game links to /play instead of /game. */
+    preferPlayPage: {
+        type: Boolean,
+        default: false,
+    },
+
+    /** Web Play UI settings (themes, dock panels, gameplay prefs). */
+    playUiSettings: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+    },
+
+    /** Web Play custom theme store. */
+    playCustomThemes: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
     },
     email: {
         type: String,

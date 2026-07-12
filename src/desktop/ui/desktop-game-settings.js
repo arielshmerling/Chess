@@ -36,6 +36,12 @@
     let serverBootStarted = false;
 
     function isDesktopApp() {
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.shouldPersistPlayPrefsToServer === "function"
+        ) {
+            return window.ShmerlingPlayShell.shouldPersistPlayPrefsToServer();
+        }
         if (typeof window === "undefined" || !window.location) {
             return false;
         }
