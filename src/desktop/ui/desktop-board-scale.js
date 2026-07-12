@@ -8,7 +8,7 @@
     const BASE_BOARD_HEIGHT = 440;
     const FRAME_EXTRA = 40;
     /** Smallest board edge (excluding outer frame). */
-    const MIN_BOARD_SIZE = 396;
+    const MIN_BOARD_SIZE = 200;
     const MIN_BOARD_SCALE = MIN_BOARD_SIZE / BASE_BOARD_HEIGHT;
     /** Fallback only when layout size is not yet measurable. */
     const DEFAULT_BOARD_SCALE = 1.4;
