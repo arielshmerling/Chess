@@ -2,21 +2,26 @@
 /**
  * Bump desktop/package.json version, commit, tag, and push to trigger GitHub Release.
  *
- * Version format: M.DD.HH.MM (month.day.hour.minute), e.g. 6.14.18.58
+ * Version format (semver, required by electron-builder): M.D.HHMM
+ * where HHMM is hours*100 + minutes, e.g. 7.12.919 for July 12 at 09:19.
+ * (The old M.D.H.M form like 7.12.9.19 is rejected as invalid semver.)
  *
  * Usage (from repo root):
  *   npm run desktop:git:release
  *   npm run desktop:git:release -- --dry-run
  *   npm run desktop:git:release -- --force
- *   npm run desktop:git:release -- --version=6.14.18.58
+ *   npm run desktop:git:release -- --version=7.12.919
  */
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const semver = require("semver");
 
 const ROOT = path.join(__dirname, "..", "..");
 const DESKTOP_PKG = path.join(ROOT, "desktop", "package.json");
+const DESKTOP_LOCK = path.join(ROOT, "desktop", "package-lock.json");
 const DESKTOP_PKG_REL = "desktop/package.json";
+const DESKTOP_LOCK_REL = "desktop/package-lock.json";
 
 function run(cmd) {
     execSync(cmd, { cwd: ROOT, stdio: "inherit" });
@@ -31,7 +36,16 @@ function buildReleaseVersion(date = new Date()) {
     const day = date.getDate();
     const hours = date.getHours();
     const minutes = date.getMinutes();
-    return `${month}.${day}.${hours}.${minutes}`;
+    // electron-builder requires strict semver (X.Y.Z). Encode time as patch HHMM.
+    return `${month}.${day}.${hours * 100 + minutes}`;
+}
+
+function assertValidSemver(version) {
+    if (!semver.valid(version)) {
+        throw new Error(
+            `Version "${version}" is not valid semver (required by electron-builder).`,
+        );
+    }
 }
 
 function parseArgs(argv) {
@@ -77,10 +91,21 @@ function remoteTagExists(tag) {
 }
 
 function updateDesktopVersion(version) {
+    assertValidSemver(version);
     const pkg = JSON.parse(fs.readFileSync(DESKTOP_PKG, "utf8"));
     const previous = pkg.version;
     pkg.version = version;
     fs.writeFileSync(DESKTOP_PKG, `${JSON.stringify(pkg, null, 2)}\n`);
+
+    if (fs.existsSync(DESKTOP_LOCK)) {
+        const lock = JSON.parse(fs.readFileSync(DESKTOP_LOCK, "utf8"));
+        lock.version = version;
+        if (lock.packages && lock.packages[""]) {
+            lock.packages[""].version = version;
+        }
+        fs.writeFileSync(DESKTOP_LOCK, `${JSON.stringify(lock, null, 2)}\n`);
+    }
+
     return previous;
 }
 
@@ -113,6 +138,7 @@ function main() {
     planStep(`Version: ${version}`);
     planStep(`Tag: ${tag}`);
     planStep(`Installer: Shmerling-Chess-${version}-win-setup.exe`);
+    assertValidSemver(version);
 
     if (options.dryRun) {
         planStep("Dry run only. No files or git state were changed.");
@@ -131,7 +157,7 @@ function main() {
         }
     }
 
-    run(`git add ${DESKTOP_PKG_REL}`);
+    run(`git add ${DESKTOP_PKG_REL} ${DESKTOP_LOCK_REL}`);
     run(`git commit -m "$(cat <<'EOF'
 Release ${tag}
 

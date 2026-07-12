@@ -37,7 +37,8 @@ function main() {
         process.exit(1);
     }
 
-    execSync("electron-builder --win --x64", {
+    // Publish is handled by softprops/action-gh-release in CI, not electron-builder.
+    execSync("electron-builder --win --x64 --publish never", {
         cwd: DESKTOP,
         stdio: "inherit",
     });
