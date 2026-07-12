@@ -1,15 +1,17 @@
 /**
  * Launch Electron. On macOS dev, use Shmerling Chess.app so Dock shows the right name.
+ * Branding is ensured only when missing (after Electron upgrade / first setup).
  */
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const { ensureBrandedApp, APP_NAME } = require("./patch-electron-app-name");
 
 const DESKTOP = path.join(__dirname, "..", "desktop");
-const APP_NAME = "Shmerling Chess";
 
 function resolveElectronPath() {
     if (process.platform === "darwin") {
+        ensureBrandedApp();
         const branded = path.join(
             DESKTOP,
             "node_modules",

@@ -1,6 +1,7 @@
 /**
  * macOS dev: create Shmerling Chess.app from Electron.app and patch name/icon.
  * Dock hover text follows the .app bundle folder name, not CFBundleName alone.
+ * Idempotent — no-op (and silent) when the branded app already matches Electron.
  */
 const fs = require("fs");
 const path = require("path");
@@ -17,6 +18,10 @@ const OUR_ICNS = path.join(DESKTOP, "build", "icon.icns");
 
 function electronVersion() {
     return require(path.join(DESKTOP, "node_modules", "electron", "package.json")).version;
+}
+
+function stampKey() {
+    return `${electronVersion()}:${BUNDLE_COPY_METHOD}`;
 }
 
 function brandedAppSymlinksBroken() {
@@ -38,6 +43,16 @@ function brandedAppSymlinksBroken() {
     }
 }
 
+function isBrandedAppCurrent() {
+    if (!fs.existsSync(BRANDED_APP) || brandedAppSymlinksBroken()) {
+        return false;
+    }
+    if (!fs.existsSync(VERSION_STAMP)) {
+        return false;
+    }
+    return fs.readFileSync(VERSION_STAMP, "utf8").trim() === stampKey();
+}
+
 function removeDir(dir) {
     if (fs.existsSync(dir)) {
         fs.rmSync(dir, { recursive: true, force: true });
@@ -50,21 +65,11 @@ function syncBrandedApp() {
         return false;
     }
 
-    const version = electronVersion();
-    const stampKey = `${version}:${BUNDLE_COPY_METHOD}`;
-    const stamped = fs.existsSync(VERSION_STAMP)
-        ? fs.readFileSync(VERSION_STAMP, "utf8").trim()
-        : "";
-
-    if (stamped === stampKey && fs.existsSync(BRANDED_APP) && !brandedAppSymlinksBroken()) {
-        return true;
-    }
-
-    console.log(`[patch-electron-app-name] Creating ${APP_NAME}.app (electron ${version})…`);
+    console.log(`[patch-electron-app-name] Creating ${APP_NAME}.app (electron ${electronVersion()})…`);
     removeDir(BRANDED_APP);
     // ditto preserves macOS bundle symlinks; fs.cpSync breaks them and crashes Electron.
     execSync(`ditto "${ELECTRON_APP}" "${BRANDED_APP}"`, { stdio: "inherit" });
-    fs.writeFileSync(VERSION_STAMP, `${stampKey}\n`, "utf8");
+    fs.writeFileSync(VERSION_STAMP, `${stampKey()}\n`, "utf8");
     return true;
 }
 
@@ -102,8 +107,12 @@ function patchAboutIcon() {
     console.log(`[patch-electron-app-name] Replaced icon in ${APP_NAME}.app`);
 }
 
-function main() {
+/** Ensure branded macOS Electron app exists. Silent when already current. */
+function ensureBrandedApp() {
     if (process.platform !== "darwin") {
+        return;
+    }
+    if (isBrandedAppCurrent()) {
         return;
     }
     if (!syncBrandedApp()) {
@@ -113,4 +122,8 @@ function main() {
     patchAboutIcon();
 }
 
-main();
+if (require.main === module) {
+    ensureBrandedApp();
+}
+
+module.exports = { ensureBrandedApp, isBrandedAppCurrent, APP_NAME };

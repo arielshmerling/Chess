@@ -80,7 +80,6 @@ function main() {
         process.exit(1);
     }
     if (iconsUpToDate()) {
-        console.log("[prepare-icons] Icons up to date (favicon unchanged)");
         return;
     }
 

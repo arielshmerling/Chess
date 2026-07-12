@@ -14,10 +14,9 @@
     "start:dev": "node --inspect ./server.js",
     "start:prod": "node ./server.js",
     "start:desktop:server": "SHMERLING_MODE=desktop SHMERLING_USER_DATA=./.shmerling-desktop-dev SHMERLING_SYNC_CUSTOM_THEMES=1 node ./server-desktop.js",
-    "desktop": "cd desktop && npm install && npm start",
+    "desktop": "node scripts/run-desktop.js",
+    "desktop:setup": "cd desktop && npm install && npm run setup",
     "desktop:dist:win": "cd desktop && npm install && npm run dist:win",
-    "desktop:dist:win:dir": "cd desktop && npm install && npm run dist:win:dir",
-    "desktop:dist:win:zip": "cd desktop && npm install && npm run dist:win:dir:zip",
     "desktop:git:release": "node scripts/git-publish-release.js"
   },
   "keywords": [],
