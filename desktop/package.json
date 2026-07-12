@@ -30,6 +30,9 @@
     "files": [
       "main.js",
       "preload.js",
+      "serverLog.js",
+      "log-preload.js",
+      "log-window.html",
       "build/icon.png",
       "build/icon.ico",
       "app-bundle/**/*",

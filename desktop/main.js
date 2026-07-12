@@ -4,6 +4,13 @@
 const { app, BrowserWindow, Menu, nativeImage, ipcMain, dialog, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const {
+    installConsoleCapture,
+    getLogHistory,
+    subscribeLogWindow,
+} = require("./serverLog");
+
+installConsoleCapture();
 
 const APP_NAME = "Shmerling Chess";
 
@@ -56,6 +63,7 @@ const ICON_ICO = path.join(__dirname, "build", "icon.ico");
 const FAVICON = path.join(resolveBundleRoot(), "src", "favicon.ico");
 
 let mainWindow = null;
+let logWindow = null;
 let httpServer = null;
 let serverPort = null;
 /** When false, Windows/Linux hide the menu bar; macOS keeps a minimal app menu. */
@@ -115,6 +123,38 @@ function showAboutPanel() {
     app.showAboutPanel();
 }
 
+function showLogWindow() {
+    if (logWindow && !logWindow.isDestroyed()) {
+        if (logWindow.isMinimized()) {
+            logWindow.restore();
+        }
+        logWindow.focus();
+        return;
+    }
+
+    const icon = resolveAppIcon();
+    logWindow = new BrowserWindow({
+        width: 900,
+        height: 640,
+        minWidth: 480,
+        minHeight: 320,
+        title: `Server Log — ${APP_NAME}`,
+        icon: icon.isEmpty() ? undefined : icon,
+        autoHideMenuBar: true,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            preload: path.join(__dirname, "log-preload.js"),
+        },
+    });
+
+    subscribeLogWindow(logWindow.webContents);
+    logWindow.loadFile(path.join(__dirname, "log-window.html"));
+    logWindow.on("closed", () => {
+        logWindow = null;
+    });
+}
+
 /** First menu item label = app name in the macOS menu bar. */
 function buildFullApplicationMenu() {
     const template = [];
@@ -144,7 +184,30 @@ function buildFullApplicationMenu() {
         });
     }
 
-    template.push({ role: "editMenu" }, { role: "viewMenu" }, { role: "windowMenu" });
+    template.push(
+        { role: "editMenu" },
+        {
+            label: "View",
+            submenu: [
+                { role: "reload" },
+                { role: "forceReload" },
+                { role: "toggleDevTools" },
+                { type: "separator" },
+                { role: "resetZoom" },
+                { role: "zoomIn" },
+                { role: "zoomOut" },
+                { type: "separator" },
+                { role: "togglefullscreen" },
+                { type: "separator" },
+                {
+                    label: "Show Log",
+                    accelerator: "CmdOrCtrl+L",
+                    click: () => showLogWindow(),
+                },
+            ],
+        },
+        { role: "windowMenu" },
+    );
     return Menu.buildFromTemplate(template);
 }
 
@@ -156,6 +219,12 @@ function buildMinimalMacMenu() {
                 {
                     label: `About ${APP_NAME}`,
                     click: () => showAboutPanel(),
+                },
+                { type: "separator" },
+                {
+                    label: "Show Log",
+                    accelerator: "CmdOrCtrl+L",
+                    click: () => showLogWindow(),
                 },
                 { type: "separator" },
                 { role: "quit" },
@@ -232,6 +301,8 @@ function initDesktopBrainIpc() {
         console.error("[desktop] Opening book preload in main:", err);
     });
 
+    ipcMain.handle("log:getHistory", () => getLogHistory());
+
     ipcMain.handle("brain:computeMove", async (event, payload) => {
         const sender = event.sender;
         try {
@@ -302,9 +373,18 @@ function createWindow() {
     });
 
     mainWindow.webContents.on("before-input-event", (event, input) => {
-        if (input.type === "keyDown" && input.key === "F12" && !input.control && !input.meta && !input.alt && !input.shift) {
+        if (input.type !== "keyDown") {
+            return;
+        }
+        if (input.key === "F12" && !input.control && !input.meta && !input.alt && !input.shift) {
             event.preventDefault();
             toggleApplicationMenu();
+            return;
+        }
+        const withAccel = process.platform === "darwin" ? input.meta : input.control;
+        if (withAccel && !input.alt && !input.shift && String(input.key).toLowerCase() === "l") {
+            event.preventDefault();
+            showLogWindow();
         }
     });
 
