@@ -58,6 +58,9 @@ const FAVICON = path.join(resolveBundleRoot(), "src", "favicon.ico");
 let mainWindow = null;
 let httpServer = null;
 let serverPort = null;
+/** When false, Windows/Linux hide the menu bar; macOS keeps a minimal app menu. */
+let applicationMenuVisible = false;
+let fullApplicationMenu = null;
 
 if (process.platform === "darwin") {
     app.setName(APP_NAME);
@@ -113,13 +116,11 @@ function showAboutPanel() {
 }
 
 /** First menu item label = app name in the macOS menu bar. */
-function setupMacApplicationMenu() {
-    if (process.platform !== "darwin") {
-        return;
-    }
+function buildFullApplicationMenu() {
+    const template = [];
 
-    const template = [
-        {
+    if (process.platform === "darwin") {
+        template.push({
             label: APP_NAME,
             submenu: [
                 {
@@ -135,12 +136,57 @@ function setupMacApplicationMenu() {
                 { type: "separator" },
                 { role: "quit" },
             ],
+        });
+    } else {
+        template.push({
+            label: "File",
+            submenu: [{ role: "quit" }],
+        });
+    }
+
+    template.push({ role: "editMenu" }, { role: "viewMenu" }, { role: "windowMenu" });
+    return Menu.buildFromTemplate(template);
+}
+
+function buildMinimalMacMenu() {
+    return Menu.buildFromTemplate([
+        {
+            label: APP_NAME,
+            submenu: [
+                {
+                    label: `About ${APP_NAME}`,
+                    click: () => showAboutPanel(),
+                },
+                { type: "separator" },
+                { role: "quit" },
+            ],
         },
-        { role: "editMenu" },
-        { role: "viewMenu" },
-        { role: "windowMenu" },
-    ];
-    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+    ]);
+}
+
+function setApplicationMenuVisible(visible) {
+    applicationMenuVisible = visible;
+    if (visible) {
+        if (!fullApplicationMenu) {
+            fullApplicationMenu = buildFullApplicationMenu();
+        }
+        Menu.setApplicationMenu(fullApplicationMenu);
+        return;
+    }
+    if (process.platform === "darwin") {
+        // macOS always needs an app menu for Quit / About.
+        Menu.setApplicationMenu(buildMinimalMacMenu());
+        return;
+    }
+    Menu.setApplicationMenu(null);
+}
+
+function toggleApplicationMenu() {
+    setApplicationMenuVisible(!applicationMenuVisible);
+}
+
+function setupApplicationMenu() {
+    setApplicationMenuVisible(false);
 }
 
 function stopLocalServer() {
@@ -255,6 +301,13 @@ function createWindow() {
         mainWindow.show();
     });
 
+    mainWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.type === "keyDown" && input.key === "F12" && !input.control && !input.meta && !input.alt && !input.shift) {
+            event.preventDefault();
+            toggleApplicationMenu();
+        }
+    });
+
     mainWindow.loadURL(`http://127.0.0.1:${serverPort}/app/play`);
 
     mainWindow.on("closed", () => {
@@ -268,7 +321,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     try {
-        setupMacApplicationMenu();
+        setupApplicationMenu();
         applyAppIcon();
         initDesktopBrainIpc();
         await startLocalServer();
