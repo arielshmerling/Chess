@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const DESKTOP = path.join(__dirname, "..");
+const DESKTOP = path.join(__dirname, "..", "desktop");
 const APP_NAME = "Shmerling Chess";
 
 function resolveElectronPath() {

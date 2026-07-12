@@ -7,7 +7,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 const APP_NAME = "Shmerling Chess";
-const DESKTOP = path.join(__dirname, "..");
+const DESKTOP = path.join(__dirname, "..", "desktop");
 const ELECTRON_DIST = path.join(DESKTOP, "node_modules", "electron", "dist");
 const ELECTRON_APP = path.join(ELECTRON_DIST, "Electron.app");
 const BRANDED_APP = path.join(ELECTRON_DIST, `${APP_NAME}.app`);

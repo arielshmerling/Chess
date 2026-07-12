@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const DESKTOP = path.join(__dirname, "..");
+const DESKTOP = path.join(__dirname, "..", "desktop");
 const DIST = path.join(DESKTOP, "dist");
 const UNPACKED = path.join(DIST, "win-unpacked");
 const VERSION = require(path.join(DESKTOP, "package.json")).version;

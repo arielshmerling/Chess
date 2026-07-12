@@ -17,7 +17,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 const semver = require("semver");
 
-const ROOT = path.join(__dirname, "..", "..");
+const ROOT = path.join(__dirname, "..");
 const DESKTOP_PKG = path.join(ROOT, "desktop", "package.json");
 const DESKTOP_LOCK = path.join(ROOT, "desktop", "package-lock.json");
 const DESKTOP_PKG_REL = "desktop/package.json";

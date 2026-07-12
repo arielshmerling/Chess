@@ -5,8 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const DESKTOP = path.join(__dirname, "..");
-const ROOT = path.join(DESKTOP, "..");
+const ROOT = path.join(__dirname, "..");
+const DESKTOP = path.join(ROOT, "desktop");
 const BUNDLE = path.join(DESKTOP, "app-bundle");
 
 const DESKTOP_ROOT_FILES = [

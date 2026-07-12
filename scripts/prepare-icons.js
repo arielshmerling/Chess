@@ -6,9 +6,10 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const ROOT = path.join(__dirname, "..", "..");
+const ROOT = path.join(__dirname, "..");
+const DESKTOP = path.join(ROOT, "desktop");
 const FAVICON = path.join(ROOT, "src", "favicon.ico");
-const BUILD = path.join(__dirname, "..", "build");
+const BUILD = path.join(DESKTOP, "build");
 
 function run(cmd) {
     execSync(cmd, { stdio: "pipe" });

@@ -5,7 +5,7 @@
 const { execSync, spawnSync } = require("child_process");
 const path = require("path");
 
-const DESKTOP = path.join(__dirname, "..");
+const DESKTOP = path.join(__dirname, "..", "desktop");
 
 function isAppleSiliconMac() {
     return process.platform === "darwin" && process.arch === "arm64";
