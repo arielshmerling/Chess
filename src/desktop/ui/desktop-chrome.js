@@ -53,6 +53,10 @@
         '          <h3 class="desktop-prefs-section-title">Gameplay</h3>',
         '          <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
         "        </section>",
+        '        <section class="desktop-prefs-section desktop-prefs-section--display">',
+        '          <h3 class="desktop-prefs-section-title">Display</h3>',
+        '          <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
+        "        </section>",
         "      </div>",
         "    </div>",
         "  </div>",
@@ -93,6 +97,7 @@
                 refreshCustomThemeList();
                 refreshPieceSetButtons();
                 refreshGameplayPrefs();
+                refreshDisplayPrefs();
             }
         }
 
@@ -153,6 +158,21 @@
         refreshCustomThemeList();
         refreshPieceSetButtons();
         mountGameplayPrefs();
+        mountDisplayPrefs();
+    }
+
+    function mountDisplayPrefs() {
+        var container = document.getElementById("desktopPrefsDisplay");
+        if (!container || !window.DesktopPrefsDisplay) {
+            return;
+        }
+        window.DesktopPrefsDisplay.mount(container);
+    }
+
+    function refreshDisplayPrefs() {
+        if (window.DesktopPrefsDisplay && typeof window.DesktopPrefsDisplay.refresh === "function") {
+            window.DesktopPrefsDisplay.refresh();
+        }
     }
 
     function mountGameplayPrefs() {

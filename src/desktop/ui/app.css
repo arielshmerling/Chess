@@ -154,6 +154,30 @@ body.desktop-has-topbar {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.desktop-prefs-section--display {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.desktop-prefs-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.desktop-prefs-fullscreen-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.desktop-prefs-display-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.35;
+}
+
 .desktop-prefs-gameplay {
   display: flex;
   flex-direction: column;
