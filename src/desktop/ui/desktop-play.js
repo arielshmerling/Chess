@@ -4167,6 +4167,19 @@
             window.location.href = getWebHomeHref();
             return;
         }
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isElectronPlayPage === "function"
+            && window.ShmerlingPlayShell.isElectronPlayPage()
+            && window.shmerling
+            && typeof window.shmerling.invoke === "function"
+        ) {
+            window.shmerling.invoke("app:quit").catch(function (err) {
+                console.warn("[desktop-play] Could not quit app:", err);
+                resetToIdleScreen();
+            });
+            return;
+        }
         resetToIdleScreen();
     }
 

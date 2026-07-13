@@ -343,6 +343,11 @@ function initDesktopBrainIpc() {
         }
         return { ok: true, dir, filePath };
     });
+
+    ipcMain.handle("app:quit", () => {
+        app.quit();
+        return { ok: true };
+    });
 }
 
 function createWindow() {
