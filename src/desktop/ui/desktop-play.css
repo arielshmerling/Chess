@@ -93,12 +93,9 @@ body.desktop-play-page .desktop-play-main {
   cursor: not-allowed;
 }
 
-.desktop-play-action--accent:not(:disabled) {
-  color: #d4af37;
-}
-
+.desktop-play-action--accent:not(:disabled),
 .desktop-play-action--accent:hover:not(:disabled) {
-  color: #e8c84a;
+  color: var(--game-mode-frame-color, #d4af37);
 }
 
 .desktop-play-action-icon {
