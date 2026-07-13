@@ -1773,77 +1773,59 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   pointer-events: auto;
 }
 
-/* Available moves: 50% transparent overlay so light/dark squares stay visible */
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.white.option,
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.white.optionSource {
-  background-color: var(--lightSquare) !important;
+/* Available moves: semi-transparent circle centered on target squares */
+.desktop-play-page #innerBoard .square.option {
+  position: relative;
 }
 
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.black.option,
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.black.optionSource {
-  background-color: var(--darkSquare) !important;
-}
-
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.option,
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.optionSource {
-  opacity: 1;
-}
-
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.option::before,
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.optionSource::before {
+.desktop-play-page #innerBoard .square.option::before {
   display: block;
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: 32%;
+  height: 32%;
+  min-width: 10px;
+  min-height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
   background-color: var(--optionSquare, rgb(92, 171, 125));
-  opacity: 0.5;
+  opacity: 0.45;
   pointer-events: none;
+  z-index: 0;
   border: none;
-  width: auto;
-  height: auto;
-  top: 0;
-  left: 0;
   box-sizing: border-box;
 }
 
-.desktop-play-page #innerBoard:not(.move-mode-double) .square.option::after {
+.desktop-play-page #innerBoard .square.option::after {
   display: none;
 }
 
-.desktop-play-page #innerBoard.move-mode-double .square.option::before,
-.desktop-play-page #innerBoard.move-mode-double .square.option::after {
-  opacity: 0.5;
-}
-
-.desktop-play-page #innerBoard.move-mode-double .square.optionSource {
-  opacity: 1;
-  background-color: transparent !important;
-}
-
-.desktop-play-page #innerBoard.move-mode-double .square.white.optionSource {
+.desktop-play-page #innerBoard .square.white.option {
   background-color: var(--lightSquare) !important;
 }
 
-.desktop-play-page #innerBoard.move-mode-double .square.black.optionSource {
+.desktop-play-page #innerBoard .square.black.option {
   background-color: var(--darkSquare) !important;
 }
 
-.desktop-play-page #innerBoard.move-mode-double .square.optionSource::before {
-  display: block;
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-color: var(--optionSquare, rgb(92, 171, 125));
-  opacity: 0.5;
-  pointer-events: none;
-  border: none;
-  width: auto;
-  height: auto;
-  top: 0;
-  left: 0;
-  box-sizing: border-box;
+.desktop-play-page #innerBoard .square.optionSource {
+  opacity: 1;
+  box-shadow: inset 0 0 0 3px var(--optionSquare, rgb(92, 171, 125));
+}
+
+.desktop-play-page #innerBoard .square.white.optionSource {
+  background-color: var(--lightSquare) !important;
+}
+
+.desktop-play-page #innerBoard .square.black.optionSource {
+  background-color: var(--darkSquare) !important;
+}
+
+.desktop-play-page #innerBoard .square.optionSource::before,
+.desktop-play-page #innerBoard .square.optionSource::after {
+  display: none;
 }
 
 .desktop-play-page #innerBoard .square.king-in-check {

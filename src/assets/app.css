@@ -1007,46 +1007,41 @@ body.research-mode .debug-game-id {
     background-color: var(--darkSquare);
 }
 
-/* Available-move square: drag mode = full green; double-click mode = corner brackets only */
+/* Available-move targets: semi-transparent circle centered on the square */
 .square.option {
     position: relative;
 }
 
-/* Drag mode: target squares fully covered in green (no brackets) */
-#innerBoard:not(.move-mode-double) .square.option {
-    background-color: var(--optionSquare) !important;
-}
-
-#innerBoard:not(.move-mode-double) .square.option::before,
-#innerBoard:not(.move-mode-double) .square.option::after {
-    display: none;
-}
-
-/* Double-click mode: target squares show brackets only */
-.square.option::before,
-.square.option::after {
+.square.option::before {
     content: "";
     position: absolute;
-    width: 10px;
-    height: 10px;
-    border-color: var(--optionSquare);
-    border-style: solid;
-    border-width: 0;
+    top: 50%;
+    left: 50%;
+    width: 32%;
+    height: 32%;
+    min-width: 10px;
+    min-height: 10px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background-color: var(--optionSquare);
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+    border: none;
     box-sizing: border-box;
 }
 
-.square.option::before {
-    top: 2px;
-    left: 2px;
-    border-top-width: 2px;
-    border-left-width: 2px;
+.square.option::after {
+    display: none;
 }
 
-.square.option::after {
-    bottom: 2px;
-    right: 2px;
-    border-bottom-width: 2px;
-    border-right-width: 2px;
+/* Keep the square's base color visible; dot sits on top */
+#innerBoard .square.white.option {
+    background-color: var(--lightSquare) !important;
+}
+
+#innerBoard .square.black.option {
+    background-color: var(--darkSquare) !important;
 }
 
 /* Double-click mode: highlight the source square (selected piece) */
@@ -1060,9 +1055,13 @@ body.research-mode .debug-game-id {
     background-color: rgb(176, 52, 52) !important;
 }
 
-/* Keep check tint visible over drag-mode legal-move coloring */
+/* Keep check tint visible; legal-move dot remains non-interactive */
 #innerBoard:not(.move-mode-double) .square.king-in-check.option {
     background-color: rgb(176, 52, 52) !important;
+}
+
+#innerBoard .square.king-in-check.option::before {
+    opacity: 0.35;
 }
 
 #innerBoard .square.king-in-check.optionSource {
