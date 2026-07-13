@@ -1173,6 +1173,27 @@
         updateActionButtons();
     }
 
+    function syncPositionSetupStatusLine() {
+        if (!positionSetupMode || !game || !game.GameState) {
+            return;
+        }
+        const gameState = game.GameState;
+        if (gameState.draw) {
+            showStatus("Draw — " + (gameState.drawReason || "Draw"), 0, "draw");
+            return;
+        }
+        if (gameState.checkmate) {
+            const winner = game.opponent(game.Turn);
+            showStatus("Checkmate — " + game.colorName(winner) + " wins", 0, "checkmate");
+            return;
+        }
+        if (gameState.check) {
+            showStatus("Check", 0, "check");
+            return;
+        }
+        showStatus("Position setup — place pieces on the board", 0, "info");
+    }
+
     function exitPositionSetupMode(restore) {
         Board.setSetupMode(false);
         clearDisplayedEvaluation();
@@ -3715,6 +3736,12 @@
             }
         }
         if (positionSetupMode || loadingBookmark) {
+            if (positionSetupMode) {
+                // evaluate() runs after OnUpdate during setup edits; sync status once flags settle.
+                queueMicrotask(function () {
+                    syncPositionSetupStatusLine();
+                });
+            }
             return;
         }
         if (reviewMode) {
@@ -3770,6 +3797,13 @@
     }
 
     function onDraw(reason) {
+        if (positionSetupMode) {
+            showStatus("Draw — " + reason, 0, "draw");
+            if (Board.applyDrawHighlight) {
+                Board.applyDrawHighlight();
+            }
+            return;
+        }
         alertMode = true;
         showStatus("Draw — " + reason, 0, "draw");
         Board.applyDrawHighlight();
