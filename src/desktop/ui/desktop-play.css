@@ -1773,6 +1773,11 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   pointer-events: auto;
 }
 
+/* Keep the dragged piece above move-dots on other squares */
+.desktop-play-page #innerBoard .square.dragging-source {
+  z-index: 5;
+}
+
 /* Available moves: semi-transparent circle centered on target squares */
 .desktop-play-page #innerBoard .square.option {
   position: relative;
@@ -1791,9 +1796,9 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background-color: var(--optionSquare, rgb(92, 171, 125));
-  opacity: 0.45;
+  opacity: 0.55;
   pointer-events: none;
-  z-index: 0;
+  z-index: 3;
   border: none;
   box-sizing: border-box;
 }

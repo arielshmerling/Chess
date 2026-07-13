@@ -1008,6 +1008,11 @@ body.research-mode .debug-game-id {
 }
 
 /* Available-move targets: semi-transparent circle centered on the square */
+/* Keep the dragged piece above move-dots on other squares */
+#innerBoard .square.dragging-source {
+    z-index: 5;
+}
+
 .square.option {
     position: relative;
 }
@@ -1024,9 +1029,9 @@ body.research-mode .debug-game-id {
     transform: translate(-50%, -50%);
     border-radius: 50%;
     background-color: var(--optionSquare);
-    opacity: 0.45;
+    opacity: 0.55;
     pointer-events: none;
-    z-index: 0;
+    z-index: 3;
     border: none;
     box-sizing: border-box;
 }

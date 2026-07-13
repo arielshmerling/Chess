@@ -357,9 +357,19 @@
         boardAnimating = false;
     }
 
+    function clearDraggingSourceElevation() {
+        if (!innerBoardEl) {
+            return;
+        }
+        innerBoardEl.querySelectorAll(".square.dragging-source").forEach(function (sq) {
+            sq.classList.remove("dragging-source");
+        });
+    }
+
     function cancelActiveDrag() {
         drag = false;
         document.onmousemove = null;
+        clearDraggingSourceElevation();
         if (draggedImage) {
             resetPieceImgStyles(draggedImage);
             draggedImage.style.cursor = "";
@@ -906,7 +916,13 @@
         if (!draggedImage.style.top) {
             draggedImage.style.top = "0px";
         }
-        draggedImage.style.zIndex = "1";
+        clearDraggingSourceElevation();
+        const sourceSquare = draggedImage.closest(".square");
+        if (sourceSquare) {
+            sourceSquare.classList.add("dragging-source");
+        }
+        // Above capture-target move dots (z-index 3), but only while this piece is dragged.
+        draggedImage.style.zIndex = "10";
         coordX = parseInt(draggedImage.style.left, 10) || 0;
         coordY = parseInt(draggedImage.style.top, 10) || 0;
         drag = true;

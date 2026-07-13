@@ -587,7 +587,15 @@ function startDrag(e) {
         draggedImage.style.top = "0px";
     };
 
-    draggedImage.style.zIndex = "1";
+    document.querySelectorAll("#innerBoard .square.dragging-source").forEach(function (sq) {
+        sq.classList.remove("dragging-source");
+    });
+    const sourceSquare = draggedImage.closest(".square");
+    if (sourceSquare) {
+        sourceSquare.classList.add("dragging-source");
+    }
+    // Above capture-target move dots (z-index 3), but only while this piece is dragged.
+    draggedImage.style.zIndex = "10";
 
 
     coordX = parseInt(draggedImage.style.left);
@@ -627,6 +635,10 @@ async function stopDrag() {
     if (!drag) {
         return;
     }
+
+    document.querySelectorAll("#innerBoard .square.dragging-source").forEach(function (sq) {
+        sq.classList.remove("dragging-source");
+    });
 
     if (researchMode && researchSelected === "select") {
         drag = false;
