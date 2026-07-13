@@ -1665,9 +1665,34 @@
         chess.loadMoves([]);
     }
 
+    function resolveReviewPromotionPiece(chess, raw) {
+        if (!raw) {
+            return null;
+        }
+        if (raw.selectedPiece != null) {
+            return raw.selectedPiece;
+        }
+        if (raw.promotedTo && typeof chess.letterToPiece === "function") {
+            const letter = String(raw.promotedTo).charAt(0);
+            return chess.letterToPiece(letter);
+        }
+        return null;
+    }
+
+    function reviewMoveNeedsPromotion(chess, raw, replayMove, moveResult) {
+        return (
+            (chess.GameState && chess.GameState.promoting) ||
+            raw.promotion === true ||
+            replayMove.promotion === true ||
+            (moveResult && moveResult.promotion === true)
+        );
+    }
+
     function applyReviewMove(chess, move) {
         const previousOnUpdate = chess.OnUpdate;
+        const previousOnPromotion = chess.OnPromotion;
         chess.OnUpdate = null;
+        chess.OnPromotion = null;
         try {
             const raw = cloneReviewMove(move);
             if (!raw || raw.source == null || raw.target == null) {
@@ -1684,12 +1709,19 @@
             if (!result || result.valid === false) {
                 return false;
             }
-            if (chess.GameState && chess.GameState.promoting) {
-                if (!result.piece) {
-                    return false;
+            if (reviewMoveNeedsPromotion(chess, raw, m, result)) {
+                const promotionMove =
+                    typeof chess.cloneMove === "function" ? chess.cloneMove(m) : Object.assign({}, m);
+                const selectedPiece = resolveReviewPromotionPiece(chess, raw);
+                promotionMove.promotion = true;
+                promotionMove.selectedPiece = selectedPiece != null ? selectedPiece : chess.QUEEN;
+                if (result.piece) {
+                    promotionMove.piece = result.piece;
                 }
-                result.selectedPiece = raw.selectedPiece != null ? raw.selectedPiece : chess.QUEEN;
-                chess.completePromotion(result);
+                if (result.target) {
+                    promotionMove.target = result.target;
+                }
+                chess.completePromotion(promotionMove);
             }
             return true;
         } catch (err) {
@@ -1697,24 +1729,30 @@
             return false;
         } finally {
             chess.OnUpdate = previousOnUpdate;
+            chess.OnPromotion = previousOnPromotion;
         }
     }
 
     function replayReviewMovesUpTo(ply) {
-        prepareReviewStartPosition(game);
-        const limit = Math.max(0, Math.min(ply, reviewFullMoves.length));
-        for (let i = 0; i < limit; i += 1) {
-            if (!applyReviewMove(game, reviewFullMoves[i])) {
-                console.warn("[desktop-play] Review replay stopped at ply", i + 1);
-                break;
-            }
-        }
-        const previousOnUpdate = game.OnUpdate;
-        game.OnUpdate = null;
+        autoCompletePromotion = true;
         try {
-            game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+            prepareReviewStartPosition(game);
+            const limit = Math.max(0, Math.min(ply, reviewFullMoves.length));
+            for (let i = 0; i < limit; i += 1) {
+                if (!applyReviewMove(game, reviewFullMoves[i])) {
+                    console.warn("[desktop-play] Review replay stopped at ply", i + 1);
+                    break;
+                }
+            }
+            const previousOnUpdate = game.OnUpdate;
+            game.OnUpdate = null;
+            try {
+                game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+            } finally {
+                game.OnUpdate = previousOnUpdate;
+            }
         } finally {
-            game.OnUpdate = previousOnUpdate;
+            autoCompletePromotion = false;
         }
     }
 
@@ -1752,6 +1790,9 @@
         }
         Board.syncFromGameState();
         applyReviewResignationHighlightIfNeeded();
+        if (Board.applyEndgameKingHighlights) {
+            Board.applyEndgameKingHighlights();
+        }
         clearDisplayedEvaluation();
         if (game.GameState && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);
@@ -1815,8 +1856,9 @@
             return false;
         }
         animating = true;
+        autoCompletePromotion = true;
         try {
-            await Board.animateMove(animMove);
+            await Board.animateMove(animMove, { skipFinalSync: true });
             if (!applyReviewMove(game, raw)) {
                 Board.syncFromGameState();
                 return false;
@@ -1839,6 +1881,7 @@
             Board.syncFromGameState();
             return false;
         } finally {
+            autoCompletePromotion = false;
             animating = false;
             if (Board.clearBoardAnimating) {
                 Board.clearBoardAnimating();
@@ -3676,6 +3719,9 @@
         }
         if (reviewMode) {
             refreshReviewMovesTable();
+            if (gameState.checkmate || gameState.check) {
+                Board.applyCheckedHighlight();
+            }
         } else {
             updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         }
@@ -4193,10 +4239,13 @@
     }
 
     async function onPromotion(turn) {
+        if (reviewMode || reviewPlaybackPlaying || autoCompletePromotion) {
+            return;
+        }
         const opponentMove =
             (currentPlayerIsWhite && turn === "black") ||
             (!currentPlayerIsWhite && turn === "white");
-        if (opponentMove || autoCompletePromotion) {
+        if (opponentMove) {
             return;
         }
         dialogOn = true;

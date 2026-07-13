@@ -1278,7 +1278,8 @@
     }
 
     /** Matches web chessboard.js animateMove (speed 20, 2× distance, 2ms interval). */
-    function animateMove(move) {
+    function animateMove(move, options) {
+        options = options || {};
         cancelMoveAnimation();
         return new Promise(function (resolve, reject) {
             boardAnimating = true;
@@ -1338,7 +1339,9 @@
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
                     animatingMoveImg = null;
-                    syncFromGameState();
+                    if (!options.skipFinalSync) {
+                        syncFromGameState();
+                    }
                     boardAnimating = false;
                     resolve();
                 }
@@ -1370,6 +1373,7 @@
         clearArrows: clearArrows,
         toggleLastMoveArrow: toggleLastMoveArrow,
         applyCheckedHighlight: applyCheckedHighlight,
+        applyEndgameKingHighlights: applyEndgameKingHighlights,
         applyDrawHighlight: applyDrawHighlight,
         applyResignedKingTilt: applyResignedKingTilt,
         clearKingHighlights: clearKingHighlights,
