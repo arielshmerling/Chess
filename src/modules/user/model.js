@@ -18,7 +18,7 @@ const bookmarkSchema = new mongoose.Schema({
     },
     engine: {
         type: String,
-        default: "brain41",
+        default: "brain43",
     },
     depth: {
         type: Number,
@@ -128,7 +128,7 @@ const userSchema = new mongoose.Schema({
 
     lastGameOptions: {
         color: { type: String, enum: ["white", "black"], default: "white" },
-        engine: { type: String, default: "brain4" },
+        engine: { type: String, default: "brain43" },
         difficulty: { type: Number, min: 1, max: 5, default: 3 },
         mouse: { type: String, enum: ["drag", "double"], default: "drag" },
         showAvailableMoves: { type: Boolean, default: true },

@@ -10,7 +10,7 @@ const runtime = require("./runtime");
 
 function safeEngine(raw) {
     const name = typeof raw === "string" ? raw.trim() : "";
-    return brainConfigService.ALLOWED_BRAINS.includes(name) ? name : "brain4";
+    return brainConfigService.ALLOWED_BRAINS.includes(name) ? name : "brain43";
 }
 
 function configPath(engine) {

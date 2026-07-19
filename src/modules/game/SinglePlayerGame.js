@@ -8,7 +8,7 @@ const brainConfigService = require("./brainConfigService");
 const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41", "brain42", "brain43"];
 
 function loadEngine(engineName) {
-    const name = (engineName && ALLOWED_ENGINES.includes(engineName)) ? engineName : "brain4";
+    const name = (engineName && ALLOWED_ENGINES.includes(engineName)) ? engineName : "brain43";
     const enginePath = path.join(__dirname, "..", "..", name);
     const mod = require(enginePath);
 
@@ -51,7 +51,7 @@ class SinglePlayerGame extends GameBase {
             this._BrainTimeoutFallbackError = null;
         } else {
             const engine = loadEngine(this.options.engine);
-            const engineName = this.options.engine || "brain4";
+            const engineName = this.options.engine || "brain43";
             this.options.engineConfig = brainConfigService.loadBrainConfig(engineName);
             if (engineName === "brain42" || engineName === "brain43") {
                 require(path.join(__dirname, "..", "..", engineName)).preloadOpeningBook();

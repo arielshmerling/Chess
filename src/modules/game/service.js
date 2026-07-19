@@ -15,7 +15,7 @@ exports.newGame = (gameType, username, userId, options = {}) => {
         invitedUserId: options.invitedUserId != null ? String(options.invitedUserId) : undefined,
         isPrivate: options.isPrivate === true,
         options: {
-            engine: options.engine || "brain4",
+            engine: options.engine || "brain43",
             difficulty: options.difficulty || 3,
             mouse: options.mouse || "drag",
             showAvailableMoves: options.showAvailableMoves !== false,

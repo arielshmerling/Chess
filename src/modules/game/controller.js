@@ -146,13 +146,13 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 });
 
 exports.getBrainConfig = catchAsync(async (req, res) => {
-    const engine = typeof req.query.engine === "string" ? String(req.query.engine).trim() : "brain4";
+    const engine = typeof req.query.engine === "string" ? String(req.query.engine).trim() : "brain43";
     const config = brainConfigService.loadBrainConfig(engine);
     res.send({ engine, config });
 });
 
 exports.saveBrainConfig = catchAsync(async (req, res) => {
-    const engine = typeof req.body.engine === "string" ? String(req.body.engine).trim() : "brain4";
+    const engine = typeof req.body.engine === "string" ? String(req.body.engine).trim() : "brain43";
     const config = brainConfigService.saveBrainConfig(engine, req.body.config || {});
     res.send({ status: "OK", engine, config });
 });
@@ -344,7 +344,7 @@ const executeStartGame = catchAsync(async (req, res) => {
         return res.redirect("/home");
     }
     const color = (req.query.color === "black" || req.query.color === "white") ? req.query.color : "white";
-    const engine = typeof req.query.engine === "string" && req.query.engine.length <= 20 ? req.query.engine : "brain4";
+    const engine = typeof req.query.engine === "string" && req.query.engine.length <= 20 ? req.query.engine : "brain43";
     const difficulty = parseInt(req.query.difficulty, 10);
     const difficultyNum = (difficulty >= 1 && difficulty <= 6) ? difficulty : 3;
     const mouse = (req.query.mouse === "double" || req.query.mouse === "drag") ? req.query.mouse : "drag";
@@ -499,7 +499,7 @@ const executeStartGame = catchAsync(async (req, res) => {
         await User.findByIdAndUpdate(userId, {
             lastGameOptions: {
                 color: options.color || "white",
-                engine: options.engine || "brain4",
+                engine: options.engine || "brain43",
                 difficulty: options.difficulty != null ? options.difficulty : 3,
                 mouse: options.mouse || "drag",
                 showAvailableMoves: options.showAvailableMoves !== false,

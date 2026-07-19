@@ -35,9 +35,9 @@ let clickToMoveSelected = null;
 /** Suppress duplicate check alerts if OnUpdate still fires twice with the same checked side (backup guard). */
 let lastCheckNotifySide = null;
 const BOOKMARK_BRAIN_OPTIONS = [
-    { value: "brain41", label: "Brain 4.1" },
-    { value: "brain42", label: "Brain 4.2" },
     { value: "brain43", label: "Brain 4.3" },
+    { value: "brain42", label: "Brain 4.2" },
+    { value: "brain41", label: "Brain 4.1" },
     { value: "brain4", label: "Brain 4.0" },
 ];
 const BOOKMARK_DEPTH_OPTIONS = [1, 2, 3, 4, 5];
@@ -952,7 +952,7 @@ let researchDraggingFrom = null; // { row, col } when dragging in select mode
 let researchEditingBookmarkId = null; // bookmark id when editing position (Edit → Save flow)
 let researchRunningBookmarkId = null; // bookmark id currently running from research
 const researchBrainConfigState = {
-    engine: "brain41",
+    engine: "brain43",
     saved: null,
     draft: null,
     dirty: false,
@@ -1159,7 +1159,7 @@ function initResearchMode() {
     if (innerBoardEl) {innerBoardEl.classList.add("research-no-animate");}
     createResearchToolbox();
     createResearchBrainConfigPanel();
-    loadResearchBrainConfig("brain41");
+    loadResearchBrainConfig("brain43");
     registerResearchBoardClick();
     addOptionsButtons();
     const bookmarkBtnEl = document.getElementById("bookmarkBtn");
@@ -1339,7 +1339,7 @@ function getResearchActiveEngine() {
     if (gameInfo && gameInfo.engine) {
         return normalizeBookmarkEngine(gameInfo.engine);
     }
-    return "brain41";
+    return "brain43";
 }
 
 function setResearchConfigDirtyState(dirty) {
@@ -3548,7 +3548,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                         if (typeof gameInfo !== "undefined" && gameInfo) {
                             window.__LAST_GAME_OPTIONS__ = {
                                 color: currentPlayerIsWhite ? "white" : "black",
-                                engine: gameInfo.engine || "brain4",
+                                engine: gameInfo.engine || "brain43",
                                 difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
                                 mouse: gameInfo.mousePreference || "drag",
                                 showAvailableMoves: gameInfo.showAvailableMoves !== false,
@@ -3906,7 +3906,7 @@ async function menuRematchEventHandler() {
         if (typeof gameInfo !== "undefined" && gameInfo) {
             window.__LAST_GAME_OPTIONS__ = {
                 color: currentPlayerIsWhite ? "white" : "black",
-                engine: gameInfo.engine || "brain4",
+                engine: gameInfo.engine || "brain43",
                 difficulty: gameInfo.difficulty != null ? gameInfo.difficulty : 3,
                 mouse: gameInfo.mousePreference || "drag",
                 showAvailableMoves: gameInfo.showAvailableMoves !== false,
@@ -5457,7 +5457,7 @@ async function onBookmarkAdded(bookmarkId, name, date, gameType) {
         name,
         gameType: gameInfo.gameType || gameType,
         moves: strMoves,
-        engine: normalizeBookmarkEngine((gameInfo && gameInfo.engine) ? gameInfo.engine : "brain41"),
+        engine: normalizeBookmarkEngine((gameInfo && gameInfo.engine) ? gameInfo.engine : "brain43"),
         depth: 3,
     });
     bookmarks = await getBookmarks();

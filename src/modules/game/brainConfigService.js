@@ -164,7 +164,7 @@ function ensureConfigDir() {
 }
 
 function getDefaultConfig(engineName) {
-    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
+    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain43";
     return JSON.parse(JSON.stringify(DEFAULT_CONFIGS[safeEngine]));
 }
 
@@ -331,7 +331,7 @@ function sanitizeBrain43Config(rawConfig) {
 }
 
 function sanitizeBrainConfig(engineName, rawConfig) {
-    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
+    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain43";
     if (safeEngine === "brain42") {
         return sanitizeBrain42Config(rawConfig);
     }
@@ -354,7 +354,7 @@ function sanitizeBrainConfig(engineName, rawConfig) {
 }
 
 function loadBrainConfig(engineName) {
-    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
+    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain43";
     ensureConfigDir();
     const filePath = getConfigPath(safeEngine);
     if (!fs.existsSync(filePath)) {
@@ -372,7 +372,7 @@ function loadBrainConfig(engineName) {
 }
 
 function saveBrainConfig(engineName, rawConfig) {
-    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain4";
+    const safeEngine = ALLOWED_BRAINS.includes(engineName) ? engineName : "brain43";
     ensureConfigDir();
     const sanitized = sanitizeBrainConfig(safeEngine, rawConfig);
     fs.writeFileSync(getConfigPath(safeEngine), JSON.stringify(sanitized, null, 2), "utf8");

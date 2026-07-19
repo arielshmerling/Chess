@@ -82,6 +82,27 @@ function openPlayNowModal() {
     modal.setAttribute("aria-hidden", "false");
 }
 
+/**
+ * Resolve engine for the Play Now form.
+ * Promotes previous product defaults (brain41 / brain4) to Brain 4.3, and falls back
+ * when a stored engine is not present in the select.
+ */
+function resolvePlayNowEngine(raw, selectEl) {
+    let engine = typeof raw === "string" ? raw.trim() : "";
+    if (engine === "brain4" || engine === "brain41") {
+        engine = "brain43";
+    }
+    if (selectEl && selectEl.options && selectEl.options.length) {
+        const hasOption = Array.prototype.some.call(selectEl.options, function (opt) {
+            return opt.value === engine;
+        });
+        if (!hasOption) {
+            return "brain43";
+        }
+    }
+    return engine || "brain43";
+}
+
 function applyLastGameOptions(opts) {
     const form = document.getElementById("playNowForm");
     if (!form) { return; }
@@ -96,8 +117,8 @@ function applyLastGameOptions(opts) {
         const blackRadio = form.querySelector("input[name='color'][value='black']");
         if (blackRadio) { blackRadio.checked = false; }
     }
-    if (opts.engine && form.elements.engine) {
-        form.elements.engine.value = opts.engine;
+    if (form.elements.engine) {
+        form.elements.engine.value = resolvePlayNowEngine(opts.engine, form.elements.engine);
     }
     const timeInput = form.querySelector("input[name='timeMinutes']");
     if (timeInput) {
@@ -148,7 +169,7 @@ function startNewGameFromModal(event) {
     if (!form) { return; }
     const formData = new FormData(form);
     const color = formData.get("color") || "white";
-    const engine = formData.get("engine") || "brain4";
+    const engine = formData.get("engine") || "brain43";
     const difficulty = formData.get("difficulty") || "3";
     const mouse = formData.get("mouse") || "drag";
     const showMoves = formData.get("showMoves") === "1" ? "1" : "0";

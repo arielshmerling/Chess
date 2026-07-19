@@ -681,6 +681,17 @@
             allowUndo: session.allowUndo,
             timeMinutes: session.gameTimeMinutes,
         });
+        if (Settings.saveNewGameOptions) {
+            Settings.saveNewGameOptions({
+                color: currentPlayerIsWhite ? "white" : "black",
+                engine: engineId,
+                allowUndo: session.allowUndo !== false,
+                timeMinutes: session.gameTimeMinutes,
+                mouse: session.mousePreference,
+                thinkingTimeSeconds: session.thinkingTimeSeconds,
+                showAvailableMoves: session.showAvailableMoves,
+            });
+        }
         updateMatchHeader();
     }
 
@@ -4087,11 +4098,16 @@
 
     function normalizeLaunchEngine(raw) {
         const engine = typeof raw === "string" ? raw.trim() : "";
-        if (engine === "brain43" || engine === "brain42" || engine === "brain41") {
+        if (engine === "brain43" || engine === "brain42") {
             return engine;
         }
+        // brain4 was never a desktop default; always promote.
+        // brain41 was the previous web Play Now default — promote on web only.
         if (engine === "brain4") {
             return "brain43";
+        }
+        if (engine === "brain41") {
+            return isWebPlayPage() ? "brain43" : "brain41";
         }
         return Settings.normalizeEngine(engine);
     }
@@ -4228,6 +4244,19 @@
 
     async function beginNewGame(opts) {
         applySessionSettings(opts);
+        if (Settings.saveNewGameOptions) {
+            Settings.saveNewGameOptions({
+                color: opts.color === "black" ? "black" : "white",
+                engine: opts.engine || "brain43",
+                allowUndo: opts.allowUndo !== false,
+                timeMinutes: opts.timeMinutes,
+                mouse: opts.mouse,
+                thinkingTimeSeconds: opts.thinkingTimeSeconds != null
+                    ? opts.thinkingTimeSeconds
+                    : opts.difficulty,
+                showAvailableMoves: opts.showAvailableMoves,
+            });
+        }
         assignNewGameId();
         gameHistoryLogged = false;
         gameAutoBookmarked = false;

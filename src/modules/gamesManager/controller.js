@@ -45,7 +45,11 @@ async function loadHomePageData(req) {
     if (req.session.user_id) {
         const user = await User.findById(req.session.user_id).select("lastGameOptions").lean();
         if (user && user.lastGameOptions) {
-            lastGameOptions = user.lastGameOptions;
+            lastGameOptions = { ...user.lastGameOptions };
+            // Promote previous Play Now product defaults to Brain 4.3.
+            if (lastGameOptions.engine === "brain41" || lastGameOptions.engine === "brain4") {
+                lastGameOptions.engine = "brain43";
+            }
         }
     }
 

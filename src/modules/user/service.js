@@ -191,7 +191,7 @@ exports.addBookmark = async (
         name,
         gameType,
         moves: Array.isArray(moves) ? moves : [],
-        engine: (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain41",
+        engine: (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain43",
         depth: Number.isInteger(parsedDepth) && parsedDepth >= 1 && parsedDepth <= 6 ? parsedDepth : 3,
     });
     if (originState != null && String(originState).trim()) {
@@ -241,7 +241,7 @@ exports.updateBookmark = async (
                 bookmarkDoc.markModified("moves");
             }
             if (engine !== undefined) {
-                bookmarkDoc.engine = (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain41";
+                bookmarkDoc.engine = (engine === "brain4" || engine === "brain41" || engine === "brain42" || engine === "brain43") ? engine : "brain43";
             }
             if (depth !== undefined) {
                 const parsedDepth = Number(depth);

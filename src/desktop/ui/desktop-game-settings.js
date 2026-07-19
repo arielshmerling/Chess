@@ -163,6 +163,42 @@
         return next;
     }
 
+    function persistLastGameOptionsToServer(opts) {
+        // Mongo lastGameOptions is a web User field; desktop Electron keeps localStorage only.
+        const isWebPlay =
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isWebPlayPage === "function"
+            && window.ShmerlingPlayShell.isWebPlayPage();
+        if (!isWebPlay) {
+            return;
+        }
+        const payload = {
+            color: opts.color === "black" ? "black" : "white",
+            engine: normalizeEngine(opts.engine),
+            difficulty: normalizeThinkingTimeSeconds(
+                opts.thinkingTimeSeconds != null ? opts.thinkingTimeSeconds : opts.difficulty,
+            ),
+            mouse: opts.mouse === "double" ? "double" : "drag",
+            showAvailableMoves: opts.showAvailableMoves !== false,
+            timeMinutes:
+                typeof opts.timeMinutes === "number" && opts.timeMinutes >= 1
+                    ? opts.timeMinutes
+                    : DEFAULTS.timeMinutes,
+            isPrivate: opts.isPrivate === true,
+        };
+        fetch("/api/play/last-game-options", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        }).catch(function () {
+            /* ignore */
+        });
+    }
+
     function loadLastOptions() {
         const stored = migrateSavedOptions(readStoredOptions());
         const gamePrefs = loadGamePreferences();
@@ -178,14 +214,18 @@
     function saveNewGameOptions(opts) {
         const stored = migrateSavedOptions(readStoredOptions());
         const gamePrefs = loadGamePreferences();
-        writeStoredOptions(
-            Object.assign({}, stored, gamePrefs, {
-                color: opts.color,
-                engine: opts.engine,
-                allowUndo: opts.allowUndo,
-                timeMinutes: opts.timeMinutes,
-            })
-        );
+        const merged = Object.assign({}, stored, gamePrefs, {
+            color: opts.color,
+            engine: opts.engine,
+            allowUndo: opts.allowUndo,
+            timeMinutes: opts.timeMinutes,
+            mouse: opts.mouse,
+            thinkingTimeSeconds: opts.thinkingTimeSeconds,
+            showAvailableMoves: opts.showAvailableMoves,
+            difficulty: opts.difficulty,
+        });
+        writeStoredOptions(merged);
+        persistLastGameOptionsToServer(merged);
     }
 
     function loadGamePreferencesFromServer() {
