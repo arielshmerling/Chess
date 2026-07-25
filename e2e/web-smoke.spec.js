@@ -22,7 +22,8 @@ async function startPlayNowGame(page, { color = "white", difficulty = "1" } = {}
         .click();
     await page.locator("#playNowDifficulty").fill(String(difficulty));
     await page.locator(".play-now-btn-start").click();
-    await expect(page).toHaveURL(/\/game\?/);
+    // Members/Partners/Admins open the new Play shell; launch query is cleared to /play.
+    await expect(page).toHaveURL(/\/play(?:\/|\?|$)/);
     await expect(page.locator("#innerBoard")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("#homeBtn")).toBeVisible({ timeout: 30_000 });
 }
@@ -34,7 +35,7 @@ test.describe("web smoke", () => {
 
         await startPlayNowGame(page);
 
-        await page.locator('a[aria-label="Home"]').click();
+        await page.getByRole("link", { name: /Shmerling Chess home/i }).click();
         await expect(page).toHaveURL(/\/home/i);
         await expect(page.locator("#startAIGame")).toBeVisible();
     });
@@ -101,8 +102,8 @@ test.describe("web smoke", () => {
         await startPlayNowGame(page, { color: "black", difficulty: "1" });
 
         await expect(page.locator("#chessboard")).toBeVisible();
-        await expect(page.locator("#whitePlayerName")).toContainText(/Brain/i);
-        await expect(page.locator("#blackPlayerName")).toContainText(username);
+        await expect(page.locator("#desktopPlayWhiteName")).toContainText(/Brain/i);
+        await expect(page.locator("#desktopPlayBlackName")).toContainText(username);
     });
 
     test("Flip reverses board file labels", async ({ page }) => {
