@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
         default: false,
     },
 
-    /** Admin-only: route lobby / active-game links to /play instead of /game. */
+    /** @deprecated Unused — admins always use /play; kept for existing Mongo documents. */
     preferPlayPage: {
         type: Boolean,
         default: false,

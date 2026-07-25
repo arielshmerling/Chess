@@ -1,9 +1,10 @@
 /**
  * Shared play-page path resolution for web routing (desktop uses /app/play).
+ * Admins use the new /play shell; everyone else stays on classic /game.
  */
 
 /**
- * @param {{ isMobile?: boolean, desktopQuery?: boolean, isAdmin?: boolean, preferPlayPage?: boolean }} opts
+ * @param {{ isMobile?: boolean, desktopQuery?: boolean, isAdmin?: boolean }} opts
  * @returns {"/game"|"/mobile-game"|"/play"}
  */
 function resolvePlayGamePath(opts) {
@@ -11,19 +12,18 @@ function resolvePlayGamePath(opts) {
     const isMobile = !!options.isMobile;
     const desktopQuery = !!options.desktopQuery;
     const isAdmin = !!options.isAdmin;
-    const preferPlayPage = !!options.preferPlayPage;
 
     if (isMobile && !desktopQuery) {
         return "/mobile-game";
     }
-    if (isAdmin && preferPlayPage) {
+    if (isAdmin) {
         return "/play";
     }
     return "/game";
 }
 
 /**
- * Whether the logged-in user may open the experimental Play shell.
+ * Whether the logged-in user may open the Play shell.
  * @param {{ session?: { admin?: boolean } }} req
  */
 function canAccessPlayPage(req) {
@@ -31,14 +31,11 @@ function canAccessPlayPage(req) {
 }
 
 /**
- * Effective prefer-play flag (admins only).
- * @param {{ session?: { admin?: boolean, preferPlayPage?: boolean } }} req
+ * Admins always use the new Play UI on desktop web.
+ * @param {{ session?: { admin?: boolean } }} req
  */
 function effectivePreferPlayPage(req) {
-    if (!req || !req.session || !req.session.admin) {
-        return false;
-    }
-    return !!req.session.preferPlayPage;
+    return !!(req && req.session && req.session.admin);
 }
 
 module.exports = {

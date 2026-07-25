@@ -34,7 +34,7 @@ function getPlayGameBasePath(opts) {
     } catch {
         /* pathname unavailable */
     }
-    if (window.__SHMERLING_PREFER_PLAY_PAGE__) {
+    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
         return "/play";
     }
     return getClassicPlayGameBasePath();

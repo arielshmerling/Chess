@@ -159,7 +159,6 @@ exports.login = catchAsync(async (req, res) => {
         req.session.user_id = foundUser.id;
         req.session.user_name = foundUser.username;
         req.session.admin = foundUser.admin;
-        req.session.preferPlayPage = !!(foundUser.admin && foundUser.preferPlayPage);
         foundUser.lastLogin = Date.now();
         await foundUser.save();
         const redirectUrl = res.locals.returnTo || "/Home";

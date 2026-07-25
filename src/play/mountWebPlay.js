@@ -31,8 +31,6 @@ function mountWebPlayRoutes(app) {
     app.get("/app/api/ui-settings", requireLogin, webUiSettingsApi.get);
     app.post("/app/api/ui-settings", requireLogin, webUiSettingsApi.save);
 
-    app.get("/api/play/prefer-page", requireLogin, playPrefsApi.getPreferPlayPage);
-    app.post("/api/play/prefer-page", requireLogin, playPrefsApi.setPreferPlayPage);
     app.get("/api/play/launch-context", requireLogin, playPrefsApi.getLaunchContext);
     app.post("/api/play/last-game-options", requireLogin, playPrefsApi.setLastGameOptions);
 

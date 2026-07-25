@@ -15,7 +15,6 @@
     <div class="menuBarMenuItem topBarMenu-groups"><a href="#">Groups</a></div>
     <% if (admin) { %>
     <div class="menuBarMenuItem"><a href="/game?gameType=3">Debug</a></div>
-    <div class="menuBarMenuItem"><a href="/play">Play (preview)</a></div>
     <% } %>
   </div>
   <% } %>
@@ -36,10 +35,6 @@
     <% } %>
     <% if (admin) { %>
     <a href="/admin"> Admin </a>
-    <label class="topbar-play-ui-toggle" title="Route new games to the desktop-style Play page">
-      <input type="checkbox" id="preferPlayPageSwitch"<% if (typeof preferPlayPage !== 'undefined' && preferPlayPage) { %> checked<% } %>>
-      <span>New Play UI</span>
-    </label>
     <% } %>
     <% } %>
   </div>

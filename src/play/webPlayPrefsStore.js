@@ -95,28 +95,9 @@ async function writeCustomThemes(userId, store) {
     return mergeThemeStores(bundled, userOnly);
 }
 
-async function readPreferPlayPage(userId) {
-    const user = await User.findById(userId).select("admin preferPlayPage").lean();
-    if (!user || !user.admin) {
-        return false;
-    }
-    return !!user.preferPlayPage;
-}
-
-async function writePreferPlayPage(userId, enabled) {
-    const user = await User.findById(userId).select("admin").lean();
-    if (!user || !user.admin) {
-        return false;
-    }
-    await User.findByIdAndUpdate(userId, { preferPlayPage: !!enabled });
-    return !!enabled;
-}
-
 module.exports = {
     readUiSettings,
     writeUiSettings,
     readCustomThemes,
     writeCustomThemes,
-    readPreferPlayPage,
-    writePreferPlayPage,
 };

@@ -1200,21 +1200,6 @@ input:focus {
     white-space: nowrap;
 }
 
-.topbar-play-ui-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: 16px;
-    font-size: 14px;
-    font-weight: 400;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.topbar-play-ui-toggle input {
-    margin: 0;
-}
-
 #topMenu {
 
     margin-left: auto;

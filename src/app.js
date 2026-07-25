@@ -58,7 +58,6 @@ if (process.env.SHMERLING_MODE === "desktop") {
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
     res.locals.admin = req.session.admin;
-    res.locals.preferPlayPage = !!(req.session.admin && req.session.preferPlayPage);
     res.locals.messages = req.flash("messages");
     res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
     next();

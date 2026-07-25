@@ -7,42 +7,41 @@ const {
 
 describe("playPaths", function () {
     describe("resolvePlayGamePath", function () {
-        it("defaults to /game on desktop web", function () {
+        it("defaults to /game for non-admin desktop web", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, isAdmin: false, preferPlayPage: false }),
+                resolvePlayGamePath({ isMobile: false, isAdmin: false }),
                 "/game",
             );
         });
 
         it("uses /mobile-game for mobile user agents", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: true, isAdmin: true, preferPlayPage: true }),
+                resolvePlayGamePath({ isMobile: true, isAdmin: true }),
                 "/mobile-game",
             );
         });
 
-        it("honors desktop=1 query for mobile", function () {
+        it("honors desktop=1 query for mobile admins → /play", function () {
             assert.strictEqual(
                 resolvePlayGamePath({
                     isMobile: true,
                     desktopQuery: true,
                     isAdmin: true,
-                    preferPlayPage: true,
                 }),
                 "/play",
             );
         });
 
-        it("routes admins with preferPlayPage to /play", function () {
+        it("routes admins to /play", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, isAdmin: true, preferPlayPage: true }),
+                resolvePlayGamePath({ isMobile: false, isAdmin: true }),
                 "/play",
             );
         });
 
-        it("keeps non-admin users on /game even if preferPlayPage is set", function () {
+        it("keeps non-admin users on /game", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, isAdmin: false, preferPlayPage: true }),
+                resolvePlayGamePath({ isMobile: false, isAdmin: false }),
                 "/game",
             );
         });
@@ -59,14 +58,14 @@ describe("playPaths", function () {
     describe("effectivePreferPlayPage", function () {
         it("returns false for non-admins", function () {
             assert.strictEqual(
-                effectivePreferPlayPage({ session: { admin: false, preferPlayPage: true } }),
+                effectivePreferPlayPage({ session: { admin: false } }),
                 false,
             );
         });
 
-        it("returns session flag for admins", function () {
+        it("returns true for admins", function () {
             assert.strictEqual(
-                effectivePreferPlayPage({ session: { admin: true, preferPlayPage: true } }),
+                effectivePreferPlayPage({ session: { admin: true } }),
                 true,
             );
         });
