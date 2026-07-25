@@ -94,20 +94,6 @@ exports.reviewMobile = catchAsync(async (req, res) => {
     await executeReview(req, res, REVIEW_VIEW_MOBILE);
 });
 
-/**
- * Research mode: renders the game page for analysis/research (no active game yet).
- */
-exports.showResearch = (req, res) => {
-    req.session.gameId = null;
-    setGamePageNoCache(res);
-    res.render("game", {
-        username: req.session.user_name,
-        gameId: undefined,
-        hideTopbar: true,
-        researchMode: true,
-    });
-};
-
 exports.watchGame = catchAsync(async (req, res) => {
     //validate(req.query, "review");
     const { id } = req.query;

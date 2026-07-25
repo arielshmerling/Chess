@@ -7,7 +7,6 @@ router.get("/mobile-review", requireLogin, gameController.reviewMobile);
 router.get("/watch", requireLogin, gameController.watchGame);
 router.get("/mobile-game", requireLogin, gameController.startGameMobile);
 router.get("/game", requireLogin, gameController.startGame);
-router.get("/research", requireLogin, gameController.showResearch);
 router.get("/gameInfo", requireLogin, gameController.getGameInfo);
 router.get("/gameMoves", requireLogin, gameController.getGameMoves);
 router.get("/brain-config", requireLogin, gameController.getBrainConfig);

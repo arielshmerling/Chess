@@ -5184,33 +5184,27 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate) {
     renameBtn.addEventListener("click", function (ev) { ev.stopPropagation(); enterEditBookmarkMode({ srcElement: nameSpan }); });
     actionsLeft.appendChild(renameBtn);
 
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-edit-save-btn";
-    editBtn.setAttribute("data-mode", "edit");
-    editBtn.setAttribute("title", "Edit – enter edit mode to change position on board");
-    editBtn.setAttribute("aria-label", "Edit – enter edit mode to change position on board");
-    editBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7\"/><path d=\"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z\"/></svg>";
-    editBtn.addEventListener("click", function (ev) {
-        ev.stopPropagation();
-        if (editBtn.disabled) {return;}
-        if (researchMode) {
+    // Editing a bookmark position is only offered in-place; the new Play UI owns position setup elsewhere.
+    if (researchMode) {
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "button bookmark-action-btn bookmark-icon-btn bookmark-edit-save-btn";
+        editBtn.setAttribute("data-mode", "edit");
+        editBtn.setAttribute("title", "Edit – enter edit mode to change position on board");
+        editBtn.setAttribute("aria-label", "Edit – enter edit mode to change position on board");
+        editBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7\"/><path d=\"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z\"/></svg>";
+        editBtn.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (editBtn.disabled) {return;}
             exitBookmarkPositionEditMode();
             researchEditingBookmarkId = bookmarkId;
             div.classList.add("bookmark-editing");
             editBtn.disabled = true;
             disableButtons(["addBookmarkBtn"]);
             researchSelectTool();
-        } else {
-            const bookmarkObj = bookmarks.find(el => el.id == bookmarkId);
-            if (bookmarkObj) {
-                window.location.href = (typeof window !== "undefined" && window.__SHMERLING_DESKTOP__)
-                    ? "/app/play?research=1&bookmarkId=" + encodeURIComponent(bookmarkObj._id)
-                    : "/research?bookmarkId=" + encodeURIComponent(bookmarkObj._id);
-            }
-        }
-    });
-    actionsLeft.appendChild(editBtn);
+        });
+        actionsLeft.appendChild(editBtn);
+    }
 
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";
