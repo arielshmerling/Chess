@@ -199,7 +199,8 @@ function startNewGameFromModal(event) {
 
 /* eslint-disable-next-line no-unused-vars */
 function startPracticeGame() {
-    window.location = getPlayGameBasePath() + "?gameType=3";
+    /* Debug / Practice always uses the classic /game UI */
+    window.location = getClassicPlayGameBasePath() + "?gameType=3";
 }
 /* eslint-disable-next-line no-unused-vars */
 function navigateToGameList() {

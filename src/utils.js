@@ -1,4 +1,5 @@
 
+const { isAdminSession } = require("./modules/user/roles");
 
 exports.requireLogin = async (req, res, next) => {
 
@@ -12,7 +13,7 @@ exports.requireLogin = async (req, res, next) => {
 
 
 exports.requiresAdmin = async (req, res, next) => {
-    if (!req || !req.session || !req.session.user_id || !req.session.admin) {
+    if (!req || !req.session || !req.session.user_id || !isAdminSession(req.session)) {
         console.log("The user is not an admin. Redirecting to login");
         return res.redirect("/login");
     }

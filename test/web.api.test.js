@@ -3,6 +3,7 @@
  * Run: npm run test:web:api
  *
  * Requires DATABASE_URL + SESSION_SECRET (from .env). Creates/updates user e2e_web_member.
+ * Uses an isolated local *_e2e database when possible.
  */
 /* eslint-disable */
 
@@ -22,6 +23,15 @@ describe("web HTTP / auth", function () {
         app = loadWebApp();
     });
 
+    async function loginAgent() {
+        const agent = request.agent(app);
+        await agent
+            .post("/login")
+            .type("form")
+            .send({ username: credentials.username, password: credentials.password });
+        return agent;
+    }
+
     it("GET /login returns the login form", async function () {
         const res = await request(app).get("/login").expect(200);
         assert.match(res.text, /id="username"/);
@@ -36,6 +46,17 @@ describe("web HTTP / auth", function () {
             String(res.headers.location || "").includes("/login"),
             `expected redirect to login, got ${res.headers.location}`
         );
+    });
+
+    it("GET /friends, /search, and /game without session redirect to login", async function () {
+        for (const path of ["/friends", "/search", "/game"]) {
+            const res = await request(app).get(path).redirects(0);
+            assert.strictEqual(res.status, 302, path);
+            assert.ok(
+                String(res.headers.location || "").includes("/login"),
+                `${path} expected redirect to login, got ${res.headers.location}`
+            );
+        }
     });
 
     it("POST /login with wrong password redirects back to login", async function () {
@@ -73,13 +94,72 @@ describe("web HTTP / auth", function () {
         assert.match(homeRes.text, /id="playNowForm"/);
     });
 
-    it("authenticated GET /game?newGame vs computer redirects to /game?id=", async function () {
+    it("login returnTo restores /friends", async function () {
         const agent = request.agent(app);
 
-        await agent
+        const gate = await agent.get("/friends").redirects(0);
+        assert.strictEqual(gate.status, 302);
+        assert.ok(String(gate.headers.location || "").includes("/login"));
+
+        const loginRes = await agent
             .post("/login")
             .type("form")
-            .send({ username: credentials.username, password: credentials.password });
+            .send({ username: credentials.username, password: credentials.password })
+            .redirects(0);
+
+        assert.strictEqual(loginRes.status, 302);
+        assert.match(String(loginRes.headers.location || ""), /\/friends/);
+    });
+
+    it("authenticated GET /friends and /search return pages", async function () {
+        const agent = await loginAgent();
+
+        const friends = await agent.get("/friends").expect(200);
+        assert.match(friends.text, /id="friendSearchInput"/);
+        assert.match(friends.text, /id="friendsList"/);
+
+        const search = await agent.get("/search").expect(200);
+        assert.match(search.text, /id="search"/);
+        assert.match(search.text, /id="searchButton"/);
+    });
+
+    it("authenticated GET /active-games returns JSON", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/active-games").expect(200);
+        assert.ok(Array.isArray(res.body) || typeof res.body === "object");
+    });
+
+    it("authenticated GET /api/friends/data returns payload", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/api/friends/data").expect(200);
+        assert.strictEqual(res.body.ok, true);
+        assert.ok(Array.isArray(res.body.friends) || res.body.friends == null || typeof res.body === "object");
+    });
+
+    it("authenticated GET /api/friends/search finds the e2e user", async function () {
+        const agent = await loginAgent();
+        const res = await agent
+            .get("/api/friends/search")
+            .query({ q: credentials.username.slice(0, 4) })
+            .expect(200);
+        assert.strictEqual(res.body.ok, true);
+        assert.ok(Array.isArray(res.body.results));
+    });
+
+    it("member is blocked from /admin and /register", async function () {
+        const agent = await loginAgent();
+        for (const path of ["/admin", "/register"]) {
+            const res = await agent.get(path).redirects(0);
+            assert.strictEqual(res.status, 302, path);
+            assert.ok(
+                String(res.headers.location || "").includes("/login"),
+                `${path} expected redirect to login, got ${res.headers.location}`
+            );
+        }
+    });
+
+    it("authenticated GET /game?newGame vs computer redirects to /game?id=", async function () {
+        const agent = await loginAgent();
 
         // Play Now creates a game then 302 → /game?id=… (do not follow; rendering loads the engine).
         const gameUrl =
@@ -90,12 +170,7 @@ describe("web HTTP / auth", function () {
     });
 
     it("GET /logout then /home redirects to login again", async function () {
-        const agent = request.agent(app);
-
-        await agent
-            .post("/login")
-            .type("form")
-            .send({ username: credentials.username, password: credentials.password });
+        const agent = await loginAgent();
 
         await agent.get("/logout").redirects(0).expect(302);
 

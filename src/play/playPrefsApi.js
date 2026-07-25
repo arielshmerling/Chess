@@ -4,21 +4,30 @@
 
 const catchAsync = require("../utils/catchAsync");
 const { User } = require("../modules/user/model");
+const {
+    resolveSessionUserType,
+    canUsePlayAdvancedTools,
+    canAccessDebug,
+} = require("../modules/user/roles");
 
 exports.getLaunchContext = catchAsync(async (req, res) => {
     const user = await User.findById(req.session.user_id)
         .select("username lastGameOptions")
         .lean();
-    let lastGameOptions = user && user.lastGameOptions ? { ...user.lastGameOptions } : null;
+    const lastGameOptions = user && user.lastGameOptions ? { ...user.lastGameOptions } : null;
     if (
         lastGameOptions
         && (lastGameOptions.engine === "brain41" || lastGameOptions.engine === "brain4")
     ) {
         lastGameOptions.engine = "brain43";
     }
+    const userType = resolveSessionUserType(req.session);
     res.json({
         ok: true,
         username: user && user.username ? user.username : req.session.user_name || "Player",
+        userType,
+        canPlayAdvanced: canUsePlayAdvancedTools(req.session),
+        canDebug: canAccessDebug(req.session),
         lastGameOptions,
     });
 });

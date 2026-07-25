@@ -38,6 +38,9 @@
     let engineThinking = false;
     let redoPairAvailable = false;
     let allowUndo = true;
+    /** Position Setup + Config — always on for Electron; web uses launch-context. */
+    let canPlayAdvancedTools = true;
+    let launchContextPromise = null;
     let batchUndoRedo = false;
     let loadingBookmark = false;
     let savedGames = [];
@@ -299,7 +302,9 @@
             if (boardHasPieces()) {
                 return "Set move, color, engine, and think time in the header, then press Play";
             }
-            return "Choose New game or Position setup from the sidebar";
+            return canPlayAdvancedTools
+                ? "Choose New game or Position setup from the sidebar"
+                : "Choose New game from the sidebar";
         }
         if (game.GameOver) {
             return "Game over";
@@ -1464,6 +1469,9 @@
     }
 
     function canUsePositionSetup() {
+        if (!canPlayAdvancedTools) {
+            return false;
+        }
         if (!game) {
             return false;
         }
@@ -1475,6 +1483,9 @@
     }
 
     function canUseBrainConfig() {
+        if (!canPlayAdvancedTools) {
+            return false;
+        }
         return !positionSetupMode && !gameActive;
     }
 
@@ -2208,23 +2219,29 @@
             { id: "undoBtn", label: "Undo", icon: "undo", onClick: onUndo },
             { id: "redoBtn", label: "Redo", icon: "redo", onClick: onRedo },
             { id: "lastMoveBtn", label: "Last move", icon: "lastMove", onClick: onLastMove },
-            {
-                id: "positionSetupBtn",
-                label: "Position setup",
-                icon: "positionSetup",
-                onClick: onPositionSetupToggle,
-            },
-            {
-                id: "configurationBtn",
-                label: "Config",
-                icon: "configuration",
-                onClick: onConfigurationToggle,
-            },
+        ];
+        if (canPlayAdvancedTools) {
+            items.push(
+                {
+                    id: "positionSetupBtn",
+                    label: "Position setup",
+                    icon: "positionSetup",
+                    onClick: onPositionSetupToggle,
+                },
+                {
+                    id: "configurationBtn",
+                    label: "Config",
+                    icon: "configuration",
+                    onClick: onConfigurationToggle,
+                },
+            );
+        }
+        items.push(
             { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
             { id: "saveBtn", label: "Save", icon: "save", onClick: onSaveGame },
             { type: "spacer" },
             { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
-        ];
+        );
         items.forEach(function (item) {
             if (item.type === "spacer") {
                 const spacer = document.createElement("div");
@@ -4173,20 +4190,49 @@
         return target;
     }
 
+    async function fetchLaunchContext() {
+        if (launchContextPromise) {
+            return launchContextPromise;
+        }
+        launchContextPromise = (async function () {
+            if (!isWebPlayPage()) {
+                canPlayAdvancedTools = true;
+                return {
+                    ok: true,
+                    canPlayAdvanced: true,
+                    username: null,
+                    lastGameOptions: null,
+                };
+            }
+            canPlayAdvancedTools = false;
+            if (!Api || typeof Api.get !== "function") {
+                return { ok: false, canPlayAdvanced: false };
+            }
+            try {
+                const ctx = await Api.get("/api/play/launch-context");
+                canPlayAdvancedTools = !!(ctx && ctx.canPlayAdvanced);
+                return ctx || { ok: false, canPlayAdvanced: false };
+            } catch (err) {
+                console.warn("[Play] Could not load launch context:", err);
+                canPlayAdvancedTools = false;
+                return { ok: false, canPlayAdvanced: false };
+            }
+        })();
+        return launchContextPromise;
+    }
+
     async function resolveWebAutoStartOptions() {
         const opts = Settings.loadLastOptions();
         try {
-            if (Api && typeof Api.get === "function") {
-                const ctx = await Api.get("/api/play/launch-context");
-                if (ctx && ctx.lastGameOptions) {
-                    mergeStoredLaunchOptions(opts, ctx.lastGameOptions);
-                }
-                if (ctx && ctx.username) {
-                    opts.username = ctx.username;
-                }
+            const ctx = await fetchLaunchContext();
+            if (ctx && ctx.lastGameOptions) {
+                mergeStoredLaunchOptions(opts, ctx.lastGameOptions);
+            }
+            if (ctx && ctx.username) {
+                opts.username = ctx.username;
             }
         } catch (err) {
-            console.warn("[Play] Could not load launch context:", err);
+            console.warn("[Play] Could not apply launch context:", err);
         }
         applyUrlLaunchOptions(opts);
         Settings.saveLastOptions(opts);
@@ -4664,7 +4710,13 @@
         updateHeaderTurn();
         updateMatchHeader();
         if (!isWebPlayPage()) {
-            showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+            showStatus(
+                canPlayAdvancedTools
+                    ? "Choose New game or Position setup from the sidebar"
+                    : "Choose New game from the sidebar",
+                0,
+                "info",
+            );
         }
         playSessionReady = true;
         updateActionButtons();
@@ -4684,11 +4736,15 @@
                 dialogOn = locked;
             });
         }
-        buildActionRail();
-        ensureReviewNavBar();
-        startSession().catch(function (err) {
-            showStatus(err.message || "Could not load game", 0, "error");
-            console.error(err);
-        });
+        fetchLaunchContext()
+            .then(function () {
+                buildActionRail();
+                ensureReviewNavBar();
+                return startSession();
+            })
+            .catch(function (err) {
+                showStatus(err.message || "Could not load game", 0, "error");
+                console.error(err);
+            });
     });
 })();

@@ -55,9 +55,21 @@ if (process.env.SHMERLING_MODE === "desktop") {
     require("./desktop/configureApp")(app);
 }
 
+const {
+    resolveSessionUserType,
+    isAdminSession,
+    canAccessDebug,
+    canUsePlayAdvancedTools,
+    canAccessPlayPage,
+} = require("./modules/user/roles");
+
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
-    res.locals.admin = req.session.admin;
+    res.locals.admin = isAdminSession(req.session);
+    res.locals.userType = resolveSessionUserType(req.session);
+    res.locals.canDebug = canAccessDebug(req.session);
+    res.locals.canPlayAdvanced = canUsePlayAdvancedTools(req.session);
+    res.locals.canUsePlayPage = canAccessPlayPage(req.session);
     res.locals.messages = req.flash("messages");
     res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
     next();

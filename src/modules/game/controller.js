@@ -15,6 +15,7 @@ const ExpressError = require("../../utils/ExpressError");
 const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
+const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
 
 function setGamePageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -132,12 +133,18 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 });
 
 exports.getBrainConfig = catchAsync(async (req, res) => {
+    if (!canUsePlayAdvancedTools(req.session)) {
+        throw new ExpressError("Not authorized", 403);
+    }
     const engine = typeof req.query.engine === "string" ? String(req.query.engine).trim() : "brain43";
     const config = brainConfigService.loadBrainConfig(engine);
     res.send({ engine, config });
 });
 
 exports.saveBrainConfig = catchAsync(async (req, res) => {
+    if (!canUsePlayAdvancedTools(req.session)) {
+        throw new ExpressError("Not authorized", 403);
+    }
     const engine = typeof req.body.engine === "string" ? String(req.body.engine).trim() : "brain43";
     const config = brainConfigService.saveBrainConfig(engine, req.body.config || {});
     res.send({ status: "OK", engine, config });
@@ -325,8 +332,8 @@ const executeStartGame = catchAsync(async (req, res) => {
 
     validate({ gameType: req.query.gameType }, "gameType");
     const gameTypeInt = parseInt(req.query.gameType);
-    /* Debug (gameType 3 / Practice) is admin-only */
-    if (gameTypeInt === 3 && !req.session.admin) {
+    /* Debug (gameType 3 / Practice) — Admin and Partner; always classic /game UI */
+    if (gameTypeInt === 3 && !canAccessDebug(req.session)) {
         return res.redirect("/home");
     }
     const color = (req.query.color === "black" || req.query.color === "white") ? req.query.color : "white";
