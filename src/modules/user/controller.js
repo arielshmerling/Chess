@@ -159,6 +159,12 @@ exports.login = catchAsync(async (req, res) => {
         req.session.user_id = foundUser.id;
         req.session.user_name = foundUser.username;
         req.session.admin = foundUser.admin;
+        if (foundUser.admin) {
+            foundUser.userType = "Admin";
+        } else if (!foundUser.userType) {
+            foundUser.userType = "Member";
+        }
+        req.session.userType = foundUser.userType;
         foundUser.lastLogin = Date.now();
         await foundUser.save();
         const redirectUrl = res.locals.returnTo || "/Home";
@@ -307,6 +313,7 @@ exports.updateUserAdmin = async (req, res, next) => {
         if (req.session.user_id && String(req.session.user_id) === String(req.params.id)) {
             if (result.username !== undefined) {req.session.user_name = result.username;}
             if (result.admin !== undefined) {req.session.admin = result.admin;}
+            if (result.userType !== undefined) {req.session.userType = result.userType;}
         }
         res.json({ ok: true, user: result });
     } catch (err) {
@@ -331,6 +338,7 @@ exports.register = catchAsync(async (req, res) => {
         req.session.user_id = user._id;
         req.session.user_name = username;
         req.session.admin = user.admin;
+        req.session.userType = user.userType || "Member";
     }
     else {
         req.flash("messages", "User added Successfully");

@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const USER_TYPES = ["Admin", "Partner", "Member"];
+
 const bookmarkSchema = new mongoose.Schema({
     state: {
         type: String,
@@ -58,6 +60,14 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         required: [true, "admin cannot be blank"],
         default: false,
+    },
+
+    /** Account classification: Admin, Partner, or Member. Kept in sync with `admin`. */
+    userType: {
+        type: String,
+        enum: USER_TYPES,
+        default: "Member",
+        required: true,
     },
 
     /** @deprecated Unused — admins always use /play; kept for existing Mongo documents. */
@@ -146,7 +156,28 @@ userSchema.statics.authenticate = async function (username, password) {
     return isValid ? foundUser : false;
 };
 
+userSchema.statics.USER_TYPES = USER_TYPES;
+
+/**
+ * Resolve userType for documents that predate the field.
+ * @param {{ userType?: string, admin?: boolean }} user
+ * @returns {"Admin"|"Partner"|"Member"}
+ */
+function resolveUserType(user) {
+    // `admin` predates `userType`; it remains authoritative for legacy users
+    // that may have received the new "Member" schema default.
+    if (user && user.admin) {
+        return "Admin";
+    }
+    if (user && USER_TYPES.includes(user.userType)) {
+        return user.userType;
+    }
+    return "Member";
+}
+
 module.exports = {
     Bookmark: mongoose.model("Bookmark", bookmarkSchema),
     User: mongoose.model("User", userSchema),
+    USER_TYPES,
+    resolveUserType,
 };

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { User, Bookmark } = require("./model");
+const { User, Bookmark, USER_TYPES, resolveUserType } = require("./model");
 const bcrypt = require("bcryptjs");
 const ExpressError = require("../../utils/ExpressError");
 const { notifyAdminPrivilegeChange } = require("../../utils/adminPrivilegeNotify");
@@ -14,7 +14,7 @@ const PLAYER_LEVELS = ["Rookie", "Skilled", "Elite", "Grand Master"];
 exports.listUsersForAdmin = async () => {
     const [users, activeGamesByUser] = await Promise.all([
         User.find({})
-            .select("username admin lastLogin email level elo joinedDate friends bookmarks")
+            .select("username admin userType lastLogin email level elo joinedDate friends bookmarks")
             .sort({ username: 1 })
             .lean(),
         gamesManagerService.countActiveGamesPerUsername(),
@@ -23,6 +23,7 @@ exports.listUsersForAdmin = async () => {
         id: String(u._id),
         username: u.username,
         admin: !!u.admin,
+        userType: resolveUserType(u),
         email: u.email != null ? String(u.email) : "",
         level: u.level != null ? String(u.level) : "",
         elo: u.elo != null ? Number(u.elo) : null,
@@ -42,9 +43,10 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
     const hasUsername = payload.username !== undefined && payload.username !== null;
     const hasEmail = payload.email !== undefined && payload.email !== null;
     const hasAdmin = Object.prototype.hasOwnProperty.call(payload, "admin");
+    const hasUserType = Object.prototype.hasOwnProperty.call(payload, "userType");
     const hasLevel = Object.prototype.hasOwnProperty.call(payload, "level");
     const hasPassword = Object.prototype.hasOwnProperty.call(payload, "password");
-    if (!hasUsername && !hasEmail && !hasAdmin && !hasLevel && !hasPassword) {
+    if (!hasUsername && !hasEmail && !hasAdmin && !hasUserType && !hasLevel && !hasPassword) {
         throw new ExpressError("Nothing to update", 400);
     }
 
@@ -85,7 +87,23 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
         user.email = email;
     }
 
-    if (hasAdmin) {
+    if (hasUserType) {
+        const nextType = String(payload.userType || "").trim();
+        if (!USER_TYPES.includes(nextType)) {
+            throw new ExpressError("Invalid user type", 400);
+        }
+        if (user.admin && nextType !== "Admin") {
+            const adminCount = await User.countDocuments({ admin: true });
+            if (adminCount <= 1) {
+                throw new ExpressError(
+                    "There must always be at least one admin. Promote another user to admin before removing this one.",
+                    403
+                );
+            }
+        }
+        user.userType = nextType;
+        user.admin = nextType === "Admin";
+    } else if (hasAdmin) {
         const nextAdmin = Boolean(payload.admin);
         if (user.admin && !nextAdmin) {
             const adminCount = await User.countDocuments({ admin: true });
@@ -97,6 +115,15 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
             }
         }
         user.admin = nextAdmin;
+        if (nextAdmin) {
+            user.userType = "Admin";
+        } else if (user.userType === "Admin" || !user.userType) {
+            user.userType = "Member";
+        }
+    }
+
+    if (!USER_TYPES.includes(user.userType)) {
+        user.userType = resolveUserType(user);
     }
 
     if (hasLevel) {
@@ -117,7 +144,7 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
 
     await user.save();
 
-    if (hasAdmin && oldAdmin !== !!user.admin) {
+    if ((hasAdmin || hasUserType) && oldAdmin !== !!user.admin) {
         await notifyAdminPrivilegeChange({
             actorUsername: options.actorUsername != null ? String(options.actorUsername) : "unknown",
             targetUsername: user.username,
@@ -132,6 +159,7 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
         username: user.username,
         email: user.email,
         admin: !!user.admin,
+        userType: resolveUserType(user),
         level: user.level,
     };
 };
@@ -156,6 +184,8 @@ exports.registerNewUser = async (username, password, email, level) => {
         password: hash,
         email,
         level,
+        userType: "Member",
+        admin: false,
     });
     await user.save();
     return user;

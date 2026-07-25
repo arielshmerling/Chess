@@ -43,7 +43,7 @@
                 <tr id="admin-table-head-row">
                   <th>#</th>
                   <th>Username</th>
-                  <th>Role</th>
+                  <th>Type</th>
                   <th>Email</th>
                   <th>Password</th>
                   <th>Level</th>
@@ -73,7 +73,7 @@
   (function () {
     var ADMIN_TAB_CONFIG = [
       {
-        headers: ["#", "Username", "Role", "Email", "Password", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
+        headers: ["#", "Username", "Type", "Email", "Password", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
         emptyMsg: "No users yet."
       },
       { headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
@@ -317,16 +317,22 @@
 
     var PLAYER_LEVELS = ["Rookie", "Skilled", "Elite", "Grand Master"];
 
-    function attachRoleDropdown(td, userId, isAdmin) {
-      var state = { admin: !!isAdmin };
+    var USER_TYPES = ["Admin", "Partner", "Member"];
+
+    function attachRoleDropdown(td, userId, userType) {
+      var state = {
+        userType: USER_TYPES.indexOf(userType) !== -1
+          ? userType
+          : "Member",
+      };
       td.classList.add("admin-cell-editable");
       var label = document.createElement("span");
       label.className = "admin-editable-label";
-      label.setAttribute("title", "Click to change role");
+      label.setAttribute("title", "Click to change user type");
       label.setAttribute("tabindex", "0");
 
       function renderLabel() {
-        label.textContent = state.admin ? "Admin" : "User";
+        label.textContent = state.userType;
       }
       renderLabel();
 
@@ -340,12 +346,12 @@
         if (td.querySelector("select.admin-role-select")) return;
         var sel = document.createElement("select");
         sel.className = "admin-editable-select admin-role-select";
-        sel.setAttribute("aria-label", "Role");
-        [["User", "0"], ["Admin", "1"]].forEach(function (pair) {
+        sel.setAttribute("aria-label", "User type");
+        USER_TYPES.forEach(function (typeName) {
           var o = document.createElement("option");
-          o.value = pair[1];
-          o.textContent = pair[0];
-          if ((pair[1] === "1") === state.admin) o.selected = true;
+          o.value = typeName;
+          o.textContent = typeName;
+          if (typeName === state.userType) o.selected = true;
           sel.appendChild(o);
         });
         label.style.display = "none";
@@ -355,23 +361,26 @@
         var patching = false;
 
         sel.addEventListener("change", function () {
-          var newAdmin = sel.value === "1";
-          if (newAdmin === state.admin) return;
-          var msg = newAdmin
+          var newType = sel.value;
+          if (newType === state.userType) return;
+          var msg = newType === "Admin"
             ? "Grant admin privileges to this user? They will be able to access admin tools and manage accounts."
-            : "Remove admin privileges from this user? They will lose access to the admin area.";
-          showSiteConfirm(msg, { title: "Change role" }).then(function (ok) {
+            : state.userType === "Admin"
+              ? "Change this user from Admin to " + newType + "? They will lose access to the admin area."
+              : "Change this user to " + newType + "?";
+          showSiteConfirm(msg, { title: "Change user type" }).then(function (ok) {
             if (!ok) {
-              sel.value = state.admin ? "1" : "0";
+              sel.value = state.userType;
               return;
             }
             patching = true;
-            patchUserField(userId, { admin: newAdmin })
+            patchUserField(userId, { userType: newType })
               .then(function (res) {
                 var data = res.data;
                 if (data && data.ok && data.user) {
-                  state.admin = !!data.user.admin;
-                  updateUserInCache(userId, "admin", state.admin);
+                  state.userType = data.user.userType || newType;
+                  updateUserInCache(userId, "userType", state.userType);
+                  updateUserInCache(userId, "admin", !!data.user.admin);
                 }
                 removeSelect(sel);
               })
@@ -379,7 +388,7 @@
                 var errMsg = "Update failed";
                 if (err.response && err.response.data && err.response.data.message) errMsg = err.response.data.message;
                 showSiteAlert(errMsg, "Could not save").then(function () {
-                  sel.value = state.admin ? "1" : "0";
+                  sel.value = state.userType;
                 });
               })
               .finally(function () {
@@ -541,7 +550,7 @@
         var tdName = document.createElement("td");
         attachEditableCell(tdName, u.id, "username", u.username);
         var tdRole = document.createElement("td");
-        attachRoleDropdown(tdRole, u.id, u.admin);
+        attachRoleDropdown(tdRole, u.id, u.userType || (u.admin ? "Admin" : "Member"));
         var tdEmail = document.createElement("td");
         attachEditableCell(tdEmail, u.id, "email", u.email);
         var tdPwd = document.createElement("td");
