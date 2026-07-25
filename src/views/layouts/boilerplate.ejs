@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chessboard</title>
   <link rel="stylesheet" href="/app.css">
+  <% if (typeof username !== 'undefined' && username) { %>
+  <link rel="stylesheet" href="/app/ui/app.css">
+  <% } %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=EB+Garamond:wght@600;700&family=Libre+Baskerville:wght@700&family=Merriweather:wght@700;900&family=Oswald:wght@600;700&family=Raleway:wght@600;700&display=swap" rel="stylesheet">
@@ -19,6 +22,16 @@
   <script src="/customValidation.js"></script>
   <script src="/siteDialogs.js"></script>
   <% if (typeof username !== 'undefined' && username) { %>
+  <script src="/app/ui/play-shell-detect.js"></script>
+  <script src="/app/ui/desktop-theme-keys.js"></script>
+  <script src="/app/ui/desktop-custom-theme.js"></script>
+  <script src="/app/ui/desktop-theme.js"></script>
+  <script src="/app/ui/desktop-api.js"></script>
+  <script src="/app/ui/desktop-game-settings.js"></script>
+  <script src="/app/ui/desktop-prefs-gameplay.js"></script>
+  <script src="/app/ui/desktop-fullscreen.js"></script>
+  <script src="/app/ui/desktop-prefs-display.js"></script>
+  <script src="/app/ui/desktop-chrome.js"></script>
   <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     window.__SHMERLING_USE_NEW_PLAY_UI__ = <%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? 'true' : 'false' %>;
     window.__SHMERLING_USER_TYPE__ = <%- JSON.stringify(typeof userType !== 'undefined' && userType ? userType : 'Member') %>;
@@ -32,7 +45,7 @@
 
 <body<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> class="hide-topbar"<% } %>>
   <% if(username) { %>
-  <%- include('../partials/topbar') %>
+  <%- include('../partials/topbar', { showWebPreferences: true }) %>
   <% }%>
 
   <%- include("../partials/flash") %>

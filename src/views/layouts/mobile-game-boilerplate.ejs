@@ -27,7 +27,7 @@
 
 <body class="mobile-game-shell<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> hide-topbar<% } %>">
   <% if(username) { %>
-  <%- include('../partials/topbar') %>
+  <%- include('../partials/topbar', { showWebPreferences: false }) %>
   <% }%>
 
   <%- include("../partials/flash") %>

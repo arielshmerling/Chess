@@ -1,11 +1,11 @@
 /**
- * Playwright global setup: ensure Mongo e2e user exists before browser tests.
+ * Playwright global setup: ensure Mongo e2e users exist before browser tests.
  */
 const mongoose = require("mongoose");
-const { ensureWebE2EUser } = require("../test/helpers/webE2EUser");
+const { ensureWebE2EUsers } = require("../test/helpers/webE2EUser");
 
 module.exports = async function globalSetup() {
-    const creds = await ensureWebE2EUser();
-    console.log(`[e2e] ready user "${creds.username}"`);
+    const { primary } = await ensureWebE2EUsers();
+    console.log(`[e2e] ready users "${primary.username}" (+ secondary)`);
     await mongoose.disconnect();
 };

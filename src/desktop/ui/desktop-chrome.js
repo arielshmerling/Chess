@@ -1,5 +1,6 @@
 /**
- * Desktop shell: top bar (logo + preferences) on all /app/* pages.
+ * Desktop shell: top bar (logo + preferences) on /app/* pages,
+ * or preferences-only host (#webDesktopPrefsHost) on classic web pages.
  */
 (function () {
     "use strict";
@@ -14,6 +15,47 @@
         return "/app/play";
     }
 
+    var PREFS_HTML = [
+        '<div class="desktop-prefs">',
+        '  <button type="button" class="desktop-prefs-trigger" id="desktopPrefsTrigger"',
+        '    aria-expanded="false" aria-controls="desktopPrefsPanel" aria-haspopup="dialog">',
+        '    <span class="desktop-prefs-trigger-icon" aria-hidden="true">&#9881;</span>',
+        '    <span class="desktop-prefs-trigger-label">Preferences</span>',
+        "  </button>",
+        '  <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
+        '    aria-labelledby="desktopPrefsTitle" hidden>',
+        '    <h2 class="desktop-prefs-title" id="desktopPrefsTitle">Preferences</h2>',
+        '    <section class="desktop-prefs-section desktop-prefs-section--theme">',
+        '      <h3 class="desktop-prefs-section-title">Color theme</h3>',
+        '      <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="Built-in themes">',
+        '        <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
+        '          <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
+        '          <span class="desktop-theme-name">Blue</span>',
+        "        </button>",
+        '        <button type="button" class="desktop-theme-choice" data-theme="dark" aria-pressed="false">',
+        '          <span class="desktop-theme-swatch desktop-theme-swatch--dark" aria-hidden="true"></span>',
+        '          <span class="desktop-theme-name">Dark</span>',
+        "        </button>",
+        "      </div>",
+        '      <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="Saved custom themes"></div>',
+        '      <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">Customize theme…</button>',
+        "    </section>",
+        '    <section class="desktop-prefs-section desktop-prefs-section--pieces">',
+        '      <h3 class="desktop-prefs-section-title">Piece set</h3>',
+        '      <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="Piece sets"></div>',
+        "    </section>",
+        '    <section class="desktop-prefs-section desktop-prefs-section--gameplay">',
+        '      <h3 class="desktop-prefs-section-title">Gameplay</h3>',
+        '      <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
+        "    </section>",
+        '    <section class="desktop-prefs-section desktop-prefs-section--display">',
+        '      <h3 class="desktop-prefs-section-title">Display</h3>',
+        '      <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
+        "    </section>",
+        "  </div>",
+        "</div>",
+    ].join("");
+
     var TOPBAR_HTML = [
         '<header class="desktop-topbar" role="banner">',
         '  <a href="' + getHomeHref() + '" class="desktop-topbar-logo" aria-label="Shmerling Chess home">',
@@ -21,49 +63,75 @@
         "  </a>",
         '  <div class="desktop-topbar-spacer"></div>',
         '  <div class="desktop-topbar-actions">',
-        '    <div class="desktop-prefs">',
-        '      <button type="button" class="desktop-prefs-trigger" id="desktopPrefsTrigger"',
-        '        aria-expanded="false" aria-controls="desktopPrefsPanel" aria-haspopup="dialog">',
-        '        <span class="desktop-prefs-trigger-icon" aria-hidden="true">&#9881;</span>',
-        '        <span class="desktop-prefs-trigger-label">Preferences</span>',
-        "      </button>",
-        '      <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
-        '        aria-labelledby="desktopPrefsTitle" hidden>',
-        '        <h2 class="desktop-prefs-title" id="desktopPrefsTitle">Preferences</h2>',
-        '        <section class="desktop-prefs-section desktop-prefs-section--theme">',
-        '          <h3 class="desktop-prefs-section-title">Color theme</h3>',
-        '          <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="Built-in themes">',
-        '            <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
-        '              <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
-        '              <span class="desktop-theme-name">Blue</span>',
-        "            </button>",
-        '            <button type="button" class="desktop-theme-choice" data-theme="dark" aria-pressed="false">',
-        '              <span class="desktop-theme-swatch desktop-theme-swatch--dark" aria-hidden="true"></span>',
-        '              <span class="desktop-theme-name">Dark</span>',
-        "            </button>",
-        "          </div>",
-        '          <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="Saved custom themes"></div>',
-        '          <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">Customize theme…</button>',
-        "        </section>",
-        '        <section class="desktop-prefs-section desktop-prefs-section--pieces">',
-        '          <h3 class="desktop-prefs-section-title">Piece set</h3>',
-        '          <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="Piece sets"></div>',
-        "        </section>",
-        '        <section class="desktop-prefs-section desktop-prefs-section--gameplay">',
-        '          <h3 class="desktop-prefs-section-title">Gameplay</h3>',
-        '          <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
-        "        </section>",
-        '        <section class="desktop-prefs-section desktop-prefs-section--display">',
-        '          <h3 class="desktop-prefs-section-title">Display</h3>',
-        '          <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
-        "        </section>",
-        "      </div>",
-        "    </div>",
+        PREFS_HTML,
         "  </div>",
         "</header>",
     ].join("");
 
+    function mountPreferencesInto(host) {
+        if (!host || document.getElementById("desktopPrefsTrigger")) {
+            return false;
+        }
+        host.innerHTML = PREFS_HTML;
+        initPreferencesMenu();
+        return true;
+    }
+
+    function initWebUserMenu() {
+        var trigger = document.getElementById("webUserMenuTrigger");
+        var panel = document.getElementById("webUserMenuPanel");
+        var preferencesAction = document.getElementById("webUserPreferencesAction");
+        if (!trigger || !panel || trigger.dataset.menuBound === "1") {
+            return;
+        }
+        trigger.dataset.menuBound = "1";
+
+        function setOpen(open) {
+            trigger.setAttribute("aria-expanded", open ? "true" : "false");
+            panel.hidden = !open;
+        }
+
+        trigger.addEventListener("click", function (event) {
+            event.stopPropagation();
+            setOpen(panel.hidden);
+        });
+
+        if (preferencesAction) {
+            preferencesAction.addEventListener("click", function (event) {
+                event.stopPropagation();
+                setOpen(false);
+                var preferencesTrigger = document.getElementById("desktopPrefsTrigger");
+                if (preferencesTrigger) {
+                    preferencesTrigger.click();
+                }
+            });
+        }
+
+        document.addEventListener("click", function (event) {
+            if (!panel.hidden && !panel.contains(event.target) && !trigger.contains(event.target)) {
+                setOpen(false);
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && !panel.hidden) {
+                setOpen(false);
+                trigger.focus();
+            }
+        });
+    }
+
     function mountTopbar() {
+        var host = document.getElementById("webDesktopPrefsHost");
+        if (host) {
+            mountPreferencesInto(host);
+            initWebUserMenu();
+            return;
+        }
+        /* Classic web pages already have #header — never inject a second top bar. */
+        if (document.getElementById("header")) {
+            return;
+        }
         if (document.querySelector(".desktop-topbar")) {
             return;
         }
@@ -88,6 +156,10 @@
         if (!trigger || !panel) {
             return;
         }
+        if (trigger.dataset.prefsBound === "1") {
+            return;
+        }
+        trigger.dataset.prefsBound = "1";
 
         function setOpen(open) {
             trigger.setAttribute("aria-expanded", open ? "true" : "false");
@@ -224,6 +296,12 @@
             btn.classList.toggle("is-active", active);
         });
     }
+
+    window.DesktopChrome = {
+        mountTopbar: mountTopbar,
+        mountPreferencesInto: mountPreferencesInto,
+        initPreferencesMenu: initPreferencesMenu,
+    };
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", mountTopbar);

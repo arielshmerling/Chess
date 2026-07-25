@@ -1186,6 +1186,141 @@ input:focus {
     flex-wrap: nowrap;
 }
 
+/* Compact account menu on desktop classic pages */
+.web-user-menu {
+    position: relative;
+}
+
+.web-user-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 38px;
+    padding: 4px 10px 4px 5px;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--light, #f4f4f4);
+    font: 500 14px/1 Arial, Helvetica, sans-serif;
+    cursor: pointer;
+}
+
+.web-user-menu-trigger:hover,
+.web-user-menu-trigger[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.web-user-menu-avatar {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.web-user-menu-avatar svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.web-user-menu-chevron {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+    transition: transform 0.15s ease;
+}
+
+.web-user-menu-trigger[aria-expanded="true"] .web-user-menu-chevron {
+    transform: rotate(180deg);
+}
+
+.web-user-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1101;
+    width: 210px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    background: #1a1a1a;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.web-user-menu-panel[hidden] {
+    display: none;
+}
+
+#logout .web-user-menu-item {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #ededed;
+    font: 400 14px/1.2 Arial, Helvetica, sans-serif;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#logout .web-user-menu-item:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+#logout .web-user-menu-item:disabled {
+    color: rgba(255, 255, 255, 0.38);
+    cursor: default;
+}
+
+#logout .web-user-menu-item:disabled:hover {
+    background: transparent;
+}
+
+.web-user-menu-separator {
+    height: 1px;
+    margin: 5px 4px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Hidden trigger/panel host reuses the Play Preferences implementation. */
+.web-desktop-prefs-host {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 0;
+    z-index: 2;
+}
+
+.web-desktop-prefs-host .desktop-prefs-trigger {
+    display: none;
+}
+
+#header:has(#webDesktopPrefsHost) {
+    z-index: 1100;
+    overflow: visible;
+}
+
+.web-desktop-prefs-host .desktop-prefs-panel {
+    position: fixed;
+    top: 58px;
+    right: 20px;
+    max-height: calc(100vh - 70px);
+}
+
 .topbar-username {
     margin-right: 16px;
     font-weight: 500;

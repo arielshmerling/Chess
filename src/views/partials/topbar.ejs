@@ -19,6 +19,40 @@
   <% } %>
 
   <div id="logout">
+    <% var useWebPreferences = typeof showWebPreferences !== 'undefined' && showWebPreferences; %>
+    <% if (useWebPreferences) { %>
+    <div class="web-user-menu">
+      <button
+        type="button"
+        id="webUserMenuTrigger"
+        class="web-user-menu-trigger"
+        aria-expanded="false"
+        aria-controls="webUserMenuPanel"
+        aria-haspopup="menu"
+      >
+        <span class="web-user-menu-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path>
+          </svg>
+        </span>
+        <span class="web-user-menu-name"><%= username %></span>
+        <svg class="web-user-menu-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="m4 6 4 4 4-4"></path>
+        </svg>
+      </button>
+      <div id="webUserMenuPanel" class="web-user-menu-panel" role="menu" hidden>
+        <button type="button" class="web-user-menu-item" role="menuitem" disabled>Account</button>
+        <button type="button" id="webUserPreferencesAction" class="web-user-menu-item" role="menuitem">Preferences</button>
+        <% if (admin) { %>
+        <a href="/admin" class="web-user-menu-item" role="menuitem">Administrate</a>
+        <% } %>
+        <div class="web-user-menu-separator" role="separator"></div>
+        <a href="/logout" class="web-user-menu-item" role="menuitem">Log out</a>
+      </div>
+    </div>
+    <div id="webDesktopPrefsHost" class="web-desktop-prefs-host" aria-live="polite"></div>
+    <% } else { %>
     <% if (username) { %>
     <span class="topbar-username"><%= username %></span>
     <% } %>
@@ -34,6 +68,7 @@
     <% } %>
     <% if (admin) { %>
     <a href="/admin"> Admin </a>
+    <% } %>
     <% } %>
     <% } %>
   </div>

@@ -1,8 +1,8 @@
 /**
- * Ensures a dedicated non-admin web user exists for HTTP / Playwright tests.
+ * Ensures dedicated non-admin web users exist for HTTP / Playwright tests.
  * Credentials come from E2E_USERNAME / E2E_PASSWORD, or stable local defaults.
  *
- * Does not modify application source — only upserts a Mongo user document.
+ * Does not modify application source — only upserts Mongo user documents.
  */
 require("dotenv").config();
 
@@ -12,6 +12,7 @@ const { User } = require("../../src/modules/user/model");
 
 const DEFAULT_USERNAME = "e2e_web_member";
 const DEFAULT_PASSWORD = "E2eTestPass!123";
+const DEFAULT_OTHER_USERNAME = "e2e_web_other";
 
 function getWebE2EDatabaseUrl() {
     if (process.env.E2E_DATABASE_URL) {
@@ -43,27 +44,26 @@ function getWebE2ECredentials() {
     };
 }
 
+function getWebE2EOtherCredentials() {
+    return {
+        username: process.env.E2E_OTHER_USERNAME || DEFAULT_OTHER_USERNAME,
+        password: process.env.E2E_OTHER_PASSWORD || DEFAULT_PASSWORD,
+    };
+}
+
 /**
- * Connect Mongo (idempotent) and ensure the e2e member user can log in.
- * @returns {Promise<{ username: string, password: string }>}
+ * @param {{ username: string, password: string }} creds
+ * @returns {Promise<{ username: string, password: string, id: string }>}
  */
-async function ensureWebE2EUser() {
-    if (!process.env.SESSION_SECRET) {
-        throw new Error("SESSION_SECRET is required for web e2e / API tests");
-    }
-
-    process.env.DATABASE_URL = getWebE2EDatabaseUrl();
-    await Database.getInstance().connect();
-
-    const { username, password } = getWebE2ECredentials();
-    const hash = await bcrypt.hash(password, 12);
-    let user = await User.findOne({ username });
+async function upsertMemberUser(creds) {
+    const hash = await bcrypt.hash(creds.password, 12);
+    let user = await User.findOne({ username: creds.username });
 
     if (!user) {
         user = new User({
-            username,
+            username: creds.username,
             password: hash,
-            email: `${username}@example.test`,
+            email: `${creds.username}@example.test`,
             level: "1",
             userType: "Member",
             admin: false,
@@ -76,12 +76,47 @@ async function ensureWebE2EUser() {
         await user.save();
     }
 
-    return { username, password };
+    return {
+        username: creds.username,
+        password: creds.password,
+        id: String(user._id),
+    };
+}
+
+async function connectWebE2EDb() {
+    if (!process.env.SESSION_SECRET) {
+        throw new Error("SESSION_SECRET is required for web e2e / API tests");
+    }
+    process.env.DATABASE_URL = getWebE2EDatabaseUrl();
+    await Database.getInstance().connect();
+}
+
+/**
+ * Connect Mongo (idempotent) and ensure the primary e2e member can log in.
+ * @returns {Promise<{ username: string, password: string, id: string }>}
+ */
+async function ensureWebE2EUser() {
+    await connectWebE2EDb();
+    return upsertMemberUser(getWebE2ECredentials());
+}
+
+/**
+ * Primary + secondary members for friends invite / search scenarios.
+ * @returns {Promise<{ primary: object, other: object }>}
+ */
+async function ensureWebE2EUsers() {
+    await connectWebE2EDb();
+    const primary = await upsertMemberUser(getWebE2ECredentials());
+    const other = await upsertMemberUser(getWebE2EOtherCredentials());
+    return { primary, other };
 }
 
 module.exports = {
     getWebE2EDatabaseUrl,
     getWebE2ECredentials,
+    getWebE2EOtherCredentials,
     ensureWebE2EUser,
+    ensureWebE2EUsers,
     DEFAULT_USERNAME,
+    DEFAULT_OTHER_USERNAME,
 };
