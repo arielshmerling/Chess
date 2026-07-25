@@ -13,6 +13,10 @@ desktop/app-bundle/
 # Test / coverage
 .nyc_output/
 coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
 
 # Editor / local tooling (not published)
 .vscode/

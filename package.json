@@ -8,6 +8,10 @@
     "test:brain": "mocha ./test/brain41.pawnEval.test.js ./test/brain42.advancedPawn.test.js ./test/brain42.adaptiveDepth.test.js ./test/brain42.gamePhase.test.js ./test/brain42.mateInThree.test.js ./test/brain43.mateInThree.test.js",
     "test:heavy": "mocha ./test/chess.heavy.js",
     "test:all": "mocha --require ./test/_teardownWorkers.js \"./test/**/*.test.js\"",
+    "test:web:api": "mocha --exit --require ./test/_teardownWorkers.js ./test/web.api.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:web": "npm run test:web:api && npm run test:e2e",
     "coverage": "nyc --concurrency=1 --reporter=html --reporter=text-summary mocha --require ./test/_teardownWorkers.js \"./test/**/*.test.js\"",
     "analysis": "npx eslint ./src/**/*.js",
     "start": "node ./server.js",
@@ -51,10 +55,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.62.0",
     "eslint": "^10.0.1",
     "globals": "^15.14.0",
     "mocha": "^11.7.5",
-    "nyc": "^18.0.0"
+    "nyc": "^18.0.0",
+    "supertest": "^7.2.2"
   },
   "overrides": {
     "istanbul-lib-processinfo": {
