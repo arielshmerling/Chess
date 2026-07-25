@@ -234,7 +234,9 @@ exports.generateStateStream = async (req, res) => {
     try {
         send({ type: "start", mode });
         send({ type: "phase", phase: "scanning", message: "Listing PGN files…" });
-        const files = await gamesManagerService.getPGNFiles();
+        const files = mode === "book"
+            ? await gamesManagerService.getOpeningBookPGNFiles()
+            : await gamesManagerService.getPGNFiles();
         if (checkAbort()) {
             send({
                 type: "done",

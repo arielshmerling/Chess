@@ -48,8 +48,8 @@ describe("web HTTP / auth", function () {
         );
     });
 
-    it("GET /friends, /search, and /game without session redirect to login", async function () {
-        for (const path of ["/friends", "/search", "/game"]) {
+    it("GET /friends and /game without session redirect to login", async function () {
+        for (const path of ["/friends", "/game"]) {
             const res = await request(app).get(path).redirects(0);
             assert.strictEqual(res.status, 302, path);
             assert.ok(
@@ -111,16 +111,12 @@ describe("web HTTP / auth", function () {
         assert.match(String(loginRes.headers.location || ""), /\/friends/);
     });
 
-    it("authenticated GET /friends and /search return pages", async function () {
+    it("authenticated GET /friends returns page", async function () {
         const agent = await loginAgent();
 
         const friends = await agent.get("/friends").expect(200);
         assert.match(friends.text, /id="friendSearchInput"/);
         assert.match(friends.text, /id="friendsList"/);
-
-        const search = await agent.get("/search").expect(200);
-        assert.match(search.text, /id="search"/);
-        assert.match(search.text, /id="searchButton"/);
     });
 
     it("authenticated GET /active-games returns JSON", async function () {

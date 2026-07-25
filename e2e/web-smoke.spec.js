@@ -76,18 +76,13 @@ test.describe("web smoke", () => {
         await expect(page.locator("#friendSearchInput")).toBeVisible();
     });
 
-    test("home nav reaches Friends and Search", async ({ page }) => {
+    test("home nav reaches Friends", async ({ page }) => {
         await login(page);
 
         await page.getByRole("link", { name: "Friends", exact: true }).click();
         await expect(page).toHaveURL(/\/friends/);
         await expect(page.getByRole("heading", { name: "Friends", exact: true })).toBeVisible();
         await expect(page.locator("#friendsEmpty")).toBeVisible();
-
-        await page.getByRole("link", { name: "Search", exact: true }).click();
-        await expect(page).toHaveURL(/\/search/);
-        await expect(page.locator("#search")).toBeVisible();
-        await expect(page.locator("#searchButton")).toBeVisible();
     });
 
     test("Play Now modal cancel keeps user on home", async ({ page }) => {

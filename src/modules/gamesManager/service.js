@@ -645,7 +645,21 @@ async function listPgnFilesInDirectory(dir) {
         .sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * PGN files shown in web Search / optional DB import.
+ * Top-level `pgn/*.pgn` only — not `pgn/Opennings/` (opening-book source material).
+ */
 exports.getPGNFiles = catchAsync(async () => {
+    const path = require("path");
+    const rootDir = path.join(__dirname, "./pgn/");
+    const files = await listPgnFilesInDirectory(rootDir);
+    return files.sort((a, b) => a.localeCompare(b));
+});
+
+/**
+ * PGN files used only to rebuild the opening book (includes `pgn/Opennings/`).
+ */
+exports.getOpeningBookPGNFiles = catchAsync(async () => {
     const path = require("path");
     const rootDir = path.join(__dirname, "./pgn/");
     const openingsDir = path.join(rootDir, "Opennings");

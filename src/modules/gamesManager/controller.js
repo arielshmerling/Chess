@@ -240,7 +240,7 @@ exports.generateState = async (req, res) => {
 
 /** Admin-only: rebuild `data/opening-book-lines.txt` from PGNs; does not write Mongo. */
 exports.generateOpeningBook = async (req, res) => {
-    const files = await gamesManagerService.getPGNFiles();
+    const files = await gamesManagerService.getOpeningBookPGNFiles();
     const pgnGames = await gamesManagerService.readPGNGames(files);
     const stats = await gamesManagerService.addGamesToOpeningBook(pgnGames);
     res.type("json").send({
