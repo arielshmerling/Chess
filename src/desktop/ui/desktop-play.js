@@ -20,6 +20,7 @@
     const DockModeChrome = window.PlayDockModeChrome;
     const ActionRail = window.PlayActionRail;
     const StatusBar = window.PlayStatusBar;
+    const EngineTurn = window.PlayEngineTurn;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -3241,16 +3242,8 @@
         animating = false;
     }
 
-    function isSearchAbortedError(err) {
-        return !!(err && (err.name === "SearchAbortedError" || err.message === "Search aborted"));
-    }
-
     function resignStatusMessage(resignedColor) {
-        const isWhite = String(resignedColor).toLowerCase() === "white";
-        const name = session
-            ? (isWhite ? session.whitePlayerName : session.blackPlayerName) || (isWhite ? "White" : "Black")
-            : (isWhite ? "White" : "Black");
-        return "Game over. " + name + " resign.";
+        return EngineTurn.resignStatusMessage(resignedColor, sessionPlayerNames(session));
     }
 
     function finishResignGame(resignedColor) {
@@ -3275,17 +3268,19 @@
 
     async function runEngineMove() {
         if (
-            !game ||
-            !session ||
-            !Engine ||
-            game.GameOver ||
-            !isAiTurn() ||
-            positionSetupMode ||
-            configurationMode
+            !EngineTurn.canStartTurn({
+                hasGame: !!game,
+                hasSession: !!session,
+                hasEngine: !!Engine,
+                gameOver: !!(game && game.GameOver),
+                aiTurn: isAiTurn(),
+                positionSetup: positionSetupMode,
+                configuration: configurationMode,
+                animating: animating,
+                engineThinking: engineThinking,
+                dialogOn: dialogOn,
+            })
         ) {
-            return;
-        }
-        if (animating || engineThinking || dialogOn) {
             return;
         }
         if (Board.resetSquareColors) {
@@ -3296,53 +3291,52 @@
         updateActionButtons();
         showStatus("Engine thinking…", 0, "info");
         try {
-            const move = await Engine.computeMove({
-                gameState: game.GameState,
-                moves: tableMovesFromGame(),
-                engine: session.engine,
-                thinkingTimeSeconds: session.thinkingTimeSeconds != null
-                    ? session.thinkingTimeSeconds
-                    : session.difficulty,
-                pliesPlayed: game.Moves ? game.Moves.length : 0,
-                immediateResign: Settings.loadGamePreferences().immediateResign === true,
+            const prefs = Settings.loadGamePreferences();
+            const move = await Engine.computeMove(
+                EngineTurn.buildComputeArgs({
+                    gameState: game.GameState,
+                    moves: tableMovesFromGame(),
+                    engine: session.engine,
+                    thinkingTimeSeconds: session.thinkingTimeSeconds,
+                    difficulty: session.difficulty,
+                    pliesPlayed: game.Moves ? game.Moves.length : 0,
+                    immediateResign: prefs.immediateResign === true,
+                }),
+            );
+            const decision = EngineTurn.decideAfterCompute(move, {
+                gameOver: !!game.GameOver,
+                immediateResign: prefs.immediateResign === true,
+                defaultPromotionPiece: game.QUEEN,
             });
-            if (game.GameOver) {
+            if (decision.mateNote != null) {
+                console.log("[Shmerling] Engine detected forced loss" + decision.mateNote);
+            }
+            if (decision.action === "noop") {
                 return;
             }
-            if (move && move.searchAborted) {
+            if (decision.action === "resign") {
+                engineThinking = false;
+                updateActionButtons();
+                engineResignFromLostPosition();
                 return;
             }
-            if (move && move.opponentMateDetected) {
-                const mateNote =
-                    move.opponentMateIn != null && Number.isFinite(move.opponentMateIn)
-                        ? ` (mate in ${move.opponentMateIn})`
-                        : "";
-                console.log("[Shmerling] Engine detected forced loss" + mateNote);
-                if (Settings.loadGamePreferences().immediateResign) {
-                    engineThinking = false;
-                    updateActionButtons();
-                    engineResignFromLostPosition();
-                    return;
-                }
-            }
-            if (!move) {
-                showStatus("Engine could not find a move", 0, "error");
+            if (decision.action === "error") {
+                showStatus(decision.message || "Engine could not find a move", 0, "error");
                 return;
             }
-            if (move.score != null && Number.isFinite(move.score)) {
+            if (decision.logScore) {
                 console.log(
                     "[Shmerling] Engine move score:",
-                    move.score,
-                    move.searchDepthReached != null ? `(depth ${move.searchDepthReached})` : "",
+                    decision.move.score,
+                    decision.move.searchDepthReached != null
+                        ? "(depth " + decision.move.searchDepthReached + ")"
+                        : "",
                 );
-            }
-            if (move.promotion && move.selectedPiece == null) {
-                move.selectedPiece = game.QUEEN;
             }
             engineThinking = false;
             animating = true;
             updateActionButtons();
-            const applied = await applyEngineMove(move);
+            const applied = await applyEngineMove(decision.move);
             if (!applied) {
                 showStatus("Engine move could not be applied", 0, "error");
                 return;
@@ -3352,7 +3346,7 @@
                 showStatus("", 0, "info");
             }
         } catch (err) {
-            if (isSearchAbortedError(err) || game.GameOver) {
+            if (EngineTurn.isSearchAbortedError(err) || game.GameOver) {
                 return;
             }
             console.error(err);
