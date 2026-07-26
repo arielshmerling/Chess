@@ -13,6 +13,7 @@
     const PositionValidation = window.DesktopPositionValidation;
     const MovesPanel = window.PlayMovesPanel;
     const SavedGames = window.PlaySavedGamesModel;
+    const SavedGamesList = window.PlaySavedGamesList;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -2685,35 +2686,7 @@
     }
 
     function toggleSavedGameExpanded(bookmarkId) {
-        const gamesDiv = $("gamesDiv");
-        if (!gamesDiv) {
-            return;
-        }
-        const item = gamesDiv.querySelector(
-            '.desktop-play-saved-game[data-bookmark-id="' + bookmarkId + '"]',
-        );
-        if (!item) {
-            return;
-        }
-        gamesDiv.querySelectorAll(".desktop-play-saved-game.expanded").forEach(function (el) {
-            if (el !== item) {
-                el.classList.remove("expanded");
-            }
-        });
-        const wasExpanded = item.classList.contains("expanded");
-        item.classList.toggle("expanded");
-        expandedSavedGameId = !wasExpanded ? bookmarkId : null;
-        const row = item.querySelector(".desktop-play-saved-game-row");
-        if (row) {
-            row.setAttribute("aria-expanded", item.classList.contains("expanded") ? "true" : "false");
-        }
-        const expandBtn = item.querySelector(".desktop-play-saved-game-expand");
-        if (expandBtn) {
-            expandBtn.setAttribute(
-                "aria-expanded",
-                item.classList.contains("expanded") ? "true" : "false",
-            );
-        }
+        expandedSavedGameId = SavedGamesList.toggleExpanded($("gamesDiv"), bookmarkId);
     }
 
     function formatSavedGameDate(date) {
@@ -2726,35 +2699,6 @@
 
     function formatSavedGameTurn(entry) {
         return SavedGames.formatTurn(entry);
-    }
-
-    const SAVED_GAME_ACTION_ICONS = {
-        edit:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
-        delete:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
-        rename:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
-        load:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
-        expand:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>',
-        info:
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
-    };
-
-    function createSavedGameIconButton(title, iconKey, onClick) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "desktop-play-saved-game-icon-btn";
-        btn.setAttribute("title", title);
-        btn.setAttribute("aria-label", title);
-        btn.innerHTML = SAVED_GAME_ACTION_ICONS[iconKey] || "";
-        btn.addEventListener("click", function (ev) {
-            ev.stopPropagation();
-            onClick(ev);
-        });
-        return btn;
     }
 
     function savedGameActionsBlocked() {
@@ -2770,18 +2714,7 @@
     }
 
     function syncSavedGameSelectionUi() {
-        const gamesDiv = $("gamesDiv");
-        if (!gamesDiv) {
-            return;
-        }
-        gamesDiv.querySelectorAll(".desktop-play-saved-game").forEach(function (el) {
-            const id = el.dataset.bookmarkId;
-            el.classList.toggle("is-selected", id != null && selectedSavedGameIds.has(id));
-            el.setAttribute(
-                "aria-selected",
-                id != null && selectedSavedGameIds.has(id) ? "true" : "false",
-            );
-        });
+        SavedGamesList.syncSelection($("gamesDiv"), selectedSavedGameIds);
     }
 
     function clearSavedGameSelection() {
@@ -2905,19 +2838,7 @@
         renamingSavedGameId = bookmarkId;
         expandedSavedGameId = bookmarkId;
         renderSavedGamesList();
-        const gamesDiv = $("gamesDiv");
-        if (!gamesDiv) {
-            return;
-        }
-        const input = gamesDiv.querySelector(
-            '.desktop-play-saved-game[data-bookmark-id="' +
-                bookmarkId +
-                '"] .desktop-play-saved-game-rename-input',
-        );
-        if (input) {
-            input.focus();
-            input.select();
-        }
+        SavedGamesList.focusRenameInput($("gamesDiv"), bookmarkId);
     }
 
     async function commitRenameSavedGame(bookmarkId, newName) {
@@ -3182,70 +3103,45 @@
         }
     }
 
-    function createSavedGameItem(entry) {
+    function savedGameNameTitle(entry, label) {
+        const when = formatSavedGameDate(entry.date);
+        const hasSavedMoves = parseSavedGameMoves(entry).length > 0;
+        if (hasSavedMoves) {
+            return when
+                ? label + " — " + when + " (double-click to load from start)"
+                : label + " (double-click to load from start)";
+        }
+        return when ? label + " — " + when : label;
+    }
+
+    function savedGameListView(entry) {
         const id = savedGameId(entry);
-        const div = document.createElement("div");
-        div.className = "desktop-play-saved-game";
-        if (isSavedPositionEntry(entry)) {
-            div.classList.add("desktop-play-saved-position");
-        }
-        div.dataset.bookmarkId = id;
-        if (expandedSavedGameId === id) {
-            div.classList.add("expanded");
-        }
-        if (isSavedGameSelected(id)) {
-            div.classList.add("is-selected");
-        }
-        div.setAttribute("aria-selected", isSavedGameSelected(id) ? "true" : "false");
+        const label = entry.name || "Saved game";
+        return {
+            id: id,
+            isPosition: isSavedPositionEntry(entry),
+            selected: isSavedGameSelected(id),
+            expanded: expandedSavedGameId === id,
+            renaming: renamingSavedGameId === id,
+            name: label,
+            nameTitle: savedGameNameTitle(entry, label),
+            dateText: formatSavedGameDate(entry.date),
+            turnText: formatSavedGameTurn(entry),
+            playersText: formatSavedGamePlayers(entry),
+            infoTooltip: formatSavedGameInfoTooltip(entry),
+            showEdit: canPlayAdvancedTools,
+            entry: entry,
+        };
+    }
 
-        const row = document.createElement("div");
-        row.className = "desktop-play-saved-game-row";
-        row.setAttribute("role", "button");
-        row.setAttribute("tabindex", "0");
-        row.setAttribute(
-            "aria-expanded",
-            expandedSavedGameId === id ? "true" : "false",
-        );
-        row.addEventListener("click", function (ev) {
-            handleSavedGameMultiSelectClick(ev, id);
-        });
-
-        if (renamingSavedGameId === id) {
-            const renameInput = document.createElement("input");
-            renameInput.type = "text";
-            renameInput.className = "desktop-play-saved-game-rename-input";
-            renameInput.value = entry.name || "Saved game";
-            renameInput.setAttribute("aria-label", "Saved game name");
-            renameInput.addEventListener("click", function (ev) {
-                ev.stopPropagation();
-            });
-            renameInput.addEventListener("keydown", function (ev) {
-                if (ev.key === "Enter") {
-                    ev.preventDefault();
-                    commitRenameSavedGame(id, renameInput.value);
-                } else if (ev.key === "Escape") {
-                    ev.preventDefault();
-                    cancelRenameSavedGame();
-                }
-            });
-            row.appendChild(renameInput);
-        } else {
-            const nameSpan = document.createElement("span");
-            nameSpan.className = "desktop-play-saved-game-name";
-            const label = entry.name || "Saved game";
-            nameSpan.textContent = label;
-            const when = formatSavedGameDate(entry.date);
-            const hasSavedMoves = parseSavedGameMoves(entry).length > 0;
-            if (hasSavedMoves) {
-                nameSpan.title = when
-                    ? label + " — " + when + " (double-click to load from start)"
-                    : label + " (double-click to load from start)";
-            } else {
-                nameSpan.title = when ? label + " — " + when : label;
-            }
-            nameSpan.setAttribute("role", "button");
-            nameSpan.setAttribute("tabindex", "0");
-            nameSpan.addEventListener("click", function (ev) {
+    function savedGameListHandlers(view) {
+        const id = view.id;
+        const entry = view.entry;
+        return {
+            onRowClick: function (ev) {
+                handleSavedGameMultiSelectClick(ev, id);
+            },
+            onNameClick: function (ev) {
                 ev.stopPropagation();
                 if (handleSavedGameMultiSelectClick(ev, id)) {
                     return;
@@ -3254,8 +3150,8 @@
                 scheduleSavedGameSingleClick(id, function () {
                     loadSavedGame(id);
                 });
-            });
-            nameSpan.addEventListener("dblclick", function (ev) {
+            },
+            onNameDblClick: function (ev) {
                 ev.stopPropagation();
                 ev.preventDefault();
                 if (handleSavedGameMultiSelectClick(ev, id)) {
@@ -3264,8 +3160,8 @@
                 cancelSavedGameSingleClick(id);
                 clearSavedGameSelection();
                 loadSavedGame(id, { atStart: true });
-            });
-            nameSpan.addEventListener("keydown", function (ev) {
+            },
+            onNameKeydown: function (ev) {
                 if (ev.key === "Enter" || ev.key === " ") {
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -3275,75 +3171,31 @@
                     clearSavedGameSelection();
                     loadSavedGame(id);
                 }
-            });
-            row.appendChild(nameSpan);
-        }
-
-        const expandBtn = createSavedGameIconButton(
-            "Show details",
-            "expand",
-            function () {
+            },
+            onExpand: function () {
                 toggleSavedGameExpanded(id);
             },
-        );
-        expandBtn.classList.add("desktop-play-saved-game-expand");
-        expandBtn.setAttribute("aria-expanded", expandedSavedGameId === id ? "true" : "false");
-        row.appendChild(expandBtn);
-        div.appendChild(row);
-
-        const details = document.createElement("div");
-        details.className = "desktop-play-saved-game-details";
-
-        const turnLine = document.createElement("div");
-        turnLine.className = "desktop-play-saved-game-turn";
-        turnLine.textContent = formatSavedGameTurn(entry);
-        details.appendChild(turnLine);
-
-        const meta = document.createElement("div");
-        meta.className = "desktop-play-saved-game-meta";
-        meta.textContent = formatSavedGameDate(entry.date);
-        details.appendChild(meta);
-
-        const playersLine = document.createElement("div");
-        playersLine.className = "desktop-play-saved-game-players";
-        playersLine.textContent = formatSavedGamePlayers(entry);
-        details.appendChild(playersLine);
-
-        const actions = document.createElement("div");
-        actions.className = "desktop-play-saved-game-actions";
-        const infoTooltip = formatSavedGameInfoTooltip(entry);
-        if (infoTooltip) {
-            const infoBtn = createSavedGameIconButton(infoTooltip, "info", function () {});
-            infoBtn.setAttribute("aria-label", "Saved game details");
-            actions.appendChild(infoBtn);
-        }
-        if (canPlayAdvancedTools) {
-            actions.appendChild(
-                createSavedGameIconButton("Edit position", "edit", function () {
-                    editSavedGame(id);
-                }),
-            );
-        }
-        actions.appendChild(
-            createSavedGameIconButton("Delete saved game", "delete", function () {
+            onEdit: function () {
+                editSavedGame(id);
+            },
+            onDelete: function () {
                 deleteSavedGame(id);
-            }),
-        );
-        actions.appendChild(
-            createSavedGameIconButton("Rename saved game", "rename", function () {
+            },
+            onRename: function () {
                 startRenameSavedGame(id);
-            }),
-        );
-        details.appendChild(actions);
-        div.appendChild(details);
-
-        div.addEventListener("contextmenu", function (ev) {
-            ev.preventDefault();
-            ev.stopPropagation();
-            showSavedGameContextMenu(ev, entry, id);
-        });
-
-        return div;
+            },
+            onRenameCommit: function (value) {
+                commitRenameSavedGame(id, value);
+            },
+            onRenameCancel: function () {
+                cancelRenameSavedGame();
+            },
+            onContextMenu: function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                showSavedGameContextMenu(ev, entry, id);
+            },
+        };
     }
 
     function renderSavedGamesList() {
@@ -3351,21 +3203,15 @@
         if (!gamesDiv) {
             return;
         }
-        gamesDiv.innerHTML = "";
         const entries = savedEntriesForFilter(savedListFilter);
         if (!entries.length) {
-            const empty = document.createElement("p");
-            empty.className = "desktop-play-saved-list-empty";
-            empty.textContent =
-                savedListFilter === "positions"
-                    ? "No saved positions yet."
-                    : "No saved games yet.";
-            gamesDiv.appendChild(empty);
+            SavedGamesList.render(gamesDiv, [], { filter: savedListFilter });
             clearSavedGameSelection();
             return;
         }
-        entries.forEach(function (entry) {
-            gamesDiv.appendChild(createSavedGameItem(entry));
+        SavedGamesList.render(gamesDiv, entries.map(savedGameListView), {
+            filter: savedListFilter,
+            handlersFor: savedGameListHandlers,
         });
         pruneSavedGameSelection();
     }

@@ -39,12 +39,25 @@ async function playE4AndWaitForReply(page) {
     await expect(page.locator("#movesDiv .tdMove").nth(1)).not.toHaveText("", { timeout: 60_000 });
 }
 
-/** The sidebar collapses to zero width, so only its expand tab is clickable. */
+/**
+ * Expand the games sidebar when it is collapsed. Desktop prefs may already have
+ * it open, in which case the expand tab is hidden and `#gamesDiv` is visible.
+ */
 async function openGamesSidebar(page) {
+    const gamesDiv = page.locator("#gamesDiv");
     const expandTab = page.locator("#desktopPlaySidebarGames .desktop-play-sidebar-tab--expand");
-    await expect(expandTab).toBeVisible({ timeout: 15_000 });
-    await expandTab.click();
-    await expect(page.locator("#gamesDiv")).toBeVisible();
+    const sidebar = page.locator("#desktopPlaySidebarGames");
+
+    if (await gamesDiv.isVisible()) {
+        return;
+    }
+    if (await expandTab.isVisible()) {
+        await expandTab.click();
+    } else {
+        /* Prefs may have left the panel open but still marked collapsed briefly. */
+        await sidebar.evaluate((el) => el.classList.remove("desktop-play-sidebar--collapsed"));
+    }
+    await expect(gamesDiv).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("play saved games sidebar", () => {
