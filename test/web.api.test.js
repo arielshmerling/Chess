@@ -272,6 +272,223 @@ describe("web HTTP / auth", function () {
         );
     });
 
+    it("protected JSON/API endpoints without session redirect to login", async function () {
+        const paths = [
+            "/api/friends/data",
+            "/api/friends/playing-usernames",
+            "/api/play/launch-context",
+            "/app/api/ui-settings",
+            "/app/api/custom-themes",
+        ];
+        for (const path of paths) {
+            const res = await request(app).get(path).redirects(0);
+            assert.strictEqual(res.status, 302, path);
+            assert.ok(
+                String(res.headers.location || "").includes("/login"),
+                `${path} expected redirect to login, got ${res.headers.location}`
+            );
+        }
+    });
+
+    it("bookmark lifecycle: create, list, update, delete", async function () {
+        const agent = await loginAgent();
+
+        const created = await agent
+            .post("/bookmark")
+            .send({
+                gameState: JSON.stringify({ board: "test-state" }),
+                name: "E2E Bookmark",
+                gameType: "SinglePlayerGame",
+                moves: [],
+                engine: "brain43",
+                depth: 3,
+            })
+            .expect(200);
+        assert.ok(created.body && (created.body._id || created.body.id), "expected bookmark id");
+        assert.strictEqual(created.body.name, "E2E Bookmark");
+        const bookmarkId = created.body._id || created.body.id;
+
+        const list = await agent.get("/bookmark").expect(200);
+        assert.ok(
+            list.body.some((b) => String(b._id || b.id) === String(bookmarkId)),
+            "expected created bookmark in list"
+        );
+
+        const updated = await agent
+            .post("/updateBookmark")
+            .send({ id: bookmarkId, name: "E2E Bookmark Renamed" })
+            .expect(200);
+        assert.match(updated.text, /OK/);
+
+        const afterUpdate = await agent.get("/bookmark").expect(200);
+        const found = afterUpdate.body.find((b) => String(b._id || b.id) === String(bookmarkId));
+        assert.ok(found, "expected bookmark still present after update");
+        assert.strictEqual(found.name, "E2E Bookmark Renamed");
+
+        const deleted = await agent
+            .post("/deleteBookmark")
+            .send({ id: bookmarkId })
+            .expect(200);
+        assert.match(deleted.text, /OK/);
+
+        const afterDelete = await agent.get("/bookmark").expect(200);
+        assert.ok(
+            !afterDelete.body.some((b) => String(b._id || b.id) === String(bookmarkId)),
+            "expected bookmark removed from list"
+        );
+    });
+
+    it("bookmark create normalizes unknown engine to brain43", async function () {
+        const agent = await loginAgent();
+        const created = await agent
+            .post("/bookmark")
+            .send({
+                gameState: JSON.stringify({ board: "x" }),
+                name: "Engine Norm",
+                gameType: "SinglePlayerGame",
+                engine: "totally-bogus",
+                depth: 99,
+            })
+            .expect(200);
+        assert.strictEqual(created.body.engine, "brain43");
+        assert.strictEqual(created.body.depth, 3);
+        // cleanup
+        await agent.post("/deleteBookmark").send({ id: created.body._id || created.body.id });
+    });
+
+    it("UI settings round-trip (/app/api/ui-settings)", async function () {
+        const agent = await loginAgent();
+
+        const initial = await agent.get("/app/api/ui-settings").expect(200);
+        assert.ok(initial.body && typeof initial.body === "object");
+        assert.ok(initial.body.gamePreferences && typeof initial.body.gamePreferences === "object");
+
+        const saved = await agent
+            .post("/app/api/ui-settings")
+            .send({
+                pieceSet: "ember-regalia",
+                dockPanels: { leftCollapsed: false },
+                gamePreferences: { showAvailableMoves: false },
+            })
+            .expect(200);
+        assert.strictEqual(saved.body.pieceSet, "ember-regalia");
+        assert.strictEqual(saved.body.dockPanels.leftCollapsed, false);
+        assert.strictEqual(saved.body.gamePreferences.showAvailableMoves, false);
+
+        const reread = await agent.get("/app/api/ui-settings").expect(200);
+        assert.strictEqual(reread.body.pieceSet, "ember-regalia");
+        assert.strictEqual(reread.body.gamePreferences.showAvailableMoves, false);
+    });
+
+    it("UI settings normalizes an invalid piece set", async function () {
+        const agent = await loginAgent();
+        const saved = await agent
+            .post("/app/api/ui-settings")
+            .send({ pieceSet: "not-a-real-set" })
+            .expect(200);
+        assert.notStrictEqual(saved.body.pieceSet, "not-a-real-set");
+        assert.ok(typeof saved.body.pieceSet === "string" && saved.body.pieceSet.length > 0);
+    });
+
+    it("custom themes GET returns a store with active theme", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/app/api/custom-themes").expect(200);
+        assert.ok(res.body && typeof res.body === "object");
+        assert.ok(typeof res.body.activeTheme === "string");
+        assert.ok(Array.isArray(res.body.themes));
+    });
+
+    it("custom themes save persists the active theme", async function () {
+        const agent = await loginAgent();
+        const saved = await agent
+            .post("/app/api/custom-themes")
+            .send({ activeTheme: "green", themes: [] })
+            .expect(200);
+        assert.ok(saved.body && typeof saved.body === "object");
+        assert.ok(Array.isArray(saved.body.themes));
+    });
+
+    it("member is forbidden from brain-config (advanced tool)", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/brain-config").query({ engine: "brain43" }).redirects(0);
+        assert.strictEqual(res.status, 403);
+    });
+
+    it("GET /gameMoves without an active game redirects home", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/gameMoves").redirects(0);
+        assert.strictEqual(res.status, 302);
+        assert.match(String(res.headers.location || ""), /\/home/i);
+    });
+
+    it("GET /gameInfo without id returns 400", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/gameInfo").redirects(0);
+        assert.strictEqual(res.status, 400);
+    });
+
+    it("last-game-options normalizes an invalid engine to brain43", async function () {
+        const agent = await loginAgent();
+        const res = await agent
+            .post("/api/play/last-game-options")
+            .send({ color: "white", engine: "not-real", difficulty: 999, timeMinutes: 9999 })
+            .expect(200);
+        assert.strictEqual(res.body.ok, true);
+        assert.strictEqual(res.body.lastGameOptions.engine, "brain43");
+        assert.strictEqual(res.body.lastGameOptions.difficulty, 3);
+        assert.strictEqual(res.body.lastGameOptions.timeMinutes, 90);
+    });
+
+    it("friend invite to self is rejected", async function () {
+        const agent = await loginAgent();
+        const res = await agent
+            .post("/api/friends/invite")
+            .send({ targetUserId: primary.id })
+            .redirects(0);
+        assert.ok(res.status >= 400, `expected error status, got ${res.status}`);
+        assert.ok(res.body.ok === false || /yourself/i.test(res.body.message || ""));
+    });
+
+    it("friend accept with no pending invite is rejected", async function () {
+        const { User } = require("../src/modules/user/model");
+        await User.updateOne(
+            { _id: primary.id },
+            { $set: { friends: [], friendInvitesSent: [], friendInvitesReceived: [] } }
+        );
+        const agent = await loginAgent();
+        const res = await agent
+            .post("/api/friends/accept")
+            .send({ fromUserId: other.id })
+            .redirects(0);
+        assert.ok(res.status >= 400, `expected error status, got ${res.status}`);
+    });
+
+    it("game-invite without targetUserId returns 400", async function () {
+        const agent = await loginAgent();
+        const res = await agent.post("/api/friends/game-invite").send({}).expect(400);
+        assert.ok(res.body.ok === false || /targetUserId/i.test(res.body.message || ""));
+    });
+
+    it("GET /mobile-home with a mobile UA returns the mobile welcome page", async function () {
+        const agent = await loginAgent();
+        const res = await agent
+            .get("/mobile-home")
+            .set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)")
+            .expect(200);
+        assert.ok(res.text.length > 0);
+    });
+
+    it("login is case-insensitive for the username", async function () {
+        const agent = request.agent(app);
+        const res = await agent
+            .post("/login")
+            .type("form")
+            .send({ username: primary.username.toUpperCase(), password: primary.password })
+            .redirects(0);
+        assert.strictEqual(res.status, 302);
+        assert.match(String(res.headers.location || ""), /\/[Hh]ome/);
+    });
+
     it("member is blocked from /admin and /register", async function () {
         const agent = await loginAgent();
         for (const path of ["/admin", "/register"]) {

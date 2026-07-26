@@ -18,6 +18,7 @@
     const GameLog = window.DesktopGameLog;
     const Dialog = window.DesktopDialog;
     const NewGameDialog = window.DesktopNewGameDialog;
+    const Resume = window.DesktopPlayResume;
 
     let session = null;
     let gameActive = false;
@@ -1107,6 +1108,7 @@
         updateActionButtons();
         editingSavedGameId = null;
         updateGameRunPanelVisibility();
+        persistActiveGame();
         if (!game.GameOver && isHumanTurn()) {
             switchClocks();
             showStatus("Your move", 2000, "info");
@@ -2214,7 +2216,6 @@
                 onClick: onRematch,
                 accent: true,
             },
-            { type: "spacer" },
             { id: "resignBtn", label: "Resign", icon: "resign", onClick: onResign },
             { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDrawOfferClick },
             { type: "spacer" },
@@ -3866,6 +3867,7 @@
 
         updateHeaderTurn();
         updateActionButtons();
+        persistActiveGame();
     }
 
     function onCheck(turn) {
@@ -4326,6 +4328,7 @@
     }
 
     function leavePlayShell() {
+        clearActiveGameSnapshot();
         if (isWebPlayPage()) {
             window.location.href = getWebHomeHref();
             return;
@@ -4355,6 +4358,120 @@
         }
     }
 
+    function captureActiveGameSnapshot() {
+        return {
+            gameId: currentGameId,
+            color: currentPlayerIsWhite ? "white" : "black",
+            whitePlayerView: game.WhitePlayerView !== false,
+            options: {
+                engine: session ? session.engine : undefined,
+                thinkingTimeSeconds: session ? session.thinkingTimeSeconds : undefined,
+                timeMinutes: session ? session.gameTimeMinutes : undefined,
+                allowUndo: allowUndo,
+                mouse: session ? session.mousePreference : undefined,
+                showAvailableMoves: session ? session.showAvailableMoves : undefined,
+            },
+            state: JSON.stringify(game.GameState),
+            moves: tableMovesFromGame(),
+            originState: playOriginStateStr,
+            whiteTimer: whiteTimer,
+            blackTimer: blackTimer,
+        };
+    }
+
+    /** Keep the refresh snapshot in step with the live game; a finished game drops it. */
+    function persistActiveGame() {
+        if (!Resume || !isWebPlayPage() || !game || !game.GameState) {
+            return;
+        }
+        if (!gameActive || reviewMode || positionSetupMode || configurationMode || loadingBookmark) {
+            return;
+        }
+        if (game.GameOver) {
+            Resume.clear();
+            return;
+        }
+        Resume.save(captureActiveGameSnapshot());
+    }
+
+    function clearActiveGameSnapshot() {
+        if (Resume) {
+            Resume.clear();
+        }
+    }
+
+    async function resumeStoredGame() {
+        const snapshot = Resume && Resume.load ? Resume.load() : null;
+        if (!snapshot) {
+            return false;
+        }
+        try {
+            const opts = Object.assign(
+                Settings.loadLastOptions(),
+                snapshot.options || {},
+                { color: snapshot.color === "black" ? "black" : "white" },
+            );
+            if (!opts.username && webLaunchUsername) {
+                opts.username = webLaunchUsername;
+            }
+            applySessionSettings(opts);
+            setCurrentGameId(snapshot.gameId || null);
+            gameHistoryLogged = false;
+            gameAutoBookmarked = false;
+            clearLoadedBookmarkDisplayMoves();
+            game.loadGame(snapshot.state);
+            game.loadMoves(snapshot.moves.slice());
+            if (Board.setPlayerView) {
+                Board.setPlayerView(snapshot.whitePlayerView !== false);
+            }
+            setPlayOriginState(snapshot.originState || null);
+            clearDisplayedEvaluation();
+            resetClocks();
+            updateTimersFromInfo({
+                whiteTimer: snapshot.whiteTimer,
+                blackTimer: snapshot.blackTimer,
+            });
+            redoPairAvailable = false;
+            lastCheckNotifySide = null;
+            alertMode = false;
+            Board.clearArrows();
+            Board.syncFromGameState();
+            if (Board.updateCaptureLists && game.GameState.capturedPiecesList) {
+                Board.updateCaptureLists(game.GameState.capturedPiecesList);
+            }
+            updateMovesTable(tableMovesFromGame());
+            updateMatchHeader();
+            updateHeaderTurn();
+            gameActive = true;
+            document.body.classList.add("desktop-play-has-active-game");
+            if (Board.setHumanPlayEnabled) {
+                Board.setHumanPlayEnabled(true);
+            }
+            lastLoadedSavedGameId = null;
+            editingSavedGameId = null;
+            updateActionButtons();
+            syncGameRunPanelOptions();
+            updateGameRunPanelVisibility();
+        } catch (err) {
+            console.warn("[Play] Could not resume the stored game:", err);
+            clearActiveGameSnapshot();
+            return false;
+        }
+        if (game.GameOver) {
+            clearActiveGameSnapshot();
+            return false;
+        }
+        if (isAiTurn()) {
+            switchClocks();
+            showStatus("Engine to move…", 0, "info");
+            await runEngineMove();
+        } else {
+            switchClocks();
+            showStatus("Game resumed — your move", 2000, "info");
+        }
+        return true;
+    }
+
     async function maybeAutoStartWebGame() {
         if (!isWebPlayPage()) {
             return;
@@ -4366,6 +4483,10 @@
             if (NewGameDialog && typeof NewGameDialog.show === "function") {
                 NewGameDialog.show(beginNewGame);
             }
+            return;
+        }
+        if (await resumeStoredGame()) {
+            clearWebLaunchQueryString();
             return;
         }
         const opts = await resolveWebAutoStartOptions();
@@ -4419,6 +4540,7 @@
         updateActionButtons();
         syncGameRunPanelOptions();
         updateGameRunPanelVisibility();
+        persistActiveGame();
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
             showStatus("Engine to move…", 0, "info");
@@ -4654,6 +4776,7 @@
         redoPairAvailable = true;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
+        persistActiveGame();
     }
 
     async function onRedo() {
@@ -4672,6 +4795,7 @@
         redoPairAvailable = false;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
+        persistActiveGame();
     }
 
     function onLastMove() {
@@ -4686,6 +4810,7 @@
             return;
         }
         Board.flipBoard();
+        persistActiveGame();
     }
 
     function onRematch() {
@@ -4726,6 +4851,7 @@
     }
 
     function resetToIdleScreen() {
+        clearActiveGameSnapshot();
         if (configurationMode) {
             setConfigurationUi(false);
         }

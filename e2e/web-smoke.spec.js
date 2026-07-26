@@ -186,6 +186,24 @@ test.describe("web smoke", () => {
         await expect(page.locator("#movesDiv")).toContainText(/e4|E4|pawn/i, { timeout: 15_000 });
     });
 
+    test("refreshing the play page resumes the game in progress", async ({ page }) => {
+        await login(page);
+        await startPlayNowGame(page, { color: "white" });
+
+        const e2 = page.locator('#innerBoard .square[data-row="6"][data-col="4"] img.draggable');
+        const e4 = page.locator('#innerBoard .square[data-row="4"][data-col="4"]');
+        await expect(e2).toBeVisible({ timeout: 30_000 });
+        await e2.dragTo(e4);
+        await expect(page.locator("#movesDiv")).toContainText(/e4/i, { timeout: 15_000 });
+
+        await page.reload();
+
+        await expect(page.locator("#innerBoard")).toBeVisible({ timeout: 30_000 });
+        await expect(page.locator("#movesDiv")).toContainText(/e4/i, { timeout: 30_000 });
+        await expect(e4.locator("img")).toBeVisible();
+        await expect(e2).toHaveCount(0);
+    });
+
     test("drag d2-d4 after e2-e4 adds a second white move wait for engine", async ({ page }) => {
         test.setTimeout(90_000);
         await login(page);
