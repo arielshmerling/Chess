@@ -2091,6 +2091,8 @@ function createPiece(url) {
     img.setAttribute("src", url);
     // img.setAttribute("width", 100) // default size.
     img.setAttribute("class", "draggable");
+    // Native HTML5 image drag would fight our pointer-based dragging (Firefox ignores -webkit-user-drag).
+    img.draggable = false;
 
     if (!researchMode && gameType != "PracticeGame") {
         if (currentPlayerIsWhite && img.src.indexOf("black") != -1 ||

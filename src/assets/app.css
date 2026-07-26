@@ -1081,6 +1081,19 @@ body.research-mode .debug-game-id {
 }
 
 
+/* Dragging a piece must not select images or text on the board. */
+#innerBoard,
+#innerBoard .square,
+#innerBoard img,
+.draggable,
+.nondraggable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
 .draggable {
     position: relative;
     cursor: grab;

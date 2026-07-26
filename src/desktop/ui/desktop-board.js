@@ -330,6 +330,8 @@
         const img = document.createElement("img");
         img.src = url;
         img.className = draggable ? "draggable" : "nondraggable";
+        // Native HTML5 image drag would fight our pointer-based dragging (Firefox ignores -webkit-user-drag).
+        img.draggable = false;
         return img;
     }
 
