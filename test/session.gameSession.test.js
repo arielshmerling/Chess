@@ -112,6 +112,39 @@ describe("session GameSession (Phase 2)", function () {
         assert.ok(game.GameOver);
         session.dispose();
     });
+
+    it("undoPair and redoPair emit undone/redone and restore turns", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        session.playMove({
+            source: { row: 6, col: 4 },
+            target: { row: 4, col: 4 },
+        });
+        session.playMove({
+            source: { row: 1, col: 4 },
+            target: { row: 3, col: 4 },
+        });
+        assert.ok(game.Moves.length >= 2);
+
+        let undone = false;
+        let redone = false;
+        session.on("undone", function () {
+            undone = true;
+        });
+        session.on("redone", function () {
+            redone = true;
+        });
+
+        assert.ok(session.undo());
+        assert.ok(undone);
+        assert.strictEqual(session.isHumanTurn(), true);
+
+        assert.ok(session.redo());
+        assert.ok(redone);
+        assert.strictEqual(session.isHumanTurn(), true);
+        session.dispose();
+    });
 });
 
 describe("session LocalEngineMode (Phase 2)", function () {

@@ -3184,6 +3184,26 @@
             },
         });
         playGameSession.attachMode(playLocalEngineMode);
+        playGameSession.on("gameOver", function (payload) {
+            if (!payload || payload.kind !== "resign") {
+                return;
+            }
+            updateMovesTable(tableMovesFromGame());
+            finishResignGame(payload.resigned);
+            tryLogCompletedGame();
+        });
+        playGameSession.on("info", function (message, kind) {
+            showStatus(message, 0, kind || "info");
+        });
+        playGameSession.on("error", function (message) {
+            showStatus(message || "Session error", 0, "error");
+        });
+        playGameSession.on("undone", function () {
+            redoPairAvailable = true;
+        });
+        playGameSession.on("redone", function () {
+            redoPairAvailable = false;
+        });
         playGameSession.load({
             active: true,
             humanIsWhite: currentPlayerIsWhite,
@@ -3220,8 +3240,13 @@
 
     function completeUserResign() {
         const player = currentPlayerIsWhite ? "White" : "Black";
-        game.resign(player);
         abortEngineSearch();
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.resign === "function") {
+            gs.resign(player);
+            return;
+        }
+        game.resign(player);
         updateMovesTable(tableMovesFromGame());
         finishResignGame(player);
         tryLogCompletedGame();
@@ -3964,8 +3989,13 @@
             return;
         }
         const player = currentPlayerIsWhite ? "Black" : "White";
-        game.resign(player);
         abortEngineSearch();
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.resign === "function") {
+            gs.resign(player);
+            return;
+        }
+        game.resign(player);
         updateMovesTable(tableMovesFromGame());
         finishResignGame(player);
         tryLogCompletedGame();
@@ -3986,15 +4016,21 @@
             return;
         }
         clearDisplayedEvaluation();
+        abortEngineSearch();
         animating = true;
         batchUndoRedo = true;
-        game.undo();
-        game.undo();
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.undo === "function") {
+            gs.undo();
+        } else {
+            game.undo();
+            game.undo();
+            redoPairAvailable = true;
+        }
         batchUndoRedo = false;
         Board.clearArrows();
         syncBoardFromGame();
         animating = false;
-        redoPairAvailable = true;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
         persistActiveGame();
@@ -4007,13 +4043,18 @@
         clearDisplayedEvaluation();
         animating = true;
         batchUndoRedo = true;
-        game.redo();
-        game.redo();
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.redo === "function") {
+            gs.redo();
+        } else {
+            game.redo();
+            game.redo();
+            redoPairAvailable = false;
+        }
         batchUndoRedo = false;
         Board.clearArrows();
         syncBoardFromGame();
         animating = false;
-        redoPairAvailable = false;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
         persistActiveGame();

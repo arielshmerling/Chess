@@ -287,7 +287,7 @@
 
         function resign(side) {
             if (disposed || !active || game.GameOver) {
-                return;
+                return false;
             }
             const resigned =
                 side ||
@@ -301,6 +301,48 @@
             if (mode && typeof mode.onGameOver === "function") {
                 mode.onGameOver(api, { kind: "resign", resigned: resigned });
             }
+            return true;
+        }
+
+        /**
+         * Undo one human+engine half-move pair (two ChessGame undos).
+         * @returns {boolean}
+         */
+        function undoPair() {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            if (typeof game.undo !== "function") {
+                return false;
+            }
+            if (mode && typeof mode.abort === "function") {
+                mode.abort();
+            }
+            game.undo();
+            game.undo();
+            bus.emit("undone", { pair: true });
+            emitBoardAndTurn({ reason: "undo" });
+            bus.emit("statusChanged", "inProgress");
+            return true;
+        }
+
+        /**
+         * Redo one human+engine half-move pair (two ChessGame redos).
+         * @returns {boolean}
+         */
+        function redoPair() {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            if (typeof game.redo !== "function") {
+                return false;
+            }
+            game.redo();
+            game.redo();
+            bus.emit("redone", { pair: true });
+            emitBoardAndTurn({ reason: "redo" });
+            emitStatusFromGame();
+            return true;
         }
 
         function leave() {
@@ -344,6 +386,8 @@
             playMove: playMove,
             humanMoveApplied: humanMoveApplied,
             resign: resign,
+            undo: undoPair,
+            redo: redoPair,
             leave: leave,
             dispose: dispose,
             /* events */
