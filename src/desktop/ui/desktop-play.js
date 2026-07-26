@@ -1,4 +1,9 @@
 /**
+ * Play shell coordinator (Phase 1 complete).
+ *
+ * Presentation/policy live under `src/play-ui/`. This file still owns mode
+ * enter/exit, ChessGame wiring, and API calls until Phase 2 GameSession.
+ *
  * Desktop single-player chess — local ChessGame + in-process brain (Electron IPC).
  * No WebSocket or server-side game session.
  */
@@ -21,6 +26,11 @@
     const ActionRail = window.PlayActionRail;
     const StatusBar = window.PlayStatusBar;
     const EngineTurn = window.PlayEngineTurn;
+    const EvaluationDisplay = window.PlayEvaluationDisplay;
+    const ActionButtonsPolicy = window.PlayActionButtonsPolicy;
+    const LaunchOptions = window.PlayLaunchOptions;
+    const KeyboardShortcuts = window.PlayKeyboardShortcuts;
+    const BookmarkHelpers = window.PlayBookmarkHelpers;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -1061,74 +1071,11 @@
         restoreSidebarPreferences();
     }
 
-    function formatEvaluationTotalText(result) {
-        if (!result) {
-            return "";
-        }
-        if (result.terminal === "checkmate") {
-            return "Checkmate";
-        }
-        if (result.terminal === "draw") {
-            return "Draw (0)";
-        }
-        const value = result.total;
-        if (!Number.isFinite(value)) {
-            return "?";
-        }
-        if (Math.abs(value) >= 1000) {
-            return String(Math.round(value));
-        }
-        const rounded = Math.round(value * 100) / 100;
-        if (Number.isInteger(rounded)) {
-            return (rounded > 0 ? "+" : "") + String(rounded);
-        }
-        const text = rounded.toFixed(2).replace(/\.?0+$/, "");
-        return (rounded > 0 ? "+" : "") + text;
-    }
-
-    function formatEvaluationSummaryTooltip(summary, totalText) {
-        const lines = (summary || []).map(function (item) {
-            if (item.text != null && Number.isFinite(item.value)) {
-                const sign = item.value > 0 ? "+" : "";
-                return item.label + ": " + sign + item.value + " (" + item.text + ")";
-            }
-            if (item.text != null) {
-                return item.label + ": " + item.text;
-            }
-            const sign = item.value > 0 ? "+" : "";
-            return item.label + ": " + sign + item.value;
-        });
-        if (totalText) {
-            lines.push("Total: " + totalText);
-        }
-        return lines.join("\n");
-    }
-
-    function setStatusBarEvaluationTooltip(summary, totalText) {
-        const statusEl = $("desktopPlayStatusBar");
-        if (!statusEl) {
-            return;
-        }
-        const tooltip = formatEvaluationSummaryTooltip(summary, totalText);
-        if (tooltip) {
-            statusEl.setAttribute("title", tooltip);
-        } else {
-            statusEl.removeAttribute("title");
-        }
-    }
-
-    function clearStatusBarEvaluationTooltip() {
-        const statusEl = $("desktopPlayStatusBar");
-        if (statusEl) {
-            statusEl.removeAttribute("title");
-        }
-    }
-
     function clearDisplayedEvaluation() {
         if (Board && Board.clearEvaluationOverlay) {
             Board.clearEvaluationOverlay();
         }
-        clearStatusBarEvaluationTooltip();
+        EvaluationDisplay.clearStatusTooltip($("desktopPlayStatusBar"));
     }
 
     async function displayPositionEvaluation() {
@@ -1169,21 +1116,17 @@
             if (Board && Board.showEvaluationOverlay) {
                 Board.showEvaluationOverlay(result);
             }
-            const sideLabel = result.sideToMove === "black" ? "Black" : "White";
-            const scoreText = formatEvaluationTotalText(result);
-            showStatus("Evaluation (" + sideLabel + " to move): " + scoreText, 0, "info");
-            setStatusBarEvaluationTooltip(result.summary, scoreText);
+            const scoreText = EvaluationDisplay.formatTotalText(result);
+            showStatus(EvaluationDisplay.statusMessage(result), 0, "info");
+            EvaluationDisplay.applyStatusTooltip(
+                $("desktopPlayStatusBar"),
+                result.summary,
+                scoreText,
+            );
         } catch (err) {
             clearDisplayedEvaluation();
             showStatus(err.message || "Evaluation failed", 0, "error");
         }
-    }
-
-    function shouldIgnoreShortcutTarget(target) {
-        if (!target || !target.closest) {
-            return false;
-        }
-        return !!target.closest("input, textarea, select, [contenteditable='true']");
     }
 
     function logGameState() {
@@ -1206,27 +1149,20 @@
     }
 
     function handleKeyboardShortcuts(ev) {
-        if (shouldIgnoreShortcutTarget(ev.target)) {
+        const action = KeyboardShortcuts.resolve(ev);
+        if (!action) {
             return;
         }
-        if (ev.key === "F2") {
-            ev.preventDefault();
+        ev.preventDefault();
+        if (action === "logGameState") {
             logGameState();
             return;
         }
-        if (
-            (ev.ctrlKey || ev.metaKey) &&
-            ev.shiftKey &&
-            !ev.altKey &&
-            ev.key &&
-            ev.key.toLowerCase() === "o"
-        ) {
-            ev.preventDefault();
+        if (action === "openGamesFolder") {
             openSavedGamesPgnFolder();
             return;
         }
-        if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key && ev.key.toLowerCase() === "e") {
-            ev.preventDefault();
+        if (action === "evaluatePosition") {
             displayPositionEvaluation();
         }
     }
@@ -2048,94 +1984,43 @@
     }
 
     function updateActionButtons() {
-        if (!game || !playSessionReady) {
-            setButtonDisabled("positionSetupBtn", true);
-            setButtonDisabled("configurationBtn", true);
-            setButtonDisabled("rematchBtn", true);
-            return;
-        }
-        setButtonDisabled(
-            "configurationBtn",
-            animating || dialogOn || (!configurationMode && !canUseBrainConfig()),
+        ActionButtonsPolicy.apply(
+            ActionButtonsPolicy.disabledMap({
+                hasGame: !!game,
+                playSessionReady: playSessionReady,
+                gameActive: gameActive,
+                positionSetup: positionSetupMode,
+                configuration: configurationMode,
+                animating: animating,
+                dialogOn: dialogOn,
+                engineThinking: engineThinking,
+                gameOver: !!(game && game.GameOver),
+                hasMoves: !!(game && game.Moves && game.Moves.length > 0),
+                humanTurn: !!(game && isHumanTurn()),
+                allowUndo: allowUndo,
+                canUndoMovePair: canUndoMovePair(),
+                redoPairAvailable: redoPairAvailable,
+                canUsePositionSetup: canUsePositionSetup(),
+                canUseBrainConfig: canUseBrainConfig(),
+            }),
+            setButtonDisabled,
         );
-        if (!gameActive && !positionSetupMode && !configurationMode) {
-            setButtonDisabled("resignBtn", true);
-            setButtonDisabled("drawBtn", true);
-            setButtonDisabled("undoBtn", true);
-            setButtonDisabled("redoBtn", true);
-            setButtonDisabled("lastMoveBtn", true);
-            setButtonDisabled("saveBtn", true);
-            setButtonDisabled("rematchBtn", animating || dialogOn);
-            setButtonDisabled("positionSetupBtn", animating || dialogOn);
-            setButtonDisabled("flipBtn", true);
-            return;
-        }
-        const over = game.GameOver;
-        const hasMoves = game.Moves && game.Moves.length > 0;
-        const humanTurn = isHumanTurn();
-
-        setButtonDisabled(
-            "positionSetupBtn",
-            animating ||
-                dialogOn ||
-                configurationMode ||
-                (!positionSetupMode && !canUsePositionSetup()),
-        );
-        if (positionSetupMode) {
-            setButtonDisabled("resignBtn", true);
-            setButtonDisabled("drawBtn", true);
-            setButtonDisabled("undoBtn", true);
-            setButtonDisabled("redoBtn", true);
-            setButtonDisabled("lastMoveBtn", true);
-            setButtonDisabled("saveBtn", true);
-            setButtonDisabled("rematchBtn", true);
-            setButtonDisabled("flipBtn", animating);
-            return;
-        }
-        if (configurationMode) {
-            setButtonDisabled("resignBtn", true);
-            setButtonDisabled("drawBtn", true);
-            setButtonDisabled("undoBtn", true);
-            setButtonDisabled("redoBtn", true);
-            setButtonDisabled("lastMoveBtn", true);
-            setButtonDisabled("saveBtn", true);
-            setButtonDisabled("rematchBtn", true);
-            setButtonDisabled("flipBtn", animating);
-            return;
-        }
-        setButtonDisabled("resignBtn", over || animating);
-        setButtonDisabled("drawBtn", over || animating || !humanTurn);
-        const undoRedoDisabled = !allowUndo || over || animating || engineThinking || dialogOn;
-        setButtonDisabled("undoBtn", undoRedoDisabled || !canUndoMovePair());
-        setButtonDisabled("redoBtn", undoRedoDisabled || !redoPairAvailable);
-        setButtonDisabled("lastMoveBtn", !hasMoves);
-        setButtonDisabled("flipBtn", animating);
-        setButtonDisabled("saveBtn", !game || animating || dialogOn);
-        setButtonDisabled("rematchBtn", animating || dialogOn);
     }
 
     function sessionPlayerNames(source) {
-        const src = source || session;
-        if (!src) {
-            return { white: "White", black: "Black" };
-        }
-        return {
-            white: src.whitePlayerName || "White",
-            black: src.blackPlayerName || "Black",
-        };
+        return BookmarkHelpers.sessionPlayerNames(source || session);
     }
 
     function formatPlayersVsTitle(source) {
-        const names = sessionPlayerNames(source);
-        return names.white + " vs. " + names.black;
+        return BookmarkHelpers.formatPlayersVsTitle(source || session);
     }
 
     function formatAutoSaveGameName() {
-        return formatPlayersVsTitle(session);
+        return BookmarkHelpers.formatAutoSaveGameName(session);
     }
 
     function formatManualSaveGameName() {
-        return "Saved — " + formatPlayersVsTitle(session);
+        return BookmarkHelpers.formatManualSaveGameName(session);
     }
 
     function engineLabel(engineId) {
@@ -2150,12 +2035,7 @@
     }
 
     function formatPositionSetupSaveName() {
-        const now = new Date();
-        const stamp = now.toLocaleString(undefined, {
-            dateStyle: "short",
-            timeStyle: "short",
-        });
-        return "Position — " + stamp;
+        return BookmarkHelpers.formatPositionSetupSaveName();
     }
 
     function showPositionSaveNameDialog(onSave, options) {
@@ -2173,34 +2053,13 @@
     }
 
     function bookmarkPayloadFromCurrentState(name, moves) {
-        const state = game.GameState;
-        const players = sessionPlayerNames(session);
-        const payload = {
-            gameState: state,
+        return BookmarkHelpers.buildCreatePayload({
+            gameState: game.GameState,
             name: name,
-            gameType: "SinglePlayerGame",
             moves: moves || [],
-            engine: session.engine || "brain43",
-            whitePlayerName: players.white,
-            blackPlayerName: players.black,
-            thinkingTimeSeconds:
-                typeof session.thinkingTimeSeconds === "number"
-                    ? session.thinkingTimeSeconds
-                    : typeof session.difficulty === "number"
-                      ? session.difficulty
-                      : 10,
-            depth:
-                typeof session.thinkingTimeSeconds === "number"
-                    ? session.thinkingTimeSeconds
-                    : typeof session.difficulty === "number"
-                      ? session.difficulty
-                      : 10,
-        };
-        const originState = playOriginStateStr || reviewOriginStateStr;
-        if (originState) {
-            payload.originState = originState;
-        }
-        return payload;
+            session: session,
+            originState: playOriginStateStr || reviewOriginStateStr,
+        });
     }
 
     function mergeBookmarkIntoList(bookmark) {
@@ -2269,23 +2128,13 @@
                 gameState: game.GameState,
                 moves: [],
                 engine: session.engine || "brain43",
-                depth:
-                    typeof session.thinkingTimeSeconds === "number"
-                        ? session.thinkingTimeSeconds
-                        : typeof session.difficulty === "number"
-                          ? session.difficulty
-                          : 10,
+                depth: BookmarkHelpers.thinkingOrDepth(session, 10),
                 date: entry.date || new Date(),
             });
             entry.state = JSON.stringify(game.GameState);
             entry.moves = [];
             entry.engine = session.engine || "brain43";
-            entry.depth =
-                typeof session.thinkingTimeSeconds === "number"
-                    ? session.thinkingTimeSeconds
-                    : typeof session.difficulty === "number"
-                      ? session.difficulty
-                      : 6;
+            entry.depth = BookmarkHelpers.thinkingOrDepth(session, 6);
             lastLoadedSavedGameId = savedGameId(entry);
             renderSavedGamesList();
             syncGameRunPanelOptions();
@@ -3408,80 +3257,34 @@
     }
 
     function normalizeLaunchEngine(raw) {
-        const engine = typeof raw === "string" ? raw.trim() : "";
-        if (engine === "brain43" || engine === "brain42") {
-            return engine;
-        }
-        // brain4 was never a desktop default; always promote.
-        // brain41 was the previous web Play Now default — promote on web only.
-        if (engine === "brain4") {
-            return "brain43";
-        }
-        if (engine === "brain41") {
-            return isWebPlayPage() ? "brain43" : "brain41";
-        }
-        return Settings.normalizeEngine(engine);
+        return LaunchOptions.normalizeLaunchEngine(raw, {
+            promoteBrain41OnWeb: isWebPlayPage(),
+            normalizeEngine: function (engine) {
+                return Settings.normalizeEngine(engine);
+            },
+        });
     }
 
     function mergeStoredLaunchOptions(target, source) {
-        if (!source || typeof source !== "object") {
-            return target;
-        }
-        if (source.color === "white" || source.color === "black") {
-            target.color = source.color;
-        }
-        if (source.engine) {
-            target.engine = normalizeLaunchEngine(source.engine);
-        }
-        const difficulty = Number(source.difficulty);
-        if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
-            target.thinkingTimeSeconds = difficulty;
-            target.difficulty = difficulty;
-        }
-        const timeMinutes = Number(source.timeMinutes);
-        if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {
-            target.timeMinutes = timeMinutes;
-        }
-        if (source.mouse === "drag" || source.mouse === "double") {
-            target.mouse = source.mouse;
-        }
-        if (source.showAvailableMoves === true || source.showAvailableMoves === false) {
-            target.showAvailableMoves = source.showAvailableMoves;
-        }
-        return target;
+        return LaunchOptions.mergeStored(target, source, {
+            promoteBrain41OnWeb: isWebPlayPage(),
+            normalizeEngine: function (engine) {
+                return Settings.normalizeEngine(engine);
+            },
+        });
     }
 
     function applyUrlLaunchOptions(target) {
-        try {
-            const params = new URLSearchParams(window.location.search || "");
-            if (params.get("color") === "white" || params.get("color") === "black") {
-                target.color = params.get("color");
-            }
-            if (params.get("engine")) {
-                target.engine = normalizeLaunchEngine(params.get("engine"));
-            }
-            const difficulty = parseInt(params.get("difficulty"), 10);
-            if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
-                target.thinkingTimeSeconds = difficulty;
-                target.difficulty = difficulty;
-            }
-            const timeMinutes = parseInt(params.get("timeMinutes"), 10);
-            if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {
-                target.timeMinutes = timeMinutes;
-            }
-            const mouse = params.get("mouse");
-            if (mouse === "drag" || mouse === "double") {
-                target.mouse = mouse;
-            }
-            if (params.get("showMoves") === "1") {
-                target.showAvailableMoves = true;
-            } else if (params.get("showMoves") === "0") {
-                target.showAvailableMoves = false;
-            }
-        } catch {
-            /* ignore malformed query string */
-        }
-        return target;
+        return LaunchOptions.applyUrlSearch(
+            target,
+            window.location.search || "",
+            {
+                promoteBrain41OnWeb: isWebPlayPage(),
+                normalizeEngine: function (engine) {
+                    return Settings.normalizeEngine(engine);
+                },
+            },
+        );
     }
 
     async function fetchLaunchContext() {
@@ -3579,12 +3382,7 @@
     }
 
     function wantsNewGameDialogFromUrl() {
-        try {
-            const params = new URLSearchParams(window.location.search || "");
-            return params.get("newGame") === "1";
-        } catch {
-            return false;
-        }
+        return LaunchOptions.wantsNewGameDialog(window.location.search || "");
     }
 
     function captureActiveGameSnapshot() {
