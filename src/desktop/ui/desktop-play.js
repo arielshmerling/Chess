@@ -491,6 +491,7 @@
         if (Board.setHumanColor) {
             Board.setHumanColor(currentPlayerIsWhite);
         }
+        syncSessionPlayerNames();
         updateMatchHeader();
         updateActionButtons();
     }
@@ -536,6 +537,7 @@
             showAvailableMoves: session.showAvailableMoves,
             allowUndo: session.allowUndo,
             timeMinutes: session.gameTimeMinutes,
+            username: resolveHumanUsername(session.username),
         });
         if (Settings.saveNewGameOptions) {
             Settings.saveNewGameOptions({
@@ -3211,9 +3213,14 @@
     }
 
     function applySessionSettings(opts) {
-        session = Settings.buildSession(opts);
+        const launchOpts = Object.assign({}, opts || {});
+        const username = resolveHumanUsername(launchOpts.username);
+        if (username) {
+            launchOpts.username = username;
+        }
+        session = Settings.buildSession(launchOpts);
         allowUndo = resolveAllowUndo(session);
-        currentPlayerIsWhite = opts.color !== "black";
+        currentPlayerIsWhite = launchOpts.color !== "black";
         Board.setPlayerView(currentPlayerIsWhite);
         if (Board.setHumanColor) {
             Board.setHumanColor(currentPlayerIsWhite);
@@ -3254,6 +3261,41 @@
             && typeof window.ShmerlingPlayShell.isWebPlayPage === "function"
             && window.ShmerlingPlayShell.isWebPlayPage()
         );
+    }
+
+    /**
+     * Human display name for the clock header / bookmarks.
+     * On web, prefer the launch-context username over the guest fallback "Player".
+     */
+    function resolveHumanUsername(explicit) {
+        const trimmed =
+            explicit != null && String(explicit).trim() ? String(explicit).trim() : "";
+        if (webLaunchUsername) {
+            return webLaunchUsername;
+        }
+        if (trimmed && trimmed !== "Player") {
+            return trimmed;
+        }
+        if (session && session.username && session.username !== "Player") {
+            return session.username;
+        }
+        return trimmed || undefined;
+    }
+
+    function syncSessionPlayerNames() {
+        if (!session) {
+            return;
+        }
+        const human = resolveHumanUsername(session.username) || "Player";
+        const engineName =
+            Settings && typeof Settings.brainLabel === "function"
+                ? Settings.brainLabel(session.engine)
+                : "Engine";
+        session = Object.assign({}, session, {
+            username: human,
+            whitePlayerName: currentPlayerIsWhite ? human : engineName,
+            blackPlayerName: currentPlayerIsWhite ? engineName : human,
+        });
     }
 
     function normalizeLaunchEngine(raw) {
@@ -3439,8 +3481,11 @@
                 snapshot.options || {},
                 { color: snapshot.color === "black" ? "black" : "white" },
             );
-            if (!opts.username && webLaunchUsername) {
-                opts.username = webLaunchUsername;
+            if (!opts.username || opts.username === "Player") {
+                const username = resolveHumanUsername(opts.username);
+                if (username) {
+                    opts.username = username;
+                }
             }
             applySessionSettings(opts);
             setCurrentGameId(snapshot.gameId || null);
@@ -3521,8 +3566,9 @@
 
     async function beginNewGame(opts) {
         const launchOpts = Object.assign({}, opts || {});
-        if (!launchOpts.username && webLaunchUsername) {
-            launchOpts.username = webLaunchUsername;
+        const username = resolveHumanUsername(launchOpts.username);
+        if (username) {
+            launchOpts.username = username;
         }
         applySessionSettings(launchOpts);
         if (Settings.saveNewGameOptions) {
