@@ -210,6 +210,22 @@ describe("session GameSession (Phase 2)", function () {
         assert.ok(!session.selectPromotion(5));
         session.dispose();
     });
+
+    it("flagTimeout emits gameOver timeout", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        let over = null;
+        session.on("gameOver", function (payload) {
+            over = payload;
+        });
+        assert.ok(session.flagTimeout("white"));
+        assert.ok(over);
+        assert.strictEqual(over.kind, "timeout");
+        assert.strictEqual(over.loser, "white");
+        assert.ok(game.GameOver);
+        session.dispose();
+    });
 });
 
 describe("session LocalEngineMode (Phase 2)", function () {

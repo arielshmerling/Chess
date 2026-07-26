@@ -423,6 +423,35 @@
             return true;
         }
 
+        /**
+         * Flag a side for running out of time.
+         * @param {string} [side] - white/black (defaults to side to move)
+         * @returns {boolean}
+         */
+        function flagTimeout(side) {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            const turn = game.Turn || (game.GameState && game.GameState.turn) || "white";
+            const loser = side || turn;
+            if (typeof game.OutOfTime !== "undefined") {
+                game.OutOfTime = loser;
+            } else if (game.GameState) {
+                game.GameState.outOfTime = loser;
+            }
+            stopClocks();
+            if (mode && typeof mode.abort === "function") {
+                mode.abort();
+            }
+            bus.emit("gameOver", { kind: "timeout", loser: loser });
+            bus.emit("statusChanged", "timeout");
+            emitBoardAndTurn({ reason: "timeout" });
+            if (mode && typeof mode.onGameOver === "function") {
+                mode.onGameOver(api, { kind: "timeout", loser: loser });
+            }
+            return true;
+        }
+
         function leave() {
             active = false;
             if (mode && typeof mode.detach === "function") {
@@ -471,6 +500,7 @@
             resign: resign,
             undo: undoPair,
             redo: redoPair,
+            flagTimeout: flagTimeout,
             leave: leave,
             dispose: dispose,
             /* events */

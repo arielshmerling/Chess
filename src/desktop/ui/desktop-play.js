@@ -296,6 +296,11 @@
     }
 
     function outOfTime() {
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.flagTimeout === "function") {
+            gs.flagTimeout(game.Turn);
+            return;
+        }
         const loser = game.Turn;
         showStatus("Time's up! " + loser + " lost", 5000, "timeout");
         game.OutOfTime = loser;
@@ -3267,6 +3272,16 @@
                 if (Board.applyDrawHighlight) {
                     Board.applyDrawHighlight();
                 }
+                Clocks.stop();
+                updateActionButtons();
+                tryLogCompletedGame();
+                return;
+            }
+            if (payload.kind === "timeout") {
+                lastCheckNotifySide = null;
+                alertMode = true;
+                const loser = payload.loser || (game && game.Turn) || "white";
+                showStatus("Time's up! " + loser + " lost", 5000, "timeout");
                 Clocks.stop();
                 updateActionButtons();
                 tryLogCompletedGame();
