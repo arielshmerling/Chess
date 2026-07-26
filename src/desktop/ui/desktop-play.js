@@ -11,6 +11,7 @@
     const BrainConfig = window.DesktopBrainConfig;
     const GameRun = window.DesktopGameRun;
     const PositionValidation = window.DesktopPositionValidation;
+    const MovesPanel = window.PlayMovesPanel;
 
     let game = null;
     const Settings = window.DesktopGameSettings;
@@ -2142,42 +2143,12 @@
         showReviewAtPly(ply);
     }
 
-    function attachReviewMoveCell(td, ply) {
-        if (!ply) {
-            return;
-        }
-        td.dataset.ply = String(ply);
-        td.classList.add("desktop-play-move-clickable");
-        td.setAttribute("role", "button");
-        td.setAttribute("tabindex", "0");
-        td.addEventListener("click", function (ev) {
-            ev.preventDefault();
-            onReviewMoveClick(ply);
-        });
-        td.addEventListener("keydown", function (ev) {
-            if (ev.key === "Enter" || ev.key === " ") {
-                ev.preventDefault();
-                onReviewMoveClick(ply);
-            }
-        });
-    }
-
-    function highlightReviewMoveSelection() {
-        const movesDiv = $("movesDiv");
-        if (!movesDiv) {
-            return;
-        }
-        movesDiv.querySelectorAll(".tdMove").forEach(function (td) {
-            td.classList.remove("selectedMove");
-        });
+    /** Ply the review panel should mark as selected, or null when not branching. */
+    function selectedReviewPly() {
         if (!reviewMode || reviewBranchPly == null || reviewPlyIndex <= 0) {
-            return;
+            return null;
         }
-        const selected = movesDiv.querySelector('.tdMove[data-ply="' + reviewPlyIndex + '"]');
-        if (selected) {
-            selected.classList.add("selectedMove");
-            selected.scrollIntoView({ block: "nearest", inline: "nearest" });
-        }
+        return reviewPlyIndex;
     }
 
     function onPositionSetupToggle() {
@@ -2318,42 +2289,21 @@
         return str === "1-0" || str === "0-1" || str === "1/2-1/2" || str === "*";
     }
 
-    function appendGameResultToMoves(moves) {
-        const list = (moves || []).slice();
+    function currentGameResultStr() {
         if (positionSetupMode || configurationMode) {
-            return list;
+            return null;
         }
-        let resultStr = null;
         if (game && game.GameOver && game.ResultMove && game.ResultMove.moveStr) {
-            resultStr = game.ResultMove.moveStr;
-        } else if (reviewMode && reviewResultMoveStr) {
-            resultStr = reviewResultMoveStr;
+            return game.ResultMove.moveStr;
         }
-        if (!resultStr) {
-            return list;
+        if (reviewMode && reviewResultMoveStr) {
+            return reviewResultMoveStr;
         }
-        const last = list[list.length - 1];
-        if (last && last.moveStr === resultStr) {
-            return list;
-        }
-        if (last && isTableResultMove(last)) {
-            return list;
-        }
-        const resultMove = { moveStr: resultStr };
-        const lastColor = moveColorForTable(last);
-        if (lastColor === "white") {
-            resultMove.turn = "black";
-        } else if (lastColor === "black") {
-            resultMove.turn = "white";
-        } else if (list.length === 0) {
-            resultMove.turn = "black";
-        } else if (list.length % 2 === 1) {
-            resultMove.turn = "black";
-        } else {
-            resultMove.turn = "white";
-        }
-        list.push(resultMove);
-        return list;
+        return null;
+    }
+
+    function appendGameResultToMoves(moves) {
+        return MovesPanel.appendResultMove(moves, currentGameResultStr(), isTableResultMove);
     }
 
     function syncBoardFromGame() {
@@ -2676,27 +2626,12 @@
         });
     }
 
-    function setCellLabel(td, text) {
-        const label = text == null ? "" : String(text);
-        td.textContent = label;
-        td.title = label;
-    }
-
     function savedGameId(entry) {
         return entry && (entry._id || entry.id) ? String(entry._id || entry.id) : "";
     }
 
     function moveColorForTable(move) {
-        if (!move) {
-            return null;
-        }
-        if (move.turn === "white" || move.turn === "black") {
-            return move.turn;
-        }
-        if (move.piece && (move.piece.color === "white" || move.piece.color === "black")) {
-            return move.piece.color;
-        }
-        return null;
+        return MovesPanel.moveColor(move);
     }
 
     function reviewOriginTurn() {
@@ -2732,115 +2667,8 @@
         return turn;
     }
 
-    function buildMoveTableRows(moves) {
-        const rows = [];
-        if (!moves || !moves.length) {
-            return rows;
-        }
-        for (let i = 0; i < moves.length; ) {
-            const move = moves[i];
-            const color = moveColorForTable(move);
-            if (color === "black") {
-                rows.push({ white: "-", black: move.moveStr || "" });
-                i += 1;
-            } else if (color === "white") {
-                const whiteStr = move.moveStr || "";
-                const next = i + 1 < moves.length ? moves[i + 1] : null;
-                if (next && moveColorForTable(next) === "black") {
-                    rows.push({ white: whiteStr, black: next.moveStr || "" });
-                    i += 2;
-                } else {
-                    rows.push({ white: whiteStr, black: "" });
-                    i += 1;
-                }
-            } else {
-                const whiteMove = move;
-                const blackMove = i + 1 < moves.length ? moves[i + 1] : null;
-                rows.push({
-                    white: whiteMove.moveStr || "",
-                    black: blackMove ? blackMove.moveStr || "" : "",
-                });
-                i += blackMove ? 2 : 1;
-            }
-        }
-        return rows;
-    }
-
-    function buildMoveTableCells(moves) {
-        const rows = [];
-        if (!moves || !moves.length) {
-            return rows;
-        }
-        let i = 0;
-        let rowNum = 1;
-        while (i < moves.length) {
-            const move = moves[i];
-            const color = moveColorForTable(move);
-            const row = {
-                num: rowNum,
-                white: "",
-                black: "",
-                whitePly: null,
-                blackPly: null,
-            };
-            rowNum += 1;
-            if (color === "black") {
-                row.white = "-";
-                row.black = move.moveStr || "";
-                if (!isTableResultMove(move)) {
-                    row.blackPly = i + 1;
-                }
-                rows.push(row);
-                i += 1;
-            } else if (color === "white") {
-                row.white = move.moveStr || "";
-                if (!isTableResultMove(move)) {
-                    row.whitePly = i + 1;
-                }
-                const next = i + 1 < moves.length ? moves[i + 1] : null;
-                if (next && moveColorForTable(next) === "black") {
-                    row.black = next.moveStr || "";
-                    if (!isTableResultMove(next)) {
-                        row.blackPly = i + 2;
-                    }
-                    i += 2;
-                } else {
-                    i += 1;
-                }
-                rows.push(row);
-            } else {
-                row.white = move.moveStr || "";
-                if (!isTableResultMove(move)) {
-                    row.whitePly = i + 1;
-                }
-                const next = i + 1 < moves.length ? moves[i + 1] : null;
-                if (next) {
-                    row.black = next.moveStr || "";
-                    if (!isTableResultMove(next)) {
-                        row.blackPly = i + 2;
-                    }
-                    i += 2;
-                } else {
-                    i += 1;
-                }
-                rows.push(row);
-            }
-        }
-        return rows;
-    }
-
     function movesForMovesTable(moves) {
-        return (moves || []).map(function (m) {
-            if (typeof m === "string") {
-                try {
-                    const parsed = JSON.parse(m);
-                    return { moveStr: parsed.moveStr || "", turn: parsed.turn };
-                } catch {
-                    return { moveStr: "" };
-                }
-            }
-            return { moveStr: m.moveStr || "", turn: m.turn };
-        });
+        return MovesPanel.normalizeMoves(moves);
     }
 
     function parseSavedGameMoves(entry) {
@@ -3749,46 +3577,12 @@
         if (!movesDiv || moves == null) {
             return;
         }
-        movesDiv.innerHTML = "";
-        const table = document.createElement("table");
-        table.className = "movesTable";
-        const displayMoves = appendGameResultToMoves(moves != null ? moves : []);
         const reviewClicksEnabled = reviewMode && reviewFullMoves.length > 0;
-        const rows = reviewClicksEnabled
-            ? buildMoveTableCells(displayMoves)
-            : buildMoveTableRows(displayMoves).map(function (row, index) {
-                  return {
-                      num: index + 1,
-                      white: row.white,
-                      black: row.black,
-                      whitePly: null,
-                      blackPly: null,
-                  };
-              });
-        for (let r = 0; r < rows.length; r++) {
-            const row = rows[r];
-            const tr = document.createElement("tr");
-            const tdNum = document.createElement("td");
-            tdNum.textContent = String(row.num);
-            tdNum.className = "tdNum";
-            const tdWhite = document.createElement("td");
-            tdWhite.className = "tdMove";
-            setCellLabel(tdWhite, row.white);
-            const tdBlack = document.createElement("td");
-            tdBlack.className = "tdMove";
-            setCellLabel(tdBlack, row.black);
-            if (reviewClicksEnabled) {
-                attachReviewMoveCell(tdWhite, row.whitePly);
-                attachReviewMoveCell(tdBlack, row.blackPly);
-            }
-            tr.appendChild(tdNum);
-            tr.appendChild(tdWhite);
-            tr.appendChild(tdBlack);
-            table.appendChild(tr);
-        }
-        movesDiv.appendChild(table);
-        highlightReviewMoveSelection();
-        movesDiv.scrollTop = movesDiv.scrollHeight;
+        MovesPanel.render(movesDiv, appendGameResultToMoves(moves), {
+            isResultMove: isTableResultMove,
+            onPlyActivate: reviewClicksEnabled ? onReviewMoveClick : null,
+            selectedPly: selectedReviewPly(),
+        });
     }
 
     function registerGameEvents() {

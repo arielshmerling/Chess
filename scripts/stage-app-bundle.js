@@ -140,6 +140,11 @@ function main() {
     const uiDest = path.join(desktopDest, "ui");
     copyDirFiltered(uiDir, uiDest, { excludeNames: DESKTOP_UI_EXCLUDE });
 
+    copyDirFiltered(
+        path.join(ROOT, "src", "play-ui"),
+        path.join(BUNDLE, "src", "play-ui"),
+    );
+
     ensureDir(path.join(BUNDLE, "data"));
     for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json"]) {
         const src = path.join(ROOT, "data", name);
