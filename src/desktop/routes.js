@@ -9,6 +9,7 @@ const uiSettingsApi = require("./uiSettingsApi");
 
 const UI_DIR = path.join(__dirname, "ui");
 const PLAY_UI_DIR = path.join(__dirname, "../play-ui");
+const SESSION_DIR = path.join(__dirname, "../session");
 
 function sendUiPage(filename) {
     return (_req, res) => {
@@ -33,6 +34,7 @@ function mountDesktopRoutes(app) {
 
     app.use("/app/ui", express.static(UI_DIR));
     app.use("/app/play-ui", express.static(PLAY_UI_DIR));
+    app.use("/app/session", express.static(SESSION_DIR));
 
     app.get("/", (_req, res) => {
         res.redirect("/app/play");

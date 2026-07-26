@@ -9,6 +9,7 @@ const playPrefsApi = require("./playPrefsApi");
 
 const DESKTOP_UI_DIR = path.join(__dirname, "../desktop/ui");
 const PLAY_UI_DIR = path.join(__dirname, "../play-ui");
+const SESSION_DIR = path.join(__dirname, "../session");
 
 function setPlayPageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -23,6 +24,7 @@ function setPlayPageNoCache(res) {
 function mountWebPlayRoutes(app) {
     app.use("/app/ui", express.static(DESKTOP_UI_DIR));
     app.use("/app/play-ui", express.static(PLAY_UI_DIR));
+    app.use("/app/session", express.static(SESSION_DIR));
 
     app.post("/api/brain/compute-move", requireLogin, brainApi.computeMove);
     app.post("/api/brain/evaluate-position", requireLogin, brainApi.evaluatePosition);

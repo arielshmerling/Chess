@@ -1,0 +1,371 @@
+/**
+ * GameSession — application orchestrator (Phase 2).
+ *
+ * Owns a ChessGame instance (injected) and talks to the shell only through
+ * SessionCommands / SessionEvents. Mode plugins (LocalEngineMode, …) attach here.
+ */
+(function (global) {
+    "use strict";
+
+    function loadEventBus() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("./eventBus");
+            } catch {
+                /* fall through */
+            }
+        }
+        return global.ShmerlingSessionEventBus;
+    }
+
+    function loadCapabilities() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("./capabilities");
+            } catch {
+                /* fall through */
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param {object} options
+     * @param {object} options.game - ChessGame instance
+     * @param {boolean} [options.humanIsWhite=true]
+     * @param {object} [options.meta] - engine id, player names, etc.
+     * @param {import("./contracts").EnginePort} [options.engine]
+     * @param {{ create: Function }} [options.eventBus]
+     */
+    function create(options) {
+        const opts = options || {};
+        const game = opts.game;
+        if (!game) {
+            throw new Error("GameSession requires a ChessGame instance");
+        }
+
+        const EventBus = opts.eventBus || loadEventBus();
+        const bus = EventBus.create();
+        const capsApi = loadCapabilities();
+
+        let humanIsWhite = opts.humanIsWhite !== false;
+        let meta = Object.assign({}, opts.meta || {});
+        let engine = opts.engine || null;
+        let mode = null;
+        let active = false;
+        let disposed = false;
+
+        function snapshot() {
+            return {
+                active: active,
+                humanIsWhite: humanIsWhite,
+                turn: game.Turn || (game.GameState && game.GameState.turn) || "white",
+                gameOver: !!game.GameOver,
+                gameState: game.GameState || null,
+                moves: Array.isArray(game.Moves) ? game.Moves.slice() : [],
+                meta: Object.assign({}, meta),
+                modeId: mode && mode.id ? mode.id : null,
+                capabilities: mode && typeof mode.capabilities === "function"
+                    ? mode.capabilities()
+                    : capsApi
+                      ? capsApi.getModeCapabilities(null)
+                      : null,
+            };
+        }
+
+        function emitBoardAndTurn(extra) {
+            const state = game.GameState;
+            bus.emit("boardChanged", state, extra || {});
+            const turn = game.Turn || (state && state.turn) || "white";
+            bus.emit("turnChanged", turn, extra || {});
+        }
+
+        function emitStatusFromGame() {
+            const state = game.GameState || {};
+            if (state.draw) {
+                bus.emit("gameOver", {
+                    kind: "draw",
+                    reason: state.drawReason || "Draw",
+                });
+                bus.emit("statusChanged", "draw");
+                return;
+            }
+            if (state.checkmate) {
+                const mated = game.Turn;
+                const winner =
+                    typeof game.opponent === "function" ? game.opponent(mated) : null;
+                bus.emit("gameOver", {
+                    kind: "checkmate",
+                    mated: mated,
+                    winner: winner,
+                });
+                bus.emit("statusChanged", "checkmate");
+                return;
+            }
+            if (state.check) {
+                bus.emit("statusChanged", "check");
+            }
+        }
+
+        function isHumanTurn() {
+            const turn = game.Turn || (game.GameState && game.GameState.turn);
+            return (
+                (turn === "white" && humanIsWhite) || (turn === "black" && !humanIsWhite)
+            );
+        }
+
+        function isAiTurn() {
+            return active && !game.GameOver && !isHumanTurn();
+        }
+
+        function setMeta(partial) {
+            meta = Object.assign({}, meta, partial || {});
+        }
+
+        function setHumanIsWhite(next) {
+            humanIsWhite = next !== false;
+        }
+
+        function setEngine(next) {
+            engine = next || null;
+        }
+
+        function getEngine() {
+            return engine;
+        }
+
+        function attachMode(nextMode) {
+            if (mode && typeof mode.detach === "function") {
+                mode.detach();
+            }
+            mode = nextMode || null;
+            if (mode && typeof mode.attach === "function") {
+                mode.attach(api);
+            }
+            const caps =
+                mode && typeof mode.capabilities === "function"
+                    ? mode.capabilities()
+                    : null;
+            if (caps) {
+                bus.emit("capabilitiesChanged", caps);
+            }
+        }
+
+        /**
+         * Start a new game from the initial position.
+         * @param {object} [startOpts]
+         * @param {boolean} [startOpts.humanIsWhite]
+         * @param {object} [startOpts.meta]
+         */
+        function start(startOpts) {
+            if (disposed) {
+                return;
+            }
+            const so = startOpts || {};
+            if (typeof so.humanIsWhite === "boolean") {
+                humanIsWhite = so.humanIsWhite;
+            }
+            if (so.meta) {
+                setMeta(so.meta);
+            }
+            if (typeof game.startNewGame === "function") {
+                game.startNewGame(humanIsWhite);
+            }
+            active = true;
+            bus.emit("info", "Game started", "info");
+            emitBoardAndTurn({ reason: "start" });
+            bus.emit("statusChanged", "inProgress");
+            if (mode && typeof mode.onStarted === "function") {
+                mode.onStarted(api);
+            }
+        }
+
+        /**
+         * Load an existing position/moves (resume / setup → play).
+         * @param {object} loadOpts
+         * @param {string|object} [loadOpts.state]
+         * @param {Array} [loadOpts.moves]
+         * @param {boolean} [loadOpts.humanIsWhite]
+         * @param {object} [loadOpts.meta]
+         * @param {boolean} [loadOpts.active=true]
+         */
+        function load(loadOpts) {
+            if (disposed) {
+                return;
+            }
+            const lo = loadOpts || {};
+            if (typeof lo.humanIsWhite === "boolean") {
+                humanIsWhite = lo.humanIsWhite;
+            }
+            if (lo.meta) {
+                setMeta(lo.meta);
+            }
+            if (lo.state != null) {
+                const stateStr =
+                    typeof lo.state === "string" ? lo.state : JSON.stringify(lo.state);
+                if (typeof game.loadGame === "function") {
+                    game.loadGame(stateStr);
+                }
+            }
+            if (Array.isArray(lo.moves) && typeof game.loadMoves === "function") {
+                game.loadMoves(lo.moves);
+            }
+            active = lo.active !== false;
+            emitBoardAndTurn({ reason: "load" });
+            if (mode && typeof mode.onLoaded === "function") {
+                mode.onLoaded(api);
+            }
+        }
+
+        /**
+         * Apply a move onto ChessGame (engine / non-board paths).
+         * Human board moves should call {@link humanMoveApplied} instead.
+         *
+         * @param {object} move
+         * @param {object} [metaInfo]
+         * @returns {object|null} last move / executed move
+         */
+        function playMove(move, metaInfo) {
+            if (disposed || !move || game.GameOver) {
+                return null;
+            }
+            const info = Object.assign({ source: "session" }, metaInfo || {});
+            if (move.promotion && move.selectedPiece != null && typeof game.completePromotion === "function") {
+                /* Engine/promotion path: makeMove then completePromotion when needed. */
+            }
+            if (!move.source || !move.target || typeof game.makeMove !== "function") {
+                bus.emit("error", "Invalid move");
+                return null;
+            }
+            let executed;
+            if (move.promotion && move.selectedPiece != null) {
+                executed = game.makeMove(move.source, move.target);
+                if (executed) {
+                    executed.selectedPiece = move.selectedPiece;
+                    executed.promotion = true;
+                    if (executed.piece && move.piece) {
+                        executed.piece.color = move.piece.color;
+                    }
+                    if (typeof game.completePromotion === "function") {
+                        game.completePromotion(executed);
+                    }
+                }
+            } else {
+                executed = game.makeMove(move.source, move.target);
+            }
+            if (!executed || executed.valid === false) {
+                bus.emit("error", "Move could not be applied");
+                return null;
+            }
+            bus.emit("moveApplied", executed, info);
+            emitBoardAndTurn(info);
+            emitStatusFromGame();
+            if (mode && typeof mode.afterMove === "function") {
+                mode.afterMove(api, executed, info);
+            }
+            return executed;
+        }
+
+        /**
+         * Board already applied a human move on the shared ChessGame.
+         * Emit session events and let the mode request an engine reply.
+         *
+         * @param {object} executed
+         */
+        function humanMoveApplied(executed) {
+            if (disposed || !active) {
+                return;
+            }
+            const info = { source: "human" };
+            bus.emit("moveApplied", executed, info);
+            emitBoardAndTurn(info);
+            emitStatusFromGame();
+            if (mode && typeof mode.afterMove === "function") {
+                mode.afterMove(api, executed, info);
+            }
+        }
+
+        function resign(side) {
+            if (disposed || !active || game.GameOver) {
+                return;
+            }
+            const resigned =
+                side ||
+                (humanIsWhite ? "White" : "Black");
+            if (typeof game.resign === "function") {
+                game.resign(resigned);
+            }
+            bus.emit("gameOver", { kind: "resign", resigned: resigned });
+            bus.emit("statusChanged", "resign");
+            emitBoardAndTurn({ reason: "resign" });
+            if (mode && typeof mode.onGameOver === "function") {
+                mode.onGameOver(api, { kind: "resign", resigned: resigned });
+            }
+        }
+
+        function leave() {
+            active = false;
+            if (mode && typeof mode.detach === "function") {
+                mode.detach();
+            }
+            mode = null;
+            bus.emit("statusChanged", "left");
+        }
+
+        function dispose() {
+            leave();
+            bus.clear();
+            disposed = true;
+        }
+
+        const api = {
+            /* inspection */
+            getGame: function () {
+                return game;
+            },
+            getEngine: getEngine,
+            setEngine: setEngine,
+            getMeta: function () {
+                return Object.assign({}, meta);
+            },
+            setMeta: setMeta,
+            setHumanIsWhite: setHumanIsWhite,
+            snapshot: snapshot,
+            isHumanTurn: isHumanTurn,
+            isAiTurn: isAiTurn,
+            isActive: function () {
+                return active && !disposed;
+            },
+            /* mode */
+            attachMode: attachMode,
+            /* commands */
+            start: start,
+            load: load,
+            playMove: playMove,
+            humanMoveApplied: humanMoveApplied,
+            resign: resign,
+            leave: leave,
+            dispose: dispose,
+            /* events */
+            on: function (event, handler) {
+                return bus.on(event, handler);
+            },
+            emit: function (event) {
+                if (disposed) {
+                    return;
+                }
+                bus.emit.apply(bus, arguments);
+            },
+        };
+
+        return api;
+    }
+
+    const GameSession = { create: create };
+
+    global.ShmerlingGameSession = GameSession;
+
+    if (typeof module === "object" && module && module.exports) {
+        module.exports = GameSession;
+    }
+})(typeof window !== "undefined" ? window : globalThis);

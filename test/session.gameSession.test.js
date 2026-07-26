@@ -1,0 +1,228 @@
+/**
+ * Phase 2: GameSession + LocalEngineMode characterization.
+ */
+/* eslint-disable */
+
+const assert = require("assert");
+const { ChessGame } = require("../src/ChessGame");
+const {
+    GameSession,
+    LocalEngineMode,
+    MODE_IDS,
+    getModeCapabilities,
+} = require("../src/session");
+
+function silentGame() {
+    const game = new ChessGame();
+    /* Avoid ChessGame constructor noise in mocha output when present. */
+    return game;
+}
+
+describe("session GameSession (Phase 2)", function () {
+    it("start emits boardChanged then turnChanged then statusChanged", function () {
+        const game = silentGame();
+        const session = GameSession.create({
+            game: game,
+            humanIsWhite: true,
+            meta: { engine: "brain43" },
+        });
+        const order = [];
+        session.on("boardChanged", function () {
+            order.push("boardChanged");
+        });
+        session.on("turnChanged", function (turn) {
+            order.push("turnChanged:" + turn);
+        });
+        session.on("statusChanged", function (status) {
+            order.push("statusChanged:" + status);
+        });
+
+        session.start({ humanIsWhite: true });
+
+        assert.deepStrictEqual(order.slice(0, 3), [
+            "boardChanged",
+            "turnChanged:white",
+            "statusChanged:inProgress",
+        ]);
+        assert.strictEqual(session.isHumanTurn(), true);
+        assert.strictEqual(session.isAiTurn(), false);
+        session.dispose();
+    });
+
+    it("playMove emits moveApplied before board/turn updates", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        const order = [];
+        session.on("moveApplied", function () {
+            order.push("moveApplied");
+        });
+        session.on("boardChanged", function () {
+            order.push("boardChanged");
+        });
+        session.on("turnChanged", function (turn) {
+            order.push("turnChanged:" + turn);
+        });
+
+        const executed = session.playMove({
+            source: { row: 6, col: 4 },
+            target: { row: 4, col: 4 },
+        });
+
+        assert.ok(executed);
+        assert.deepStrictEqual(order.slice(0, 3), [
+            "moveApplied",
+            "boardChanged",
+            "turnChanged:black",
+        ]);
+        assert.strictEqual(session.isAiTurn(), true);
+        session.dispose();
+    });
+
+    it("humanMoveApplied does not call makeMove again", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        const before = game.Moves.length;
+        /* Pretend the board already played e2-e4. */
+        const executed = game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        assert.strictEqual(game.Moves.length, before + 1);
+
+        const moves = [];
+        session.on("moveApplied", function (m) {
+            moves.push(m);
+        });
+        session.humanMoveApplied(executed);
+        assert.strictEqual(game.Moves.length, before + 1);
+        assert.strictEqual(moves.length, 1);
+        session.dispose();
+    });
+
+    it("resign emits gameOver", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        let over = null;
+        session.on("gameOver", function (payload) {
+            over = payload;
+        });
+        session.resign("White");
+        assert.ok(over);
+        assert.strictEqual(over.kind, "resign");
+        assert.ok(game.GameOver);
+        session.dispose();
+    });
+});
+
+describe("session LocalEngineMode (Phase 2)", function () {
+    it("exposes localEngine capabilities", function () {
+        const mode = LocalEngineMode.create({});
+        assert.strictEqual(mode.id, MODE_IDS.LOCAL_ENGINE);
+        const caps = mode.capabilities();
+        assert.strictEqual(caps.engine, true);
+        assert.strictEqual(caps.network, false);
+        assert.deepStrictEqual(caps, getModeCapabilities(MODE_IDS.LOCAL_ENGINE));
+    });
+
+    it("after a human move, requests the engine and applies the reply", async function () {
+        const game = silentGame();
+        const engineCalls = [];
+        const fakeEngine = {
+            computeMove: async function (args) {
+                engineCalls.push(args);
+                /* Reply with a legal black move: e7-e5 */
+                return {
+                    source: { row: 1, col: 4 },
+                    target: { row: 3, col: 4 },
+                    piece: { color: "black", pieceType: 1 },
+                };
+            },
+            abortSearch: function () {},
+        };
+
+        const session = GameSession.create({
+            game: game,
+            humanIsWhite: true,
+            engine: fakeEngine,
+            meta: { engine: "brain43", thinkingTimeSeconds: 2 },
+        });
+        const mode = LocalEngineMode.create({});
+        session.attachMode(mode);
+
+        const order = [];
+        session.on("moveApplied", function (_m, info) {
+            order.push("move:" + (info && info.source));
+        });
+        session.on("turnChanged", function (turn) {
+            order.push("turn:" + turn);
+        });
+
+        session.start();
+        /* Wait for onStarted maybeRunEngine — human is white so it should no-op. */
+        await new Promise(function (r) {
+            setImmediate(r);
+        });
+        assert.strictEqual(engineCalls.length, 0);
+
+        session.playMove({
+            source: { row: 6, col: 4 },
+            target: { row: 4, col: 4 },
+        });
+
+        /* LocalEngineMode schedules maybeRunEngine on Promise.resolve(). */
+        await new Promise(function (r) {
+            setImmediate(r);
+        });
+        await new Promise(function (r) {
+            setImmediate(r);
+        });
+
+        assert.strictEqual(engineCalls.length, 1);
+        assert.ok(order.indexOf("move:human") !== -1 || order.indexOf("move:session") !== -1);
+        assert.ok(order.indexOf("move:engine") !== -1);
+        assert.ok(game.Moves.length >= 2);
+        assert.strictEqual(session.isHumanTurn(), true);
+        session.dispose();
+    });
+
+    it("uses applyEngineMove hook when provided (shell animation path)", async function () {
+        const game = silentGame();
+        let applied = null;
+        const fakeEngine = {
+            computeMove: async function () {
+                return {
+                    source: { row: 1, col: 4 },
+                    target: { row: 3, col: 4 },
+                };
+            },
+        };
+        const session = GameSession.create({
+            game: game,
+            humanIsWhite: true,
+            engine: fakeEngine,
+            meta: { engine: "brain43" },
+        });
+        const mode = LocalEngineMode.create({
+            applyEngineMove: async function (move) {
+                applied = move;
+                session.playMove(move, { source: "engine" });
+                return true;
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        session.playMove({
+            source: { row: 6, col: 4 },
+            target: { row: 4, col: 4 },
+        });
+        await new Promise(function (r) {
+            setImmediate(r);
+        });
+        await new Promise(function (r) {
+            setImmediate(r);
+        });
+        assert.ok(applied);
+        assert.strictEqual(applied.source.row, 1);
+        session.dispose();
+    });
+});

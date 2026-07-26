@@ -144,6 +144,10 @@ function main() {
         path.join(ROOT, "src", "play-ui"),
         path.join(BUNDLE, "src", "play-ui"),
     );
+    copyDirFiltered(
+        path.join(ROOT, "src", "session"),
+        path.join(BUNDLE, "src", "session"),
+    );
 
     ensureDir(path.join(BUNDLE, "data"));
     for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json"]) {
