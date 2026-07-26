@@ -12,6 +12,7 @@
     const GameRun = window.DesktopGameRun;
     const PositionValidation = window.DesktopPositionValidation;
     const MovesPanel = window.PlayMovesPanel;
+    const SavedGames = window.PlaySavedGamesModel;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -2333,26 +2334,15 @@
         return "Saved — " + formatPlayersVsTitle(session);
     }
 
-    function resolveSavedGamePlayers(entry) {
-        if (!entry) {
-            return { white: "White", black: "Black" };
+    function engineLabel(engineId) {
+        if (Settings && typeof Settings.brainLabel === "function") {
+            return Settings.brainLabel(engineId);
         }
-        if (entry.whitePlayerName && entry.blackPlayerName) {
-            return {
-                white: entry.whitePlayerName,
-                black: entry.blackPlayerName,
-            };
-        }
-        const engineName =
-            window.DesktopGameSettings && typeof window.DesktopGameSettings.brainLabel === "function"
-                ? window.DesktopGameSettings.brainLabel(entry.engine || "brain43")
-                : "Engine";
-        return { white: "Player", black: engineName };
+        return "Engine";
     }
 
     function formatSavedGamePlayers(entry) {
-        const names = resolveSavedGamePlayers(entry);
-        return names.white + " vs. " + names.black;
+        return SavedGames.formatPlayers(entry, engineLabel);
     }
 
     function formatPositionSetupSaveName() {
@@ -2553,7 +2543,7 @@
     }
 
     function savedGameId(entry) {
-        return entry && (entry._id || entry.id) ? String(entry._id || entry.id) : "";
+        return SavedGames.entryId(entry);
     }
 
     function moveColorForTable(move) {
@@ -2598,27 +2588,15 @@
     }
 
     function parseSavedGameMoves(entry) {
-        if (!entry || !Array.isArray(entry.moves)) {
-            return [];
-        }
-        return entry.moves.map(function (m) {
-            return typeof m === "string" ? JSON.parse(m) : m;
-        });
+        return SavedGames.parseMoves(entry);
     }
 
     function isSavedPositionEntry(entry) {
-        return parseSavedGameMoves(entry).length === 0;
-    }
-
-    function isSavedGameEntry(entry) {
-        return !isSavedPositionEntry(entry);
+        return SavedGames.isPosition(entry);
     }
 
     function savedEntriesForFilter(filter) {
-        const mode = filter === "positions" ? "positions" : "games";
-        return savedGames.filter(function (entry) {
-            return mode === "positions" ? isSavedPositionEntry(entry) : isSavedGameEntry(entry);
-        });
+        return SavedGames.filterEntries(savedGames, filter);
     }
 
     function updateSavedListFilterUi() {
@@ -2739,68 +2717,15 @@
     }
 
     function formatSavedGameDate(date) {
-        if (!date) {
-            return "";
-        }
-        const d = date instanceof Date ? date : new Date(date);
-        if (Number.isNaN(d.getTime())) {
-            return "";
-        }
-        return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+        return SavedGames.formatDate(date);
     }
 
     function formatSavedGameInfoTooltip(entry) {
-        const parts = [];
-        const when = formatSavedGameDate(entry && entry.date);
-        if (when) {
-            parts.push("Saved: " + when);
-        }
-        const players = formatSavedGamePlayers(entry);
-        if (players) {
-            parts.push(players);
-        }
-        const id = savedGameId(entry);
-        if (id) {
-            parts.push("Game ID: " + id);
-        }
-        return parts.join("\n");
-    }
-
-    function savedGameStateFromEntry(entry) {
-        if (!entry) {
-            return null;
-        }
-        let raw = entry.state != null ? entry.state : entry.gameState;
-        if (raw == null) {
-            return null;
-        }
-        if (typeof raw === "string") {
-            try {
-                return JSON.parse(raw);
-            } catch {
-                return null;
-            }
-        }
-        if (typeof raw === "object") {
-            return raw;
-        }
-        return null;
-    }
-
-    function savedGameTurnFromEntry(entry) {
-        const gs = savedGameStateFromEntry(entry);
-        if (!gs || (gs.turn !== "white" && gs.turn !== "black")) {
-            return null;
-        }
-        return gs.turn;
+        return SavedGames.formatInfoTooltip(entry, engineLabel);
     }
 
     function formatSavedGameTurn(entry) {
-        const turn = savedGameTurnFromEntry(entry);
-        if (!turn) {
-            return "Next move: —";
-        }
-        return "Next move: " + (turn === "white" ? "White" : "Black");
+        return SavedGames.formatTurn(entry);
     }
 
     const SAVED_GAME_ACTION_ICONS = {
