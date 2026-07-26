@@ -238,8 +238,31 @@
         }
 
         /**
-         * Apply a move onto ChessGame (engine / non-board paths).
-         * Human board moves should call {@link humanMoveApplied} instead.
+         * Apply a legal board move onto ChessGame without emitting session events.
+         * The Play board calls this instead of ChessGame.makeMove; the shell then
+         * calls {@link humanMoveApplied} after paint so clocks/engine stay timed.
+         *
+         * @param {{row:number,col:number}} source
+         * @param {{row:number,col:number}} target
+         * @returns {object|null}
+         */
+        function applyMove(source, target) {
+            if (disposed || !active || game.GameOver) {
+                return null;
+            }
+            if (!source || !target || typeof game.makeMove !== "function") {
+                return null;
+            }
+            const executed = game.makeMove(source, target);
+            if (!executed || executed.valid === false) {
+                return null;
+            }
+            return executed;
+        }
+
+        /**
+         * Apply a move onto ChessGame (engine / non-board paths) and emit events.
+         * Human board moves use {@link applyMove} + {@link humanMoveApplied}.
          *
          * @param {object} move
          * @param {object} [metaInfo]
@@ -287,7 +310,7 @@
         }
 
         /**
-         * Board already applied a human move on the shared ChessGame.
+         * Human board move was applied (via {@link applyMove} or legacy makeMove).
          * Emit session events and let the mode request an engine reply.
          *
          * @param {object} executed
@@ -493,6 +516,7 @@
             /* commands */
             start: start,
             load: load,
+            applyMove: applyMove,
             playMove: playMove,
             humanMoveApplied: humanMoveApplied,
             externalMoveApplied: externalMoveApplied,

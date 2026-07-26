@@ -66,6 +66,8 @@
     let showAvailableMoves = true;
     let mousePreference = "drag";
     let onHumanMove = null;
+    /** Optional: (source, target) => executedMove | null — session owns makeMove. */
+    let humanMoveApplicator = null;
     let humanPlayEnabled = true;
     let setupModeActive = false;
     let setupGetSelection = null;
@@ -184,6 +186,10 @@
 
     function setHumanMoveHandler(fn) {
         onHumanMove = fn;
+    }
+
+    function setHumanMoveApplicator(fn) {
+        humanMoveApplicator = typeof fn === "function" ? fn : null;
     }
 
     function setHumanPlayEnabled(enabled) {
@@ -1088,7 +1094,14 @@
         }
         let executed;
         try {
-            executed = chessGame.makeMove(sourcePos, targetPos);
+            if (humanMoveApplicator) {
+                executed = await humanMoveApplicator(sourcePos, targetPos);
+            } else {
+                executed = chessGame.makeMove(sourcePos, targetPos);
+            }
+            if (!executed || executed.valid === false) {
+                return false;
+            }
             syncFromGameState();
             refreshHumanPieceInput();
             resetSquareColors();
@@ -1375,6 +1388,7 @@
         refreshHumanPieceInput: refreshHumanPieceInput,
         setPreferences: setPreferences,
         setHumanMoveHandler: setHumanMoveHandler,
+        setHumanMoveApplicator: setHumanMoveApplicator,
         setHumanPlayEnabled: setHumanPlayEnabled,
         mount: mount,
         drawBoard: drawBoard,

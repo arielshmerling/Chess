@@ -3144,7 +3144,7 @@
 
     /**
      * Phase 2: wrap the shared ChessGame in GameSession + LocalEngineMode.
-     * Board still applies human moves; the mode owns engine compute + apply hook.
+     * Board applies human moves via session.applyMove; mode owns engine compute.
      */
     function ensurePlayGameSession() {
         if (!game || !GameSessionApi || !LocalEngineModeApi) {
@@ -4289,6 +4289,15 @@
             showAvailableMoves: idlePrefs.showAvailableMoves,
         });
         Board.setHumanMoveHandler(onHumanMove);
+        if (typeof Board.setHumanMoveApplicator === "function") {
+            Board.setHumanMoveApplicator(function (source, target) {
+                const gs = ensurePlayGameSession();
+                if (gs && typeof gs.applyMove === "function") {
+                    return gs.applyMove(source, target);
+                }
+                return game.makeMove(source, target);
+            });
+        }
         Board.mount("chessboard");
         if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
             window.DesktopBoardScale.refresh();

@@ -79,13 +79,29 @@ describe("session GameSession (Phase 2)", function () {
         session.dispose();
     });
 
+    it("applyMove mutates ChessGame without emitting moveApplied", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        const applied = [];
+        session.on("moveApplied", function () {
+            applied.push(1);
+        });
+        const before = game.Moves.length;
+        const executed = session.applyMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        assert.ok(executed);
+        assert.strictEqual(game.Moves.length, before + 1);
+        assert.deepStrictEqual(applied, []);
+        session.dispose();
+    });
+
     it("humanMoveApplied does not call makeMove again", function () {
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });
         session.start();
         const before = game.Moves.length;
-        /* Pretend the board already played e2-e4. */
-        const executed = game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        /* Board path: applyMove then humanMoveApplied after paint. */
+        const executed = session.applyMove({ row: 6, col: 4 }, { row: 4, col: 4 });
         assert.strictEqual(game.Moves.length, before + 1);
 
         const moves = [];
