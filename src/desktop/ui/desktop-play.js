@@ -2238,7 +2238,11 @@
         }
         items.push(
             { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
-            { id: "saveBtn", label: "Save", icon: "save", onClick: onSaveGame },
+        );
+        if (canPlayAdvancedTools) {
+            items.push({ id: "saveBtn", label: "Save", icon: "save", onClick: onSaveGame });
+        }
+        items.push(
             { type: "spacer" },
             { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
         );
@@ -2865,16 +2869,33 @@
         if (!filtersRoot) {
             return;
         }
+        const allowPositions = canPlayAdvancedTools;
+        filtersRoot.classList.toggle("desktop-play-saved-list-filters--games-only", !allowPositions);
         filtersRoot.querySelectorAll(".desktop-play-saved-list-filter").forEach(function (btn) {
-            const active = btn.getAttribute("data-filter") === savedListFilter;
+            const filter = btn.getAttribute("data-filter");
+            const isPositions = filter === "positions";
+            if (isPositions) {
+                btn.hidden = !allowPositions;
+                btn.style.display = allowPositions ? "" : "none";
+            }
+            const active = filter === savedListFilter;
             btn.classList.toggle("is-active", active);
             btn.setAttribute("aria-selected", active ? "true" : "false");
         });
+        const sep = filtersRoot.querySelector(".desktop-play-saved-list-filter-sep");
+        if (sep) {
+            sep.hidden = !allowPositions;
+            sep.style.display = allowPositions ? "" : "none";
+        }
     }
 
     function setSavedListFilter(filter) {
-        const next = filter === "positions" ? "positions" : "games";
+        let next = filter === "positions" ? "positions" : "games";
+        if (!canPlayAdvancedTools) {
+            next = "games";
+        }
         if (savedListFilter === next) {
+            updateSavedListFilterUi();
             return;
         }
         savedListFilter = next;
@@ -2882,6 +2903,34 @@
         clearSavedGameSelection();
         updateSavedListFilterUi();
         renderSavedGamesList();
+    }
+
+    function applyAdvancedToolsVisibility() {
+        const gamesSidebar = $("desktopPlaySidebarGames");
+        if (gamesSidebar) {
+            gamesSidebar.hidden = !canPlayAdvancedTools;
+            gamesSidebar.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
+            gamesSidebar.style.display = canPlayAdvancedTools ? "" : "none";
+            document.body.classList.toggle("desktop-play-no-games-panel", !canPlayAdvancedTools);
+        }
+        const setupDock = $("desktopPlaySetupDock");
+        if (setupDock) {
+            setupDock.hidden = !canPlayAdvancedTools;
+            setupDock.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
+        }
+        const configDock = $("desktopPlayConfigDock");
+        if (configDock) {
+            configDock.hidden = !canPlayAdvancedTools;
+            configDock.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
+        }
+        if (!canPlayAdvancedTools && savedListFilter !== "games") {
+            savedListFilter = "games";
+            persistSavedListFilter("games");
+        }
+        updateSavedListFilterUi();
+        if (canPlayAdvancedTools) {
+            renderSavedGamesList();
+        }
     }
 
     function ensureSavedListFilterControls() {
@@ -3142,13 +3191,17 @@
                     loadSavedGame(bookmarkId, { atStart: true });
                 },
             },
-            {
+        ];
+        if (canPlayAdvancedTools) {
+            items.push({
                 label: "Edit position",
                 disabled: blocked,
                 onClick: function () {
                     editSavedGame(bookmarkId);
                 },
-            },
+            });
+        }
+        items.push(
             {
                 label: "Rename",
                 onClick: function () {
@@ -3162,7 +3215,7 @@
                     deleteSavedGame(bookmarkId);
                 },
             },
-        ];
+        );
         window.DesktopContextMenu.show(ev.clientX, ev.clientY, items);
     }
 
@@ -3416,6 +3469,9 @@
     }
 
     async function editSavedGame(bookmarkId) {
+        if (!canPlayAdvancedTools) {
+            return;
+        }
         if (!game || animating || engineThinking || dialogOn) {
             return;
         }
@@ -3579,11 +3635,13 @@
             infoBtn.setAttribute("aria-label", "Saved game details");
             actions.appendChild(infoBtn);
         }
-        actions.appendChild(
-            createSavedGameIconButton("Edit position", "edit", function () {
-                editSavedGame(id);
-            }),
-        );
+        if (canPlayAdvancedTools) {
+            actions.appendChild(
+                createSavedGameIconButton("Edit position", "edit", function () {
+                    editSavedGame(id);
+                }),
+            );
+        }
         actions.appendChild(
             createSavedGameIconButton("Delete saved game", "delete", function () {
                 deleteSavedGame(id);
@@ -3649,6 +3707,9 @@
     }
 
     async function onSaveGame() {
+        if (!canPlayAdvancedTools) {
+            return;
+        }
         if (!game || !session || animating || engineThinking || dialogOn) {
             return;
         }
@@ -4738,6 +4799,7 @@
         }
         fetchLaunchContext()
             .then(function () {
+                applyAdvancedToolsVisibility();
                 buildActionRail();
                 ensureReviewNavBar();
                 return startSession();
