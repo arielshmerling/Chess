@@ -3109,9 +3109,7 @@
                 Board.clearBoardAnimating();
             }
         }
-        lastMove = game.LastMove || lastMove;
-        updateMovesTable(tableMovesFromGame());
-        updateHeaderTurn();
+        /* Moves table / lastMove chrome: externalMoveApplied → onSessionMoveApplied. */
         return true;
     }
 
@@ -3140,6 +3138,59 @@
         }
         playGameSession = null;
         playLocalEngineMode = null;
+    }
+
+    function sessionChromeGuardsOk() {
+        return (
+            !!gameActive &&
+            !positionSetupMode &&
+            !configurationMode &&
+            !reviewMode
+        );
+    }
+
+    /**
+     * Play chrome driven by GameSession move events (human / engine / promotion).
+     */
+    function onSessionMoveApplied(executed, info) {
+        if (!sessionChromeGuardsOk()) {
+            return;
+        }
+        clearDisplayedEvaluation();
+        if (executed) {
+            lastMove = executed;
+        } else if (game && game.LastMove) {
+            lastMove = game.LastMove;
+        }
+        const src = info && info.source;
+        if (src === "human" || src === "promotion" || src === "engine" || src === "session") {
+            redoPairAvailable = false;
+        }
+        if (Board.clearArrows) {
+            Board.clearArrows();
+        }
+        if (Board.resetSquareColors) {
+            Board.resetSquareColors();
+        }
+        updateMovesTable(tableMovesFromGame());
+        updateActionButtons();
+    }
+
+    /** Undo/redo pair chrome — OnUpdate is batched off during shell undo/redo. */
+    function onSessionNavChrome() {
+        if (!sessionChromeGuardsOk()) {
+            return;
+        }
+        clearDisplayedEvaluation();
+        if (Board.clearArrows) {
+            Board.clearArrows();
+        }
+        syncBoardFromGame();
+        if (game && game.LastMove) {
+            lastMove = game.LastMove;
+        }
+        updateMovesTable(tableMovesFromGame());
+        updateActionButtons();
     }
 
     /**
@@ -3305,11 +3356,16 @@
         playGameSession.on("error", function (message) {
             showStatus(message || "Session error", 0, "error");
         });
+        playGameSession.on("moveApplied", function (executed, info) {
+            onSessionMoveApplied(executed, info);
+        });
         playGameSession.on("undone", function () {
             redoPairAvailable = true;
+            onSessionNavChrome();
         });
         playGameSession.on("redone", function () {
             redoPairAvailable = false;
+            onSessionNavChrome();
         });
         playGameSession.load({
             active: true,
@@ -3954,13 +4010,10 @@
                         if (!ok) {
                             return;
                         }
-                        lastMove = game.LastMove || pending;
                         Board.syncFromGameState();
                         syncBoardFromGame();
-                        redoPairAvailable = false;
-                        updateMovesTable(tableMovesFromGame());
                         showStatus("");
-                        /* Engine reply is requested by LocalEngineMode.afterMove. */
+                        /* Chrome + engine reply come from session moveApplied / afterMove. */
                         runBrainAfter = false;
                     } else {
                         pending.selectedPiece = selectedPiece;
@@ -3995,6 +4048,12 @@
         if (!gameActive || positionSetupMode || configurationMode) {
             return;
         }
+        const gs = ensurePlayGameSession();
+        if (gs && typeof gs.humanMoveApplied === "function") {
+            await yieldForPaint();
+            gs.humanMoveApplied(executed);
+            return;
+        }
         clearDisplayedEvaluation();
         lastMove = executed;
         redoPairAvailable = false;
@@ -4004,12 +4063,6 @@
         }
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
-        const gs = ensurePlayGameSession();
-        if (gs && typeof gs.humanMoveApplied === "function") {
-            await yieldForPaint();
-            gs.humanMoveApplied(executed);
-            return;
-        }
         switchClocks();
         updateHeaderTurn();
         if (!game.GameOver && isAiTurn()) {
@@ -4138,18 +4191,21 @@
         if (!canUndoMovePair() || $("undoBtn").disabled) {
             return;
         }
-        clearDisplayedEvaluation();
         abortEngineSearch();
         animating = true;
         batchUndoRedo = true;
         const gs = ensurePlayGameSession();
         if (gs && typeof gs.undo === "function") {
             gs.undo();
-        } else {
-            game.undo();
-            game.undo();
-            redoPairAvailable = true;
+            batchUndoRedo = false;
+            animating = false;
+            persistActiveGame();
+            return;
         }
+        clearDisplayedEvaluation();
+        game.undo();
+        game.undo();
+        redoPairAvailable = true;
         batchUndoRedo = false;
         Board.clearArrows();
         syncBoardFromGame();
@@ -4163,17 +4219,20 @@
         if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating || engineThinking) {
             return;
         }
-        clearDisplayedEvaluation();
         animating = true;
         batchUndoRedo = true;
         const gs = ensurePlayGameSession();
         if (gs && typeof gs.redo === "function") {
             gs.redo();
-        } else {
-            game.redo();
-            game.redo();
-            redoPairAvailable = false;
+            batchUndoRedo = false;
+            animating = false;
+            persistActiveGame();
+            return;
         }
+        clearDisplayedEvaluation();
+        game.redo();
+        game.redo();
+        redoPairAvailable = false;
         batchUndoRedo = false;
         Board.clearArrows();
         syncBoardFromGame();
