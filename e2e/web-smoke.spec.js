@@ -187,6 +187,20 @@ test.describe("web smoke", () => {
         await expect(page.locator("#movesDiv")).toContainText(/e4|E4|pawn/i, { timeout: 15_000 });
     });
 
+    test("the clock of the side to move counts down", async ({ page }) => {
+        await login(page);
+        await startPlayNowGame(page, { color: "white" });
+
+        const whiteClock = page.locator("#whiteClockTimeText");
+        const blackClock = page.locator("#blackClockTimeText");
+        await expect(whiteClock).toHaveText(/^\d{2}:\d{2}:\d{2}$/, { timeout: 15_000 });
+        const startWhite = await whiteClock.textContent();
+        const startBlack = await blackClock.textContent();
+
+        await expect.poll(async () => whiteClock.textContent(), { timeout: 15_000 }).not.toBe(startWhite);
+        await expect(blackClock).toHaveText(String(startBlack));
+    });
+
     test("refreshing the play page resumes the game in progress", async ({ page }) => {
         await login(page);
         await startPlayNowGame(page, { color: "white" });

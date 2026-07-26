@@ -12,6 +12,17 @@
     const GameRun = window.DesktopGameRun;
     const PositionValidation = window.DesktopPositionValidation;
     const MovesPanel = window.PlayMovesPanel;
+    const Clocks = window.PlayClocksController.create({
+        getElement: function (color) {
+            return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
+        },
+        isStopped: function () {
+            return !!(game && game.GameOver);
+        },
+        onFlag: function () {
+            outOfTime();
+        },
+    });
 
     let game = null;
     const Settings = window.DesktopGameSettings;
@@ -24,10 +35,6 @@
     let session = null;
     let gameActive = false;
     let currentPlayerIsWhite = true;
-    let whiteTimer = 0;
-    let blackTimer = 0;
-    let whiteHandle = null;
-    let blackHandle = null;
     let lastMove = null;
     let autoCompletePromotion = false;
     let dialogOn = false;
@@ -198,12 +205,6 @@
         });
     }
 
-    function timerToText(timer) {
-        const d = new Date(1970, 0, 1);
-        d.setSeconds(timer);
-        return d.toLocaleTimeString("eo", { hour12: false });
-    }
-
     function initialClockSeconds() {
         if (session && typeof session.gameTimeMinutes === "number" && session.gameTimeMinutes >= 1) {
             return Math.round(session.gameTimeMinutes * 60);
@@ -212,46 +213,18 @@
     }
 
     function resetClocks() {
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-            whiteHandle = null;
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-            blackHandle = null;
-        }
-        whiteTimer = initialClockSeconds();
-        blackTimer =
+        const white = initialClockSeconds();
+        const black =
             session &&
             typeof session.blackTimer === "number" &&
             session.blackTimer > 0
                 ? session.blackTimer
-                : whiteTimer;
-        const whiteClock = $("whiteClockTimeText");
-        const blackClock = $("blackClockTimeText");
-        if (whiteClock) {
-            whiteClock.textContent = timerToText(whiteTimer);
-        }
-        if (blackClock) {
-            blackClock.textContent = timerToText(blackTimer);
-        }
+                : white;
+        Clocks.reset({ white: white, black: black });
     }
 
-    function updateTimersFromInfo(info) {
-        if (typeof info.whiteTimer === "number" && info.whiteTimer >= 0) {
-            whiteTimer = info.whiteTimer;
-            const el = $("whiteClockTimeText");
-            if (el) {
-                el.textContent = timerToText(whiteTimer);
-            }
-        }
-        if (typeof info.blackTimer === "number" && info.blackTimer >= 0) {
-            blackTimer = info.blackTimer;
-            const el = $("blackClockTimeText");
-            if (el) {
-                el.textContent = timerToText(blackTimer);
-            }
-        }
+    function setClocksToInitialTime() {
+        Clocks.set({ white: initialClockSeconds(), black: initialClockSeconds() });
     }
 
     const STATUS_BAR_CLASSES = [
@@ -378,47 +351,9 @@
     }
 
     function switchClocks() {
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-            whiteHandle = null;
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-            blackHandle = null;
-        }
+        Clocks.stop();
         updateHeaderTurn();
-        if (game.Turn === "black") {
-            blackHandle = setInterval(function () {
-                blackTimer--;
-                const el = $("blackClockTimeText");
-                if (el) {
-                    el.textContent = timerToText(blackTimer);
-                }
-                if (game.GameOver || blackTimer <= 0) {
-                    clearInterval(blackHandle);
-                    blackHandle = null;
-                    if (blackTimer <= 0 && !game.GameOver) {
-                        outOfTime();
-                    }
-                }
-            }, 1000);
-        }
-        if (game.Turn === "white") {
-            whiteHandle = setInterval(function () {
-                whiteTimer--;
-                const el = $("whiteClockTimeText");
-                if (el) {
-                    el.textContent = timerToText(whiteTimer);
-                }
-                if (game.GameOver || whiteTimer <= 0) {
-                    clearInterval(whiteHandle);
-                    whiteHandle = null;
-                    if (whiteTimer <= 0 && !game.GameOver) {
-                        outOfTime();
-                    }
-                }
-            }, 1000);
-        }
+        Clocks.startFor(game.Turn);
     }
 
     function outOfTime() {
@@ -562,23 +497,17 @@
     }
 
     function pauseClocksForSetup() {
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-            whiteHandle = null;
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-            blackHandle = null;
-        }
+        Clocks.stop();
     }
 
     function capturePositionSetupSnapshot() {
+        const clocks = Clocks.get();
         return {
             stateStr: JSON.stringify(game.GameState),
             moves: tableMovesFromGame(),
-            whiteTimer: whiteTimer,
-            blackTimer: blackTimer,
-            clocksWereRunning: !!(whiteHandle || blackHandle),
+            whiteTimer: clocks.white,
+            blackTimer: clocks.black,
+            clocksWereRunning: Clocks.isRunning(),
             currentPlayerIsWhite: currentPlayerIsWhite,
             whitePlayerView: game.WhitePlayerView,
         };
@@ -590,8 +519,6 @@
         }
         game.loadGame(positionSetupSnapshot.stateStr);
         game.loadMoves(positionSetupSnapshot.moves);
-        whiteTimer = positionSetupSnapshot.whiteTimer;
-        blackTimer = positionSetupSnapshot.blackTimer;
         if (typeof positionSetupSnapshot.currentPlayerIsWhite === "boolean") {
             currentPlayerIsWhite = positionSetupSnapshot.currentPlayerIsWhite;
             if (Board.setHumanColor) {
@@ -602,7 +529,10 @@
             game.WhitePlayerView = positionSetupSnapshot.whitePlayerView;
             Board.setPlayerView(positionSetupSnapshot.whitePlayerView);
         }
-        updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
+        Clocks.set({
+            white: positionSetupSnapshot.whiteTimer,
+            black: positionSetupSnapshot.blackTimer,
+        });
         Board.syncFromGameState();
         updateMovesTable(positionSetupSnapshot.moves);
         updateHeaderTurn();
@@ -1083,9 +1013,7 @@
         assignNewGameId();
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
-        whiteTimer = initialClockSeconds();
-        blackTimer = initialClockSeconds();
-        updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
+        setClocksToInitialTime();
         redoPairAvailable = false;
         lastCheckNotifySide = null;
         alertMode = false;
@@ -1440,9 +1368,7 @@
         game.loadMoves([]);
         const playOriginSnapshot = JSON.stringify(state);
         applyGameRunPanelOptions(setupOpts);
-        whiteTimer = initialClockSeconds();
-        blackTimer = initialClockSeconds();
-        updateTimersFromInfo({ whiteTimer: whiteTimer, blackTimer: blackTimer });
+        setClocksToInitialTime();
         redoPairAvailable = false;
         positionSetupSnapshot = null;
         clearDisplayedEvaluation();
@@ -3673,12 +3599,7 @@
         alertMode = true;
         const winner = game.opponent(matedTurn);
         showStatus("Checkmate — " + game.colorName(winner) + " wins", 0, "checkmate");
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-        }
+        Clocks.stop();
         updateActionButtons();
         tryLogCompletedGame();
     }
@@ -3694,12 +3615,7 @@
         alertMode = true;
         showStatus("Draw — " + reason, 0, "draw");
         Board.applyDrawHighlight();
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-        }
+        Clocks.stop();
         updateActionButtons();
         tryLogCompletedGame();
     }
@@ -3781,17 +3697,6 @@
         return true;
     }
 
-    function stopGameClocks() {
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-            whiteHandle = null;
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-            blackHandle = null;
-        }
-    }
-
     function abortEngineSearch() {
         if (Engine && typeof Engine.abortSearch === "function") {
             Engine.abortSearch();
@@ -3814,7 +3719,7 @@
 
     function finishResignGame(resignedColor) {
         alertMode = true;
-        stopGameClocks();
+        Clocks.stop();
         showStatus(resignStatusMessage(resignedColor), 0, "info");
         if (Board.applyResignedKingTilt && resignedColor) {
             Board.applyResignedKingTilt(resignedColor);
@@ -4153,6 +4058,7 @@
     }
 
     function captureActiveGameSnapshot() {
+        const clocks = Clocks.get();
         return {
             gameId: currentGameId,
             color: currentPlayerIsWhite ? "white" : "black",
@@ -4168,8 +4074,8 @@
             state: JSON.stringify(game.GameState),
             moves: tableMovesFromGame(),
             originState: playOriginStateStr,
-            whiteTimer: whiteTimer,
-            blackTimer: blackTimer,
+            whiteTimer: clocks.white,
+            blackTimer: clocks.black,
         };
     }
 
@@ -4221,10 +4127,7 @@
             setPlayOriginState(snapshot.originState || null);
             clearDisplayedEvaluation();
             resetClocks();
-            updateTimersFromInfo({
-                whiteTimer: snapshot.whiteTimer,
-                blackTimer: snapshot.blackTimer,
-            });
+            Clocks.set({ white: snapshot.whiteTimer, black: snapshot.blackTimer });
             redoPairAvailable = false;
             lastCheckNotifySide = null;
             alertMode = false;
@@ -4659,14 +4562,7 @@
         gameActive = false;
         positionSetupSnapshot = null;
         document.body.classList.remove("desktop-play-has-active-game");
-        if (whiteHandle) {
-            clearInterval(whiteHandle);
-            whiteHandle = null;
-        }
-        if (blackHandle) {
-            clearInterval(blackHandle);
-            blackHandle = null;
-        }
+        Clocks.stop();
         session = null;
         setCurrentGameId(null);
         lastLoadedSavedGameId = null;
