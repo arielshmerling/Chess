@@ -97,7 +97,8 @@ describe("web HTTP / auth", function () {
 
         const homeRes = await agent.get("/home").expect(200);
         assert.match(homeRes.text, /id="startAIGame"/);
-        assert.match(homeRes.text, /id="playNowForm"/);
+        assert.match(homeRes.text, /startPlayFromHome/);
+        assert.doesNotMatch(homeRes.text, /id="playNowForm"/);
         assert.match(homeRes.text, /id="online-games-container"/);
     });
 

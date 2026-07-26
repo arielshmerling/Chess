@@ -60,6 +60,18 @@ function startAIGame() {
     window.location = getPlayGameBasePath() + "?gameType=1"; // SinglePlayerGame
 }
 
+/**
+ * Desktop/web home: skip the large home modal and open Play with the compact New Game dialog.
+ * Mobile / classic pages without the new Play UI keep the existing modal.
+ */
+function startPlayFromHome() {
+    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
+        window.location = "/play?newGame=1";
+        return;
+    }
+    openPlayNowModal();
+}
+
 function openPlayNowModal() {
     const modal = document.getElementById("playNowModal");
     if (!modal) { return; }
@@ -238,4 +250,5 @@ function menuNewGameOnePlayer() {
 if (typeof window !== "undefined") {
     window.openPlayNowModal = openPlayNowModal;
     window.startNewGameFromModal = startNewGameFromModal;
+    window.startPlayFromHome = startPlayFromHome;
 }

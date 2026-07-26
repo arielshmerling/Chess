@@ -41,6 +41,8 @@
     /** Position Setup + Config — always on for Electron; web uses launch-context. */
     let canPlayAdvancedTools = true;
     let launchContextPromise = null;
+    /** Username from /api/play/launch-context (web); used when New Game dialog omits it. */
+    let webLaunchUsername = null;
     let batchUndoRedo = false;
     let loadingBookmark = false;
     let savedGames = [];
@@ -4272,6 +4274,9 @@
             try {
                 const ctx = await Api.get("/api/play/launch-context");
                 canPlayAdvancedTools = !!(ctx && ctx.canPlayAdvanced);
+                if (ctx && ctx.username) {
+                    webLaunchUsername = ctx.username;
+                }
                 return ctx || { ok: false, canPlayAdvanced: false };
             } catch (err) {
                 console.warn("[Play] Could not load launch context:", err);
@@ -4291,6 +4296,7 @@
             }
             if (ctx && ctx.username) {
                 opts.username = ctx.username;
+                webLaunchUsername = ctx.username;
             }
         } catch (err) {
             console.warn("[Play] Could not apply launch context:", err);
@@ -4340,8 +4346,26 @@
         resetToIdleScreen();
     }
 
+    function wantsNewGameDialogFromUrl() {
+        try {
+            const params = new URLSearchParams(window.location.search || "");
+            return params.get("newGame") === "1";
+        } catch {
+            return false;
+        }
+    }
+
     async function maybeAutoStartWebGame() {
         if (!isWebPlayPage()) {
+            return;
+        }
+        if (wantsNewGameDialogFromUrl()) {
+            clearWebLaunchQueryString();
+            /* Prefetch last options so the compact dialog defaults match saved prefs. */
+            await resolveWebAutoStartOptions();
+            if (NewGameDialog && typeof NewGameDialog.show === "function") {
+                NewGameDialog.show(beginNewGame);
+            }
             return;
         }
         const opts = await resolveWebAutoStartOptions();
@@ -4350,18 +4374,22 @@
     }
 
     async function beginNewGame(opts) {
-        applySessionSettings(opts);
+        const launchOpts = Object.assign({}, opts || {});
+        if (!launchOpts.username && webLaunchUsername) {
+            launchOpts.username = webLaunchUsername;
+        }
+        applySessionSettings(launchOpts);
         if (Settings.saveNewGameOptions) {
             Settings.saveNewGameOptions({
-                color: opts.color === "black" ? "black" : "white",
-                engine: opts.engine || "brain43",
-                allowUndo: opts.allowUndo !== false,
-                timeMinutes: opts.timeMinutes,
-                mouse: opts.mouse,
-                thinkingTimeSeconds: opts.thinkingTimeSeconds != null
-                    ? opts.thinkingTimeSeconds
-                    : opts.difficulty,
-                showAvailableMoves: opts.showAvailableMoves,
+                color: launchOpts.color === "black" ? "black" : "white",
+                engine: launchOpts.engine || "brain43",
+                allowUndo: launchOpts.allowUndo !== false,
+                timeMinutes: launchOpts.timeMinutes,
+                mouse: launchOpts.mouse,
+                thinkingTimeSeconds: launchOpts.thinkingTimeSeconds != null
+                    ? launchOpts.thinkingTimeSeconds
+                    : launchOpts.difficulty,
+                showAvailableMoves: launchOpts.showAvailableMoves,
             });
         }
         assignNewGameId();

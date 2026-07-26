@@ -12,22 +12,20 @@ async function login(page) {
     await expect(page).toHaveURL(/\/home/i);
 }
 
-async function startPlayNowGame(page, { color = "white", difficulty = "1", engine = null, isPrivate = false } = {}) {
+async function startPlayNowGame(page, { color = "white", engine = null } = {}) {
     await page.locator("#startAIGame").click();
-    await expect(page.locator("#playNowModal")).toBeVisible();
-    await page
-        .locator("#playNowModal label.play-now-radio")
+    await expect(page).toHaveURL(/\/play(?:\/|\?|$)/);
+    const dialog = page.locator(".desktop-play-dialog--new-game");
+    await expect(dialog).toBeVisible({ timeout: 30_000 });
+    await dialog
+        .locator("label.desktop-option-pill")
         .filter({ has: page.locator(`input[name="color"][value="${color}"]`) })
         .click();
     if (engine) {
-        await page.locator("#playNowEngine").selectOption(engine);
+        await dialog.locator("#dlgEngine").selectOption(engine);
     }
-    await page.locator("#playNowDifficulty").fill(String(difficulty));
-    if (isPrivate) {
-        await page.locator("label.play-now-checkbox-label").filter({ has: page.locator("#playNowPrivate") }).click();
-    }
-    await page.locator(".play-now-btn-start").click();
-    await expect(page).toHaveURL(/\/play(?:\/|\?|$)/);
+    await dialog.locator("button.desktop-btn-gold", { hasText: "Start" }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
     await expect(page.locator("#innerBoard")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("#homeBtn")).toBeVisible({ timeout: 30_000 });
 }
@@ -103,33 +101,33 @@ test.describe("web smoke", () => {
         await expect(page.locator("#PlayerGameList")).toBeVisible();
     });
 
-    test("Play Now modal cancel keeps user on home", async ({ page }) => {
+    test("Play Now opens compact new-game dialog on play page", async ({ page }) => {
         await login(page);
         await page.locator("#startAIGame").click();
-        await expect(page.locator("#playNowModal")).toBeVisible();
+        await expect(page).toHaveURL(/\/play(?:\/|\?|$)/);
+        const dialog = page.locator(".desktop-play-dialog--new-game");
+        await expect(dialog).toBeVisible({ timeout: 30_000 });
 
-        await page.locator(".play-now-btn-cancel").click();
-        await expect(page.locator("#playNowModal")).toBeHidden();
-        await expect(page).toHaveURL(/\/home/i);
-        await expect(page.locator("#startAIGame")).toBeVisible();
+        await dialog.locator("button.desktop-btn", { hasText: "Cancel" }).click();
+        await expect(dialog).toBeHidden();
+        await expect(page).toHaveURL(/\/play(?:\/|\?|$)/);
+        await expect(page.locator("#homeBtn")).toBeVisible();
     });
 
     test("Play Now as Black loads the board", async ({ page }) => {
         await login(page);
-        await startPlayNowGame(page, { color: "black", difficulty: "1" });
+        await startPlayNowGame(page, { color: "black" });
 
         await expect(page.locator("#chessboard")).toBeVisible();
         await expect(page.locator("#desktopPlayWhiteName")).toContainText(/Brain/i);
         await expect(page.locator("#desktopPlayBlackName")).toContainText(username);
     });
 
-    test("Play Now with Brain 4.2 and Private starts a game", async ({ page }) => {
+    test("Play Now with Brain 4.2 starts a game", async ({ page }) => {
         await login(page);
         await startPlayNowGame(page, {
             color: "white",
-            difficulty: "1",
             engine: "brain42",
-            isPrivate: true,
         });
         await expect(page.locator("#desktopPlayWhiteName")).toContainText(username);
         await expect(page.locator("#desktopPlayBlackName")).toContainText(/Brain/i);
@@ -178,7 +176,7 @@ test.describe("web smoke", () => {
 
     test("drag e2-e4 records a move on the board", async ({ page }) => {
         await login(page);
-        await startPlayNowGame(page, { color: "white", difficulty: "1" });
+        await startPlayNowGame(page, { color: "white" });
 
         const from = page.locator('#innerBoard .square[data-row="6"][data-col="4"] img.draggable');
         const to = page.locator('#innerBoard .square[data-row="4"][data-col="4"]');
@@ -191,7 +189,7 @@ test.describe("web smoke", () => {
     test("drag d2-d4 after e2-e4 adds a second white move wait for engine", async ({ page }) => {
         test.setTimeout(90_000);
         await login(page);
-        await startPlayNowGame(page, { color: "white", difficulty: "1" });
+        await startPlayNowGame(page, { color: "white" });
 
         const e2 = page.locator('#innerBoard .square[data-row="6"][data-col="4"] img.draggable');
         const e4 = page.locator('#innerBoard .square[data-row="4"][data-col="4"]');
