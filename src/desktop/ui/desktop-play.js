@@ -16,6 +16,8 @@
     const SavedGamesList = window.PlaySavedGamesList;
     const ReviewModel = window.PlayReviewModel;
     const ReviewNav = window.PlayReviewNav;
+    const SessionMode = window.PlaySessionMode;
+    const DockModeChrome = window.PlayDockModeChrome;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -303,19 +305,12 @@
     }
 
     function formatSessionTypeLabel() {
-        if (positionSetupMode) {
-            return "Position Setup";
-        }
-        if (configurationMode) {
-            return "Configuration mode";
-        }
-        if (reviewPlaybackPlaying) {
-            return "Playback Mode";
-        }
-        if (reviewMode) {
-            return "Review Mode";
-        }
-        return "Play Mode";
+        return SessionMode.sessionTypeLabel({
+            positionSetup: positionSetupMode,
+            configuration: configurationMode,
+            reviewPlayback: reviewPlaybackPlaying,
+            review: reviewMode,
+        });
     }
 
     function updateMatchHeader() {
@@ -702,17 +697,17 @@
             setConfigurationUi(false);
         }
         positionSetupMode = on;
-        const btn = $("positionSetupBtn");
-        if (btn) {
-            btn.classList.toggle("desktop-play-action--active", positionSetupMode);
-        }
-        const sidebar = $("desktopPlaySidebarMoves");
-        if (sidebar) {
-            sidebar.classList.toggle("desktop-play-sidebar--position-setup", positionSetupMode);
-            if (positionSetupMode) {
-                sidebar.classList.remove("desktop-play-sidebar--brain-config");
-            }
-        }
+        DockModeChrome.applyDockModes(
+            {
+                sidebar: $("desktopPlaySidebarMoves"),
+                positionSetupBtn: $("positionSetupBtn"),
+                configurationBtn: $("configurationBtn"),
+            },
+            {
+                positionSetup: positionSetupMode,
+                configuration: configurationMode,
+            },
+        );
         updateMatchHeader();
         updateActionButtons();
     }
@@ -722,23 +717,19 @@
         if (on && positionSetupMode) {
             Board.setSetupMode(false);
             positionSetupMode = false;
-            const setupBtn = $("positionSetupBtn");
-            if (setupBtn) {
-                setupBtn.classList.remove("desktop-play-action--active");
-            }
         }
         configurationMode = on;
-        const btn = $("configurationBtn");
-        if (btn) {
-            btn.classList.toggle("desktop-play-action--active", configurationMode);
-        }
-        const sidebar = $("desktopPlaySidebarMoves");
-        if (sidebar) {
-            sidebar.classList.toggle("desktop-play-sidebar--brain-config", configurationMode);
-            if (configurationMode) {
-                sidebar.classList.remove("desktop-play-sidebar--position-setup");
-            }
-        }
+        DockModeChrome.applyDockModes(
+            {
+                sidebar: $("desktopPlaySidebarMoves"),
+                positionSetupBtn: $("positionSetupBtn"),
+                configurationBtn: $("configurationBtn"),
+            },
+            {
+                positionSetup: positionSetupMode,
+                configuration: configurationMode,
+            },
+        );
         updateMatchHeader();
         updateActionButtons();
     }
@@ -845,19 +836,18 @@
     }
 
     function setGameRunPanelVisible(visible) {
-        const el = $("desktopPlayHeaderRun");
-        if (!el) {
-            return;
-        }
-        el.classList.toggle("desktop-play-header-run--hidden", !visible);
-        el.setAttribute("aria-hidden", visible ? "false" : "true");
+        DockModeChrome.setGameRunVisible($("desktopPlayHeaderRun"), visible);
     }
 
     function updateGameRunPanelVisibility() {
-        const show =
-            positionSetupMode ||
-            (!gameActive && !!lastLoadedSavedGameId && boardHasPieces());
-        setGameRunPanelVisible(show);
+        setGameRunPanelVisible(
+            SessionMode.shouldShowGameRun({
+                positionSetup: positionSetupMode,
+                gameActive: gameActive,
+                hasLoadedSavedGame: !!lastLoadedSavedGameId,
+                boardHasPieces: boardHasPieces(),
+            }),
+        );
     }
 
     function ensureGameRunPanel() {
@@ -1389,24 +1379,20 @@
     }
 
     function canUsePositionSetup() {
-        if (!canPlayAdvancedTools) {
-            return false;
-        }
-        if (!game) {
-            return false;
-        }
-        if (game.GameOver) {
-            return true;
-        }
-        const moveCount = game.Moves ? game.Moves.length : 0;
-        return moveCount === 0;
+        return SessionMode.canUsePositionSetup({
+            canPlayAdvancedTools: canPlayAdvancedTools,
+            hasGame: !!game,
+            gameOver: !!(game && game.GameOver),
+            moveCount: game && game.Moves ? game.Moves.length : 0,
+        });
     }
 
     function canUseBrainConfig() {
-        if (!canPlayAdvancedTools) {
-            return false;
-        }
-        return !positionSetupMode && !gameActive;
+        return SessionMode.canUseBrainConfig({
+            canPlayAdvancedTools: canPlayAdvancedTools,
+            positionSetup: positionSetupMode,
+            gameActive: gameActive,
+        });
     }
 
     function exitConfigurationIfGameStarting() {
@@ -2531,23 +2517,15 @@
     }
 
     function applyAdvancedToolsVisibility() {
-        const gamesSidebar = $("desktopPlaySidebarGames");
-        if (gamesSidebar) {
-            gamesSidebar.hidden = !canPlayAdvancedTools;
-            gamesSidebar.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
-            gamesSidebar.style.display = canPlayAdvancedTools ? "" : "none";
-            document.body.classList.toggle("desktop-play-no-games-panel", !canPlayAdvancedTools);
-        }
-        const setupDock = $("desktopPlaySetupDock");
-        if (setupDock) {
-            setupDock.hidden = !canPlayAdvancedTools;
-            setupDock.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
-        }
-        const configDock = $("desktopPlayConfigDock");
-        if (configDock) {
-            configDock.hidden = !canPlayAdvancedTools;
-            configDock.setAttribute("aria-hidden", canPlayAdvancedTools ? "false" : "true");
-        }
+        DockModeChrome.applyAdvancedToolsVisibility(
+            {
+                gamesSidebar: $("desktopPlaySidebarGames"),
+                setupDock: $("desktopPlaySetupDock"),
+                configDock: $("desktopPlayConfigDock"),
+                body: document.body,
+            },
+            canPlayAdvancedTools,
+        );
         if (!canPlayAdvancedTools && savedListFilter !== "games") {
             savedListFilter = "games";
             persistSavedListFilter("games");
