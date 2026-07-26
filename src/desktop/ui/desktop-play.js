@@ -14,6 +14,8 @@
     const MovesPanel = window.PlayMovesPanel;
     const SavedGames = window.PlaySavedGamesModel;
     const SavedGamesList = window.PlaySavedGamesList;
+    const ReviewModel = window.PlayReviewModel;
+    const ReviewNav = window.PlayReviewNav;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -144,21 +146,6 @@
             '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
         configuration:
             '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    };
-
-    const REVIEW_NAV_ICONS = {
-        start:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6V6zm3.5 6L18 18V6L9.5 12z" fill="currentColor"/></svg>',
-        back:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6v12z" fill="currentColor"/></svg>',
-        play:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg>',
-        pause:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" fill="currentColor"/></svg>',
-        forward:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6v12z" fill="currentColor"/></svg>',
-        end:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6h2v12h-2V6zM6 18V6l8.5 6L6 18z" fill="currentColor"/></svg>',
     };
 
     function $(id) {
@@ -1491,25 +1478,13 @@
     }
 
     function resignedColorFromStateStr(stateStr) {
-        try {
-            const state = JSON.parse(stateStr || "{}");
-            const resigned = state.resigned;
-            if (!resigned || !String(resigned).trim()) {
-                return null;
-            }
-            return String(resigned).toLowerCase();
-        } catch {
-            return null;
-        }
+        return ReviewModel.resignedColorFromState(stateStr);
     }
 
     function reviewChessMoveCount() {
-        if (!reviewFullMoves.length) {
-            return 0;
-        }
-        return reviewFullMoves.filter(function (move) {
-            return !(typeof game.isResultMove === "function" && game.isResultMove(move));
-        }).length;
+        return ReviewModel.chessMoveCount(reviewFullMoves, function (move) {
+            return typeof game.isResultMove === "function" && game.isResultMove(move);
+        });
     }
 
     function shouldApplyReviewResignationHighlight() {
@@ -1547,7 +1522,7 @@
 
     function syncLoadedBookmarkDisplayMoves(moves) {
         loadedBookmarkDisplayMoves =
-            moves && moves.length ? moves.map(cloneReviewMove) : null;
+            moves && moves.length ? ReviewModel.cloneMoves(moves) : null;
     }
 
     function clearLoadedBookmarkDisplayMoves() {
@@ -1670,7 +1645,7 @@
         chess.OnUpdate = null;
         chess.OnPromotion = null;
         try {
-            const raw = cloneReviewMove(move);
+            const raw = ReviewModel.cloneMove(move);
             if (!raw || raw.source == null || raw.target == null) {
                 return false;
             }
@@ -1713,7 +1688,7 @@
         autoCompletePromotion = true;
         try {
             prepareReviewStartPosition(game);
-            const limit = Math.max(0, Math.min(ply, reviewFullMoves.length));
+            const limit = ReviewModel.clampPly(ply, reviewFullMoves.length);
             for (let i = 0; i < limit; i += 1) {
                 if (!applyReviewMove(game, reviewFullMoves[i])) {
                     console.warn("[desktop-play] Review replay stopped at ply", i + 1);
@@ -1723,7 +1698,7 @@
             const previousOnUpdate = game.OnUpdate;
             game.OnUpdate = null;
             try {
-                game.loadMoves(reviewFullMoves.slice(0, limit).map(cloneReviewMove));
+                game.loadMoves(ReviewModel.cloneMoves(reviewFullMoves.slice(0, limit)));
             } finally {
                 game.OnUpdate = previousOnUpdate;
             }
@@ -1733,15 +1708,12 @@
     }
 
     function cloneReviewMove(move) {
-        if (typeof move === "string") {
-            return JSON.parse(move);
-        }
-        return Object.assign({}, move);
+        return ReviewModel.cloneMove(move);
     }
 
     function initReviewNavigation(finalStateStr, moves, bookmarkOrigin) {
         const loaded = moves && moves.length ? moves : tableMovesFromGame();
-        reviewFullMoves = loaded.map(cloneReviewMove);
+        reviewFullMoves = ReviewModel.cloneMoves(loaded);
         reviewFinalStateStr = finalStateStr;
         reviewResignedColor = resignedColorFromStateStr(finalStateStr);
         if (bookmarkOrigin && String(bookmarkOrigin).trim()) {
@@ -1819,7 +1791,7 @@
             const previousOnUpdateResult = game.OnUpdate;
             game.OnUpdate = null;
             try {
-                game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+                game.loadMoves(ReviewModel.cloneMoves(reviewFullMoves.slice(0, reviewPlyIndex)));
             } finally {
                 game.OnUpdate = previousOnUpdateResult;
             }
@@ -1845,7 +1817,7 @@
             const previousOnUpdateStep = game.OnUpdate;
             game.OnUpdate = null;
             try {
-                game.loadMoves(reviewFullMoves.slice(0, reviewPlyIndex).map(cloneReviewMove));
+                game.loadMoves(ReviewModel.cloneMoves(reviewFullMoves.slice(0, reviewPlyIndex)));
             } finally {
                 game.OnUpdate = previousOnUpdateStep;
             }
@@ -1900,106 +1872,56 @@
         }
     }
 
-    function createReviewNavButton(label, iconKey, className, onClick) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "desktop-play-review-nav-btn" + (className ? " " + className : "");
-        btn.setAttribute("aria-label", label);
-        btn.title = label;
-        btn.innerHTML = REVIEW_NAV_ICONS[iconKey] || "";
-        btn.addEventListener("click", function (ev) {
-            ev.preventDefault();
-            onClick();
-        });
-        return btn;
-    }
-
     function ensureReviewNavBar() {
         const nav = $("desktopPlayReviewNav");
         if (!nav || reviewNavMounted) {
             return;
         }
         reviewNavMounted = true;
-        nav.innerHTML = "";
-
-        const startBtn = createReviewNavButton("Start", "start", "", function () {
-            if (!reviewMode || reviewPlaybackPlaying) {
-                return;
-            }
-            stopReviewPlayback();
-            showReviewAtPly(0);
-        });
-        const backBtn = createReviewNavButton("Back", "back", "", function () {
-            if (!reviewMode || reviewPlaybackPlaying || reviewPlyIndex <= 0) {
-                return;
-            }
-            stopReviewPlayback();
-            showReviewAtPly(reviewPlyIndex - 1);
-        });
-
-        const playPauseBtn = document.createElement("button");
-        playPauseBtn.type = "button";
-        playPauseBtn.className =
-            "desktop-play-review-nav-btn desktop-play-review-nav-btn--playpause";
-        playPauseBtn.setAttribute("aria-label", "Play");
-        playPauseBtn.title = "Play";
-        const playIcon = document.createElement("span");
-        playIcon.className = "desktop-play-review-nav-play-icon";
-        playIcon.innerHTML = REVIEW_NAV_ICONS.play;
-        playIcon.setAttribute("aria-hidden", "true");
-        const pauseIcon = document.createElement("span");
-        pauseIcon.className = "desktop-play-review-nav-pause-icon";
-        pauseIcon.innerHTML = REVIEW_NAV_ICONS.pause;
-        pauseIcon.hidden = true;
-        pauseIcon.setAttribute("aria-hidden", "true");
-        playPauseBtn.appendChild(playIcon);
-        playPauseBtn.appendChild(pauseIcon);
-        playPauseBtn.addEventListener("click", function (ev) {
-            ev.preventDefault();
-            if (!reviewMode || !reviewFullMoves.length) {
-                return;
-            }
-            if (reviewPlaybackPlaying) {
+        reviewNavEls = ReviewNav.mount(nav, {
+            onStart: function () {
+                if (!reviewMode || reviewPlaybackPlaying) {
+                    return;
+                }
                 stopReviewPlayback();
-            } else {
-                startReviewPlayback();
-            }
+                showReviewAtPly(0);
+            },
+            onBack: function () {
+                if (!reviewMode || reviewPlaybackPlaying || reviewPlyIndex <= 0) {
+                    return;
+                }
+                stopReviewPlayback();
+                showReviewAtPly(reviewPlyIndex - 1);
+            },
+            onPlayPause: function () {
+                if (!reviewMode || !reviewFullMoves.length) {
+                    return;
+                }
+                if (reviewPlaybackPlaying) {
+                    stopReviewPlayback();
+                } else {
+                    startReviewPlayback();
+                }
+            },
+            onForward: function () {
+                if (
+                    !reviewMode
+                    || reviewPlaybackPlaying
+                    || reviewPlyIndex >= reviewFullMoves.length
+                ) {
+                    return;
+                }
+                stopReviewPlayback();
+                showReviewAtPly(reviewPlyIndex + 1);
+            },
+            onEnd: function () {
+                if (!reviewMode || reviewPlaybackPlaying) {
+                    return;
+                }
+                stopReviewPlayback();
+                showReviewAtPly(reviewFullMoves.length);
+            },
         });
-
-        const forwardBtn = createReviewNavButton("Forward", "forward", "", function () {
-            if (
-                !reviewMode
-                || reviewPlaybackPlaying
-                || reviewPlyIndex >= reviewFullMoves.length
-            ) {
-                return;
-            }
-            stopReviewPlayback();
-            showReviewAtPly(reviewPlyIndex + 1);
-        });
-        const endBtn = createReviewNavButton("End", "end", "", function () {
-            if (!reviewMode || reviewPlaybackPlaying) {
-                return;
-            }
-            stopReviewPlayback();
-            showReviewAtPly(reviewFullMoves.length);
-        });
-
-        nav.appendChild(startBtn);
-        nav.appendChild(backBtn);
-        nav.appendChild(playPauseBtn);
-        nav.appendChild(forwardBtn);
-        nav.appendChild(endBtn);
-
-        reviewNavEls = {
-            start: startBtn,
-            back: backBtn,
-            playPause: playPauseBtn,
-            forward: forwardBtn,
-            end: endBtn,
-            playIcon: playIcon,
-            pauseIcon: pauseIcon,
-        };
         updateReviewNavBar();
     }
 
@@ -2012,26 +1934,20 @@
             ensureReviewNavBar();
         }
         const show = reviewMode && reviewFullMoves.length > 0;
-        nav.hidden = !show;
-        if (!show || !reviewNavEls) {
-            return;
-        }
-        const atStart = reviewPlyIndex <= 0;
-        const atEnd = reviewPlyIndex >= reviewFullMoves.length;
-        const playing = reviewPlaybackPlaying;
-        reviewNavEls.start.disabled = playing || atStart;
-        reviewNavEls.back.disabled = playing || atStart;
-        reviewNavEls.forward.disabled = playing || atEnd;
-        reviewNavEls.end.disabled = playing || atEnd;
-        reviewNavEls.playPause.disabled = !playing && atEnd;
-        if (reviewNavEls.playIcon) {
-            reviewNavEls.playIcon.hidden = playing;
-        }
-        if (reviewNavEls.pauseIcon) {
-            reviewNavEls.pauseIcon.hidden = !playing;
-        }
-        reviewNavEls.playPause.setAttribute("aria-label", playing ? "Pause" : "Play");
-        reviewNavEls.playPause.title = playing ? "Pause" : "Play";
+        const state = ReviewModel.navButtonState({
+            plyIndex: reviewPlyIndex,
+            moveCount: reviewFullMoves.length,
+            playing: reviewPlaybackPlaying,
+        });
+        ReviewNav.update(nav, reviewNavEls, {
+            visible: show,
+            playing: reviewPlaybackPlaying,
+            start: state.start,
+            back: state.back,
+            forward: state.forward,
+            end: state.end,
+            playPause: state.playPause,
+        });
     }
 
     function showReviewAtPly(ply) {
@@ -2039,7 +1955,7 @@
         if (!reviewMode || !reviewFullMoves.length) {
             return;
         }
-        const clamped = Math.max(0, Math.min(ply, reviewFullMoves.length));
+        const clamped = ReviewModel.clampPly(ply, reviewFullMoves.length);
         reviewPlyIndex = clamped;
         reviewBranchPly = clamped < reviewFullMoves.length ? clamped : null;
         replayReviewMovesUpTo(clamped);
@@ -2073,10 +1989,11 @@
 
     /** Ply the review panel should mark as selected, or null when not branching. */
     function selectedReviewPly() {
-        if (!reviewMode || reviewBranchPly == null || reviewPlyIndex <= 0) {
-            return null;
-        }
-        return reviewPlyIndex;
+        return ReviewModel.selectedPly({
+            reviewMode: reviewMode,
+            branchPly: reviewBranchPly,
+            plyIndex: reviewPlyIndex,
+        });
     }
 
     function onPositionSetupToggle() {
@@ -2547,41 +2464,13 @@
         return SavedGames.entryId(entry);
     }
 
-    function moveColorForTable(move) {
-        return MovesPanel.moveColor(move);
-    }
-
-    function reviewOriginTurn() {
-        try {
-            const origin = JSON.parse(reviewOriginStateStr || "{}");
-            if (origin.turn === "white" || origin.turn === "black") {
-                return origin.turn;
-            }
-        } catch {
-            /* ignore */
-        }
-        return "white";
-    }
-
-    /** Side to move after replaying `ply` half-moves from the review start. */
     function reviewNextTurnAfterPly(ply) {
-        const clamped = Math.max(0, Math.min(ply, reviewFullMoves.length));
-        if (clamped === 0) {
-            return reviewOriginTurn();
-        }
-        const lastMove = reviewFullMoves[clamped - 1];
-        const mover = moveColorForTable(lastMove);
-        if (mover === "white") {
-            return "black";
-        }
-        if (mover === "black") {
-            return "white";
-        }
-        let turn = reviewOriginTurn();
-        for (let i = 0; i < clamped; i += 1) {
-            turn = turn === "white" ? "black" : "white";
-        }
-        return turn;
+        return ReviewModel.nextTurnAfterPly({
+            moves: reviewFullMoves,
+            ply: ply,
+            originStateStr: reviewOriginStateStr,
+            moveColor: MovesPanel.moveColor,
+        });
     }
 
     function movesForMovesTable(moves) {

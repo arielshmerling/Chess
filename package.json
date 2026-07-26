@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "nyc --reporter=html mocha ./test/chess.test.js ./test/chess.fide-rules.test.js",
-    "test:app": "mocha ./test/chess.app.test.js ./test/brain41.pawnEval.test.js ./test/session.phase0.test.js ./test/playUi.movesPanel.test.js ./test/playUi.clocksController.test.js ./test/playUi.savedGamesModel.test.js ./test/playUi.savedGamesList.test.js",
+    "test:app": "mocha ./test/chess.app.test.js ./test/brain41.pawnEval.test.js ./test/session.phase0.test.js ./test/playUi.movesPanel.test.js ./test/playUi.clocksController.test.js ./test/playUi.savedGamesModel.test.js ./test/playUi.savedGamesList.test.js ./test/playUi.reviewModel.test.js ./test/playUi.reviewNav.test.js",
     "test:brain": "mocha ./test/brain41.pawnEval.test.js ./test/brain42.advancedPawn.test.js ./test/brain42.adaptiveDepth.test.js ./test/brain42.gamePhase.test.js ./test/brain42.mateInThree.test.js ./test/brain43.mateInThree.test.js",
     "test:heavy": "mocha ./test/chess.heavy.js",
     "test:all": "mocha --exit --require ./test/_teardownWorkers.js \"./test/**/*.test.js\"",
