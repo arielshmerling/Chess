@@ -171,6 +171,7 @@ test.describe("web smoke", () => {
         await expect(page.getByRole("menuitem", { name: "Administrate" })).toHaveCount(0);
         await page.getByRole("menuitem", { name: "Preferences" }).click();
         await expect(page.locator("#desktopPrefsPanel")).toBeVisible();
+        await expect(page.locator("#desktopCustomizeThemeBtn")).toBeHidden();
         await expect(page.locator("#startAIGame")).toBeVisible();
     });
 

@@ -94,6 +94,22 @@ describe("playPaths", function () {
                 false,
             );
         });
+
+        it("canCustomizeThemes matches advanced tools (Admin/Partner)", function () {
+            const { canCustomizeThemes } = require("../src/modules/user/roles");
+            assert.strictEqual(
+                canCustomizeThemes({ admin: true, userType: "Admin" }),
+                true,
+            );
+            assert.strictEqual(
+                canCustomizeThemes({ admin: false, userType: "Partner" }),
+                true,
+            );
+            assert.strictEqual(
+                canCustomizeThemes({ admin: false, userType: "Member" }),
+                false,
+            );
+        });
     });
 
     describe("canAccessDebug", function () {

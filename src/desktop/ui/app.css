@@ -371,6 +371,11 @@ body.desktop-has-topbar {
   font-size: 0.8rem;
 }
 
+/* .desktop-btn sets display:block, which would otherwise override [hidden]. */
+.desktop-customize-theme-btn[hidden] {
+  display: none;
+}
+
 /* Custom theme editor (draggable popup) */
 .desktop-custom-theme-panel {
   position: fixed;

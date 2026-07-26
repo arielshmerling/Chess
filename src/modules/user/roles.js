@@ -46,6 +46,15 @@ function canUsePlayAdvancedTools(session) {
     return type === "Admin" || type === "Partner";
 }
 
+/**
+ * Customize / edit custom themes — Admin and Partner only.
+ * Members may still select built-in and existing custom themes.
+ * @param {{ admin?: boolean, userType?: string }|null|undefined} session
+ */
+function canCustomizeThemes(session) {
+    return canUsePlayAdvancedTools(session);
+}
+
 module.exports = {
     USER_TYPES,
     resolveSessionUserType,
@@ -53,4 +62,5 @@ module.exports = {
     canAccessDebug,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
+    canCustomizeThemes,
 };

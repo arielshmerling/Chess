@@ -798,7 +798,27 @@
         applyFieldFilter(searchInput ? searchInput.value : "");
     }
 
+    function canOpenThemeEditor() {
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isElectronPlayPage === "function"
+            && window.ShmerlingPlayShell.isElectronPlayPage()
+        ) {
+            return true;
+        }
+        if (typeof window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ === "boolean") {
+            return window.__SHMERLING_CAN_CUSTOMIZE_THEMES__;
+        }
+        if (typeof window.__SHMERLING_PLAY_ADVANCED__ === "boolean") {
+            return window.__SHMERLING_PLAY_ADVANCED__;
+        }
+        return false;
+    }
+
     function openEditor() {
+        if (!canOpenThemeEditor()) {
+            return;
+        }
         ensurePanel();
         snapshotThemeId = getCurrentThemeId();
         var fallback = snapshotThemeId === "dark" ? "dark" : "blue";

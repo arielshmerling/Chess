@@ -53,10 +53,12 @@ function getWebE2EOtherCredentials() {
 
 /**
  * @param {{ username: string, password: string }} creds
- * @returns {Promise<{ username: string, password: string, id: string }>}
+ * @param {"Member"|"Partner"|"Admin"} userType
+ * @returns {Promise<{ username: string, password: string, id: string, userType: string }>}
  */
-async function upsertMemberUser(creds) {
+async function upsertTypedUser(creds, userType) {
     const hash = await bcrypt.hash(creds.password, 12);
+    const type = userType === "Admin" || userType === "Partner" ? userType : "Member";
     let user = await User.findOne({ username: creds.username });
 
     if (!user) {
@@ -65,14 +67,14 @@ async function upsertMemberUser(creds) {
             password: hash,
             email: `${creds.username}@example.test`,
             level: "1",
-            userType: "Member",
-            admin: false,
+            userType: type,
+            admin: type === "Admin",
         });
         await user.save();
     } else {
         user.password = hash;
-        user.admin = false;
-        user.userType = "Member";
+        user.userType = type;
+        user.admin = type === "Admin";
         await user.save();
     }
 
@@ -80,6 +82,22 @@ async function upsertMemberUser(creds) {
         username: creds.username,
         password: creds.password,
         id: String(user._id),
+        userType: type,
+    };
+}
+
+/**
+ * @param {{ username: string, password: string }} creds
+ * @returns {Promise<{ username: string, password: string, id: string }>}
+ */
+async function upsertMemberUser(creds) {
+    return upsertTypedUser(creds, "Member");
+}
+
+function getWebE2EPartnerCredentials() {
+    return {
+        username: process.env.E2E_PARTNER_USERNAME || "e2e_web_partner",
+        password: process.env.E2E_PARTNER_PASSWORD || DEFAULT_PASSWORD,
     };
 }
 
@@ -111,12 +129,23 @@ async function ensureWebE2EUsers() {
     return { primary, other };
 }
 
+/**
+ * Partner user for advanced Play features (theme editor, config, etc.).
+ * @returns {Promise<{ username: string, password: string, id: string, userType: string }>}
+ */
+async function ensureWebE2EPartner() {
+    await connectWebE2EDb();
+    return upsertTypedUser(getWebE2EPartnerCredentials(), "Partner");
+}
+
 module.exports = {
     getWebE2EDatabaseUrl,
     getWebE2ECredentials,
     getWebE2EOtherCredentials,
+    getWebE2EPartnerCredentials,
     ensureWebE2EUser,
     ensureWebE2EUsers,
+    ensureWebE2EPartner,
     DEFAULT_USERNAME,
     DEFAULT_OTHER_USERNAME,
 };

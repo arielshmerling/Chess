@@ -216,6 +216,9 @@
         if (customizeBtn) {
             customizeBtn.addEventListener("click", function (e) {
                 e.stopPropagation();
+                if (!canCustomizeThemeUi()) {
+                    return;
+                }
                 if (window.DesktopCustomTheme && typeof window.DesktopCustomTheme.openEditor === "function") {
                     window.DesktopCustomTheme.openEditor();
                 }
@@ -231,6 +234,64 @@
         refreshPieceSetButtons();
         mountGameplayPrefs();
         mountDisplayPrefs();
+        resolveCustomizeThemeAccess();
+    }
+
+    function canCustomizeThemeUi() {
+        if (
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isElectronPlayPage === "function"
+            && window.ShmerlingPlayShell.isElectronPlayPage()
+        ) {
+            return true;
+        }
+        if (typeof window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ === "boolean") {
+            return window.__SHMERLING_CAN_CUSTOMIZE_THEMES__;
+        }
+        if (typeof window.__SHMERLING_PLAY_ADVANCED__ === "boolean") {
+            return window.__SHMERLING_PLAY_ADVANCED__;
+        }
+        return false;
+    }
+
+    function applyCustomizeThemeButtonVisibility(allowed) {
+        var btn = document.getElementById("desktopCustomizeThemeBtn");
+        if (!btn) {
+            return;
+        }
+        btn.hidden = !allowed;
+    }
+
+    function resolveCustomizeThemeAccess() {
+        if (canCustomizeThemeUi()) {
+            applyCustomizeThemeButtonVisibility(true);
+            return;
+        }
+        var isWebPlay =
+            window.ShmerlingPlayShell
+            && typeof window.ShmerlingPlayShell.isWebPlayPage === "function"
+            && window.ShmerlingPlayShell.isWebPlayPage();
+        if (!isWebPlay) {
+            applyCustomizeThemeButtonVisibility(false);
+            return;
+        }
+        /* /play has no boilerplate flags — ask launch-context. */
+        applyCustomizeThemeButtonVisibility(false);
+        fetch("/api/play/launch-context", {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+        })
+            .then(function (res) {
+                return res.ok ? res.json() : null;
+            })
+            .then(function (ctx) {
+                var allowed = !!(ctx && (ctx.canCustomizeThemes || ctx.canPlayAdvanced));
+                window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = allowed;
+                applyCustomizeThemeButtonVisibility(allowed);
+            })
+            .catch(function () {
+                applyCustomizeThemeButtonVisibility(false);
+            });
     }
 
     function mountDisplayPrefs() {

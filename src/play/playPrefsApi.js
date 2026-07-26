@@ -27,6 +27,7 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
         username: user && user.username ? user.username : req.session.user_name || "Player",
         userType,
         canPlayAdvanced: canUsePlayAdvancedTools(req.session),
+        canCustomizeThemes: canUsePlayAdvancedTools(req.session),
         canDebug: canAccessDebug(req.session),
         lastGameOptions,
     });
