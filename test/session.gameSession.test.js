@@ -115,6 +115,23 @@ describe("session GameSession (Phase 2)", function () {
         session.dispose();
     });
 
+    it("humanMoveApplied emits boardChanged after moveApplied", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.start();
+        const executed = session.applyMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+        const order = [];
+        session.on("moveApplied", function () {
+            order.push("moveApplied");
+        });
+        session.on("boardChanged", function () {
+            order.push("boardChanged");
+        });
+        session.humanMoveApplied(executed);
+        assert.deepStrictEqual(order.slice(0, 2), ["moveApplied", "boardChanged"]);
+        session.dispose();
+    });
+
     it("emits clocksUpdated after turnChanged when a clocks port is provided", function () {
         const game = silentGame();
         const turns = [];

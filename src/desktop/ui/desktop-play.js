@@ -2980,6 +2980,10 @@
         if (batchUndoRedo) {
             return;
         }
+        /* Active play: GameSession boardChanged / moveApplied own board + chrome. */
+        if (sessionDrivesActivePlayBoard()) {
+            return;
+        }
         if (!Board.isBoardAnimating()) {
             Board.drawBoard(gameState.board);
             Board.updateCaptureLists(gameState.capturedPiecesList || []);
@@ -3005,31 +3009,24 @@
             updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         }
 
-        const sessionOwnsOutcomes = sessionDrivesActivePlayOutcomes();
-        if (!sessionOwnsOutcomes) {
-            if (gameState.draw) {
-                lastCheckNotifySide = null;
-                onDraw(gameState.drawReason || "Draw");
-                Board.applyDrawHighlight();
-            } else if (gameState.checkmate) {
-                lastCheckNotifySide = null;
-                onCheckmate(game.Turn);
-                Board.applyCheckedHighlight();
-            } else if (gameState.check === true) {
-                if (lastCheckNotifySide !== game.Turn) {
-                    onCheck(game.Turn);
-                    lastCheckNotifySide = game.Turn;
-                }
-                Board.applyCheckedHighlight();
-            } else if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
-                alertMode = false;
-                lastCheckNotifySide = null;
-                showStatus("");
-            }
-        } else if (gameState.checkmate || gameState.check) {
-            Board.applyCheckedHighlight();
-        } else if (gameState.draw && Board.applyDrawHighlight) {
+        if (gameState.draw) {
+            lastCheckNotifySide = null;
+            onDraw(gameState.drawReason || "Draw");
             Board.applyDrawHighlight();
+        } else if (gameState.checkmate) {
+            lastCheckNotifySide = null;
+            onCheckmate(game.Turn);
+            Board.applyCheckedHighlight();
+        } else if (gameState.check === true) {
+            if (lastCheckNotifySide !== game.Turn) {
+                onCheck(game.Turn);
+                lastCheckNotifySide = game.Turn;
+            }
+            Board.applyCheckedHighlight();
+        } else if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
+            alertMode = false;
+            lastCheckNotifySide = null;
+            showStatus("");
         }
 
         updateHeaderTurn();
@@ -3047,6 +3044,11 @@
             !reviewMode &&
             !configurationMode
         );
+    }
+
+    /** Same gate as outcomes: session events own the live Play board surface. */
+    function sessionDrivesActivePlayBoard() {
+        return sessionDrivesActivePlayOutcomes();
     }
 
     function onCheck(turn) {
@@ -3336,6 +3338,38 @@
         updateActionButtons();
     }
 
+    /**
+     * Board surface driven by GameSession boardChanged (active play).
+     * Skipped during undo/redo batch — onSessionNavChrome syncs instead.
+     */
+    function onSessionBoardChanged(state) {
+        if (!sessionDrivesActivePlayBoard() || batchUndoRedo) {
+            return;
+        }
+        const gameState = state || (game && game.GameState);
+        if (!gameState) {
+            return;
+        }
+        if (!Board.isBoardAnimating || !Board.isBoardAnimating()) {
+            if (gameState.board) {
+                Board.drawBoard(gameState.board);
+            } else if (Board.syncFromGameState) {
+                Board.syncFromGameState();
+            }
+            Board.updateCaptureLists(gameState.capturedPiecesList || []);
+        }
+        if (gameState.checkmate || gameState.check) {
+            if (Board.applyCheckedHighlight) {
+                Board.applyCheckedHighlight();
+            }
+        } else if (gameState.draw && Board.applyDrawHighlight) {
+            Board.applyDrawHighlight();
+        }
+        updateHeaderTurn();
+        updateActionButtons();
+        persistActiveGame();
+    }
+
     /** Undo/redo pair chrome — OnUpdate is batched off during shell undo/redo. */
     function onSessionNavChrome() {
         if (!sessionChromeGuardsOk()) {
@@ -3474,6 +3508,9 @@
         });
         playGameSession.on("moveApplied", function (executed, info) {
             onSessionMoveApplied(executed, info);
+        });
+        playGameSession.on("boardChanged", function (state) {
+            onSessionBoardChanged(state);
         });
         playGameSession.on("undone", function () {
             redoPairAvailable = true;
