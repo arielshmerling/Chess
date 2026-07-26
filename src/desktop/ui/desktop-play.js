@@ -18,6 +18,8 @@
     const ReviewNav = window.PlayReviewNav;
     const SessionMode = window.PlaySessionMode;
     const DockModeChrome = window.PlayDockModeChrome;
+    const ActionRail = window.PlayActionRail;
+    const StatusBar = window.PlayStatusBar;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -27,6 +29,28 @@
         },
         onFlag: function () {
             outOfTime();
+        },
+    });
+    const Status = StatusBar.create({
+        getElement: function () {
+            return $("desktopPlayStatusBar");
+        },
+        getDefaultText: function () {
+            return StatusBar.defaultStatusText({
+                hasGame: !!game,
+                gameActive: gameActive,
+                positionSetup: positionSetupMode,
+                configuration: configurationMode,
+                review: reviewMode,
+                boardHasPieces: boardHasPieces(),
+                gameOver: !!(game && game.GameOver),
+                canPlayAdvancedTools: canPlayAdvancedTools,
+            });
+        },
+        onAfterRender: function (event) {
+            headerEventMessage = event.message;
+            headerEventKind = event.kind;
+            updateHeaderClockHighlight();
         },
     });
 
@@ -48,7 +72,6 @@
     let alertMode = false;
     let headerEventMessage = null;
     let headerEventKind = null;
-    let headerEventTimer = null;
     let animating = false;
     let engineThinking = false;
     let redoPairAvailable = false;
@@ -125,31 +148,6 @@
     let gameHistoryLogged = false;
     let gameAutoBookmarked = false;
 
-    const ACTION_ICONS = {
-        resign:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V12M10 20V4M16 20v-6M22 20V9"/></svg>',
-        draw:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
-        undo:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14H4V9l1.4 1.4 5.6-5.6 1.4 1.4-5.6 5.6H15v2H9z"/></svg>',
-        redo:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14h5V9l-1.4 1.4-5.6-5.6-1.4 1.4 5.6 5.6H9v2h6z"/></svg>',
-        lastMove:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l7-7 7 7M12 5v14"/></svg>',
-        flip:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4.5L17 1v3H5v6h2V7zm10 10H7v-3l-4 4.5L7 23v-3h12v-6h-2v4z"/></svg>',
-        newGame:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
-        exit:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H5a2 2 0 00-2 2v14a2 2 0 002 2h5M14 8l5 4-5 4M11 12h8"/></svg>',
-        save:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
-        positionSetup:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-        configuration:
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    };
-
     function $(id) {
         return document.getElementById(id);
     }
@@ -218,86 +216,30 @@
         Clocks.set({ white: initialClockSeconds(), black: initialClockSeconds() });
     }
 
-    const STATUS_BAR_CLASSES = [
-        "desktop-play-status-bar--event",
-        "desktop-play-status-bar--check",
-        "desktop-play-status-bar--checkmate",
-        "desktop-play-status-bar--draw",
-        "desktop-play-status-bar--promotion",
-        "desktop-play-status-bar--info",
-        "desktop-play-status-bar--timeout",
-        "desktop-play-status-bar--error",
-    ];
-
     function updateHeaderClockHighlight() {
-        const headerBlack = $("desktopPlayHeaderBlack");
-        const headerWhite = $("desktopPlayHeaderWhite");
         if (!game) {
             return;
         }
-        const suppressForAlert =
-            headerEventMessage &&
-            headerEventKind &&
-            headerEventKind !== "info";
-        const active = !game.GameOver && !suppressForAlert;
-        const turn = game.Turn || (game.GameState && game.GameState.turn);
-        if (headerBlack) {
-            headerBlack.classList.toggle("desktop-play-header-clock--active", active && turn === "black");
-        }
-        if (headerWhite) {
-            headerWhite.classList.toggle("desktop-play-header-clock--active", active && turn === "white");
-        }
+        StatusBar.applyClockHighlight(
+            {
+                headerBlack: $("desktopPlayHeaderBlack"),
+                headerWhite: $("desktopPlayHeaderWhite"),
+            },
+            {
+                hasGame: true,
+                gameOver: !!game.GameOver,
+                suppressForAlert: Status.isNonInfoAlert(),
+                turn: game.Turn || (game.GameState && game.GameState.turn),
+            },
+        );
     }
 
     function clearHeaderEvent() {
-        if (headerEventTimer) {
-            clearTimeout(headerEventTimer);
-            headerEventTimer = null;
-        }
-        headerEventMessage = null;
-        headerEventKind = null;
-        refreshStatusBar();
-    }
-
-    function defaultStatusText() {
-        if (!game) {
-            return "";
-        }
-        if (!gameActive && !positionSetupMode && !configurationMode) {
-            if (reviewMode && boardHasPieces()) {
-                return "";
-            }
-            if (boardHasPieces()) {
-                return "Set move, color, engine, and think time in the header, then press Play";
-            }
-            return canPlayAdvancedTools
-                ? "Choose New game or Position setup from the sidebar"
-                : "Choose New game from the sidebar";
-        }
-        if (game.GameOver) {
-            return "Game over";
-        }
-        return "Game in progress";
+        Status.clear();
     }
 
     function refreshStatusBar() {
-        const statusEl = $("desktopPlayStatusBar");
-        if (!statusEl) {
-            return;
-        }
-        STATUS_BAR_CLASSES.forEach(function (cls) {
-            statusEl.classList.remove(cls);
-        });
-        updateHeaderClockHighlight();
-        if (headerEventMessage) {
-            statusEl.textContent = headerEventMessage;
-            statusEl.classList.add("desktop-play-status-bar--event");
-            if (headerEventKind) {
-                statusEl.classList.add("desktop-play-status-bar--" + headerEventKind);
-            }
-            return;
-        }
-        statusEl.textContent = defaultStatusText();
+        Status.refresh();
     }
 
     function updateHeaderTurn() {
@@ -314,24 +256,20 @@
     }
 
     function updateMatchHeader() {
-        const titleEl = $("desktopPlayMatchTitle");
-        if (titleEl) {
-            titleEl.textContent = formatSessionTypeLabel();
-            updateGameModeTooltip();
-        }
-        if (!session) {
-            return;
-        }
-        const whiteName = session.whitePlayerName || "White";
-        const blackName = session.blackPlayerName || "Black";
-        const whiteNameEl = $("desktopPlayWhiteName");
-        const blackNameEl = $("desktopPlayBlackName");
-        if (whiteNameEl) {
-            whiteNameEl.textContent = whiteName;
-        }
-        if (blackNameEl) {
-            blackNameEl.textContent = blackName;
-        }
+        StatusBar.applyMatchHeader(
+            {
+                titleEl: $("desktopPlayMatchTitle"),
+                whiteNameEl: $("desktopPlayWhiteName"),
+                blackNameEl: $("desktopPlayBlackName"),
+            },
+            {
+                title: formatSessionTypeLabel(),
+                updateNames: !!session,
+                whiteName: session && session.whitePlayerName,
+                blackName: session && session.blackPlayerName,
+            },
+        );
+        updateGameModeTooltip();
     }
 
     function switchClocks() {
@@ -432,28 +370,12 @@
             clearHeaderEvent();
             return;
         }
-        if (headerEventTimer) {
-            clearTimeout(headerEventTimer);
-            headerEventTimer = null;
-        }
-        headerEventMessage = message;
-        headerEventKind = kind || "info";
-        alertMode = headerEventKind !== "info";
-        refreshStatusBar();
-        if (durationMs) {
-            headerEventTimer = setTimeout(function () {
-                if (headerEventMessage === message) {
-                    clearHeaderEvent();
-                }
-            }, durationMs);
-        }
+        Status.show(message, durationMs, kind);
+        alertMode = (kind || "info") !== "info";
     }
 
     function setButtonDisabled(id, disabled) {
-        const btn = $(id);
-        if (btn) {
-            btn.disabled = !!disabled;
-        }
+        ActionRail.setDisabled(id, disabled, document);
     }
 
     function resolveAllowUndo(info) {
@@ -2051,30 +1973,7 @@
             { type: "spacer" },
             { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
         );
-        items.forEach(function (item) {
-            if (item.type === "spacer") {
-                const spacer = document.createElement("div");
-                spacer.className = "desktop-play-actions-spacer";
-                rail.appendChild(spacer);
-                return;
-            }
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.id = item.id;
-            btn.className =
-                "desktop-play-action" + (item.accent ? " desktop-play-action--accent" : "");
-            btn.title = item.label;
-            const iconWrap = document.createElement("span");
-            iconWrap.className = "desktop-play-action-icon";
-            iconWrap.innerHTML = ACTION_ICONS[item.icon] || "";
-            const label = document.createElement("span");
-            label.className = "desktop-play-action-label";
-            label.textContent = item.label;
-            btn.appendChild(iconWrap);
-            btn.appendChild(label);
-            btn.addEventListener("click", item.onClick);
-            rail.appendChild(btn);
-        });
+        ActionRail.mount(rail, items);
         updateActionButtons();
         if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
             window.DesktopBoardScale.refresh();
@@ -2841,8 +2740,7 @@
             redoPairAvailable = false;
             lastCheckNotifySide = null;
             alertMode = false;
-            headerEventMessage = null;
-            headerEventKind = null;
+            clearHeaderEvent();
             Board.clearArrows();
             Board.syncFromGameState();
             clearDisplayedEvaluation();
