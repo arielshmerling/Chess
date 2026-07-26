@@ -98,6 +98,40 @@ describe("session GameSession (Phase 2)", function () {
         session.dispose();
     });
 
+    it("emits clocksUpdated after turnChanged when a clocks port is provided", function () {
+        const game = silentGame();
+        const turns = [];
+        const session = GameSession.create({
+            game: game,
+            humanIsWhite: true,
+            clocks: {
+                onTurn: function (turn) {
+                    turns.push(turn);
+                },
+                get: function () {
+                    return { white: 60, black: 60 };
+                },
+            },
+        });
+        const order = [];
+        session.on("turnChanged", function () {
+            order.push("turnChanged");
+        });
+        session.on("clocksUpdated", function (snap) {
+            order.push("clocksUpdated");
+            assert.strictEqual(snap.white, 60);
+        });
+        session.start();
+        assert.ok(order.indexOf("turnChanged") < order.indexOf("clocksUpdated"));
+        assert.deepStrictEqual(turns, ["white"]);
+        session.playMove({
+            source: { row: 6, col: 4 },
+            target: { row: 4, col: 4 },
+        });
+        assert.ok(turns.indexOf("black") !== -1);
+        session.dispose();
+    });
+
     it("resign emits gameOver", function () {
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });

@@ -3106,8 +3106,13 @@
         if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
             playLocalEngineMode.abort();
         }
-        if (playGameSession && typeof playGameSession.dispose === "function") {
-            playGameSession.dispose();
+        if (playGameSession) {
+            if (typeof playGameSession.leave === "function") {
+                playGameSession.leave();
+            }
+            if (typeof playGameSession.dispose === "function") {
+                playGameSession.dispose();
+            }
         }
         playGameSession = null;
         playLocalEngineMode = null;
@@ -3140,6 +3145,21 @@
             humanIsWhite: currentPlayerIsWhite,
             engine: Engine,
             meta: playSessionMetaFromShell(),
+            clocks: {
+                onTurn: function (turn) {
+                    Clocks.stop();
+                    updateHeaderTurn();
+                    if (game && !game.GameOver) {
+                        Clocks.startFor(turn);
+                    }
+                },
+                stop: function () {
+                    Clocks.stop();
+                },
+                get: function () {
+                    return Clocks.get();
+                },
+            },
         });
         playLocalEngineMode = LocalEngineModeApi.create({
             /* Shell calls maybeRunEngine / humanMoveApplied explicitly. */
@@ -3166,7 +3186,13 @@
                         showStatus("Engine move could not be applied", 0, "error");
                         return false;
                     }
-                    switchClocks();
+                    if (playGameSession && typeof playGameSession.externalMoveApplied === "function") {
+                        playGameSession.externalMoveApplied(game.LastMove || move, {
+                            source: "engine",
+                        });
+                    } else {
+                        switchClocks();
+                    }
                     if (isHumanTurn()) {
                         showStatus("", 0, "info");
                     }
@@ -3879,9 +3905,7 @@
         if (Board.resetSquareColors) {
             Board.resetSquareColors();
         }
-        switchClocks();
         updateMovesTable(tableMovesFromGame());
-        updateHeaderTurn();
         updateActionButtons();
         const gs = ensurePlayGameSession();
         if (gs && typeof gs.humanMoveApplied === "function") {
@@ -3889,6 +3913,8 @@
             gs.humanMoveApplied(executed);
             return;
         }
+        switchClocks();
+        updateHeaderTurn();
         if (!game.GameOver && isAiTurn()) {
             await yieldForPaint();
             await runEngineMove();

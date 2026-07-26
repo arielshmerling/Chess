@@ -35,6 +35,7 @@
      * @param {boolean} [options.humanIsWhite=true]
      * @param {object} [options.meta] - engine id, player names, etc.
      * @param {import("./contracts").EnginePort} [options.engine]
+     * @param {{ onTurn?: Function, stop?: Function, get?: Function }} [options.clocks]
      * @param {{ create: Function }} [options.eventBus]
      */
     function create(options) {
@@ -47,6 +48,7 @@
         const EventBus = opts.eventBus || loadEventBus();
         const bus = EventBus.create();
         const capsApi = loadCapabilities();
+        let clocks = opts.clocks || null;
 
         let humanIsWhite = opts.humanIsWhite !== false;
         let meta = Object.assign({}, opts.meta || {});
@@ -78,11 +80,28 @@
             bus.emit("boardChanged", state, extra || {});
             const turn = game.Turn || (state && state.turn) || "white";
             bus.emit("turnChanged", turn, extra || {});
+            if (clocks && typeof clocks.onTurn === "function" && active && !game.GameOver) {
+                clocks.onTurn(turn, extra || {});
+            }
+            const snapshotClocks =
+                clocks && typeof clocks.get === "function" ? clocks.get() : null;
+            bus.emit(
+                "clocksUpdated",
+                snapshotClocks || { turn: turn },
+                extra || {},
+            );
+        }
+
+        function stopClocks() {
+            if (clocks && typeof clocks.stop === "function") {
+                clocks.stop();
+            }
         }
 
         function emitStatusFromGame() {
             const state = game.GameState || {};
             if (state.draw) {
+                stopClocks();
                 bus.emit("gameOver", {
                     kind: "draw",
                     reason: state.drawReason || "Draw",
@@ -91,6 +110,7 @@
                 return;
             }
             if (state.checkmate) {
+                stopClocks();
                 const mated = game.Turn;
                 const winner =
                     typeof game.opponent === "function" ? game.opponent(mated) : null;
@@ -285,6 +305,23 @@
             }
         }
 
+        /**
+         * Board/shell already applied a move (e.g. animated engine move).
+         * Emits events + clocks; does not re-trigger mode.afterMove.
+         *
+         * @param {object} executed
+         * @param {object} [metaInfo]
+         */
+        function externalMoveApplied(executed, metaInfo) {
+            if (disposed || !active) {
+                return;
+            }
+            const info = Object.assign({ source: "external" }, metaInfo || {});
+            bus.emit("moveApplied", executed, info);
+            emitBoardAndTurn(info);
+            emitStatusFromGame();
+        }
+
         function resign(side) {
             if (disposed || !active || game.GameOver) {
                 return false;
@@ -295,6 +332,7 @@
             if (typeof game.resign === "function") {
                 game.resign(resigned);
             }
+            stopClocks();
             bus.emit("gameOver", { kind: "resign", resigned: resigned });
             bus.emit("statusChanged", "resign");
             emitBoardAndTurn({ reason: "resign" });
@@ -367,6 +405,9 @@
             },
             getEngine: getEngine,
             setEngine: setEngine,
+            setClocks: function (next) {
+                clocks = next || null;
+            },
             getMeta: function () {
                 return Object.assign({}, meta);
             },
@@ -385,6 +426,7 @@
             load: load,
             playMove: playMove,
             humanMoveApplied: humanMoveApplied,
+            externalMoveApplied: externalMoveApplied,
             resign: resign,
             undo: undoPair,
             redo: redoPair,
