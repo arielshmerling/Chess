@@ -33,6 +33,7 @@
     const BookmarkHelpers = window.PlayBookmarkHelpers;
     const GameSessionApi = window.ShmerlingGameSession;
     const LocalEngineModeApi = window.ShmerlingLocalEngineMode;
+    const ReviewModeApi = window.ShmerlingReviewMode;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -164,6 +165,8 @@
     let playGameSession = null;
     /** @type {ReturnType<typeof LocalEngineModeApi.create>|null} */
     let playLocalEngineMode = null;
+    /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
+    let playReviewMode = null;
 
     function $(id) {
         return document.getElementById(id);
@@ -1288,6 +1291,7 @@
             setPositionSetupUi(false);
         }
         reviewMode = true;
+        attachPlayReviewMode();
         expandMovesSidebar();
         updateMatchHeader();
         updateActionButtons();
@@ -1305,6 +1309,7 @@
         stopReviewPlayback();
         reviewMode = false;
         clearReviewNavigation();
+        detachPlayReviewMode();
         updateMatchHeader();
         updateActionButtons();
         updateGameRunPanelVisibility();
@@ -1313,6 +1318,12 @@
     }
 
     function clearReviewNavigation() {
+        if (playReviewMode && typeof playReviewMode.clearNavigation === "function") {
+            playReviewMode.clearNavigation();
+            syncReviewShellFromMode();
+            reviewResultMoveStr = null;
+            return;
+        }
         reviewFullMoves = [];
         reviewOriginStateStr = null;
         reviewFinalStateStr = null;
@@ -1571,18 +1582,32 @@
 
     function initReviewNavigation(finalStateStr, moves, bookmarkOrigin) {
         const loaded = moves && moves.length ? moves : tableMovesFromGame();
+        let origin =
+            bookmarkOrigin && String(bookmarkOrigin).trim()
+                ? String(bookmarkOrigin)
+                : null;
+        if (!origin) {
+            if (!loaded.length) {
+                origin = finalStateStr;
+            } else {
+                const trial = new ChessGame(true);
+                trial.startNewGame(reviewBoardIsWhiteView());
+                origin = JSON.stringify(trial.GameState);
+            }
+        }
+        if (playReviewMode && typeof playReviewMode.loadNavigation === "function") {
+            playReviewMode.loadNavigation({
+                moves: loaded,
+                finalStateStr: finalStateStr,
+                originStateStr: origin,
+            });
+            syncReviewShellFromMode();
+            return;
+        }
         reviewFullMoves = ReviewModel.cloneMoves(loaded);
         reviewFinalStateStr = finalStateStr;
         reviewResignedColor = resignedColorFromStateStr(finalStateStr);
-        if (bookmarkOrigin && String(bookmarkOrigin).trim()) {
-            reviewOriginStateStr = String(bookmarkOrigin);
-        } else if (!loaded.length) {
-            reviewOriginStateStr = finalStateStr;
-        } else {
-            const trial = new ChessGame(true);
-            trial.startNewGame(reviewBoardIsWhiteView());
-            reviewOriginStateStr = JSON.stringify(trial.GameState);
-        }
+        reviewOriginStateStr = origin;
         reviewPlyIndex = reviewFullMoves.length;
         reviewBranchPly = null;
     }
@@ -1637,6 +1662,14 @@
         });
     }
 
+    function commitReviewPlyToMode() {
+        if (!playReviewMode || typeof playReviewMode.setPly !== "function") {
+            return;
+        }
+        playReviewMode.setPly(reviewPlyIndex);
+        syncReviewShellFromMode();
+    }
+
     async function animateReviewStepForward() {
         if (!reviewMode || reviewPlyIndex >= reviewFullMoves.length) {
             return false;
@@ -1646,6 +1679,7 @@
             reviewPlyIndex += 1;
             reviewBranchPly =
                 reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
+            commitReviewPlyToMode();
             const previousOnUpdateResult = game.OnUpdate;
             game.OnUpdate = null;
             try {
@@ -1672,6 +1706,7 @@
             reviewPlyIndex += 1;
             reviewBranchPly =
                 reviewPlyIndex < reviewFullMoves.length ? reviewPlyIndex : null;
+            commitReviewPlyToMode();
             const previousOnUpdateStep = game.OnUpdate;
             game.OnUpdate = null;
             try {
@@ -1813,9 +1848,15 @@
         if (!reviewMode || !reviewFullMoves.length) {
             return;
         }
-        const clamped = ReviewModel.clampPly(ply, reviewFullMoves.length);
-        reviewPlyIndex = clamped;
-        reviewBranchPly = clamped < reviewFullMoves.length ? clamped : null;
+        let clamped;
+        if (playReviewMode && typeof playReviewMode.setPly === "function") {
+            clamped = playReviewMode.setPly(ply);
+            syncReviewShellFromMode();
+        } else {
+            clamped = ReviewModel.clampPly(ply, reviewFullMoves.length);
+            reviewPlyIndex = clamped;
+            reviewBranchPly = clamped < reviewFullMoves.length ? clamped : null;
+        }
         replayReviewMovesUpTo(clamped);
         syncReviewBoardFromGame();
         refreshReviewMovesTable();
@@ -3138,6 +3179,125 @@
         }
         playGameSession = null;
         playLocalEngineMode = null;
+        playReviewMode = null;
+    }
+
+    function syncReviewShellFromMode() {
+        if (!playReviewMode || typeof playReviewMode.getNavState !== "function") {
+            return;
+        }
+        const nav = playReviewMode.getNavState();
+        reviewFullMoves = nav.fullMoves || [];
+        reviewPlyIndex = nav.plyIndex || 0;
+        reviewOriginStateStr = nav.originStateStr;
+        reviewFinalStateStr = nav.finalStateStr;
+        reviewResignedColor = nav.resignedColor;
+        reviewBranchPly = nav.branchPly;
+    }
+
+    function createLocalEngineMode() {
+        return LocalEngineModeApi.create({
+            autoRunOnAttach: false,
+            canRun: function () {
+                return (
+                    !!gameActive &&
+                    !positionSetupMode &&
+                    !configurationMode &&
+                    !animating &&
+                    !dialogOn &&
+                    !reviewMode
+                );
+            },
+            immediateResign: function () {
+                return Settings.loadGamePreferences().immediateResign === true;
+            },
+            applyEngineMove: async function (move) {
+                engineThinking = false;
+                animating = true;
+                updateActionButtons();
+                try {
+                    const applied = await applyEngineMove(move);
+                    if (!applied) {
+                        showStatus("Engine move could not be applied", 0, "error");
+                        return false;
+                    }
+                    if (playGameSession && typeof playGameSession.externalMoveApplied === "function") {
+                        playGameSession.externalMoveApplied(game.LastMove || move, {
+                            source: "engine",
+                        });
+                    } else {
+                        switchClocks();
+                    }
+                    if (isHumanTurn()) {
+                        showStatus("", 0, "info");
+                    }
+                    return true;
+                } finally {
+                    animating = false;
+                    if (Board.refreshHumanPieceInput) {
+                        Board.refreshHumanPieceInput();
+                    }
+                    updateActionButtons();
+                }
+            },
+            onStatus: function (message, kind) {
+                showStatus(message, kind === "info" ? 0 : 0, kind || "info");
+            },
+        });
+    }
+
+    function attachPlayLocalEngineMode() {
+        if (!playGameSession || !LocalEngineModeApi) {
+            return;
+        }
+        playReviewMode = null;
+        if (!playLocalEngineMode) {
+            playLocalEngineMode = createLocalEngineMode();
+        }
+        playGameSession.attachMode(playLocalEngineMode);
+    }
+
+    function attachPlayReviewMode() {
+        if (!game || !GameSessionApi || !ReviewModeApi) {
+            return;
+        }
+        ensurePlayGameSession();
+        if (!playGameSession) {
+            return;
+        }
+        if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
+            playLocalEngineMode.abort();
+        }
+        playLocalEngineMode = null;
+        playReviewMode = ReviewModeApi.create({});
+        playGameSession.attachMode(playReviewMode);
+        if (reviewFullMoves.length || reviewFinalStateStr) {
+            playReviewMode.loadNavigation({
+                moves: reviewFullMoves,
+                finalStateStr: reviewFinalStateStr,
+                originStateStr: reviewOriginStateStr,
+                resignedColor: reviewResignedColor,
+            });
+            if (typeof playReviewMode.setPly === "function") {
+                playReviewMode.setPly(reviewPlyIndex);
+            }
+            syncReviewShellFromMode();
+        }
+    }
+
+    function detachPlayReviewMode() {
+        if (!playGameSession) {
+            playReviewMode = null;
+            return;
+        }
+        playReviewMode = null;
+        if (gameActive && LocalEngineModeApi) {
+            attachPlayLocalEngineMode();
+            return;
+        }
+        if (typeof playGameSession.attachMode === "function") {
+            playGameSession.attachMode(null);
+        }
     }
 
     function sessionChromeGuardsOk() {
@@ -3196,6 +3356,7 @@
     /**
      * Phase 2: wrap the shared ChessGame in GameSession + LocalEngineMode.
      * Board applies human moves via session.applyMove; mode owns engine compute.
+     * Review attaches ReviewMode via attachPlayReviewMode instead.
      */
     function ensurePlayGameSession() {
         if (!game || !GameSessionApi || !LocalEngineModeApi) {
@@ -3211,6 +3372,9 @@
                     humanIsWhite: currentPlayerIsWhite,
                     meta: playSessionMetaFromShell(),
                 });
+            }
+            if (!reviewMode && !playLocalEngineMode) {
+                attachPlayLocalEngineMode();
             }
             return playGameSession;
         }
@@ -3236,55 +3400,7 @@
                 },
             },
         });
-        playLocalEngineMode = LocalEngineModeApi.create({
-            /* Shell calls maybeRunEngine / humanMoveApplied explicitly. */
-            autoRunOnAttach: false,
-            canRun: function () {
-                return (
-                    !!gameActive &&
-                    !positionSetupMode &&
-                    !configurationMode &&
-                    !animating &&
-                    !dialogOn
-                );
-            },
-            immediateResign: function () {
-                return Settings.loadGamePreferences().immediateResign === true;
-            },
-            applyEngineMove: async function (move) {
-                engineThinking = false;
-                animating = true;
-                updateActionButtons();
-                try {
-                    const applied = await applyEngineMove(move);
-                    if (!applied) {
-                        showStatus("Engine move could not be applied", 0, "error");
-                        return false;
-                    }
-                    if (playGameSession && typeof playGameSession.externalMoveApplied === "function") {
-                        playGameSession.externalMoveApplied(game.LastMove || move, {
-                            source: "engine",
-                        });
-                    } else {
-                        switchClocks();
-                    }
-                    if (isHumanTurn()) {
-                        showStatus("", 0, "info");
-                    }
-                    return true;
-                } finally {
-                    animating = false;
-                    if (Board.refreshHumanPieceInput) {
-                        Board.refreshHumanPieceInput();
-                    }
-                    updateActionButtons();
-                }
-            },
-            onStatus: function (message, kind) {
-                showStatus(message, kind === "info" ? 0 : 0, kind || "info");
-            },
-        });
-        playGameSession.attachMode(playLocalEngineMode);
+        attachPlayLocalEngineMode();
         playGameSession.on("gameOver", function (payload) {
             if (!payload) {
                 return;

@@ -8,6 +8,7 @@ const { ChessGame } = require("../src/ChessGame");
 const {
     GameSession,
     LocalEngineMode,
+    ReviewMode,
     MODE_IDS,
     getModeCapabilities,
 } = require("../src/session");
@@ -353,6 +354,45 @@ describe("session LocalEngineMode (Phase 2)", function () {
         });
         assert.ok(applied);
         assert.strictEqual(applied.source.row, 1);
+        session.dispose();
+    });
+});
+
+describe("session ReviewMode (Phase 2)", function () {
+    it("exposes review capabilities", function () {
+        const mode = ReviewMode.create({});
+        assert.strictEqual(mode.id, MODE_IDS.REVIEW);
+        const caps = mode.capabilities();
+        assert.strictEqual(caps.reviewNav, true);
+        assert.strictEqual(caps.engine, false);
+        assert.strictEqual(caps.undo, false);
+        assert.deepStrictEqual(caps, getModeCapabilities(MODE_IDS.REVIEW));
+    });
+
+    it("loadNavigation and setPly emit reviewPlyChanged", function () {
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = ReviewMode.create({});
+        session.attachMode(mode);
+        const events = [];
+        session.on("reviewPlyChanged", function (nav, meta) {
+            events.push({ ply: nav.plyIndex, reason: meta && meta.reason, count: nav.moveCount });
+        });
+        mode.loadNavigation({
+            moves: [
+                { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+                { source: { row: 1, col: 4 }, target: { row: 3, col: 4 } },
+            ],
+            finalStateStr: "{}",
+            originStateStr: "{}",
+        });
+        assert.strictEqual(mode.getNavState().plyIndex, 2);
+        assert.strictEqual(mode.setPly(0), 0);
+        assert.strictEqual(mode.getNavState().plyIndex, 0);
+        assert.strictEqual(mode.getNavState().branchPly, 0);
+        assert.ok(events.length >= 2);
+        assert.strictEqual(events[0].reason, "load");
+        assert.strictEqual(events[events.length - 1].ply, 0);
         session.dispose();
     });
 });
