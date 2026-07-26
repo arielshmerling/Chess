@@ -2959,29 +2959,48 @@
             updateMovesTable(movesForMovesTable(movesForPanelDisplay()));
         }
 
-        if (gameState.draw) {
-            lastCheckNotifySide = null;
-            onDraw(gameState.drawReason || "Draw");
-            Board.applyDrawHighlight();
-        } else if (gameState.checkmate) {
-            lastCheckNotifySide = null;
-            onCheckmate(game.Turn);
-            Board.applyCheckedHighlight();
-        } else if (gameState.check === true) {
-            if (lastCheckNotifySide !== game.Turn) {
-                onCheck(game.Turn);
-                lastCheckNotifySide = game.Turn;
+        const sessionOwnsOutcomes = sessionDrivesActivePlayOutcomes();
+        if (!sessionOwnsOutcomes) {
+            if (gameState.draw) {
+                lastCheckNotifySide = null;
+                onDraw(gameState.drawReason || "Draw");
+                Board.applyDrawHighlight();
+            } else if (gameState.checkmate) {
+                lastCheckNotifySide = null;
+                onCheckmate(game.Turn);
+                Board.applyCheckedHighlight();
+            } else if (gameState.check === true) {
+                if (lastCheckNotifySide !== game.Turn) {
+                    onCheck(game.Turn);
+                    lastCheckNotifySide = game.Turn;
+                }
+                Board.applyCheckedHighlight();
+            } else if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
+                alertMode = false;
+                lastCheckNotifySide = null;
+                showStatus("");
             }
+        } else if (gameState.checkmate || gameState.check) {
             Board.applyCheckedHighlight();
-        } else if (alertMode && !gameState.check && !gameState.checkmate && !gameState.draw) {
-            alertMode = false;
-            lastCheckNotifySide = null;
-            showStatus("");
+        } else if (gameState.draw && Board.applyDrawHighlight) {
+            Board.applyDrawHighlight();
         }
 
         updateHeaderTurn();
         updateActionButtons();
         persistActiveGame();
+    }
+
+    function sessionDrivesActivePlayOutcomes() {
+        return !!(
+            playGameSession &&
+            typeof playGameSession.isActive === "function" &&
+            playGameSession.isActive() &&
+            gameActive &&
+            !positionSetupMode &&
+            !reviewMode &&
+            !configurationMode
+        );
     }
 
     function onCheck(turn) {
@@ -3211,12 +3230,59 @@
         });
         playGameSession.attachMode(playLocalEngineMode);
         playGameSession.on("gameOver", function (payload) {
-            if (!payload || payload.kind !== "resign") {
+            if (!payload) {
                 return;
             }
             updateMovesTable(tableMovesFromGame());
-            finishResignGame(payload.resigned);
-            tryLogCompletedGame();
+            if (payload.kind === "resign") {
+                finishResignGame(payload.resigned);
+                tryLogCompletedGame();
+                return;
+            }
+            if (payload.kind === "checkmate") {
+                lastCheckNotifySide = null;
+                alertMode = true;
+                const winner =
+                    payload.winner ||
+                    (game && payload.mated && typeof game.opponent === "function"
+                        ? game.opponent(payload.mated)
+                        : null);
+                const winnerName =
+                    winner && game && typeof game.colorName === "function"
+                        ? game.colorName(winner)
+                        : winner || "Winner";
+                showStatus("Checkmate — " + winnerName + " wins", 0, "checkmate");
+                Clocks.stop();
+                if (Board.applyCheckedHighlight) {
+                    Board.applyCheckedHighlight();
+                }
+                updateActionButtons();
+                tryLogCompletedGame();
+                return;
+            }
+            if (payload.kind === "draw") {
+                lastCheckNotifySide = null;
+                alertMode = true;
+                showStatus("Draw — " + (payload.reason || "Draw"), 0, "draw");
+                if (Board.applyDrawHighlight) {
+                    Board.applyDrawHighlight();
+                }
+                Clocks.stop();
+                updateActionButtons();
+                tryLogCompletedGame();
+            }
+        });
+        playGameSession.on("statusChanged", function (status) {
+            if (status !== "check" || !game) {
+                return;
+            }
+            if (lastCheckNotifySide !== game.Turn) {
+                onCheck(game.Turn);
+                lastCheckNotifySide = game.Turn;
+            }
+            if (Board.applyCheckedHighlight) {
+                Board.applyCheckedHighlight();
+            }
         });
         playGameSession.on("info", function (message, kind) {
             showStatus(message, 0, kind || "info");
@@ -3867,17 +3933,33 @@
                         showStatus("Invalid promotion piece", 0, "error");
                         return;
                     }
-                    pending.selectedPiece = selectedPiece;
-                    game.completePromotion(pending);
-                    lastMove = pending;
-                    Board.syncFromGameState();
-                    syncBoardFromGame();
-                    redoPairAvailable = false;
-                    switchClocks();
-                    updateMovesTable(tableMovesFromGame());
-                    updateHeaderTurn();
-                    showStatus("");
-                    runBrainAfter = !game.GameOver && isAiTurn();
+                    const gs = ensurePlayGameSession();
+                    if (gs && typeof gs.selectPromotion === "function") {
+                        const ok = gs.selectPromotion(selectedPiece);
+                        if (!ok) {
+                            return;
+                        }
+                        lastMove = game.LastMove || pending;
+                        Board.syncFromGameState();
+                        syncBoardFromGame();
+                        redoPairAvailable = false;
+                        updateMovesTable(tableMovesFromGame());
+                        showStatus("");
+                        /* Engine reply is requested by LocalEngineMode.afterMove. */
+                        runBrainAfter = false;
+                    } else {
+                        pending.selectedPiece = selectedPiece;
+                        game.completePromotion(pending);
+                        lastMove = pending;
+                        Board.syncFromGameState();
+                        syncBoardFromGame();
+                        redoPairAvailable = false;
+                        switchClocks();
+                        updateMovesTable(tableMovesFromGame());
+                        updateHeaderTurn();
+                        showStatus("");
+                        runBrainAfter = !game.GameOver && isAiTurn();
+                    }
                 } catch (err) {
                     console.error(err);
                     showStatus(err.message || "Promotion failed", 0, "error");

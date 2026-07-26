@@ -322,6 +322,46 @@
             emitStatusFromGame();
         }
 
+        /**
+         * Complete a pending human promotion on ChessGame.LastMove.
+         * @param {*} piece - ChessGame piece type constant
+         * @returns {boolean}
+         */
+        function selectPromotion(piece) {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            const pending = game.LastMove;
+            if (!pending || !pending.promotion) {
+                bus.emit("error", "No pending promotion");
+                return false;
+            }
+            const knight = game.KNIGHT;
+            const queen = game.QUEEN;
+            if (
+                typeof piece !== "number" ||
+                (knight != null && piece < knight) ||
+                (queen != null && piece > queen)
+            ) {
+                bus.emit("error", "Invalid promotion piece");
+                return false;
+            }
+            pending.selectedPiece = piece;
+            if (typeof game.completePromotion !== "function") {
+                bus.emit("error", "Promotion is not available");
+                return false;
+            }
+            game.completePromotion(pending);
+            const info = { source: "promotion" };
+            bus.emit("moveApplied", pending, info);
+            emitBoardAndTurn(info);
+            emitStatusFromGame();
+            if (mode && typeof mode.afterMove === "function") {
+                mode.afterMove(api, pending, { source: "human" });
+            }
+            return true;
+        }
+
         function resign(side) {
             if (disposed || !active || game.GameOver) {
                 return false;
@@ -427,6 +467,7 @@
             playMove: playMove,
             humanMoveApplied: humanMoveApplied,
             externalMoveApplied: externalMoveApplied,
+            selectPromotion: selectPromotion,
             resign: resign,
             undo: undoPair,
             redo: redoPair,

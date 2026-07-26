@@ -179,6 +179,37 @@ describe("session GameSession (Phase 2)", function () {
         assert.strictEqual(session.isHumanTurn(), true);
         session.dispose();
     });
+
+    it("selectPromotion completes a pending promotion and emits moveApplied", function () {
+        const completed = [];
+        const fakeGame = {
+            GameOver: false,
+            Turn: "white",
+            GameState: { turn: "white", promoting: true },
+            KNIGHT: 2,
+            QUEEN: 5,
+            LastMove: { promotion: true, source: { row: 1, col: 0 }, target: { row: 0, col: 0 } },
+            Moves: [],
+            completePromotion: function (move) {
+                completed.push(move.selectedPiece);
+                move.promotion = false;
+                this.GameState = { turn: "black", promoting: false };
+                this.Turn = "black";
+                this.LastMove = move;
+            },
+        };
+        const session = GameSession.create({ game: fakeGame, humanIsWhite: true });
+        session.load({ active: true });
+        const applied = [];
+        session.on("moveApplied", function (move, info) {
+            applied.push(info.source);
+        });
+        assert.ok(session.selectPromotion(5));
+        assert.deepStrictEqual(completed, [5]);
+        assert.deepStrictEqual(applied, ["promotion"]);
+        assert.ok(!session.selectPromotion(5));
+        session.dispose();
+    });
 });
 
 describe("session LocalEngineMode (Phase 2)", function () {
