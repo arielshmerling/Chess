@@ -50,17 +50,18 @@ function resolveOnlineParticipantHref(gameId, opts) {
 /**
  * Spectator watch URL for an online game id.
  * @param {string|number} gameId
- * @param {{ usePlayPage?: boolean }} [opts]
+ * @param {{ usePlayPage?: boolean, isMobile?: boolean }} [opts]
  * @returns {string}
  */
 function resolveOnlineWatchHref(gameId, opts) {
-    if (opts && opts.usePlayPage) {
+    if (opts && opts.usePlayPage && !opts.isMobile) {
         return (
             "/play?id=" +
             encodeURIComponent(String(gameId)) +
             "&mode=watch"
         );
     }
+    /* Mobile and classic both use /watch?id=; mobile UA renders mobile-game shell. */
     return "/watch?id=" + encodeURIComponent(String(gameId));
 }
 

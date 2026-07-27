@@ -94,6 +94,13 @@ describe("playPaths", function () {
                 "/watch?id=abc123",
             );
         });
+
+        it("keeps mobile on /watch?id= even when usePlayPage (mobile shell)", function () {
+            assert.strictEqual(
+                resolveOnlineWatchHref("abc123", { usePlayPage: true, isMobile: true }),
+                "/watch?id=abc123",
+            );
+        });
     });
 
     describe("resolveReviewHref", function () {

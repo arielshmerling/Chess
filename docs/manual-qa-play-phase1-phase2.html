@@ -1230,24 +1230,47 @@ strong { font-weight: 600; }
 <li>Mobile CSS/DOM unchanged (not desktop <code>/play</code>).</li>
 <li>Classic WS is deferred (<code>[chessboard] classic WS deferred to mobile OnlineMode</code> in console).</li>
 <li>SP mobile games still use LocalEngineMode (<code>__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__</code>), not OnlineMode.</li>
-<li>Watchers on mobile (if any) still use classic WS (no OnlineMode attach).</li>
 </ul>
-<h3 id="84--classic-desktop-game-online-unchanged">8.4 — Classic desktop <code>/game</code> online unchanged</h3>
+<h3 id="84--mobile-watch-uses-onlinemode-watcher">8.4 — Mobile watch uses OnlineMode (watcher)</h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>On desktop without Prefer-Play (or classic fallback), play online on <code>/game</code>.</li>
+<li>On a phone UA, open a live public game as spectator via Home → Games / active list → <code>/watch?id=…</code>.</li>
+<li>Confirm moves update the board and clocks; pieces are not playable.</li>
+<li>Console: <code>__SHMERLING_MOBILE_ONLINE_SESSION__</code> set; classic WS deferred (when mobile shell loads).</li>
 </ol>
 <p><strong>Expect</strong></p>
 <ul>
-<li>Still classic <code>chessboard.js</code> WebSocket path (no mobile OnlineMode).</li>
+<li>Session OnlineMode watcher path works (read-only live updates).</li>
+<li>Desktop Prefer-Play still uses <code>/play?id=&amp;mode=watch</code>.</li>
+<li>Desktop classic <code>/watch</code> (non-mobile UA) still <code>game.ejs</code>.</li>
 </ul>
+<p><strong>Known gap (deferred polish)</strong><br>Mobile watch may still render the <strong>classic web <code>game.ejs</code> look</strong> instead of the mobile-game shell styling (narrow desktop / UA detection). Treat full mobile CSS for watch as a follow-up improvement, not a Phase 8 blocker.</p>
 <h3 id="phase-8-remaining">Phase 8 remaining</h3>
 <ul>
 <li><input checked="" disabled="" type="checkbox"> Thin ReviewMode adapter on <code>/mobile-review</code></li>
 <li><input checked="" disabled="" type="checkbox"> Mobile SP LocalEngineMode (<code>clientEngine</code> + HTTP EnginePort)</li>
 <li><input checked="" disabled="" type="checkbox"> Mobile OnlineMode (participant <code>/mobile-game</code>)</li>
-<li><input disabled="" type="checkbox"> Mobile watch shell (today still classic <code>game.ejs</code> / classic WS)</li>
+<li><input checked="" disabled="" type="checkbox"> Mobile watch OnlineMode watcher (session path)</li>
+<li><input disabled="" type="checkbox"> <strong>Deferred:</strong> mobile watch visual shell (true <code>mobile-game</code> CSS/layout, not classic web UI)</li>
 </ul>
+<hr>
+<h2 id="deferred-improvements-post-phase-8">Deferred improvements (post Phase 8)</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Mobile watch visual polish</td>
+<td><code>/watch</code> should consistently use mobile-game shell CSS on phones; today session wiring works but look may still be classic web UI</td>
+</tr>
+<tr>
+<td>Phase 9 optional</td>
+<td>prefs/themes adapters; remove legacy <code>runEngineMove</code> fallback in <code>desktop-play.js</code></td>
+</tr>
+</tbody></table>
 <hr>
 <h2 id="phase-9--desktop-adapters-slice-1-brain-engineport">Phase 9 — Desktop adapters (slice 1: brain EnginePort)</h2>
 <h3 id="91--web-play-still-uses-http-brain">9.1 — Web Play still uses HTTP brain</h3>
@@ -1348,6 +1371,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 8 (mobile OnlineMode) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 8 (mobile watch) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

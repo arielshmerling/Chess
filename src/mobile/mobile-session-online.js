@@ -1,9 +1,9 @@
 /**
- * Mobile session online adapter (Phase 8 slice 3).
+ * Mobile session online adapter (Phase 8 slices 3–4).
  *
- * Binds GameSession + OnlineMode on /mobile-game for OnlineGame participants.
- * Keeps mobile CSS/DOM and classic chessboard drawing; MatchTransport owns /ws
- * (classic startWebSockets is skipped when this module is loaded).
+ * Binds GameSession + OnlineMode on /mobile-game (and mobile /watch → mobile-game)
+ * for OnlineGame participants and watchers. Keeps mobile CSS/DOM and classic
+ * chessboard drawing; MatchTransport owns /ws (classic startWebSockets skipped).
  *
  * Dual export for Node characterization tests.
  */
@@ -23,6 +23,10 @@
                 const path = (global.location && global.location.pathname) || "";
                 if (path === "/mobile-review" || path.indexOf("/mobile-review") === 0) {
                     return false;
+                }
+                /* /watch on mobile renders mobile-game.ejs (Phase 8 watch shell). */
+                if (path === "/watch" || path.indexOf("/watch") === 0) {
+                    return true;
                 }
                 return (
                     path === "/mobile-game" ||
@@ -64,9 +68,17 @@
         return !!(
             info &&
             info.gameType === "OnlineGame" &&
-            !info.watcher &&
             info.mode !== "review"
         );
+    }
+
+    /**
+     * @param {object} [gameInfo]
+     * @returns {boolean}
+     */
+    function isWatcherSession(gameInfo) {
+        const info = gameInfo || global.gameInfo;
+        return !!(info && info.watcher);
     }
 
     /**
@@ -252,6 +264,7 @@
                 : typeof global.currentPlayerIsWhite === "boolean"
                   ? global.currentPlayerIsWhite
                   : true;
+        const watcher = opts.watcher === true || isWatcherSession(gameInfo);
 
         const transport = global.ShmerlingWsTransport.create({});
         const session = global.ShmerlingGameSession.create({
@@ -260,6 +273,7 @@
             engine: null,
             meta: {
                 mobileOnline: true,
+                mobileWatch: watcher,
                 whitePlayerName: gameInfo.whitePlayerName,
                 blackPlayerName: gameInfo.blackPlayerName,
             },
@@ -279,7 +293,7 @@
                 blackPlayerName: gameInfo.blackPlayerName,
             },
             humanIsWhite: humanIsWhite,
-            watcher: false,
+            watcher: watcher,
             wsUrl:
                 typeof global.ShmerlingWsTransport.defaultWsUrl === "function"
                     ? global.ShmerlingWsTransport.defaultWsUrl()
@@ -295,6 +309,9 @@
                 });
             },
             cancelBeforeMove: async function (gameId) {
+                if (watcher) {
+                    return;
+                }
                 try {
                     await fetch("/cancel-before-move", {
                         method: "POST",
@@ -317,6 +334,10 @@
             onOpponentJoined: function (name) {
                 const label =
                     name && String(name).trim() ? String(name).trim() : "Opponent";
+                if (watcher) {
+                    /* Spectators keep both name plates from gameInfo / later updates. */
+                    return;
+                }
                 const el = global.document &&
                     global.document.getElementById(
                         humanIsWhite ? "blackPlayerName" : "whitePlayerName",
@@ -337,6 +358,9 @@
                 }
             },
             onOpponentDisconnected: function () {
+                if (watcher) {
+                    return;
+                }
                 if (typeof global.startDisconnectionTimer === "function") {
                     global.startDisconnectionTimer();
                 }
@@ -347,6 +371,9 @@
                 }
             },
             onDrawOffered: function () {
+                if (watcher) {
+                    return;
+                }
                 if (typeof global.messageBox === "function") {
                     global.messageBox(
                         "Opponent offered a draw, agree?",
@@ -364,6 +391,9 @@
                 }
             },
             onRematchOffered: function (payload) {
+                if (watcher) {
+                    return;
+                }
                 if (typeof global.messageBox === "function") {
                     global.messageBox(
                         "Opponent offered a rematch, agree?",
@@ -387,6 +417,15 @@
                 }
             },
             onRematchAccepted: function (payload) {
+                if (watcher) {
+                    if (typeof global.displayMessage === "function") {
+                        global.displayMessage(
+                            "New game started — go to Home to watch.",
+                            4000,
+                        );
+                    }
+                    return;
+                }
                 const newId = payload && payload.gameId;
                 if (newId == null) {
                     return;
@@ -401,6 +440,9 @@
                 }
             },
             onDisconnectCountdown: function (seconds) {
+                if (watcher) {
+                    return;
+                }
                 const el =
                     global.document &&
                     (humanIsWhite
@@ -427,6 +469,7 @@
             humanIsWhite: humanIsWhite,
             meta: {
                 mobileOnline: true,
+                mobileWatch: watcher,
                 whitePlayerName: gameInfo.whitePlayerName,
                 blackPlayerName: gameInfo.blackPlayerName,
             },
@@ -508,6 +551,7 @@
                 game: game,
                 gameInfo: gameInfo,
                 currentPlayerIsWhite: global.currentPlayerIsWhite !== false,
+                watcher: !!gameInfo.watcher,
             });
             if (!bridge) {
                 console.warn("[MobileSessionOnline] Could not attach OnlineMode");
@@ -521,6 +565,7 @@
         isMobileGamePage: isMobileGamePage,
         sessionApisReady: sessionApisReady,
         shouldAttach: shouldAttach,
+        isWatcherSession: isWatcherSession,
         readClassicClocks: readClassicClocks,
         writeClassicClocks: writeClassicClocks,
         applyClassicRemoteMove: applyClassicRemoteMove,

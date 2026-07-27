@@ -1087,22 +1087,38 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Mobile CSS/DOM unchanged (not desktop `/play`).
 - Classic WS is deferred (`[chessboard] classic WS deferred to mobile OnlineMode` in console).
 - SP mobile games still use LocalEngineMode (`__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__`), not OnlineMode.
-- Watchers on mobile (if any) still use classic WS (no OnlineMode attach).
 
-### 8.4 — Classic desktop `/game` online unchanged
+### 8.4 — Mobile watch uses OnlineMode (watcher)
 
 **Steps**
-1. On desktop without Prefer-Play (or classic fallback), play online on `/game`.
+1. On a phone UA, open a live public game as spectator via Home → Games / active list → `/watch?id=…`.
+2. Confirm moves update the board and clocks; pieces are not playable.
+3. Console: `__SHMERLING_MOBILE_ONLINE_SESSION__` set; classic WS deferred (when mobile shell loads).
 
 **Expect**
-- Still classic `chessboard.js` WebSocket path (no mobile OnlineMode).
+- Session OnlineMode watcher path works (read-only live updates).
+- Desktop Prefer-Play still uses `/play?id=&mode=watch`.
+- Desktop classic `/watch` (non-mobile UA) still `game.ejs`.
+
+**Known gap (deferred polish)**  
+Mobile watch may still render the **classic web `game.ejs` look** instead of the mobile-game shell styling (narrow desktop / UA detection). Treat full mobile CSS for watch as a follow-up improvement, not a Phase 8 blocker.
 
 ### Phase 8 remaining
 
 - [x] Thin ReviewMode adapter on `/mobile-review`
 - [x] Mobile SP LocalEngineMode (`clientEngine` + HTTP EnginePort)
 - [x] Mobile OnlineMode (participant `/mobile-game`)
-- [ ] Mobile watch shell (today still classic `game.ejs` / classic WS)
+- [x] Mobile watch OnlineMode watcher (session path)
+- [ ] **Deferred:** mobile watch visual shell (true `mobile-game` CSS/layout, not classic web UI)
+
+---
+
+## Deferred improvements (post Phase 8)
+
+| Item | Notes |
+|---|---|
+| Mobile watch visual polish | `/watch` should consistently use mobile-game shell CSS on phones; today session wiring works but look may still be classic web UI |
+| Phase 9 optional | prefs/themes adapters; remove legacy `runEngineMove` fallback in `desktop-play.js` |
 
 ---
 
@@ -1158,5 +1174,6 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 8 (mobile review) result | Pass / Fail |
 | Phase 8 (mobile SP LocalEngine) result | Pass / Fail |
 | Phase 8 (mobile OnlineMode) result | Pass / Fail |
+| Phase 8 (mobile watch) result | Pass / Fail |
 | Phase 9 (brain adapters) result | Pass / Fail |
 | Notes | |

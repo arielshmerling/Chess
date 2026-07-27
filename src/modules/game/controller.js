@@ -151,6 +151,13 @@ exports.watchGame = catchAsync(async (req, res) => {
             return res.redirect(302, resolveOnlineWatchHref(game.gameId, { usePlayPage: true }));
         }
         setGamePageNoCache(res);
+        /* Phase 8: mobile watch uses the mobile-game shell + OnlineMode (watcher). */
+        if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
+            return res.render(PLAY_VIEW_MOBILE, {
+                gameId: game.gameId,
+                hideTopbar: true,
+            });
+        }
         res.render("game", { gameId: game.gameId, hideTopbar: true });
         return;
 

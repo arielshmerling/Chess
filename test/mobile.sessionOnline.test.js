@@ -16,7 +16,7 @@ describe("mobile session online adapter", function () {
         assert.strictEqual(typeof MobileSessionOnline.readClassicClocks, "function");
     });
 
-    it("shouldAttach only for OnlineGame participants", function () {
+    it("shouldAttach for OnlineGame participants and watchers", function () {
         assert.strictEqual(
             MobileSessionOnline.shouldAttach({
                 gameType: "OnlineGame",
@@ -28,7 +28,7 @@ describe("mobile session online adapter", function () {
                 gameType: "OnlineGame",
                 watcher: true,
             }),
-            false,
+            true,
         );
         assert.strictEqual(
             MobileSessionOnline.shouldAttach({
@@ -42,6 +42,17 @@ describe("mobile session online adapter", function () {
                 gameType: "OnlineGame",
                 mode: "review",
             }),
+            false,
+        );
+    });
+
+    it("isWatcherSession detects watcher flag", function () {
+        assert.strictEqual(
+            MobileSessionOnline.isWatcherSession({ watcher: true }),
+            true,
+        );
+        assert.strictEqual(
+            MobileSessionOnline.isWatcherSession({ gameType: "OnlineGame" }),
             false,
         );
     });
