@@ -124,13 +124,12 @@ describe("OnlineGameMessageProcessor.drawOfferForward characterization", functio
         assert.strictEqual(game.sent.length, 0);
     });
 
-    it("forwards white offer after a move on black turn", function () {
+    it("forwards white offer after a move on black turn (players only, not watchers)", function () {
         const game = mockGame({ moves: [{}], chessGame: { Turn: "black" } });
         const msg = { isWhite: true, info: "offer draw" };
         processor.drawOfferForward(game, msg);
-        assert.strictEqual(game.sent.length, 2);
+        assert.strictEqual(game.sent.length, 1);
         assert.strictEqual(game.sent[0].channel, "opponent");
-        assert.strictEqual(game.sent[1].channel, "watchers");
     });
 
     it("requires two moves before black may offer", function () {
@@ -140,7 +139,8 @@ describe("OnlineGameMessageProcessor.drawOfferForward characterization", functio
 
         game.moves = [{}, {}];
         processor.drawOfferForward(game, { isWhite: false });
-        assert.strictEqual(game.sent.length, 2);
+        assert.strictEqual(game.sent.length, 1);
+        assert.strictEqual(game.sent[0].channel, "opponent");
     });
 });
 

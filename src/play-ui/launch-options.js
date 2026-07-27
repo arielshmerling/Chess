@@ -167,6 +167,27 @@
         }
     }
 
+    /**
+     * Optional shell mode from the Play URL (`watch` | `review`).
+     * @param {string|URLSearchParams|null|undefined} search
+     * @returns {"watch"|"review"|null}
+     */
+    function getModeFromSearch(search) {
+        try {
+            const params =
+                search instanceof URLSearchParams
+                    ? search
+                    : new URLSearchParams(search || "");
+            const mode = params.get("mode");
+            if (mode === "watch" || mode === "review") {
+                return mode;
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
     const LaunchOptions = {
         normalizeLaunchEngine: normalizeLaunchEngine,
         mergeStored: mergeStored,
@@ -174,6 +195,7 @@
         wantsNewGameDialog: wantsNewGameDialog,
         getGameIdFromSearch: getGameIdFromSearch,
         getJoinGameIdFromSearch: getJoinGameIdFromSearch,
+        getModeFromSearch: getModeFromSearch,
     };
 
     global.PlayLaunchOptions = LaunchOptions;

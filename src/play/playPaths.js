@@ -48,6 +48,23 @@ function resolveOnlineParticipantHref(gameId, opts) {
 }
 
 /**
+ * Spectator watch URL for an online game id.
+ * @param {string|number} gameId
+ * @param {{ usePlayPage?: boolean }} [opts]
+ * @returns {string}
+ */
+function resolveOnlineWatchHref(gameId, opts) {
+    if (opts && opts.usePlayPage) {
+        return (
+            "/play?id=" +
+            encodeURIComponent(String(gameId)) +
+            "&mode=watch"
+        );
+    }
+    return "/watch?id=" + encodeURIComponent(String(gameId));
+}
+
+/**
  * Whether the logged-in user may open the Play shell.
  * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
  */
@@ -82,6 +99,7 @@ function effectivePreferPlayPage(req) {
 module.exports = {
     resolvePlayGamePath,
     resolveOnlineParticipantHref,
+    resolveOnlineWatchHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,

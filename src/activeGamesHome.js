@@ -109,6 +109,9 @@
         if (isParticipant && (status === "In progress" || status === "On hold")) {
             return playBase() + "?id=" + encodeURIComponent(g.Id);
         }
+        if (playBase() === "/play") {
+            return "/play?id=" + encodeURIComponent(g.Id) + "&mode=watch";
+        }
         return "/watch?id=" + encodeURIComponent(g.Id);
     }
 

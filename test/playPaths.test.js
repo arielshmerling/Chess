@@ -78,6 +78,24 @@ describe("playPaths", function () {
         });
     });
 
+    describe("resolveOnlineWatchHref", function () {
+        const { resolveOnlineWatchHref } = require("../src/play/playPaths");
+
+        it("uses /play?id=&mode=watch when usePlayPage", function () {
+            assert.strictEqual(
+                resolveOnlineWatchHref("abc123", { usePlayPage: true }),
+                "/play?id=abc123&mode=watch",
+            );
+        });
+
+        it("uses classic /watch?id= otherwise", function () {
+            assert.strictEqual(
+                resolveOnlineWatchHref("abc123", { usePlayPage: false }),
+                "/watch?id=abc123",
+            );
+        });
+    });
+
     describe("canAccessPlayPage", function () {
         it("allows any logged-in user (Admin, Partner, Member)", function () {
             assert.strictEqual(

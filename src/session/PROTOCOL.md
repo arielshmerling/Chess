@@ -26,10 +26,14 @@
 | Active game reopen | `/play?id=` or `/game?id=` | Play shell OnlineMode or classic |
 | Debug | `/game?gameType=3` | classic `/game` |
 | Review | `/review?id=` | classic `game.ejs` / mobile-review |
-| Watch | `/watch?id=` | classic `game.ejs` |
+| Watch | `/watch?id=` → Prefer-Play redirects to `/play?id=&mode=watch` | Play shell (watch) or classic `game.ejs` |
 | Desktop Electron | `/app/play` | Play shell (local SP) |
 
-**Phase 3 (done for core):** online invite/join/`?id=` for Play UI users → `/play` with `OnlineMode` + `WsTransport`. Classic `/game` remains. Draw/rematch/chat/watch stay Phase 4.
+**Phase 3 (done for core):** online invite/join/`?id=` for Play UI users → `/play` with `OnlineMode` + `WsTransport`. Classic `/game` remains.
+
+**Phase 4 (done):** draw / rematch (with color) / reconnect countdown on `/play`.
+
+**Phase 5 (in progress):** live watch on `/play`; history/PGN review deep-links still classic.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

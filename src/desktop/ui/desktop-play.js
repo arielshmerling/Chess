@@ -172,6 +172,8 @@
     let onlineGameInfo = null;
     /** Opponent left the WS (Phase 4 chrome: red name, hide clock). */
     let opponentConnectionLost = false;
+    /** @type {boolean|null} which seat is disconnected (from server); used for watchers + chrome */
+    let disconnectedSeatIsWhite = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
@@ -281,6 +283,7 @@
             configuration: configurationMode,
             reviewPlayback: reviewPlaybackPlaying,
             review: reviewMode,
+            watch: !!(onlineGameInfo && onlineGameInfo.watcher),
         });
     }
 
@@ -324,26 +327,39 @@
         if (!opponentConnectionLost || !onlineGameInfo) {
             return;
         }
-        /* Opponent is the other color from the local human. */
-        if (currentPlayerIsWhite) {
-            if (blackClock) {
-                blackClock.classList.add(clsClock);
-            }
-            if (blackName) {
-                blackName.classList.add(clsName);
-            }
+        /* Prefer server-reported seat; fall back to "the opponent" for participants. */
+        let markWhiteDisconnected;
+        if (typeof disconnectedSeatIsWhite === "boolean") {
+            markWhiteDisconnected = disconnectedSeatIsWhite;
+        } else if (onlineGameInfo.watcher) {
+            return;
         } else {
+            markWhiteDisconnected = !currentPlayerIsWhite;
+        }
+        if (markWhiteDisconnected) {
             if (whiteClock) {
                 whiteClock.classList.add(clsClock);
             }
             if (whiteName) {
                 whiteName.classList.add(clsName);
             }
+        } else {
+            if (blackClock) {
+                blackClock.classList.add(clsClock);
+            }
+            if (blackName) {
+                blackName.classList.add(clsName);
+            }
         }
     }
 
-    function setOpponentConnectionLost(lost) {
+    function setOpponentConnectionLost(lost, seatIsWhite) {
         opponentConnectionLost = !!lost;
+        if (!lost) {
+            disconnectedSeatIsWhite = null;
+        } else if (typeof seatIsWhite === "boolean") {
+            disconnectedSeatIsWhite = seatIsWhite;
+        }
         applyOpponentConnectionChrome();
     }
 
@@ -3494,8 +3510,12 @@
                 updateMatchHeader();
                 updateActionButtons();
             },
-            onOpponentDisconnected: function () {
-                setOpponentConnectionLost(true);
+            onOpponentDisconnected: function (payload) {
+                const seat =
+                    payload && typeof payload.disconnectedWasWhite === "boolean"
+                        ? payload.disconnectedWasWhite
+                        : null;
+                setOpponentConnectionLost(true, seat);
             },
             onOpponentRejoined: function () {
                 setOpponentConnectionLost(false);
@@ -3505,7 +3525,7 @@
                 clearActiveGameSnapshot();
             },
             onDrawOffered: function () {
-                if (dialogOn) {
+                if (dialogOn || (onlineGameInfo && onlineGameInfo.watcher)) {
                     return;
                 }
                 Dialog.confirm({
@@ -3526,7 +3546,7 @@
                 });
             },
             onRematchOffered: function (payload) {
-                if (dialogOn) {
+                if (dialogOn || (onlineGameInfo && onlineGameInfo.watcher)) {
                     return;
                 }
                 const wants =
@@ -3570,12 +3590,46 @@
                 }
                 void beginOnlineRematch(newId);
             },
-            onDisconnectCountdown: function (seconds) {
-                showStatus(
-                    "Opponent disconnected — " + formatDisconnectCountdown(seconds),
-                    0,
-                    "info",
-                );
+            onDisconnectCountdown: function (seconds, meta) {
+                if (
+                    meta &&
+                    typeof meta.disconnectedWasWhite === "boolean"
+                ) {
+                    disconnectedSeatIsWhite = meta.disconnectedWasWhite;
+                    applyOpponentConnectionChrome();
+                }
+                const isWatch = !!(onlineGameInfo && onlineGameInfo.watcher);
+                let who;
+                if (isWatch) {
+                    if (disconnectedSeatIsWhite === true) {
+                        who =
+                            (onlineGameInfo.whitePlayerName &&
+                                String(onlineGameInfo.whitePlayerName).trim()) ||
+                            "White";
+                    } else if (disconnectedSeatIsWhite === false) {
+                        who =
+                            (onlineGameInfo.blackPlayerName &&
+                                String(onlineGameInfo.blackPlayerName).trim()) ||
+                            "Black";
+                    } else {
+                        who = "A player";
+                    }
+                    showStatus(
+                        who +
+                            " disconnected — waiting for rejoin (" +
+                            formatDisconnectCountdown(seconds) +
+                            ")",
+                        0,
+                        "info",
+                    );
+                } else {
+                    showStatus(
+                        "Opponent disconnected — " +
+                            formatDisconnectCountdown(seconds),
+                        0,
+                        "info",
+                    );
+                }
             },
             onDisconnectCountdownClear: function () {
                 /* Status will refresh on next event / move. */
@@ -3642,11 +3696,32 @@
                 game.resign(loser);
                 finishResignGame(loser);
             }
-            showStatus(
-                "Game over — opponent failed to reconnect.",
-                0,
-                "info",
-            );
+            setOpponentConnectionLost(false);
+            const winner = loser === "White" ? "Black" : "White";
+            const isWatch = !!(onlineGameInfo && onlineGameInfo.watcher);
+            if (isWatch) {
+                const loserName =
+                    loser === "White"
+                        ? (onlineGameInfo.whitePlayerName || "White")
+                        : (onlineGameInfo.blackPlayerName || "Black");
+                const winnerName =
+                    winner === "White"
+                        ? (onlineGameInfo.whitePlayerName || "White")
+                        : (onlineGameInfo.blackPlayerName || "Black");
+                showStatus(
+                    loserName + " failed to reconnect — " + winnerName + " wins",
+                    0,
+                    "info",
+                );
+            } else {
+                showStatus(
+                    "Game over — opponent failed to reconnect.",
+                    0,
+                    "info",
+                );
+            }
+            Clocks.stop();
+            updateActionButtons();
         } catch (err) {
             console.warn("[Play] Could not sync reconnect timeout:", err);
         }
@@ -4369,11 +4444,11 @@
         }
         const keepId = options && options.keepId && currentGameId;
         if (keepId) {
-            window.history.replaceState(
-                {},
-                "",
-                "/play?id=" + encodeURIComponent(String(currentGameId)),
-            );
+            let url = "/play?id=" + encodeURIComponent(String(currentGameId));
+            if (onlineGameInfo && onlineGameInfo.watcher) {
+                url += "&mode=watch";
+            }
+            window.history.replaceState({}, "", url);
             return;
         }
         if ((window.location.search || "").length > 0) {
@@ -4611,10 +4686,6 @@
             showStatus("This link is not an online game on /play", 0, "error");
             return false;
         }
-        if (info.watcher) {
-            showStatus("Spectating is not available on /play yet — use Watch", 0, "info");
-            return false;
-        }
         await beginOnlineGame(info);
         return true;
     }
@@ -4702,8 +4773,9 @@
         exitReviewMode();
         setPlayOriginState(game.GameState);
         document.body.classList.add("desktop-play-has-active-game");
+        const isWatcher = !!info.watcher;
         if (Board.setHumanPlayEnabled) {
-            Board.setHumanPlayEnabled(true);
+            Board.setHumanPlayEnabled(!isWatcher);
         }
         lastLoadedSavedGameId = null;
         editingSavedGameId = null;
@@ -4715,14 +4787,18 @@
         updateActionButtons();
         if (!game.GameOver) {
             switchClocks();
-            const waiting =
-                currentPlayerIsWhite &&
-                !(info.blackPlayerName && String(info.blackPlayerName).trim());
-            showStatus(
-                waiting ? "Waiting for opponent…" : "Online game — connected",
-                waiting ? 0 : 2000,
-                "info",
-            );
+            if (isWatcher) {
+                showStatus("Watching live game", 0, "info");
+            } else {
+                const waiting =
+                    currentPlayerIsWhite &&
+                    !(info.blackPlayerName && String(info.blackPlayerName).trim());
+                showStatus(
+                    waiting ? "Waiting for opponent…" : "Online game — connected",
+                    waiting ? 0 : 2000,
+                    "info",
+                );
+            }
         }
     }
 
@@ -5172,6 +5248,10 @@
             return;
         }
         if (!gameActive) {
+            leavePlayShell();
+            return;
+        }
+        if (onlineGameInfo && onlineGameInfo.watcher) {
             leavePlayShell();
             return;
         }

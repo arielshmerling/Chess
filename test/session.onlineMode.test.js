@@ -550,4 +550,119 @@ describe("session OnlineMode (Phase 3)", function () {
             "rematchAccepted",
         );
     });
+
+    it("watcher mode uses WATCH capabilities and blocks resign/draw/rematch", function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "game-1",
+                username: "spectator",
+                userId: "u9",
+                creatorId: "u1",
+                whitePlayerName: "alice",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            watcher: true,
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        assert.strictEqual(mode.id, "watch");
+        const caps = mode.capabilities();
+        assert.strictEqual(caps.resign, false);
+        assert.strictEqual(caps.draw, false);
+        assert.strictEqual(caps.rematch, false);
+        assert.strictEqual(caps.watchers, true);
+        assert.strictEqual(caps.network, true);
+        assert.strictEqual(mode.offerDraw(), false);
+        assert.strictEqual(mode.offerRematch(), false);
+        return Promise.resolve(mode.requestResign()).then(function (ok) {
+            assert.strictEqual(ok, false);
+            const connect = transport.sent.find(function (m) {
+                return m.type === "watch" || m.type === "connection";
+            });
+            assert.ok(connect);
+            assert.strictEqual(connect.type, "watch");
+
+            let drawOffers = 0;
+            let rematchOffers = 0;
+            const mode2 = OnlineMode.create({
+                transport: createMockTransport(),
+                gameInfo: {
+                    id: "game-1",
+                    username: "spectator",
+                    userId: "u9",
+                    creatorId: "u1",
+                    whitePlayerName: "alice",
+                    blackPlayerName: "bob",
+                },
+                humanIsWhite: true,
+                watcher: true,
+                wsUrl: "ws://test/ws",
+                onDrawOffered: function () {
+                    drawOffers += 1;
+                },
+                onRematchOffered: function () {
+                    rematchOffers += 1;
+                },
+            });
+            const session2 = GameSession.create({ game: silentGame(), humanIsWhite: true });
+            session2.attachMode(mode2);
+            session2.start();
+            mode2._handleInbound({ type: "info", info: "offer draw", isWhite: true });
+            mode2._handleInbound({ type: "info", info: "offer rematch", isWhite: true });
+            mode2._handleInbound({ type: "info", info: "draw declined", isWhite: true });
+            mode2._handleInbound({ type: "info", info: "rematch declined", isWhite: true });
+            assert.strictEqual(drawOffers, 0);
+            assert.strictEqual(rematchOffers, 0);
+            session2.dispose();
+            session.dispose();
+        });
+    });
+
+    it("watcher forfeit resigns the disconnected seat, not the other", function () {
+        const statuses = [];
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: createMockTransport(),
+            gameInfo: {
+                id: "game-1",
+                username: "spectator",
+                userId: "u9",
+                creatorId: "u1",
+                whitePlayerName: "alice",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            watcher: true,
+            wsUrl: "ws://test/ws",
+            onStatus: function (msg) {
+                statuses.push(msg);
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "network" },
+        );
+        mode._handleInbound({
+            type: "info",
+            info: "Opponent failed to reconnect",
+            disconnectedWasWhite: true,
+        });
+        assert.strictEqual(game.GameOver, true);
+        assert.strictEqual(game.GameState.resigned, "white");
+        assert.ok(
+            statuses.some(function (s) {
+                return /alice failed to reconnect/i.test(s) && /bob wins/i.test(s);
+            }),
+        );
+        session.dispose();
+    });
 });

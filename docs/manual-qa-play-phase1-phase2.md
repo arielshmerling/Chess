@@ -772,15 +772,14 @@ Run these after any large Play/session change:
 - No WebSocket errors blocking SP.
 - Undo still works in SP; Draw still disabled vs engine.
 
-### 3.13 — Spectating not on `/play` yet
+### 3.13 — Spectating (see Phase 5)
 
 **Steps**
-1. As a third user, open `/play?id=<onlineGameId>` for a game you are not in (or Watch from home).
+1. As a third user, open a live online game from Active games (non-participant), or `/play?id=<id>&mode=watch`.
 
 **Expect**
-- Watchers are **not** required to work on `/play` in Phase 3.
-- Prefer classic `/watch?id=` for spectating.
-- If `/play?id=` is opened as a non-participant, a clear message / redirect is acceptable (no broken empty OnlineMode).
+- Prefer-Play users land on `/play` in Watch Mode (see §5.1).
+- Classic `/watch?id=` remains as fallback (redirects Prefer-Play desktop users to `/play`).
 
 ### 3.14 — Promotion in an online game
 
@@ -900,13 +899,41 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ---
 
-## Phase 5+ (placeholder)
+## Phase 5 — Watch / Review (partial)
 
-### Phase 5 — Watch / full Review mode (to be filled)
+### 5.1 — Live watch on `/play` (slice 1)
 
-- [ ] Live watch on `/play` (non-participant)
+**Steps**
+1. Two players start an online game on `/play`.
+2. As a third logged-in user (Prefer-Play), open **Active games** and click that game (or open `/watch?id=…`).
+3. Observe moves as players play; try Resign / Draw / Rematch / dragging pieces.
+4. Click Home / leave.
+
+**Expect**
+- Third user lands on `/play?id=…&mode=watch` (or equivalent after `/watch` redirect).
+- Header shows **Watch Mode**; status indicates watching.
+- Board updates when players move; clocks update.
+- Resign / Draw / Rematch disabled; pieces cannot be moved.
+- Draw / rematch offer dialogs do **not** appear for the watcher (player↔player only).
+- Leaving does **not** resign either player.
+- Classic `/watch` still works for clients that do not Prefer-Play (e.g. mobile classic path).
+
+### 5.2 — Watcher sees disconnect of the correct player
+
+**Steps**
+1. While watching a live game, close one player’s tab (e.g. White).
+2. Watch status and header chrome for ~60s without that player rejoining.
+
+**Expect**
+- Status like “\<WhiteName\> disconnected — waiting for rejoin (…countdown…)”, **not** “Opponent disconnected”.
+- The disconnected seat’s name is red / clock hidden (the seat that left, not always Black).
+- After ~1 minute, that player loses; status like “\<WhiteName\> failed to reconnect — \<BlackName\> wins”.
+- Result matches (e.g. White disconnect → Black wins / `0-1`).
+
+### Phase 5 remaining (to be filled)
+
 - [ ] History / PGN review deep-links into `/play`
-- [ ] Prefer-Play redirects from `/watch` and `/review`
+- [ ] Prefer-Play redirects from `/review`
 
 ---
 
@@ -923,4 +950,5 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 2 result | Pass / Fail |
 | Phase 3 result | Pass / Fail |
 | Phase 4 result | Pass / Fail |
+| Phase 5 (watch slice) result | Pass / Fail |
 | Notes | |

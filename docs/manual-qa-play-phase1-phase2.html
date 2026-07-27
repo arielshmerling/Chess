@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI (Phase 1–4)</title>
+<title>Manual QA: Shmerling Play UI (Phase 1–5)</title>
 <style>
 @page { size: Letter; margin: 0.7in; }
 body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
@@ -903,16 +903,15 @@ strong { font-weight: 600; }
 <li>No WebSocket errors blocking SP.</li>
 <li>Undo still works in SP; Draw still disabled vs engine.</li>
 </ul>
-<h3 id="313--spectating-not-on-play-yet">3.13 — Spectating not on <code>/play</code> yet</h3>
+<h3 id="313--spectating-see-phase-5">3.13 — Spectating (see Phase 5)</h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>As a third user, open <code>/play?id=&lt;onlineGameId&gt;</code> for a game you are not in (or Watch from home).</li>
+<li>As a third user, open a live online game from Active games (non-participant), or <code>/play?id=&lt;id&gt;&amp;mode=watch</code>.</li>
 </ol>
 <p><strong>Expect</strong></p>
 <ul>
-<li>Watchers are <strong>not</strong> required to work on <code>/play</code> in Phase 3.</li>
-<li>Prefer classic <code>/watch?id=</code> for spectating.</li>
-<li>If <code>/play?id=</code> is opened as a non-participant, a clear message / redirect is acceptable (no broken empty OnlineMode).</li>
+<li>Prefer-Play users land on <code>/play</code> in Watch Mode (see §5.1).</li>
+<li>Classic <code>/watch?id=</code> remains as fallback (redirects Prefer-Play desktop users to <code>/play</code>).</li>
 </ul>
 <h3 id="314--promotion-in-an-online-game">3.14 — Promotion in an online game</h3>
 <p><strong>Steps</strong></p>
@@ -1038,12 +1037,42 @@ strong { font-weight: 600; }
 <li>No online rematch dialog when not in an online finished game.</li>
 </ul>
 <hr>
-<h2 id="phase-5-placeholder">Phase 5+ (placeholder)</h2>
-<h3 id="phase-5--watch--full-review-mode-to-be-filled">Phase 5 — Watch / full Review mode (to be filled)</h3>
+<h2 id="phase-5--watch--review-partial">Phase 5 — Watch / Review (partial)</h2>
+<h3 id="51--live-watch-on-play-slice-1">5.1 — Live watch on <code>/play</code> (slice 1)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Two players start an online game on <code>/play</code>.</li>
+<li>As a third logged-in user (Prefer-Play), open <strong>Active games</strong> and click that game (or open <code>/watch?id=…</code>).</li>
+<li>Observe moves as players play; try Resign / Draw / Rematch / dragging pieces.</li>
+<li>Click Home / leave.</li>
+</ol>
+<p><strong>Expect</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Live watch on <code>/play</code> (non-participant)</li>
+<li>Third user lands on <code>/play?id=…&amp;mode=watch</code> (or equivalent after <code>/watch</code> redirect).</li>
+<li>Header shows <strong>Watch Mode</strong>; status indicates watching.</li>
+<li>Board updates when players move; clocks update.</li>
+<li>Resign / Draw / Rematch disabled; pieces cannot be moved.</li>
+<li>Draw / rematch offer dialogs do <strong>not</strong> appear for the watcher (player↔player only).</li>
+<li>Leaving does <strong>not</strong> resign either player.</li>
+<li>Classic <code>/watch</code> still works for clients that do not Prefer-Play (e.g. mobile classic path).</li>
+</ul>
+<h3 id="52--watcher-sees-disconnect-of-the-correct-player">5.2 — Watcher sees disconnect of the correct player</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>While watching a live game, close one player’s tab (e.g. White).</li>
+<li>Watch status and header chrome for ~60s without that player rejoining.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Status like “&lt;WhiteName&gt; disconnected — waiting for rejoin (…countdown…)”, <strong>not</strong> “Opponent disconnected”.</li>
+<li>The disconnected seat’s name is red / clock hidden (the seat that left, not always Black).</li>
+<li>After ~1 minute, that player loses; status like “&lt;WhiteName&gt; failed to reconnect — &lt;BlackName&gt; wins”.</li>
+<li>Result matches (e.g. White disconnect → Black wins / <code>0-1</code>).</li>
+</ul>
+<h3 id="phase-5-remaining-to-be-filled">Phase 5 remaining (to be filled)</h3>
+<ul>
 <li><input disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code></li>
-<li><input disabled="" type="checkbox"> Prefer-Play redirects from <code>/watch</code> and <code>/review</code></li>
+<li><input disabled="" type="checkbox"> Prefer-Play redirects from <code>/review</code></li>
 </ul>
 <hr>
 <h2 id="sign-off">Sign-off</h2>
@@ -1088,6 +1117,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 4 result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 5 (watch slice) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

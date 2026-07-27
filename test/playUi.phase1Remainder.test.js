@@ -225,6 +225,9 @@ describe("play-ui launch options", function () {
             LaunchOptions.getJoinGameIdFromSearch("?gameType=2&joinGame=xyz"),
             "xyz",
         );
+        assert.strictEqual(LaunchOptions.getModeFromSearch("?id=abc&mode=watch"), "watch");
+        assert.strictEqual(LaunchOptions.getModeFromSearch("?mode=review"), "review");
+        assert.strictEqual(LaunchOptions.getModeFromSearch("?id=abc"), null);
     });
 });
 

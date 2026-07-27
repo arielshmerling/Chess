@@ -75,7 +75,6 @@
         const protocol = loadProtocol();
         const capsApi = loadCapabilities();
         const contracts = loadContracts();
-        const modeId = (contracts.MODE_IDS && contracts.MODE_IDS.ONLINE) || "online";
         const transport = opts.transport;
         if (!transport) {
             throw new Error("OnlineMode requires a MatchTransport");
@@ -90,6 +89,9 @@
         let applyingRemote = false;
         let humanIsWhite = opts.humanIsWhite !== false;
         let watcher = opts.watcher === true;
+        const modeId = watcher
+            ? (contracts.MODE_IDS && contracts.MODE_IDS.WATCH) || "watch"
+            : (contracts.MODE_IDS && contracts.MODE_IDS.ONLINE) || "online";
         let gameInfo = Object.assign({}, opts.gameInfo);
         let opponentPresent =
             !!(gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim()) ||
@@ -98,10 +100,46 @@
         let disconnectGraceTimer = null;
         let disconnectCountdownHandle = null;
         let disconnectSecondsLeft = 0;
+        /** @type {boolean|null} which seat disconnected (from server payload) */
+        let disconnectedWasWhite = null;
+
+        function playerLabelForSide(isWhiteSide) {
+            if (isWhiteSide === true) {
+                const n = gameInfo.whitePlayerName && String(gameInfo.whitePlayerName).trim();
+                return n || "White";
+            }
+            if (isWhiteSide === false) {
+                const n = gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim();
+                return n || "Black";
+            }
+            return "A player";
+        }
+
+        function watcherDisconnectWaitingStatus() {
+            return (
+                playerLabelForSide(disconnectedWasWhite) +
+                " disconnected — waiting for rejoin"
+            );
+        }
 
         function capabilities() {
             if (capsApi && typeof capsApi.getModeCapabilities === "function") {
                 return capsApi.getModeCapabilities(modeId);
+            }
+            if (watcher) {
+                return {
+                    undo: false,
+                    redo: false,
+                    resign: false,
+                    draw: false,
+                    rematch: false,
+                    engine: false,
+                    network: true,
+                    reviewNav: false,
+                    positionSetup: false,
+                    watchers: true,
+                    chat: false,
+                };
             }
             return {
                 undo: false,
@@ -207,7 +245,9 @@
             clearDisconnectCountdown();
             disconnectSecondsLeft = DISCONNECT_COUNTDOWN_SEC;
             if (typeof opts.onDisconnectCountdown === "function") {
-                opts.onDisconnectCountdown(disconnectSecondsLeft);
+                opts.onDisconnectCountdown(disconnectSecondsLeft, {
+                    disconnectedWasWhite: disconnectedWasWhite,
+                });
             }
             disconnectCountdownHandle = setInterval(function () {
                 const game = session && session.getGame && session.getGame();
@@ -219,18 +259,27 @@
                 if (disconnectSecondsLeft <= 0) {
                     clearDisconnectCountdown();
                     if (typeof opts.onDisconnectCountdownEnd === "function") {
-                        opts.onDisconnectCountdownEnd();
+                        opts.onDisconnectCountdownEnd({
+                            disconnectedWasWhite: disconnectedWasWhite,
+                        });
                     }
                     return;
                 }
                 if (typeof opts.onDisconnectCountdown === "function") {
-                    opts.onDisconnectCountdown(disconnectSecondsLeft);
+                    opts.onDisconnectCountdown(disconnectSecondsLeft, {
+                        disconnectedWasWhite: disconnectedWasWhite,
+                    });
                 }
             }, 1000);
         }
 
         function onOpponentDisconnectedInbound(payload) {
             clearDisconnectGrace();
+            if (payload && typeof payload.disconnectedWasWhite === "boolean") {
+                disconnectedWasWhite = payload.disconnectedWasWhite;
+            } else {
+                disconnectedWasWhite = null;
+            }
             disconnectGraceTimer = setTimeout(function () {
                 disconnectGraceTimer = null;
                 if (typeof opts.onOpponentDisconnected === "function") {
@@ -239,26 +288,37 @@
                 if (session) {
                     session.emit("opponentDisconnected", payload || {});
                 }
-                status("Opponent disconnected", "info");
-                if (!watcher) {
-                    startDisconnectCountdown();
+                if (watcher) {
+                    status(watcherDisconnectWaitingStatus(), "info");
+                } else {
+                    status("Opponent disconnected", "info");
                 }
+                startDisconnectCountdown();
             }, DISCONNECT_GRACE_MS);
         }
 
         function onOpponentRejoinedInbound(payload) {
             const quickRejoin = disconnectGraceTimer != null;
+            const rejoinedWasWhite =
+                payload && typeof payload.rejoinedWasWhite === "boolean"
+                    ? payload.rejoinedWasWhite
+                    : disconnectedWasWhite;
             clearDisconnectGrace();
             clearDisconnectCountdown();
+            disconnectedWasWhite = null;
             opponentPresent = true;
             if (typeof opts.onOpponentRejoined === "function") {
-                opts.onOpponentRejoined();
+                opts.onOpponentRejoined(payload || {});
             }
             if (session) {
                 session.emit("opponentRejoined", payload || {});
             }
             if (!quickRejoin) {
-                status("Opponent rejoined", "info");
+                if (watcher) {
+                    status(playerLabelForSide(rejoinedWasWhite) + " rejoined", "info");
+                } else {
+                    status("Opponent rejoined", "info");
+                }
             }
         }
 
@@ -467,6 +527,9 @@
                     }
                     return;
                 case "offerDraw":
+                    if (watcher) {
+                        return;
+                    }
                     if (typeof opts.onDrawOffered === "function") {
                         opts.onDrawOffered(classified.payload || {});
                     }
@@ -477,9 +540,15 @@
                 case "drawAccepted":
                     return onDrawAccepted(classified.payload);
                 case "drawDeclined":
+                    if (watcher) {
+                        return;
+                    }
                     status("Draw offer declined", "info");
                     return;
                 case "offerRematch":
+                    if (watcher) {
+                        return;
+                    }
                     if (typeof opts.onRematchOffered === "function") {
                         opts.onRematchOffered(classified.payload || {});
                     }
@@ -487,6 +556,9 @@
                 case "rematchAccepted":
                     return onRematchAccepted(classified.payload);
                 case "rematchDeclined":
+                    if (watcher) {
+                        return;
+                    }
                     status("Rematch offer declined", "info");
                     return;
                 default:
@@ -560,21 +632,40 @@
             if (!session) {
                 return;
             }
-            const loser =
+            const loserIsWhite =
                 message && message.disconnectedWasWhite === true
-                    ? "White"
+                    ? true
                     : message && message.disconnectedWasWhite === false
+                      ? false
+                      : typeof disconnectedWasWhite === "boolean"
+                        ? disconnectedWasWhite
+                        : null;
+            const loser =
+                loserIsWhite === true
+                    ? "White"
+                    : loserIsWhite === false
                       ? "Black"
                       : humanIsWhite
                         ? "Black"
                         : "White";
+            const winner = loser === "White" ? "Black" : "White";
             applyingRemote = true;
             try {
                 session.resign(loser);
             } finally {
                 applyingRemote = false;
             }
-            status("Opponent failed to reconnect", "info");
+            disconnectedWasWhite = null;
+            if (watcher) {
+                const loserName = playerLabelForSide(loser === "White");
+                const winnerName = playerLabelForSide(winner === "White");
+                status(
+                    loserName + " failed to reconnect — " + winnerName + " wins",
+                    "info",
+                );
+            } else {
+                status("Opponent failed to reconnect", "info");
+            }
         }
 
         function onGameCancelled(message) {

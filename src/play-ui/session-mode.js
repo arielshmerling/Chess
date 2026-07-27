@@ -8,13 +8,12 @@
     "use strict";
 
     /**
-     * Title shown in the match header for the active shell mode.
-     *
      * @param {object} state
      * @param {boolean} [state.positionSetup]
      * @param {boolean} [state.configuration]
      * @param {boolean} [state.reviewPlayback]
      * @param {boolean} [state.review]
+     * @param {boolean} [state.watch]
      * @returns {string}
      */
     function sessionTypeLabel(state) {
@@ -30,6 +29,9 @@
         }
         if (s.review) {
             return "Review Mode";
+        }
+        if (s.watch) {
+            return "Watch Mode";
         }
         return "Play Mode";
     }

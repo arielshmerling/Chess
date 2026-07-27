@@ -10,7 +10,7 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         "resign": this.resign,
         "offer draw": this.drawOfferForward,
         "draw accepted": this.drawOfferAccepted,
-        "draw declined": this.opponentForwardHandler,
+        "draw declined": this.privatePlayerForward,
         "offer rematch": this.rematchOfferForward,
         "rematch accepted": this.rematchOfferAccepted,
         "rematch declined": this.rematchOfferDeclined,
@@ -35,6 +35,13 @@ class OnlineGameMessageProcessor extends MessageProcessor {
             game.sendInfoToWatchers(msg);
             game.sendMoveToWatchers(game.gameId, resignedPlayer === "White", game.chessGame.ResultMove);
         });
+    }
+
+    /**
+     * Player↔player only (draw/rematch offers & declines). Never broadcast to watchers.
+     */
+    privatePlayerForward(game, msg) {
+        game.sendMessageToOpponent(msg, msg.isWhite);
     }
 
     opponentForwardHandler(game, msg) {
@@ -62,7 +69,6 @@ class OnlineGameMessageProcessor extends MessageProcessor {
             }
         }
         game.sendMessageToOpponent(msg, msg.isWhite);
-        game.sendInfoToWatchers(msg);
     }
 
     rematchOfferForward(game, msg) {
@@ -77,13 +83,11 @@ class OnlineGameMessageProcessor extends MessageProcessor {
             offererWantsColor: offererWantsColor,
         };
         game.sendMessageToOpponent(msg, msg.isWhite);
-        game.sendInfoToWatchers(msg);
     }
 
     rematchOfferDeclined(game, msg) {
         game.pendingRematchOffer = null;
         game.sendMessageToOpponent(msg, msg.isWhite);
-        game.sendInfoToWatchers(msg);
     }
 
     rematchOfferAccepted(game, msg) {

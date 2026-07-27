@@ -16,7 +16,7 @@ const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
-const { effectivePreferPlayPage } = require("../../play/playPaths");
+const { effectivePreferPlayPage, resolveOnlineWatchHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
 
 function setGamePageNoCache(res) {
@@ -119,6 +119,9 @@ exports.watchGame = catchAsync(async (req, res) => {
     const game = gamesManagerService.getGameById(id);
     if (game != null) {
         req.session.gameId = game.gameId;
+        if (effectivePreferPlayPage(req) && !userAgentLooksMobile(req)) {
+            return res.redirect(302, resolveOnlineWatchHref(game.gameId, { usePlayPage: true }));
+        }
         setGamePageNoCache(res);
         res.render("game", { gameId: game.gameId, hideTopbar: true });
         return;

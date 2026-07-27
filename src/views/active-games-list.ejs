@@ -37,7 +37,11 @@
               <% if(allGames && allGames.length > 0) { %>
               <% var rowNum = 1; for(var idx = 0; idx < allGames.length; idx++) { var obj = allGames[idx]; %>
               <% var playBase = (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play' : '/game'; %>
-              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold')) ? playBase + '?id=' + obj.Id : '/watch?id=' + obj.Id; %>
+              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold'))
+                ? playBase + '?id=' + obj.Id
+                : ((typeof canUsePlayPage !== 'undefined' && canUsePlayPage)
+                    ? '/play?id=' + obj.Id + '&mode=watch'
+                    : '/watch?id=' + obj.Id); %>
               <tr data-game-id="<%= obj.Id %>" onclick="window.location='<%= gameUrl %>'">
                 <td class="row-number"><%= rowNum++ %></td>
                 <td class="Game"><%= obj.Game %></td>
@@ -85,6 +89,9 @@
     var stLower = String(status).toLowerCase();
     if (isParticipant && (stLower === "in progress" || stLower === "on hold")) {
       return (window.__SHMERLING_USE_NEW_PLAY_UI__ ? "/play?id=" : "/game?id=") + encodeURIComponent(id);
+    }
+    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
+      return "/play?id=" + encodeURIComponent(id) + "&mode=watch";
     }
     return "/watch?id=" + encodeURIComponent(id);
   }

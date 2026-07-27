@@ -114,43 +114,56 @@ class OnlineGame extends GameBase {
 
         const moveCount = this.moves ? this.moves.length : 0;
         const wpCh = this.whitePlayer && this.whitePlayer.channel;
-        const isWhiteStillConnected = wpCh != null && wpCh.readyState == wpCh.OPEN;
+        const bpCh = this.blackPlayer && this.blackPlayer.channel;
+        const whiteOpen = wpCh != null && wpCh.readyState === wpCh.OPEN;
+        const blackOpen = bpCh != null && bpCh.readyState === bpCh.OPEN;
+
+        /*
+         * Infer which seat dropped. If both seats still look open (e.g. a stale socket
+         * closed after a reconnect), ignore — do not put the game on hold.
+         */
+        let disconnectedWasWhite;
+        if (!whiteOpen && blackOpen) {
+            disconnectedWasWhite = true;
+        } else if (whiteOpen && !blackOpen) {
+            disconnectedWasWhite = false;
+        } else {
+            return;
+        }
 
         /**
          * No moves yet: short on-hold window so a tab refresh can reconnect without cancelling.
          * Intentional leave uses POST /cancel-before-move (immediate cancel for the opponent).
          */
         if (moveCount === 0) {
-            const disconnectedWasWhite = !isWhiteStillConnected;
             const message = {
                 type: "info",
                 info: "Opponent disconnected",
                 gameId: this.gameId,
                 disconnectedWasWhite,
             };
-            this.sendMessage(message, isWhiteStillConnected);
+            this.sendMessage(message, !disconnectedWasWhite);
             this.sendInfoToWatchers(message);
             this.lastStatus = this.status;
             this.status = "on hold";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             const PRE_MOVE_REFRESH_GRACE_MS = 12000;
-            this.waitForRejoin(!isWhiteStillConnected, PRE_MOVE_REFRESH_GRACE_MS);
+            this.waitForRejoin(disconnectedWasWhite, PRE_MOVE_REFRESH_GRACE_MS);
             return;
         }
 
-        const disconnectedWasWhite = !isWhiteStillConnected;
         const message = {
             type: "info",
             info: "Opponent disconnected",
             gameId: this.gameId,
             disconnectedWasWhite,
         };
-        this.sendMessage(message, isWhiteStillConnected);
+        this.sendMessage(message, !disconnectedWasWhite);
         this.sendInfoToWatchers(message);
         this.lastStatus = this.status;
         this.status = "on hold";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-        this.waitForRejoin(!isWhiteStillConnected);
+        this.waitForRejoin(disconnectedWasWhite);
     };
 
 

@@ -64,7 +64,7 @@
             watchers: false,
             chat: false,
         }),
-        /* Phase 4: draw + rematch on /play; watchers/chat remain later. */
+        /* Phase 4–5: draw + rematch for players; live watch uses MODE_IDS.WATCH. */
         [MODE_IDS.ONLINE]: caps({
             undo: false,
             redo: false,
