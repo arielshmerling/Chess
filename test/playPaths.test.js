@@ -60,6 +60,24 @@ describe("playPaths", function () {
         });
     });
 
+    describe("resolveOnlineParticipantHref", function () {
+        const { resolveOnlineParticipantHref } = require("../src/play/playPaths");
+
+        it("uses /play?id= when usePlayPage", function () {
+            assert.strictEqual(
+                resolveOnlineParticipantHref("abc123", { usePlayPage: true }),
+                "/play?id=abc123",
+            );
+        });
+
+        it("uses /game?id= when classic UI", function () {
+            assert.strictEqual(
+                resolveOnlineParticipantHref("abc123", { usePlayPage: false }),
+                "/game?id=abc123",
+            );
+        });
+    });
+
     describe("canAccessPlayPage", function () {
         it("allows any logged-in user (Admin, Partner, Member)", function () {
             assert.strictEqual(

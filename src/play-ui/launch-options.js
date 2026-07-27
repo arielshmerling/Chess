@@ -125,11 +125,55 @@
         }
     }
 
+    /**
+     * Online (or resume) game id from the Play URL.
+     * @param {string|URLSearchParams|null|undefined} search
+     * @returns {string|null}
+     */
+    function getGameIdFromSearch(search) {
+        try {
+            const params =
+                search instanceof URLSearchParams
+                    ? search
+                    : new URLSearchParams(search || "");
+            const id = params.get("id");
+            if (id != null && String(id).trim() !== "") {
+                return String(id).trim();
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Friend-invite join id (server still joins via /game then redirects to /play?id=).
+     * @param {string|URLSearchParams|null|undefined} search
+     * @returns {string|null}
+     */
+    function getJoinGameIdFromSearch(search) {
+        try {
+            const params =
+                search instanceof URLSearchParams
+                    ? search
+                    : new URLSearchParams(search || "");
+            const id = params.get("joinGame");
+            if (id != null && String(id).trim() !== "") {
+                return String(id).trim();
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
     const LaunchOptions = {
         normalizeLaunchEngine: normalizeLaunchEngine,
         mergeStored: mergeStored,
         applyUrlSearch: applyUrlSearch,
         wantsNewGameDialog: wantsNewGameDialog,
+        getGameIdFromSearch: getGameIdFromSearch,
+        getJoinGameIdFromSearch: getJoinGameIdFromSearch,
     };
 
     global.PlayLaunchOptions = LaunchOptions;

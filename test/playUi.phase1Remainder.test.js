@@ -160,6 +160,15 @@ describe("play-ui launch options", function () {
         assert.ok(LaunchOptions.wantsNewGameDialog("?newGame=1"));
         assert.ok(!LaunchOptions.wantsNewGameDialog(""));
     });
+
+    it("reads online id and joinGame from the query string", function () {
+        assert.strictEqual(LaunchOptions.getGameIdFromSearch("?id=abc"), "abc");
+        assert.strictEqual(LaunchOptions.getGameIdFromSearch(""), null);
+        assert.strictEqual(
+            LaunchOptions.getJoinGameIdFromSearch("?gameType=2&joinGame=xyz"),
+            "xyz",
+        );
+    });
 });
 
 describe("play-ui keyboard shortcuts", function () {

@@ -506,7 +506,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         pendingInviterJoiningGameId = null;
         pendingInviterJoiningUntil = 0;
       }
-      window.location.href = "/game?id=" + encodeURIComponent(gid);
+      window.location.href =
+        (window.__SHMERLING_USE_NEW_PLAY_UI__ ? "/play?id=" : "/game?id=") +
+        encodeURIComponent(gid);
       return;
     }
     if (t.classList && t.classList.contains("friends-btn-invite") && !t.disabled) {

@@ -4,8 +4,7 @@
  * Presentation/policy live under `src/play-ui/`. This file still owns mode
  * enter/exit, ChessGame wiring, and API calls until Phase 2 GameSession.
  *
- * Desktop single-player chess — local ChessGame + in-process brain (Electron IPC).
- * No WebSocket or server-side game session.
+ * Desktop/web Play shell — local engine (SP) or OnlineMode (Phase 3) over /ws.
  */
 (function () {
     "use strict";
@@ -34,6 +33,8 @@
     const GameSessionApi = window.ShmerlingGameSession;
     const LocalEngineModeApi = window.ShmerlingLocalEngineMode;
     const ReviewModeApi = window.ShmerlingReviewMode;
+    const OnlineModeApi = window.ShmerlingOnlineMode;
+    const WsTransportApi = window.ShmerlingWsTransport;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -165,6 +166,10 @@
     let playGameSession = null;
     /** @type {ReturnType<typeof LocalEngineModeApi.create>|null} */
     let playLocalEngineMode = null;
+    /** @type {ReturnType<typeof OnlineModeApi.create>|null} */
+    let playOnlineMode = null;
+    /** @type {object|null} server gameInfo for OnlineGame on /play */
+    let onlineGameInfo = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
@@ -301,6 +306,10 @@
     }
 
     function outOfTime() {
+        if (playOnlineMode && typeof playOnlineMode.reportOutOfTime === "function") {
+            playOnlineMode.reportOutOfTime(game && game.Turn);
+            return;
+        }
         const gs = ensurePlayGameSession();
         if (gs && typeof gs.flagTimeout === "function") {
             gs.flagTimeout(game.Turn);
@@ -3175,6 +3184,50 @@
         return true;
     }
 
+    async function applyNetworkMove(move) {
+        const adjusted = adjustIncomingNetworkMoveForBoardView(move);
+        if (!adjusted) {
+            return false;
+        }
+        clearDisplayedEvaluation();
+        if (adjusted.promotion && adjusted.selectedPiece == null) {
+            return false;
+        }
+        if (networkMoveAlreadyApplied(adjusted)) {
+            Board.syncFromGameState();
+            return true;
+        }
+
+        try {
+            await Board.animateMove(adjusted);
+            const gs = ensurePlayGameSession();
+            if (gs && typeof gs.playMove === "function") {
+                const executed = gs.playMove(adjusted, { source: "network" });
+                if (!executed) {
+                    return false;
+                }
+            } else if (adjusted.promotion) {
+                const actual = game.makeMove(adjusted.source, adjusted.target);
+                actual.selectedPiece = adjusted.selectedPiece;
+                actual.promotion = true;
+                if (actual.piece && adjusted.piece) {
+                    actual.piece.color = adjusted.piece.color;
+                }
+                game.completePromotion(actual);
+            } else {
+                game.makeMove(adjusted.source, adjusted.target);
+            }
+            if (Board.refreshHumanPieceInput) {
+                Board.refreshHumanPieceInput();
+            }
+        } finally {
+            if (Board.clearBoardAnimating) {
+                Board.clearBoardAnimating();
+            }
+        }
+        return true;
+    }
+
     function playSessionMetaFromShell() {
         return {
             engine: session && session.engine,
@@ -3190,6 +3243,13 @@
         if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
             playLocalEngineMode.abort();
         }
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
         if (playGameSession) {
             if (typeof playGameSession.leave === "function") {
                 playGameSession.leave();
@@ -3200,6 +3260,7 @@
         }
         playGameSession = null;
         playLocalEngineMode = null;
+        playOnlineMode = null;
         playReviewMode = null;
         playCapabilities = null;
     }
@@ -3266,12 +3327,122 @@
             return;
         }
         playReviewMode = null;
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        onlineGameInfo = null;
         if (!playLocalEngineMode) {
             playLocalEngineMode = createLocalEngineMode();
         }
         playGameSession.attachMode(playLocalEngineMode);
         if (typeof playLocalEngineMode.capabilities === "function") {
             playCapabilities = playLocalEngineMode.capabilities();
+        }
+    }
+
+    function createOnlineMode(gameInfo) {
+        const transport = WsTransportApi.create({});
+        return OnlineModeApi.create({
+            transport: transport,
+            gameInfo: {
+                id: gameInfo.id,
+                username: gameInfo.username,
+                userId: gameInfo.userId,
+                creatorId: gameInfo.creatorId,
+                whitePlayerName: gameInfo.whitePlayerName,
+                blackPlayerName: gameInfo.blackPlayerName,
+            },
+            humanIsWhite: currentPlayerIsWhite,
+            watcher: !!gameInfo.watcher,
+            wsUrl: WsTransportApi.defaultWsUrl(),
+            getClocks: function () {
+                return Clocks.get();
+            },
+            setClocks: function (snapshot) {
+                if (!snapshot) {
+                    return;
+                }
+                Clocks.stop();
+                Clocks.set({ white: snapshot.white, black: snapshot.black });
+                if (game && !game.GameOver) {
+                    Clocks.startFor(game.Turn);
+                }
+                updateHeaderTurn();
+            },
+            applyRemoteMove: async function (move) {
+                animating = true;
+                updateActionButtons();
+                try {
+                    return await applyNetworkMove(move);
+                } finally {
+                    animating = false;
+                    if (Board.refreshHumanPieceInput) {
+                        Board.refreshHumanPieceInput();
+                    }
+                    updateActionButtons();
+                }
+            },
+            cancelBeforeMove: async function (gameId) {
+                if (!Api || typeof Api.post !== "function") {
+                    return;
+                }
+                await Api.post("/cancel-before-move", { gameId: gameId });
+            },
+            onStatus: function (message, kind) {
+                showStatus(message, 0, kind || "info");
+            },
+            onOpponentJoined: function (name) {
+                if (!session) {
+                    return;
+                }
+                const label =
+                    name && String(name).trim() ? String(name).trim() : "Opponent";
+                if (currentPlayerIsWhite) {
+                    session.blackPlayerName = label;
+                } else {
+                    session.whitePlayerName = label;
+                }
+                if (onlineGameInfo) {
+                    if (currentPlayerIsWhite) {
+                        onlineGameInfo.blackPlayerName = label;
+                    } else {
+                        onlineGameInfo.whitePlayerName = label;
+                    }
+                }
+                updateMatchHeader();
+            },
+            onGameCancelled: function () {
+                clearActiveGameSnapshot();
+            },
+        });
+    }
+
+    function attachPlayOnlineMode(gameInfo) {
+        if (!playGameSession || !OnlineModeApi || !WsTransportApi || !gameInfo) {
+            return;
+        }
+        playReviewMode = null;
+        if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
+            playLocalEngineMode.abort();
+        }
+        playLocalEngineMode = null;
+        onlineGameInfo = gameInfo;
+        playOnlineMode = createOnlineMode(gameInfo);
+        playGameSession.attachMode(playOnlineMode);
+        if (typeof playOnlineMode.capabilities === "function") {
+            playCapabilities = playOnlineMode.capabilities();
+        }
+        if (
+            playGameSession.isActive &&
+            playGameSession.isActive() &&
+            typeof playOnlineMode.ensureConnected === "function"
+        ) {
+            playOnlineMode.ensureConnected();
         }
     }
 
@@ -3287,6 +3458,14 @@
             playLocalEngineMode.abort();
         }
         playLocalEngineMode = null;
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
         playReviewMode = ReviewModeApi.create({});
         playGameSession.attachMode(playReviewMode);
         if (reviewFullMoves.length || reviewFinalStateStr) {
@@ -3309,6 +3488,10 @@
             return;
         }
         playReviewMode = null;
+        if (gameActive && onlineGameInfo && onlineGameInfo.gameType === "OnlineGame" && OnlineModeApi) {
+            attachPlayOnlineMode(onlineGameInfo);
+            return;
+        }
         if (gameActive && LocalEngineModeApi) {
             attachPlayLocalEngineMode();
             return;
@@ -3341,7 +3524,7 @@
             lastMove = game.LastMove;
         }
         const src = info && info.source;
-        if (src === "human" || src === "promotion" || src === "engine" || src === "session") {
+        if (src === "human" || src === "promotion" || src === "engine" || src === "session" || src === "network") {
             redoPairAvailable = false;
         }
         if (Board.clearArrows) {
@@ -3406,17 +3589,20 @@
     }
 
     /**
-     * Phase 2: wrap the shared ChessGame in GameSession + LocalEngineMode.
-     * Board applies human moves via session.applyMove; mode owns engine compute.
-     * Review attaches ReviewMode via attachPlayReviewMode instead.
+     * Phase 2/3: wrap ChessGame in GameSession + LocalEngineMode or OnlineMode.
+     * Board applies human moves via session.applyMove; modes own engine / network.
      */
     function ensurePlayGameSession() {
-        if (!game || !GameSessionApi || !LocalEngineModeApi) {
+        if (!game || !GameSessionApi) {
             return null;
         }
+        const wantOnline =
+            !!(onlineGameInfo && onlineGameInfo.gameType === "OnlineGame") &&
+            !!OnlineModeApi &&
+            !!WsTransportApi;
         if (playGameSession && playGameSession.getGame() === game) {
             playGameSession.setHumanIsWhite(currentPlayerIsWhite);
-            playGameSession.setEngine(Engine);
+            playGameSession.setEngine(wantOnline ? null : Engine);
             playGameSession.setMeta(playSessionMetaFromShell());
             if (!playGameSession.isActive()) {
                 playGameSession.load({
@@ -3425,8 +3611,12 @@
                     meta: playSessionMetaFromShell(),
                 });
             }
-            if (!reviewMode && !playLocalEngineMode) {
-                attachPlayLocalEngineMode();
+            if (!reviewMode) {
+                if (wantOnline && !playOnlineMode) {
+                    attachPlayOnlineMode(onlineGameInfo);
+                } else if (!wantOnline && !playLocalEngineMode && LocalEngineModeApi) {
+                    attachPlayLocalEngineMode();
+                }
             }
             return playGameSession;
         }
@@ -3434,7 +3624,7 @@
         playGameSession = GameSessionApi.create({
             game: game,
             humanIsWhite: currentPlayerIsWhite,
-            engine: Engine,
+            engine: wantOnline ? null : Engine,
             meta: playSessionMetaFromShell(),
             clocks: {
                 onTurn: function (turn) {
@@ -3457,6 +3647,20 @@
                 return;
             }
             updateMovesTable(tableMovesFromGame());
+            if (payload.kind === "cancelled") {
+                alertMode = true;
+                Clocks.stop();
+                clearActiveGameSnapshot();
+                showStatus(
+                    payload.detail
+                        ? "Game cancelled — " + payload.detail
+                        : "Game cancelled",
+                    0,
+                    "info",
+                );
+                updateActionButtons();
+                return;
+            }
             if (payload.kind === "resign") {
                 finishResignGame(payload.resigned);
                 tryLogCompletedGame();
@@ -3544,7 +3748,11 @@
             redoPairAvailable = false;
             onSessionNavChrome();
         });
-        attachPlayLocalEngineMode();
+        if (wantOnline) {
+            attachPlayOnlineMode(onlineGameInfo);
+        } else if (LocalEngineModeApi) {
+            attachPlayLocalEngineMode();
+        }
         playGameSession.load({
             active: true,
             humanIsWhite: currentPlayerIsWhite,
@@ -3582,6 +3790,13 @@
     function completeUserResign() {
         const player = currentPlayerIsWhite ? "White" : "Black";
         abortEngineSearch();
+        if (playOnlineMode && typeof playOnlineMode.requestResign === "function") {
+            Promise.resolve(playOnlineMode.requestResign()).catch(function (err) {
+                console.warn("[Play] Online resign failed:", err);
+                showStatus((err && err.message) || "Resign failed", 0, "error");
+            });
+            return;
+        }
         const gs = ensurePlayGameSession();
         if (gs && typeof gs.resign === "function") {
             gs.resign(player);
@@ -3890,8 +4105,17 @@
         return opts;
     }
 
-    function clearWebLaunchQueryString() {
+    function clearWebLaunchQueryString(options) {
         if (!isWebPlayPage() || !window.history || !window.history.replaceState) {
+            return;
+        }
+        const keepId = options && options.keepId && currentGameId;
+        if (keepId) {
+            window.history.replaceState(
+                {},
+                "",
+                "/play?id=" + encodeURIComponent(String(currentGameId)),
+            );
             return;
         }
         if ((window.location.search || "").length > 0) {
@@ -3960,6 +4184,9 @@
     /** Keep the refresh snapshot in step with the live game; a finished game drops it. */
     function persistActiveGame() {
         if (!Resume || !isWebPlayPage() || !game || !game.GameState) {
+            return;
+        }
+        if (onlineGameInfo && onlineGameInfo.gameType === "OnlineGame") {
             return;
         }
         if (!gameActive || reviewMode || positionSetupMode || configurationMode || loadingBookmark) {
@@ -4064,6 +4291,26 @@
             }
             return;
         }
+        const joinId =
+            LaunchOptions && typeof LaunchOptions.getJoinGameIdFromSearch === "function"
+                ? LaunchOptions.getJoinGameIdFromSearch(window.location.search || "")
+                : null;
+        if (joinId) {
+            window.location.href =
+                "/game?gameType=2&joinGame=" + encodeURIComponent(joinId);
+            return;
+        }
+        const onlineId =
+            LaunchOptions && typeof LaunchOptions.getGameIdFromSearch === "function"
+                ? LaunchOptions.getGameIdFromSearch(window.location.search || "")
+                : null;
+        if (onlineId) {
+            const started = await beginOnlineFromServerId(onlineId);
+            if (started) {
+                clearWebLaunchQueryString({ keepId: true });
+                return;
+            }
+        }
         if (await resumeStoredGame()) {
             clearWebLaunchQueryString();
             return;
@@ -4073,12 +4320,166 @@
         clearWebLaunchQueryString();
     }
 
+    function resolveOnlineHumanIsWhite(info) {
+        const username = info && info.username != null ? String(info.username) : "";
+        const white =
+            info && info.whitePlayerName != null ? String(info.whitePlayerName) : "";
+        const black =
+            info && info.blackPlayerName != null ? String(info.blackPlayerName) : "";
+        if (username && white && username === white) {
+            return true;
+        }
+        if (username && black && username === black) {
+            return false;
+        }
+        /* Waiting creator with empty black slot — White. */
+        return true;
+    }
+
+    async function beginOnlineFromServerId(gameId) {
+        if (!Api || typeof Api.get !== "function") {
+            showStatus("Online play requires the web API", 0, "error");
+            return false;
+        }
+        let info;
+        try {
+            info = await Api.get("/gameInfo?id=" + encodeURIComponent(String(gameId)));
+        } catch (err) {
+            console.warn("[Play] Could not load gameInfo:", err);
+            showStatus((err && err.message) || "Could not load online game", 0, "error");
+            return false;
+        }
+        if (!info || info.gameType !== "OnlineGame") {
+            showStatus("This link is not an online game on /play", 0, "error");
+            return false;
+        }
+        if (info.watcher) {
+            showStatus("Spectating is not available on /play yet — use Watch", 0, "info");
+            return false;
+        }
+        await beginOnlineGame(info);
+        return true;
+    }
+
+    async function beginOnlineGame(info) {
+        clearActiveGameSnapshot();
+        onlineGameInfo = info;
+        currentPlayerIsWhite = resolveOnlineHumanIsWhite(info);
+        const whiteName = info.whitePlayerName || "White";
+        const blackName =
+            info.blackPlayerName && String(info.blackPlayerName).trim()
+                ? info.blackPlayerName
+                : "looking for opponent…";
+        session = {
+            engine: null,
+            thinkingTimeSeconds: null,
+            difficulty: null,
+            whitePlayerName: whiteName,
+            blackPlayerName: blackName,
+            username: info.username,
+            mouse: info.mousePreference || "drag",
+            showAvailableMoves: info.showAvailableMoves !== false,
+            timeMinutes:
+                info.gameTimeMinutes != null ? info.gameTimeMinutes : 90,
+        };
+        allowUndo = false;
+        setCurrentGameId(info.id);
+        gameHistoryLogged = false;
+        gameAutoBookmarked = false;
+        clearLoadedBookmarkDisplayMoves();
+        if (info.gameState) {
+            const stateStr =
+                typeof info.gameState === "string"
+                    ? info.gameState
+                    : JSON.stringify(info.gameState);
+            game.loadGame(stateStr);
+        } else {
+            game.startNewGame(currentPlayerIsWhite);
+        }
+        try {
+            const movesObj = await Api.get(
+                "/gameMoves?id=" + encodeURIComponent(String(info.id)),
+            );
+            if (movesObj && Array.isArray(movesObj.moves) && movesObj.moves.length) {
+                game.loadMoves(movesObj.moves);
+            }
+        } catch (err) {
+            console.warn("[Play] Could not load online moves:", err);
+        }
+        if (Board.setPlayerView) {
+            Board.setPlayerView(currentPlayerIsWhite);
+        }
+        Board.setPreferences({
+            mouse: session.mouse,
+            showAvailableMoves: session.showAvailableMoves,
+        });
+        clearDisplayedEvaluation();
+        resetClocks();
+        if (typeof info.whiteTimer === "number" || typeof info.blackTimer === "number") {
+            Clocks.set({
+                white:
+                    typeof info.whiteTimer === "number"
+                        ? info.whiteTimer
+                        : Clocks.get().white,
+                black:
+                    typeof info.blackTimer === "number"
+                        ? info.blackTimer
+                        : Clocks.get().black,
+            });
+        }
+        redoPairAvailable = false;
+        lastCheckNotifySide = null;
+        alertMode = false;
+        Board.clearArrows();
+        Board.syncFromGameState();
+        if (Board.updateCaptureLists && game.GameState && game.GameState.capturedPiecesList) {
+            Board.updateCaptureLists(game.GameState.capturedPiecesList);
+        }
+        updateMovesTable(tableMovesFromGame());
+        updateMatchHeader();
+        updateHeaderTurn();
+        gameActive = true;
+        exitConfigurationIfGameStarting();
+        exitReviewMode();
+        setPlayOriginState(game.GameState);
+        document.body.classList.add("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(true);
+        }
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
+        updateActionButtons();
+        syncGameRunPanelOptions();
+        updateGameRunPanelVisibility();
+        ensurePlayGameSession();
+        if (!game.GameOver) {
+            switchClocks();
+            const waiting =
+                currentPlayerIsWhite &&
+                !(info.blackPlayerName && String(info.blackPlayerName).trim());
+            showStatus(
+                waiting ? "Waiting for opponent…" : "Online game — connected",
+                waiting ? 0 : 2000,
+                "info",
+            );
+        }
+    }
+
     async function beginNewGame(opts) {
         const launchOpts = Object.assign({}, opts || {});
         const username = resolveHumanUsername(launchOpts.username);
         if (username) {
             launchOpts.username = username;
         }
+        onlineGameInfo = null;
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
         applySessionSettings(launchOpts);
         if (Settings.saveNewGameOptions) {
             Settings.saveNewGameOptions({
@@ -4456,6 +4857,31 @@
             leavePlayShell();
             return;
         }
+        const anyMovePlayed = !!(game && game.Moves && game.Moves.length >= 1);
+        if (playOnlineMode && typeof playOnlineMode.requestResign === "function") {
+            if (!anyMovePlayed) {
+                Promise.resolve(playOnlineMode.requestResign())
+                    .catch(function (err) {
+                        console.warn("[Play] Online cancel failed:", err);
+                    })
+                    .finally(function () {
+                        leavePlayShell();
+                    });
+                return;
+            }
+            confirmDialog("Leave game?", "Your game will be resigned.", function () {
+                abortEngineSearch();
+                Promise.resolve(playOnlineMode.requestResign())
+                    .catch(function (err) {
+                        console.warn("[Play] Online resign failed:", err);
+                    })
+                    .finally(function () {
+                        tryLogCompletedGame();
+                        leavePlayShell();
+                    });
+            });
+            return;
+        }
         const humanHasMoved = currentPlayerIsWhite
             ? game.Moves.length >= 1
             : game.Moves.length >= 2;
@@ -4480,6 +4906,7 @@
     function resetToIdleScreen() {
         clearActiveGameSnapshot();
         disposePlayGameSession();
+        onlineGameInfo = null;
         if (configurationMode) {
             setConfigurationUi(false);
         }

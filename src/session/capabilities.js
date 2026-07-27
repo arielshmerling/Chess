@@ -50,18 +50,19 @@ const MODE_CAPABILITIES = Object.freeze({
         watchers: false,
         chat: false,
     }),
+    /* Phase 3 core online; draw/rematch/watchers/chat expand in Phase 4. */
     [MODE_IDS.ONLINE]: caps({
         undo: false,
         redo: false,
         resign: true,
-        draw: true,
-        rematch: true,
+        draw: false,
+        rematch: false,
         engine: false,
         network: true,
         reviewNav: false,
         positionSetup: false,
-        watchers: true,
-        chat: true,
+        watchers: false,
+        chat: false,
     }),
     [MODE_IDS.PRACTICE]: caps({
         undo: true,

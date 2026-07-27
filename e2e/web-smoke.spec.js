@@ -241,4 +241,22 @@ test.describe("web smoke", () => {
         await d2.dragTo(d4);
         await expect(page.locator("#movesDiv")).toContainText(/d4/i, { timeout: 15_000 });
     });
+
+    test("play page loads Phase 3 OnlineMode session scripts", async ({ page }) => {
+        await login(page);
+        await page.goto("/play");
+        await expect(page.locator("#homeBtn")).toBeVisible({ timeout: 30_000 });
+        const onlineApis = await page.evaluate(() => ({
+            onlineMode: typeof window.ShmerlingOnlineMode,
+            wsTransport: typeof window.ShmerlingWsTransport,
+            protocol: typeof window.ShmerlingOnlineProtocol,
+            getGameId:
+                window.PlayLaunchOptions &&
+                typeof window.PlayLaunchOptions.getGameIdFromSearch,
+        }));
+        expect(onlineApis.onlineMode).toBe("object");
+        expect(onlineApis.wsTransport).toBe("object");
+        expect(onlineApis.protocol).toBe("object");
+        expect(onlineApis.getGameId).toBe("function");
+    });
 });

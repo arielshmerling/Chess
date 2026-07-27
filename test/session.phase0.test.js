@@ -31,15 +31,16 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.chat, false);
     });
 
-    it("online capabilities require network and draw, not engine undo", function () {
+    it("online capabilities require network and resign; Phase 3 defers draw/chat", function () {
         const caps = getModeCapabilities(MODE_IDS.ONLINE);
         assert.strictEqual(caps.network, true);
-        assert.strictEqual(caps.draw, true);
         assert.strictEqual(caps.resign, true);
         assert.strictEqual(caps.engine, false);
         assert.strictEqual(caps.undo, false);
-        assert.strictEqual(caps.chat, true);
-        assert.strictEqual(caps.watchers, true);
+        assert.strictEqual(caps.draw, false);
+        assert.strictEqual(caps.rematch, false);
+        assert.strictEqual(caps.chat, false);
+        assert.strictEqual(caps.watchers, false);
     });
 
     it("unknown mode returns all-false capabilities", function () {

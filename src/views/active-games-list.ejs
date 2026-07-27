@@ -36,7 +36,8 @@
             <tbody id="active-list-tbody">
               <% if(allGames && allGames.length > 0) { %>
               <% var rowNum = 1; for(var idx = 0; idx < allGames.length; idx++) { var obj = allGames[idx]; %>
-              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold')) ? '/game?id=' + obj.Id : '/watch?id=' + obj.Id; %>
+              <% var playBase = (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play' : '/game'; %>
+              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold')) ? playBase + '?id=' + obj.Id : '/watch?id=' + obj.Id; %>
               <tr data-game-id="<%= obj.Id %>" onclick="window.location='<%= gameUrl %>'">
                 <td class="row-number"><%= rowNum++ %></td>
                 <td class="Game"><%= obj.Game %></td>
@@ -82,7 +83,9 @@
     var isParticipant = data.isParticipant === true || (window.__WELCOME_USERNAME__ && data.whitePlayerName !== undefined && (data.whitePlayerName === window.__WELCOME_USERNAME__ || data.blackPlayerName === window.__WELCOME_USERNAME__));
     var status = data.Status || data.status || "";
     var stLower = String(status).toLowerCase();
-    if (isParticipant && (stLower === "in progress" || stLower === "on hold")) return "/game?id=" + encodeURIComponent(id);
+    if (isParticipant && (stLower === "in progress" || stLower === "on hold")) {
+      return (window.__SHMERLING_USE_NEW_PLAY_UI__ ? "/play?id=" : "/game?id=") + encodeURIComponent(id);
+    }
     return "/watch?id=" + encodeURIComponent(id);
   }
   function addOrUpdateGameRow(data) {

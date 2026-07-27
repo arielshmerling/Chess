@@ -34,6 +34,20 @@ function resolvePlayGamePath(opts) {
 }
 
 /**
+ * Participant reopen URL for an online game id.
+ * @param {string|number} gameId
+ * @param {{ usePlayPage?: boolean }} [opts]
+ * @returns {string}
+ */
+function resolveOnlineParticipantHref(gameId, opts) {
+    const base = resolvePlayGamePath({
+        isMobile: false,
+        usePlayPage: !!(opts && opts.usePlayPage),
+    });
+    return base + "?id=" + encodeURIComponent(String(gameId));
+}
+
+/**
  * Whether the logged-in user may open the Play shell.
  * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
  */
@@ -67,6 +81,7 @@ function effectivePreferPlayPage(req) {
 
 module.exports = {
     resolvePlayGamePath,
+    resolveOnlineParticipantHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,

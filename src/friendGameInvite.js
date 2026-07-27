@@ -228,7 +228,9 @@
             var gidAcc = String(msg.data.gameId);
             showEstablishingOverlayThenNavigate(
                 "You play as White",
-                "/game?id=" + encodeURIComponent(gidAcc)
+                (window.__SHMERLING_USE_NEW_PLAY_UI__
+                    ? "/play?id="
+                    : "/game?id=") + encodeURIComponent(gidAcc)
             );
             return;
         }

@@ -1,8 +1,8 @@
 /**
  * Session package entry.
  * Phase 0: contracts + capabilities.
- * Phase 2 complete (single-player ports-clean): GameSession, LocalEngineMode,
- * ReviewMode (nav), event bus. Phase 3+: OnlineMode and further modes.
+ * Phase 2: GameSession, LocalEngineMode, ReviewMode.
+ * Phase 3: OnlineMode + WsTransport + online protocol helpers.
  */
 
 "use strict";
@@ -13,6 +13,9 @@ const EventBus = require("./eventBus");
 const GameSession = require("./gameSession");
 const LocalEngineMode = require("./localEngineMode");
 const ReviewMode = require("./reviewMode");
+const OnlineMode = require("./onlineMode");
+const OnlineProtocol = require("./onlineProtocol");
+const WsTransport = require("./wsTransport");
 
 module.exports = {
     MODE_IDS,
@@ -22,4 +25,7 @@ module.exports = {
     GameSession,
     LocalEngineMode,
     ReviewMode,
+    OnlineMode,
+    OnlineProtocol,
+    WsTransport,
 };

@@ -156,6 +156,9 @@ describe("web HTTP / auth", function () {
         // Follow the static 301 /play → /play/ (directory), then the Play route.
         const res = await agent.get("/play/").expect(200);
         assert.match(res.text, /desktopPlayWhiteName|desktop-play|id="chessboard"/i);
+        assert.match(res.text, /onlineMode\.js/);
+        assert.match(res.text, /wsTransport\.js/);
+        assert.match(res.text, /onlineProtocol\.js/);
     });
 
     it("authenticated GET /api/play/launch-context returns prefs payload", async function () {

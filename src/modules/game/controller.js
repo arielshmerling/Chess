@@ -16,6 +16,7 @@ const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
+const { effectivePreferPlayPage } = require("../../play/playPaths");
 
 function setGamePageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -46,10 +47,25 @@ function playGamePath(req) {
 }
 
 /**
- * Renders the active play page (desktop `game` or isolated `mobile-game`). Used by `executeStartGame` and join flows.
+ * Renders the active play page (desktop `game` or isolated `mobile-game`).
+ * Play-UI users are redirected to `/play?id=` for OnlineGame only (Phase 3).
  */
 function renderPlayGame(req, res, locals) {
     setGamePageNoCache(res);
+    if (
+        req.playGameView !== PLAY_VIEW_MOBILE &&
+        effectivePreferPlayPage(req) &&
+        locals &&
+        locals.gameId != null
+    ) {
+        const live = gamesManagerService.getGameById(locals.gameId);
+        if (live && live.constructor && live.constructor.name === "OnlineGame") {
+            return res.redirect(
+                302,
+                "/play?id=" + encodeURIComponent(String(locals.gameId)),
+            );
+        }
+    }
     res.render(playGameView(req), locals);
 }
 
@@ -120,6 +136,9 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 
     const game = gamesManagerService.getGameById(gameId);
     if (game) {
+        if (req.session) {
+            req.session.gameId = gameId;
+        }
         let clientDate = {};
         if (game.status == "reJoining") {
             await rejoinGame(game);
@@ -252,9 +271,12 @@ async function rejoinGame(game) {
 
 
 exports.getGameMoves = async (req, res) => {
-    const gameId = req.session.gameId;
+    const gameId = (req.query && req.query.id) || req.session.gameId;
 
     if (gameId) {
+        if (req.session) {
+            req.session.gameId = gameId;
+        }
         const movesObj = await gamesManagerService.findGameMoves(gameId);
         res.send(movesObj);
     }
