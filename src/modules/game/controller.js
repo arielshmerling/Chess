@@ -223,6 +223,9 @@ function createGameInfo(game, userName, userId) {
         clientDate.difficulty = game.options.difficulty;
         clientDate.engine = game.options.engine;
         clientDate.showAvailableMoves = game.options.showAvailableMoves !== false;
+        if (game.options.clientEngine === true) {
+            clientDate.clientEngine = true;
+        }
     }
     if (game.chessGame) {
         const gtl = game.chessGame.GameTimeLength;
@@ -531,7 +534,11 @@ const executeStartGame = catchAsync(async (req, res) => {
     }
 
     // create a new game (pass options for single-player: color, engine, difficulty, mouse)
-    const options = req.session.newGameOptions || {};
+    const options = Object.assign({}, req.session.newGameOptions || {});
+    /* Mobile SP: client LocalEngineMode + HTTP brain (Phase 8 slice 2). */
+    if (gameTypeInt === 1 && req.playGameView === PLAY_VIEW_MOBILE) {
+        options.clientEngine = true;
+    }
     game = gameService.newGame(gameTypeInt, username, userId, options);
     gamesManagerService.AddGame(game);
     // Practice (gameType 3): no DB storage or status tracking; client runs locally

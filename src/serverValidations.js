@@ -204,6 +204,20 @@ const wsCmdSetStateSchema = Joi.object({
     isWhite: Joi.bool().required(),
 }).strict();
 
+/** Mobile client LocalEngineMode → server (AI ply; white-view coordinates). */
+const wsCmdClientEngineMoveSchema = Joi.object({
+    type: Joi.string().valid("cmd").required(),
+    info: Joi.string().valid("clientEngineMove").required(),
+    data: wsMoveDataSchema.required(),
+    gameId: wsGameId,
+    userId: Joi.string().hex().length(24).required().escapeHTML(),
+    username: Joi.string().required().escapeHTML(),
+    isWhite: Joi.bool().required(),
+    moveTime: Joi.number().optional(),
+    whiteTimer: Joi.number().min(0).max(864000).optional(),
+    blackTimer: Joi.number().min(0).max(864000).optional(),
+}).strict();
+
 const webSocketMessageSchema =
     Joi.alternatives().try(
         wsMoveMessageSchema,
@@ -215,6 +229,7 @@ const webSocketMessageSchema =
         wsInfoGenericSchema,
         wsCmdUndoRedoSchema,
         wsCmdSetStateSchema,
+        wsCmdClientEngineMoveSchema,
     );
 
 const schemas = {

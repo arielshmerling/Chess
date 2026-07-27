@@ -22,6 +22,8 @@ exports.newGame = (gameType, username, userId, options = {}) => {
             timeMinutes: typeof options.timeMinutes === "number" && options.timeMinutes >= 1 && options.timeMinutes <= 180
                 ? options.timeMinutes
                 : 90,
+            /* Phase 8: mobile SP runs LocalEngineMode + /api/brain; server skips makeBrainMove. */
+            clientEngine: options.clientEngine === true,
         }
     };
     const game = GameFactory.createGame(gameInfo, player, "play");

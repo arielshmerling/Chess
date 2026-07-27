@@ -133,7 +133,14 @@ class SinglePlayerGame extends GameBase {
         }
     }
 
+    usesClientEngine() {
+        return !!(this.options && this.options.clientEngine === true);
+    }
+
     scheduleBrainMoveIfAiTurn() {
+        if (this.usesClientEngine()) {
+            return Promise.resolve(null);
+        }
         if (this.chessGame.GameOver) {
             return Promise.resolve(null);
         }
@@ -151,6 +158,9 @@ class SinglePlayerGame extends GameBase {
     }
 
     scheduleInitialBrainMoveIfNeeded() {
+        if (this.usesClientEngine()) {
+            return Promise.resolve(null);
+        }
         const run = () => {
             if (
                 !this.chessGame.GameOver &&
@@ -181,6 +191,9 @@ class SinglePlayerGame extends GameBase {
      * @param {boolean} isWhite - Wheathe the AI player, plays with white piece set
      */
     makeBrainMove = async (brainPlaysAsWhite) => {
+        if (this.usesClientEngine()) {
+            return null;
+        }
 
         const chessGame = this.chessGame;
 

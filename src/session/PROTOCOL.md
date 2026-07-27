@@ -39,7 +39,10 @@
 
 **Phase 7 (done):** Position Setup + Configuration as session modes; refuse online/watch leak.
 
-**Phase 8 (done for review slice):** mobile `/mobile-review` consumes `GameSession` + `ReviewMode`.
+**Phase 8 (done for review + mobile SP slices):** mobile `/mobile-review` consumes
+`GameSession` + `ReviewMode`. Mobile `/mobile-game` SP with `clientEngine` consumes
+`GameSession` + `LocalEngineMode` (HTTP EnginePort; server skips `makeBrainMove`).
+Online / watch on mobile still classic.
 
 **Phase 9 (in progress):** brain transport via `src/adapters` (`brainHttp` / `brainIpc` / `createEnginePort`); session core stays fetch-free.
 

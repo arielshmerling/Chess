@@ -1061,19 +1061,33 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Ply nav works; board and clocks update; pieces are not playable.
 - Desktop Prefer-Play still uses `/play?mode=review` (unchanged).
 
-### 8.2 — Classic mobile game path unchanged
+### 8.2 — Mobile SP uses LocalEngineMode (client brain)
 
 **Steps**
-1. Start a mobile SP or online game via `/mobile-game`.
+1. Restart server, hard-refresh. On a phone UA (or narrow window), start a **new** single-player game from mobile Home / Play Now → `/mobile-game`.
+2. Play a few moves as White (and optionally start a second game as Black so the engine moves first).
+3. In DevTools Network: confirm `/api/brain/compute-move` after your moves (engine thinking).
+4. In console: `window.__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__` should be set.
 
 **Expect**
-- Still classic `chessboard.js` (no session ReviewMode attach).
-- `/mobile-review` remains the only Phase 8 consumer for now.
+- Mobile CSS/DOM unchanged (not desktop `/play`).
+- Engine replies; board animates; clocks and moves list update.
+- Resign / game over still work.
+- Classic desktop `/game` SP (no Prefer-Play) still uses **server** brain (no mobile adapter).
+
+### 8.3 — Classic mobile online unchanged
+
+**Steps**
+1. Start or join a mobile online game via `/mobile-game`.
+
+**Expect**
+- Still classic WS path (no LocalEngineMode attach).
+- `gameInfo.clientEngine` is absent / false for OnlineGame.
 
 ### Phase 8 remaining
 
 - [x] Thin ReviewMode adapter on `/mobile-review`
-- [ ] Mobile SP LocalEngineMode
+- [x] Mobile SP LocalEngineMode (`clientEngine` + HTTP EnginePort)
 - [ ] Mobile OnlineMode
 - [ ] Mobile watch shell (today still classic `game.ejs`)
 
@@ -1129,5 +1143,6 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 6 (practice slice) result | Pass / Fail |
 | Phase 7 (setup/config) result | Pass / Fail |
 | Phase 8 (mobile review) result | Pass / Fail |
+| Phase 8 (mobile SP LocalEngine) result | Pass / Fail |
 | Phase 9 (brain adapters) result | Pass / Fail |
 | Notes | |

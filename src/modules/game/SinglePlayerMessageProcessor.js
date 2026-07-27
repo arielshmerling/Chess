@@ -89,6 +89,37 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
         if (msg.info == "setState") {
             const state = msg.data;
             game.load(state);
+            return;
+        }
+        if (msg.info == "clientEngineMove") {
+            return this.onClientEngineMove(game, msg);
+        }
+    }
+
+    /**
+     * Mobile LocalEngineMode posts AI moves here (white-view coords, origin brain).
+     * Only accepted when game.options.clientEngine is set.
+     */
+    async onClientEngineMove(game, msg) {
+        if (!game.usesClientEngine || !game.usesClientEngine()) {
+            return;
+        }
+        if (!game.startedOn) {
+            game.startedOn = new Date().getTime();
+        }
+        game.lastMoveOn = new Date().getTime();
+
+        const move = await game.handleMove(msg.isWhite, msg.data, "brain");
+        if (move && move.valid !== false) {
+            if (typeof msg.moveTime === "number" || typeof msg.whiteTimer === "number") {
+                game.updateLastMoveTime(msg.moveTime, msg.whiteTimer, msg.blackTimer);
+            }
+            game.sendMoveToWatchers(msg.gameId, msg.isWhite, move);
+            if (game.chessGame.GameOver) {
+                const go = { type: "info", info: "game over", gameId: msg.gameId };
+                game.sendMessage(go, true);
+                game.sendMessage(go, false);
+            }
         }
     }
 
@@ -106,7 +137,9 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
             game.sendMessage(message, msg.isWhite);
             game.sendMoveToWatchers(msg.gameId, msg.isWhite, move);
             if (!game.chessGame.GameOver) {
-                game.makeBrainMove(!msg.isWhite);
+                if (!(game.usesClientEngine && game.usesClientEngine())) {
+                    game.makeBrainMove(!msg.isWhite);
+                }
             }
             else {
                 const message = { type: "info", info: "game over", gameId: msg.gameId };
