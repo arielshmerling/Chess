@@ -180,7 +180,7 @@ describe("session WsTransport (Phase 3)", function () {
 });
 
 describe("session OnlineMode (Phase 3)", function () {
-    it("exposes online mode id and Phase 3 capabilities", function () {
+    it("exposes online mode id and Phase 4 capabilities", function () {
         const transport = createMockTransport();
         const mode = OnlineMode.create({
             transport: transport,
@@ -189,7 +189,8 @@ describe("session OnlineMode (Phase 3)", function () {
         });
         assert.strictEqual(mode.id, MODE_IDS.ONLINE);
         assert.strictEqual(mode.capabilities().network, true);
-        assert.strictEqual(mode.capabilities().draw, false);
+        assert.strictEqual(mode.capabilities().draw, true);
+        assert.strictEqual(mode.capabilities().rematch, true);
         assert.deepStrictEqual(
             mode.capabilities(),
             getModeCapabilities(MODE_IDS.ONLINE),
@@ -413,5 +414,140 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.strictEqual(game.GameOver, true);
         assert.ok(game.GameState && game.GameState.resigned);
         session.dispose();
+    });
+
+    it("canOfferDraw only after a human move on the opponent turn", function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "game-1",
+                username: "alice",
+                userId: "u1",
+                creatorId: "u1",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        assert.strictEqual(mode.canOfferDraw(), false);
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "human" },
+        );
+        assert.strictEqual(mode.canOfferDraw(), true);
+        assert.ok(mode.offerDraw());
+        const drawMsg = transport.sent.find(function (m) {
+            return m.type === "info" && m.info === "offer draw";
+        });
+        assert.ok(drawMsg);
+        session.dispose();
+    });
+
+    it("accepts an inbound draw and ends the game", function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "game-1",
+                username: "alice",
+                userId: "u1",
+                creatorId: "u1",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "human" },
+        );
+        mode._handleInbound({
+            type: "info",
+            info: "draw accepted",
+            isWhite: false,
+        });
+        assert.strictEqual(game.GameOver, true);
+        assert.ok(game.GameState.draw);
+        session.dispose();
+    });
+
+    it("offerRematch requires game over and notifies on rematch accepted", function () {
+        const transport = createMockTransport();
+        const rematches = [];
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "game-1",
+                username: "alice",
+                userId: "u1",
+                creatorId: "u1",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            wsUrl: "ws://test/ws",
+            onRematchAccepted: function (p) {
+                rematches.push(p.gameId);
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        assert.strictEqual(mode.offerRematch(), false);
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "human" },
+        );
+        session.resign("White");
+        transport.sent.length = 0;
+        assert.ok(mode.offerRematch());
+        const offer = transport.sent.find(function (m) {
+            return m.info === "offer rematch";
+        });
+        assert.ok(offer);
+        assert.strictEqual(offer.offererWantsColor, undefined);
+
+        transport.sent.length = 0;
+        assert.ok(mode.offerRematch("black"));
+        const offerWithColor = transport.sent.find(function (m) {
+            return m.info === "offer rematch";
+        });
+        assert.ok(offerWithColor);
+        assert.strictEqual(offerWithColor.offererWantsColor, "black");
+
+        mode._handleInbound({
+            type: "info",
+            info: "rematch accepted",
+            gameId: "game-2",
+        });
+        assert.deepStrictEqual(rematches, ["game-2"]);
+        session.dispose();
+    });
+
+    it("classifies draw and rematch infos", function () {
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "offer draw",
+            }).kind,
+            "offerDraw",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "rematch accepted",
+                gameId: "x",
+            }).kind,
+            "rematchAccepted",
+        );
     });
 });

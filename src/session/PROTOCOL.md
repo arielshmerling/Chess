@@ -95,5 +95,11 @@ Do not hard-code “desktop = local only” into `GameSession` — only into the
 Modules: `onlineProtocol.js`, `wsTransport.js`, `onlineMode.js`.  
 Shell: `/play?id=` loads `/gameInfo` + `/gameMoves`, attaches OnlineMode, connects `/ws`.  
 Resign with zero moves → `POST /cancel-before-move`. Otherwise WS `info: resign`.  
-Opponent move → animate + `playMove(..., { source: "network" })` (no echo).  
-Deferred to Phase 4: draw offers, rematch, chat, watchers UI, reconnect forfeit countdown.
+Opponent move → animate + `playMove(..., { source: "network" })` (no echo).
+
+## Phase 4 OnlineMode extensions
+
+- Draw: `offer draw` / `draw accepted` / `draw declined` (offer only after you have moved, on opponent’s turn).  
+- Rematch: `offer rematch` / accept → new `gameId` → `POST /rematch` + reload online game on `/play`.  
+- Disconnect: 1s grace, then 60s status countdown; on expiry sync `/gameInfo` (cancel or forfeit).  
+Still deferred: chat, watchers on `/play`.

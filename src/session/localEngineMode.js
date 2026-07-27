@@ -27,7 +27,7 @@
                 /* fall through */
             }
         }
-        return null;
+        return global.ShmerlingSessionCapabilities || null;
     }
 
     function loadContracts() {
@@ -38,7 +38,11 @@
                 /* fall through */
             }
         }
-        return { MODE_IDS: { LOCAL_ENGINE: "localEngine" } };
+        return (
+            global.ShmerlingSessionContracts || {
+                MODE_IDS: { LOCAL_ENGINE: "localEngine" },
+            }
+        );
     }
 
     /**

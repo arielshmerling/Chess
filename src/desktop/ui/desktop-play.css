@@ -334,12 +334,20 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   text-overflow: ellipsis;
 }
 
+.desktop-play-header-player--disconnected {
+  color: #c62828;
+}
+
 .desktop-play-header-time {
   font-variant-numeric: tabular-nums;
   font-size: 1rem;
   font-weight: 600;
   min-width: 5.5rem;
   text-align: right;
+}
+
+.desktop-play-header-clock--disconnected .desktop-play-header-time {
+  visibility: hidden;
 }
 
 .desktop-play-footer {

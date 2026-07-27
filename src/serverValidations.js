@@ -181,6 +181,8 @@ const wsInfoGenericSchema = Joi.object({
     moveTime: Joi.number().optional(),
     whiteTimer: Joi.number().min(0).max(864000).optional(),
     blackTimer: Joi.number().min(0).max(864000).optional(),
+    /* Offerer preferred color for rematch (optional; legacy clients omit → keep seats). */
+    offererWantsColor: Joi.string().valid("white", "black").optional(),
 }).strict();
 
 const wsCmdUndoRedoSchema = Joi.object({

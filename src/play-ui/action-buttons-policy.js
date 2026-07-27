@@ -25,6 +25,8 @@
      * @param {boolean} [state.redoPairAvailable]
      * @param {boolean} [state.canUsePositionSetup]
      * @param {boolean} [state.canUseBrainConfig]
+     * @param {boolean} [state.canOfferDraw] - online: human moved and not human turn
+     * @param {boolean} [state.canRematch] - typically game over for networked modes
      * @param {object} [state.capabilities] - ModeCapabilities from session
      * @returns {Object.<string, boolean>}
      */
@@ -87,7 +89,8 @@
         }
 
         const over = !!s.gameOver;
-        out.resignBtn = over || !!s.animating;
+        /* Do not lock Resign on board animation — opponent-move animate was blinking the button. */
+        out.resignBtn = over;
         out.drawBtn = over || !!s.animating || !s.humanTurn;
         const undoRedoDisabled =
             !s.allowUndo || over || !!s.animating || !!s.engineThinking || !!s.dialogOn;
@@ -104,6 +107,11 @@
             }
             if (caps.draw === false) {
                 out.drawBtn = true;
+            } else if (caps.draw === true && caps.network === true) {
+                /* Online: offer only after you have moved, and only on opponent's turn.
+                 * Ignore animating so the Draw button does not flicker during remote moves. */
+                out.drawBtn =
+                    over || !!s.dialogOn || s.canOfferDraw !== true;
             }
             if (caps.undo === false) {
                 out.undoBtn = true;
@@ -113,6 +121,10 @@
             }
             if (caps.rematch === false) {
                 out.rematchBtn = true;
+            } else if (caps.rematch === true && caps.network === true) {
+                /* Online Rematch: only after game over (same rail slot as New game). */
+                out.rematchBtn =
+                    s.canRematch !== true || !!s.dialogOn;
             }
         }
         return out;

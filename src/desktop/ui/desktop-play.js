@@ -170,6 +170,8 @@
     let playOnlineMode = null;
     /** @type {object|null} server gameInfo for OnlineGame on /play */
     let onlineGameInfo = null;
+    /** Opponent left the WS (Phase 4 chrome: red name, hide clock). */
+    let opponentConnectionLost = false;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
@@ -296,7 +298,71 @@
                 blackName: session && session.blackPlayerName,
             },
         );
+        applyOpponentConnectionChrome();
         updateGameModeTooltip();
+    }
+
+    function applyOpponentConnectionChrome() {
+        const whiteClock = $("desktopPlayHeaderWhite");
+        const blackClock = $("desktopPlayHeaderBlack");
+        const whiteName = $("desktopPlayWhiteName");
+        const blackName = $("desktopPlayBlackName");
+        const clsClock = "desktop-play-header-clock--disconnected";
+        const clsName = "desktop-play-header-player--disconnected";
+        if (whiteClock) {
+            whiteClock.classList.remove(clsClock);
+        }
+        if (blackClock) {
+            blackClock.classList.remove(clsClock);
+        }
+        if (whiteName) {
+            whiteName.classList.remove(clsName);
+        }
+        if (blackName) {
+            blackName.classList.remove(clsName);
+        }
+        if (!opponentConnectionLost || !onlineGameInfo) {
+            return;
+        }
+        /* Opponent is the other color from the local human. */
+        if (currentPlayerIsWhite) {
+            if (blackClock) {
+                blackClock.classList.add(clsClock);
+            }
+            if (blackName) {
+                blackName.classList.add(clsName);
+            }
+        } else {
+            if (whiteClock) {
+                whiteClock.classList.add(clsClock);
+            }
+            if (whiteName) {
+                whiteName.classList.add(clsName);
+            }
+        }
+    }
+
+    function setOpponentConnectionLost(lost) {
+        opponentConnectionLost = !!lost;
+        applyOpponentConnectionChrome();
+    }
+
+    function syncPrimaryGameButtonLabel() {
+        const btn = $("rematchBtn");
+        if (!btn) {
+            return;
+        }
+        const isOnline = !!(
+            onlineGameInfo &&
+            onlineGameInfo.gameType === "OnlineGame" &&
+            playOnlineMode
+        );
+        const text = isOnline ? "Rematch" : "New game";
+        btn.title = text;
+        const label = btn.querySelector(".desktop-play-action-label");
+        if (label) {
+            label.textContent = text;
+        }
     }
 
     function switchClocks() {
@@ -2050,6 +2116,10 @@
     }
 
     function updateActionButtons() {
+        const onlineCaps =
+            playCapabilities &&
+            playCapabilities.network === true &&
+            playOnlineMode;
         ActionButtonsPolicy.apply(
             ActionButtonsPolicy.disabledMap({
                 hasGame: !!game,
@@ -2069,6 +2139,11 @@
                 canUsePositionSetup: canUsePositionSetup(),
                 canUseBrainConfig: canUseBrainConfig(),
                 capabilities: playCapabilities,
+                canOfferDraw:
+                    !!(onlineCaps &&
+                        typeof playOnlineMode.canOfferDraw === "function" &&
+                        playOnlineMode.canOfferDraw()),
+                canRematch: !!(onlineCaps && game && game.GameOver),
             }),
             setButtonDisabled,
         );
@@ -3343,6 +3418,7 @@
         if (typeof playLocalEngineMode.capabilities === "function") {
             playCapabilities = playLocalEngineMode.capabilities();
         }
+        syncPrimaryGameButtonLabel();
     }
 
     function createOnlineMode(gameInfo) {
@@ -3414,12 +3490,193 @@
                         onlineGameInfo.whitePlayerName = label;
                     }
                 }
+                setOpponentConnectionLost(false);
                 updateMatchHeader();
+                updateActionButtons();
+            },
+            onOpponentDisconnected: function () {
+                setOpponentConnectionLost(true);
+            },
+            onOpponentRejoined: function () {
+                setOpponentConnectionLost(false);
             },
             onGameCancelled: function () {
+                setOpponentConnectionLost(false);
                 clearActiveGameSnapshot();
             },
+            onDrawOffered: function () {
+                if (dialogOn) {
+                    return;
+                }
+                Dialog.confirm({
+                    title: "Draw offer",
+                    message: "Opponent sent a draw offer. Accept?",
+                    confirmLabel: "Accept",
+                    cancelLabel: "Decline",
+                    onConfirm: function () {
+                        if (playOnlineMode && playOnlineMode.acceptDrawOffer) {
+                            playOnlineMode.acceptDrawOffer();
+                        }
+                    },
+                    onCancel: function () {
+                        if (playOnlineMode && playOnlineMode.declineDrawOffer) {
+                            playOnlineMode.declineDrawOffer();
+                        }
+                    },
+                });
+            },
+            onRematchOffered: function (payload) {
+                if (dialogOn) {
+                    return;
+                }
+                const wants =
+                    payload &&
+                    (payload.offererWantsColor === "white" ||
+                        payload.offererWantsColor === "black")
+                        ? payload.offererWantsColor
+                        : null;
+                let message = "Opponent offered a rematch. Agree?";
+                if (wants) {
+                    const offererLabel = wants === "white" ? "White" : "Black";
+                    const youLabel = wants === "white" ? "Black" : "White";
+                    message =
+                        "Opponent wants to play as " +
+                        offererLabel +
+                        ". You would play as " +
+                        youLabel +
+                        ". Agree?";
+                }
+                Dialog.confirm({
+                    title: "Rematch",
+                    message: message,
+                    confirmLabel: "Accept",
+                    cancelLabel: "Decline",
+                    onConfirm: function () {
+                        if (playOnlineMode && playOnlineMode.acceptRematchOffer) {
+                            playOnlineMode.acceptRematchOffer(wants || undefined);
+                        }
+                    },
+                    onCancel: function () {
+                        if (playOnlineMode && playOnlineMode.declineRematchOffer) {
+                            playOnlineMode.declineRematchOffer();
+                        }
+                    },
+                });
+            },
+            onRematchAccepted: function (payload) {
+                const newId = payload && payload.gameId;
+                if (newId == null) {
+                    return;
+                }
+                void beginOnlineRematch(newId);
+            },
+            onDisconnectCountdown: function (seconds) {
+                showStatus(
+                    "Opponent disconnected — " + formatDisconnectCountdown(seconds),
+                    0,
+                    "info",
+                );
+            },
+            onDisconnectCountdownClear: function () {
+                /* Status will refresh on next event / move. */
+            },
+            onDisconnectCountdownEnd: function () {
+                void syncOnlineReconnectTimeoutFromServer();
+            },
         });
+    }
+
+    function formatDisconnectCountdown(seconds) {
+        const s = Math.max(0, Math.floor(Number(seconds) || 0));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return m + ":" + (r < 10 ? "0" : "") + r;
+    }
+
+    async function syncOnlineReconnectTimeoutFromServer() {
+        if (!onlineGameInfo || !onlineGameInfo.id || !Api || typeof Api.get !== "function") {
+            return;
+        }
+        if (game && game.GameOver) {
+            return;
+        }
+        try {
+            const data = await Api.get(
+                "/gameInfo?id=" + encodeURIComponent(String(onlineGameInfo.id)),
+            );
+            if (!data || data.status == null) {
+                return;
+            }
+            if (data.status === "cancelled") {
+                showStatus(
+                    "Game cancelled — Reconnect timed out with no moves played.",
+                    0,
+                    "info",
+                );
+                Clocks.stop();
+                clearActiveGameSnapshot();
+                updateActionButtons();
+                return;
+            }
+            if (data.status !== "game over") {
+                return;
+            }
+            const movesObj = await Api.get(
+                "/gameMoves?id=" + encodeURIComponent(String(onlineGameInfo.id)),
+            );
+            const moves = (movesObj && movesObj.moves) || [];
+            const last = moves[moves.length - 1];
+            let loser = null;
+            if (last && last.moveStr === "1-0") {
+                loser = "Black";
+            } else if (last && last.moveStr === "0-1") {
+                loser = "White";
+            }
+            if (!loser || (game && game.GameOver)) {
+                return;
+            }
+            const gs = ensurePlayGameSession();
+            if (gs && typeof gs.resign === "function") {
+                gs.resign(loser);
+            } else if (game) {
+                game.resign(loser);
+                finishResignGame(loser);
+            }
+            showStatus(
+                "Game over — opponent failed to reconnect.",
+                0,
+                "info",
+            );
+        } catch (err) {
+            console.warn("[Play] Could not sync reconnect timeout:", err);
+        }
+    }
+
+    async function beginOnlineRematch(newGameId) {
+        if (!Api || typeof Api.post !== "function") {
+            showStatus("Could not start rematch", 0, "error");
+            return;
+        }
+        try {
+            await Api.post("/rematch", { id: newGameId });
+        } catch (err) {
+            console.warn("[Play] rematch session sync failed:", err);
+        }
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        onlineGameInfo = null;
+        disposePlayGameSession();
+        const started = await beginOnlineFromServerId(newGameId);
+        if (started) {
+            clearWebLaunchQueryString({ keepId: true });
+            showStatus("Rematch started", 2000, "info");
+        }
     }
 
     function attachPlayOnlineMode(gameInfo) {
@@ -3437,6 +3694,7 @@
         if (typeof playOnlineMode.capabilities === "function") {
             playCapabilities = playOnlineMode.capabilities();
         }
+        syncPrimaryGameButtonLabel();
         if (
             playGameSession.isActive &&
             playGameSession.isActive() &&
@@ -4364,6 +4622,7 @@
     async function beginOnlineGame(info) {
         clearActiveGameSnapshot();
         onlineGameInfo = info;
+        setOpponentConnectionLost(false);
         currentPlayerIsWhite = resolveOnlineHumanIsWhite(info);
         const whiteName = info.whitePlayerName || "White";
         const blackName =
@@ -4452,6 +4711,8 @@
         syncGameRunPanelOptions();
         updateGameRunPanelVisibility();
         ensurePlayGameSession();
+        syncPrimaryGameButtonLabel();
+        updateActionButtons();
         if (!game.GameOver) {
             switchClocks();
             const waiting =
@@ -4480,6 +4741,7 @@
             }
         }
         playOnlineMode = null;
+        setOpponentConnectionLost(false);
         applySessionSettings(launchOpts);
         if (Settings.saveNewGameOptions) {
             Settings.saveNewGameOptions({
@@ -4523,6 +4785,7 @@
         updateGameRunPanelVisibility();
         persistActiveGame();
         ensurePlayGameSession();
+        syncPrimaryGameButtonLabel();
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
             showStatus("Engine to move…", 0, "info");
@@ -4760,6 +5023,13 @@
         if (game.GameOver || $("drawBtn").disabled) {
             return;
         }
+        if (playOnlineMode && typeof playOnlineMode.offerDraw === "function") {
+            if (!playOnlineMode.offerDraw()) {
+                showStatus("Draw offer is not available now", 2500, "info");
+            }
+            updateActionButtons();
+            return;
+        }
         Dialog.alert({
             title: "Draw offer",
             message: "Draw offers are not available when playing against the engine.",
@@ -4837,6 +5107,54 @@
     }
 
     function onRematch() {
+        if ($("rematchBtn") && $("rematchBtn").disabled) {
+            return;
+        }
+        if (
+            playOnlineMode &&
+            onlineGameInfo &&
+            game &&
+            game.GameOver &&
+            typeof playOnlineMode.offerRematch === "function"
+        ) {
+            if (dialogOn) {
+                return;
+            }
+            let rematchColorHandle;
+            rematchColorHandle = Dialog.open({
+                title: "Rematch",
+                body: "Choose your color for the rematch:",
+                panelClass: "desktop-play-dialog--confirm",
+                buttons: [
+                    {
+                        label: "Cancel",
+                        className: "desktop-btn",
+                        onClick: function () {
+                            rematchColorHandle.close();
+                        },
+                    },
+                    {
+                        label: "White",
+                        className: "desktop-btn desktop-btn-gold",
+                        onClick: function () {
+                            rematchColorHandle.close();
+                            playOnlineMode.offerRematch("white");
+                            updateActionButtons();
+                        },
+                    },
+                    {
+                        label: "Black",
+                        className: "desktop-btn desktop-btn-gold",
+                        onClick: function () {
+                            rematchColorHandle.close();
+                            playOnlineMode.offerRematch("black");
+                            updateActionButtons();
+                        },
+                    },
+                ],
+            });
+            return;
+        }
         if (NewGameDialog && typeof NewGameDialog.show === "function") {
             NewGameDialog.show(beginNewGame);
         }
@@ -4907,6 +5225,8 @@
         clearActiveGameSnapshot();
         disposePlayGameSession();
         onlineGameInfo = null;
+        setOpponentConnectionLost(false);
+        syncPrimaryGameButtonLabel();
         if (configurationMode) {
             setConfigurationUi(false);
         }

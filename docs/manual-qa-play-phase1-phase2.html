@@ -1,74 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Manual QA: Shmerling Play UI (Phase 1–3)</title>
-  <style>
-    @page { size: Letter; margin: 0.7in; }
-    body {
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 10.5pt;
-      line-height: 1.4;
-      color: #1a1a1a;
-      max-width: 7.5in;
-      margin: 0 auto;
-      padding: 0.5in;
-    }
-    h1 {
-      font-size: 18pt;
-      margin: 0 0 0.35em;
-      border-bottom: 2px solid #222;
-      padding-bottom: 0.2em;
-    }
-    h2 {
-      font-size: 13pt;
-      margin: 1.2em 0 0.4em;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 0.12em;
-      page-break-after: avoid;
-    }
-    h3 {
-      font-size: 11pt;
-      margin: 0.95em 0 0.3em;
-      page-break-after: avoid;
-    }
-    p, li { margin: 0.28em 0; }
-    ul, ol { padding-left: 1.25em; margin: 0.3em 0 0.5em; }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 0.5em 0 0.8em;
-      font-size: 9.5pt;
-      page-break-inside: avoid;
-    }
-    th, td {
-      border: 1px solid #bbb;
-      padding: 0.3em 0.45em;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: #f0f0f0; }
-    code {
-      font-family: "SF Mono", Menlo, Consolas, monospace;
-      font-size: 8.5pt;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #ccc;
-      margin: 1.1em 0;
-    }
-    strong { font-weight: 600; }
-    .meta { color: #555; font-size: 9.5pt; margin-bottom: 0.35em; }
+<meta charset="UTF-8" />
+<title>Manual QA: Shmerling Play UI (Phase 1–4)</title>
+<style>
+@page { size: Letter; margin: 0.7in; }
+body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
+h1 { font-size: 18pt; margin: 0 0 0.4em; border-bottom: 2px solid #222; padding-bottom: 0.2em; }
+h2 { font-size: 13pt; margin: 1.3em 0 0.45em; border-bottom: 1px solid #ccc; padding-bottom: 0.12em; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 1em 0 0.3em; page-break-after: avoid; }
+p, li { margin: 0.3em 0; }
+ul, ol { padding-left: 1.25em; }
+table { border-collapse: collapse; width: 100%; margin: 0.5em 0 0.9em; font-size: 9.5pt; }
+th, td { border: 1px solid #bbb; padding: 0.3em 0.45em; text-align: left; vertical-align: top; }
+th { background: #f0f0f0; }
+code { font-family: SF Mono, Menlo, Consolas, monospace; font-size: 8.5pt; }
+hr { border: none; border-top: 1px solid #ccc; margin: 1.2em 0; }
+strong { font-weight: 600; }
 </style>
 </head>
 <body>
-<h1>Manual QA: Shmerling Play UI (Phase 1–3)</h1>
-<p class="meta"><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).  </p>
-<p><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode on <code>/play</code> (core play). Classic <code>/game</code> remains as fallback.  </p>
-<p><strong>Last updated:</strong> 2026-07-26 (Phase 3 OnlineMode on <code>/play</code>)</p>
-<p>Use this document as the living checklist. Add Phase 4+ sections at the bottom without rewriting earlier phases.</p>
-<hr />
-<h2>How to use this checklist</h2>
+<h1 id="manual-qa-shmerling-play-ui-phase-14">Manual QA: Shmerling Play UI (Phase 1–4)</h1>
+<p><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).<br><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on <code>/play</code>. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic <code>/game</code> remains as fallback.<br><strong>Last updated:</strong> 2026-07-26 (Phase 4 draw / rematch / reconnect on <code>/play</code>)</p>
+<p>Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.</p>
+<hr>
+<h2 id="how-to-use-this-checklist">How to use this checklist</h2>
 <ol>
 <li><strong>Restart the app/server</strong> before a full pass (<code>npm start</code> for web; restart Electron for desktop).</li>
 <li><strong>Hard-refresh</strong> the Play page (Cmd+Shift+R / Ctrl+Shift+R) so scripts and CSS reload.</li>
@@ -76,18 +32,56 @@
 <li>Record failures with: test id, role (Admin/Partner/Member), browser or Electron, and a short note.</li>
 <li>Prefer a clean profile or known test users (<code>e2e_web_member</code>, <code>e2e_web_partner</code>, Admin) when roles matter.</li>
 </ol>
-<h3>Roles (quick reference)</h3>
-<table><thead><tr><th>Capability</th><th>Admin</th><th>Partner</th><th>Member</th></tr></thead><tbody>
-<tr><td>New Play UI (<code>/play</code>)</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Position setup</td><td>Yes</td><td>Yes</td><td>Hidden</td></tr>
-<tr><td>Brain config panel</td><td>Yes</td><td>Yes</td><td>Hidden</td></tr>
-<tr><td>Saved games / review sidebar</td><td>Yes</td><td>Yes</td><td>Typically limited / hidden tools</td></tr>
-<tr><td>Admin menu</td><td>Yes</td><td>No</td><td>No</td></tr>
-<tr><td>Debug (classic <code>/game</code>)</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<h3 id="roles-quick-reference">Roles (quick reference)</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Admin</th>
+<th>Partner</th>
+<th>Member</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>New Play UI (<code>/play</code>)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Position setup</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Hidden</td>
+</tr>
+<tr>
+<td>Brain config panel</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Hidden</td>
+</tr>
+<tr>
+<td>Saved games / review sidebar</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Typically limited / hidden tools</td>
+</tr>
+<tr>
+<td>Admin menu</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Debug (classic <code>/game</code>)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
 </tbody></table>
-<hr />
-<h2>Pre-flight</h2>
-<h3>P0 — Environment ready</h3>
+<hr>
+<h2 id="pre-flight">Pre-flight</h2>
+<h3 id="p0--environment-ready">P0 — Environment ready</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Confirm MongoDB is running (local or configured remote).</li>
@@ -102,7 +96,7 @@
 <li>No blank screen or console errors that block interaction.</li>
 <li>Idle status invites starting a new game (or similar).</li>
 </ul>
-<h3>P1 — Hard refresh after code changes</h3>
+<h3 id="p1--hard-refresh-after-code-changes">P1 — Hard refresh after code changes</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>After pulling or receiving Play/session changes, restart the server.</li>
@@ -113,10 +107,10 @@
 <li>New session scripts load (<code>/app/session/*.js</code>, <code>/app/play-ui/*.js</code>).</li>
 <li>No stale cached <code>desktop-play.js</code>.</li>
 </ul>
-<hr />
-<h2>Phase 1 — Play shell modules (feature parity)</h2>
+<hr>
+<h2 id="phase-1--play-shell-modules-feature-parity">Phase 1 — Play shell modules (feature parity)</h2>
 <p>Phase 1 carved presentation/policy into <code>src/play-ui/*</code> without changing product behavior. These tests confirm the shell still works as a whole.</p>
-<h3>1.1 — New game as White (Play Now / New game)</h3>
+<h3 id="11--new-game-as-white-play-now--new-game">1.1 — New game as White (Play Now / New game)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>From Home, use <strong>Play Now</strong>, or on <code>/play</code> open <strong>New game</strong>.</li>
@@ -131,7 +125,7 @@
 <li><strong>Resign</strong> enabled on your turn; <strong>Draw</strong> disabled vs engine.</li>
 <li>Status indicates it is your move (or equivalent).</li>
 </ul>
-<h3>1.2 — New game as Black</h3>
+<h3 id="12--new-game-as-black">1.2 — New game as Black</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Start a new game as <strong>Black</strong>.</li>
@@ -144,7 +138,7 @@
 <li>After the engine move, it is your turn; clocks switch appropriately.</li>
 <li>Header names still correct (you as Black, Brain as White).</li>
 </ul>
-<h3>1.3 — Engine selection persists (Brain 4.2 / 4.3)</h3>
+<h3 id="13--engine-selection-persists-brain-42--43">1.3 — Engine selection persists (Brain 4.2 / 4.3)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Start a game with <strong>Brain 4.2</strong>.</li>
@@ -156,7 +150,7 @@
 <li>Engine choice remains <strong>Brain 4.2</strong> (or the last explicit choice), not silently reset to an old default without reason.</li>
 <li>Starting again with <strong>Brain 4.3</strong> then sticks on the next open.</li>
 </ul>
-<h3>1.4 — Drag move (mouse drag preference)</h3>
+<h3 id="14--drag-move-mouse-drag-preference">1.4 — Drag move (mouse drag preference)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Preferences → Mouse control → <strong>Drag</strong>.</li>
@@ -170,7 +164,7 @@
 <li>Clocks switch after your move.</li>
 <li>Engine replies (animation + move in the list).</li>
 </ul>
-<h3>1.5 — Double-click / click-to-move preference</h3>
+<h3 id="15--double-click--click-to-move-preference">1.5 — Double-click / click-to-move preference</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Preferences → Mouse control → <strong>Double-click</strong> (or click-to-move mode as labeled).</li>
@@ -183,7 +177,7 @@
 <li>Move records the same as drag mode.</li>
 <li>Illegal clicks do not corrupt the board.</li>
 </ul>
-<h3>1.6 — Show available moves toggle</h3>
+<h3 id="16--show-available-moves-toggle">1.6 — Show available moves toggle</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Preferences → enable <strong>Show available moves</strong>.</li>
@@ -195,7 +189,7 @@
 <li>With it on: legal destination hints appear.</li>
 <li>With it off: hints do not appear (or match product rule).</li>
 </ul>
-<h3>1.7 — Thinking time preference</h3>
+<h3 id="17--thinking-time-preference">1.7 — Thinking time preference</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Preferences → set thinking time to a low value (e.g. 2s).</li>
@@ -207,7 +201,7 @@
 <li>Engine search duration roughly tracks the preference (not stuck on a hard-coded old value).</li>
 <li>Preference survives refresh.</li>
 </ul>
-<h3>1.8 — Clocks count down for side to move</h3>
+<h3 id="18--clocks-count-down-for-side-to-move">1.8 — Clocks count down for side to move</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Start a game with a long game clock (e.g. 90 minutes) if configurable.</li>
@@ -220,7 +214,7 @@
 <li>After a move, the other side’s clock becomes active.</li>
 <li>Clocks stop when the game ends.</li>
 </ul>
-<h3>1.9 — Flip board</h3>
+<h3 id="19--flip-board">1.9 — Flip board</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>During an active game, click <strong>Flip</strong>.</li>
@@ -232,7 +226,7 @@
 <li>You can still move your pieces on your turn.</li>
 <li>Flip does not change whose turn it is.</li>
 </ul>
-<h3>1.10 — Last move arrow</h3>
+<h3 id="110--last-move-arrow">1.10 — Last move arrow</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play at least one move (and optionally wait for the engine reply).</li>
@@ -244,7 +238,7 @@
 <li>An arrow (or last-move highlight) appears for the last ply.</li>
 <li>Toggle clears it without breaking input.</li>
 </ul>
-<h3>1.11 — Moves panel updates</h3>
+<h3 id="111--moves-panel-updates">1.11 — Moves panel updates</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play several plies (you + engine).</li>
@@ -256,7 +250,7 @@
 <li>List stays in sync after undo/redo (see Phase 2 tests).</li>
 <li>No duplicate rows for a single ply.</li>
 </ul>
-<h3>1.12 — Action rail enable/disable (idle vs active)</h3>
+<h3 id="112--action-rail-enabledisable-idle-vs-active">1.12 — Action rail enable/disable (idle vs active)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>On idle Play (no active game): observe Resign / Undo / Redo / Draw / Flip.</li>
@@ -269,7 +263,7 @@
 <li>While engine thinks / animating: destructive actions disabled.</li>
 <li>After game over: Resign off; New game still usable.</li>
 </ul>
-<h3>1.13 — Preferences / themes / piece set (smoke)</h3>
+<h3 id="113--preferences--themes--piece-set-smoke">1.13 — Preferences / themes / piece set (smoke)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Open Preferences from the Play chrome / account menu.</li>
@@ -281,7 +275,7 @@
 <li>UI updates without breaking Play.</li>
 <li>Game can still be started and moves played.</li>
 </ul>
-<h3>1.14 — Keyboard shortcuts (smoke)</h3>
+<h3 id="114--keyboard-shortcuts-smoke">1.14 — Keyboard shortcuts (smoke)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>On <code>/play</code>, try documented shortcuts (e.g. F2 for new-game related flow if enabled; Cmd/Ctrl+E evaluation if Partner/Admin).</li>
@@ -292,7 +286,7 @@
 <li>Shortcuts work when not typing in an input.</li>
 <li>Shortcuts are ignored (or safely no-op) while typing in inputs.</li>
 </ul>
-<h3>1.15 — Evaluation display (Partner/Admin)</h3>
+<h3 id="115--evaluation-display-partneradmin">1.15 — Evaluation display (Partner/Admin)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>As Partner or Admin, start or load a position.</li>
@@ -304,7 +298,7 @@
 <li>Evaluation appears in the status/UI without freezing the board.</li>
 <li>Dismiss clears overlay/title as designed.</li>
 </ul>
-<h3>1.16 — Setup vs Config mutual exclusion (Partner/Admin)</h3>
+<h3 id="116--setup-vs-config-mutual-exclusion-partneradmin">1.16 — Setup vs Config mutual exclusion (Partner/Admin)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Open <strong>Position setup</strong>.</li>
@@ -318,7 +312,7 @@
 <li>While one is open, the other control is disabled (cannot click-switch without exiting).</li>
 <li>Exiting restores normal idle/play chrome.</li>
 </ul>
-<h3>1.17 — Member cannot see Setup / Config</h3>
+<h3 id="117--member-cannot-see-setup--config">1.17 — Member cannot see Setup / Config</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Log in as <strong>Member</strong>.</li>
@@ -329,9 +323,9 @@
 <li>Position setup and Brain config entry points are hidden or unavailable.</li>
 <li>New game vs Brain still works.</li>
 </ul>
-<hr />
-<h2>Phase 1 — Position setup (Partner/Admin)</h2>
-<h3>1.18 — Enter position setup from menu</h3>
+<hr>
+<h2 id="phase-1--position-setup-partneradmin">Phase 1 — Position setup (Partner/Admin)</h2>
+<h3 id="118--enter-position-setup-from-menu">1.18 — Enter position setup from menu</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>From idle Play, open <strong>Position setup</strong>.</li>
@@ -343,7 +337,7 @@
 <li>Human play on a live game is off.</li>
 <li>Status indicates setup (not a finished game).</li>
 </ul>
-<h3>1.19 — Setup draw status clears when material becomes sufficient</h3>
+<h3 id="119--setup-draw-status-clears-when-material-becomes-sufficient">1.19 — Setup draw status clears when material becomes sufficient</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>In setup, leave only two kings (insufficient material).</li>
@@ -355,7 +349,7 @@
 <li>Draw highlights clear from the board.</li>
 <li><strong>Status line clears</strong> the draw text (returns to setup guidance), not a stuck “Draw — Insufficient material”.</li>
 </ul>
-<h3>1.20 — Validate and play from setup</h3>
+<h3 id="120--validate-and-play-from-setup">1.20 — Validate and play from setup</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Set a legal middlegame-like position (both kings, sensible pieces).</li>
@@ -368,7 +362,7 @@
 <li>Valid positions start an active game with clocks and correct turn.</li>
 <li>Engine moves if it is the AI’s turn.</li>
 </ul>
-<h3>1.21 — Setup and Config do not both stay open</h3>
+<h3 id="121--setup-and-config-do-not-both-stay-open">1.21 — Setup and Config do not both stay open</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Enter setup, then attempt to open config (or the reverse).</li>
@@ -377,9 +371,9 @@
 <ul>
 <li>Mutual exclusion holds (see 1.16).</li>
 </ul>
-<hr />
-<h2>Phase 1 — Brain config (Partner/Admin)</h2>
-<h3>1.22 — Open config, change a value, play</h3>
+<hr>
+<h2 id="phase-1--brain-config-partneradmin">Phase 1 — Brain config (Partner/Admin)</h2>
+<h3 id="122--open-config-change-a-value-play">1.22 — Open config, change a value, play</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Open <strong>Config</strong> (brain config panel).</li>
@@ -392,9 +386,9 @@
 <li>Play still works afterward.</li>
 <li>No leftover dialog lock (<code>dialogOn</code>) that blocks moves.</li>
 </ul>
-<hr />
-<h2>Phase 1 — Saved games &amp; review (Partner/Admin)</h2>
-<h3>1.23 — Auto-save / manual save after a game</h3>
+<hr>
+<h2 id="phase-1--saved-games--review-partneradmin">Phase 1 — Saved games &amp; review (Partner/Admin)</h2>
+<h3 id="123--auto-save--manual-save-after-a-game">1.23 — Auto-save / manual save after a game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play a few moves; resign or finish.</li>
@@ -405,7 +399,7 @@
 <li>A bookmark appears (auto and/or after Save), with a sensible name.</li>
 <li>List can expand to show details.</li>
 </ul>
-<h3>1.24 — Load saved game into review</h3>
+<h3 id="124--load-saved-game-into-review">1.24 — Load saved game into review</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Click a saved game with moves to load it.</li>
@@ -417,7 +411,7 @@
 <li>Review nav is visible when moves exist.</li>
 <li>Human play is disabled in review.</li>
 </ul>
-<h3>1.25 — Review Start / Forward / Back / End</h3>
+<h3 id="125--review-start--forward--back--end">1.25 — Review Start / Forward / Back / End</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>With a multi-move saved game loaded, click <strong>Start</strong> (ply 0).</li>
@@ -431,7 +425,7 @@
 <li>No engine search starts during review navigation.</li>
 <li>Playback Play/Pause advances without crashing; Stop works.</li>
 </ul>
-<h3>1.26 — Review move-list click to ply</h3>
+<h3 id="126--review-move-list-click-to-ply">1.26 — Review move-list click to ply</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>In review, click a move in the moves panel.</li>
@@ -441,7 +435,7 @@
 <li>Board jumps to that ply.</li>
 <li>Nav buttons update enabled/disabled state.</li>
 </ul>
-<h3>1.27 — Load from start (double-click behavior if present)</h3>
+<h3 id="127--load-from-start-double-click-behavior-if-present">1.27 — Load from start (double-click behavior if present)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Double-click a saved game (or use the documented “load from start” affordance).</li>
@@ -451,7 +445,7 @@
 <li>Review opens at the start position when that feature exists.</li>
 <li>Forward still replays correctly.</li>
 </ul>
-<h3>1.28 — Edit saved position → setup</h3>
+<h3 id="128--edit-saved-position-→-setup">1.28 — Edit saved position → setup</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Use <strong>Edit</strong> on a saved position/game (Partner/Admin).</li>
@@ -464,7 +458,7 @@
 <li>Setup opens with the expected pieces.</li>
 <li>Leaving edit does not leave a half-active game session.</li>
 </ul>
-<h3>1.29 — Delete saved game</h3>
+<h3 id="129--delete-saved-game">1.29 — Delete saved game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Delete one bookmark (and multi-select delete if available).</li>
@@ -476,7 +470,7 @@
 <li>Status confirms deletion.</li>
 <li>Board is not left in a broken review state.</li>
 </ul>
-<h3>1.30 — Exit review into new game</h3>
+<h3 id="130--exit-review-into-new-game">1.30 — Exit review into new game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Load a review.</li>
@@ -488,10 +482,10 @@
 <li>Fresh game starts; engine and clocks work.</li>
 <li>No stuck review nav bar.</li>
 </ul>
-<hr />
-<h2>Phase 2 — GameSession / LocalEngineMode (ports-clean active play)</h2>
+<hr>
+<h2 id="phase-2--gamesession--localenginemode-ports-clean-active-play">Phase 2 — GameSession / LocalEngineMode (ports-clean active play)</h2>
 <p>Phase 2 routes active single-player through <code>GameSession</code> + <code>LocalEngineMode</code> (commands/events). Tests below stress that path.</p>
-<h3>2.1 — Human move → session → engine reply</h3>
+<h3 id="21--human-move-→-session-→-engine-reply">2.1 — Human move → session → engine reply</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>New game as White.</li>
@@ -505,7 +499,7 @@
 <li>No double status flashes for the same event.</li>
 <li>No second illegal “ghost” engine move.</li>
 </ul>
-<h3>2.2 — Username in header (not “Player”)</h3>
+<h3 id="22--username-in-header-not-player">2.2 — Username in header (not “Player”)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Log in with a real username.</li>
@@ -517,7 +511,7 @@
 <li>Brain label on the engine side.</li>
 <li>Refresh mid-game still shows the username (see 2.10).</li>
 </ul>
-<h3>2.3 — Draw button disabled vs engine (capabilities)</h3>
+<h3 id="23--draw-button-disabled-vs-engine-capabilities">2.3 — Draw button disabled vs engine (capabilities)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>During an active engine game on your turn, inspect <strong>Draw</strong>.</li>
@@ -528,7 +522,7 @@
 <li>Draw is disabled for local engine mode.</li>
 <li>If clicked via forced enable, user is told draw offers are unavailable vs engine (legacy alert path).</li>
 </ul>
-<h3>2.4 — Resign (human)</h3>
+<h3 id="24--resign-human">2.4 — Resign (human)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play at least one move.</li>
@@ -541,7 +535,7 @@
 <li>Clocks stop; Resign disables; moves list may show result.</li>
 <li>No duplicate conflicting status lines.</li>
 </ul>
-<h3>2.5 — Leave / Home mid-game resigns after you have moved</h3>
+<h3 id="25--leave--home-mid-game-resigns-after-you-have-moved">2.5 — Leave / Home mid-game resigns after you have moved</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play at least one move as White (or two plies if needed for Black).</li>
@@ -554,7 +548,7 @@
 <li>After confirm, game is resigned and you leave Play (or return home).</li>
 <li>Leaving with no human moves may skip resign (product rule).</li>
 </ul>
-<h3>2.6 — Undo / Redo pair</h3>
+<h3 id="26--undo--redo-pair">2.6 — Undo / Redo pair</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>New game with <strong>allow undo</strong> on.</li>
@@ -569,7 +563,7 @@
 <li>Redo restores the pair once; further redo stays disabled until another undo.</li>
 <li>Undo disabled while engine is thinking.</li>
 </ul>
-<h3>2.7 — Promotion (human)</h3>
+<h3 id="27--promotion-human">2.7 — Promotion (human)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Set up or play to a position where you can promote (setup→play is fine).</li>
@@ -583,7 +577,7 @@
 <li>Engine replies if it is the AI turn.</li>
 <li>No stuck “Choose promotion piece” status.</li>
 </ul>
-<h3>2.8 — Check indication</h3>
+<h3 id="28--check-indication">2.8 — Check indication</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play (or set up) a position that delivers check without mate.</li>
@@ -595,7 +589,7 @@
 <li>Checked king highlighted (gold/check style — not resign red).</li>
 <li>Game continues.</li>
 </ul>
-<h3>2.9 — Checkmate / draw terminal outcomes</h3>
+<h3 id="29--checkmate--draw-terminal-outcomes">2.9 — Checkmate / draw terminal outcomes</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Deliver checkmate (setup a mate-in-one and play it), <strong>or</strong> reach a clear draw (stalemate / insufficient material from play/setup→play).</li>
@@ -609,7 +603,7 @@
 <li>Resign disabled; New game available.</li>
 <li>No engine search after the game is over.</li>
 </ul>
-<h3>2.10 — Refresh resumes in-progress game (web)</h3>
+<h3 id="210--refresh-resumes-in-progress-game-web">2.10 — Refresh resumes in-progress game (web)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Start a game; play a few moves.</li>
@@ -621,7 +615,7 @@
 <li>Username still correct.</li>
 <li>You can continue; engine still replies on its turn.</li>
 </ul>
-<h3>2.11 — Play from custom position (session attached)</h3>
+<h3 id="211--play-from-custom-position-session-attached">2.11 — Play from custom position (session attached)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Position setup → legal position with <strong>engine to move</strong> (human Black or White to move for engine).</li>
@@ -633,7 +627,7 @@
 <li>Session is active (undo/resign behave; engine runs when appropriate).</li>
 <li>No “stuck idle” where moves don’t trigger the brain.</li>
 </ul>
-<h3>2.12 — Immediate resign (Brain resigns when lost)</h3>
+<h3 id="212--immediate-resign-brain-resigns-when-lost">2.12 — Immediate resign (Brain resigns when lost)</h3>
 <p><strong>Preconditions:</strong> Preferences → <strong>Immediate resign</strong> enabled; confirm it stays checked after refresh.</p>
 <p><strong>Steps</strong></p>
 <ol>
@@ -648,7 +642,7 @@
 <li><strong>Visual:</strong> resigning king has <strong>red background</strong> and <strong>90° tilt</strong> (not only the status text).</li>
 <li>Clocks stop; no further engine moves.</li>
 </ul>
-<h3>2.13 — Immediate resign off</h3>
+<h3 id="213--immediate-resign-off">2.13 — Immediate resign off</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Disable Immediate resign.</li>
@@ -658,7 +652,7 @@
 <ul>
 <li>Engine still plays a move (may be a losing move) rather than auto-resigning, unless another rule ends the game.</li>
 </ul>
-<h3>2.14 — Browser context menu suppressed on Play</h3>
+<h3 id="214--browser-context-menu-suppressed-on-play">2.14 — Browser context menu suppressed on Play</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>On <code>/play</code>, right-click the board, empty chrome, and header.</li>
@@ -669,7 +663,7 @@
 <li>Native browser menu (Back / Reload / Ask Gemini / etc.) does <strong>not</strong> appear on Play.</li>
 <li>Custom app menus (e.g. saved-game context menu) still work when provided.</li>
 </ul>
-<h3>2.15 — Review mode attach/detach does not break next game</h3>
+<h3 id="215--review-mode-attachdetach-does-not-break-next-game">2.15 — Review mode attach/detach does not break next game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Load a saved game into review (Partner/Admin).</li>
@@ -682,7 +676,7 @@
 <li>New game engine turns work (session LocalEngineMode re-attached).</li>
 <li>No “engine never moves” regression.</li>
 </ul>
-<h3>2.16 — Out-of-time (if easy to reproduce)</h3>
+<h3 id="216--out-of-time-if-easy-to-reproduce">2.16 — Out-of-time (if easy to reproduce)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>If you can set a very short game time, start a game and let a side flag.</li>
@@ -693,28 +687,70 @@
 <li>Timeout status; clocks stopped; game over.</li>
 <li>Single timeout message (session-driven).</li>
 </ul>
-<hr />
-<h2>Cross-cutting regression matrix</h2>
+<hr>
+<h2 id="cross-cutting-regression-matrix">Cross-cutting regression matrix</h2>
 <p>Run these after any large Play/session change:</p>
-<table><thead><tr><th>Area</th><th>Quick probe</th></tr></thead><tbody>
-<tr><td>New game W/B</td><td>1.1, 1.2</td></tr>
-<tr><td>Move + engine</td><td>2.1</td></tr>
-<tr><td>Undo/redo</td><td>2.6</td></tr>
-<tr><td>Resign visual</td><td>2.4, 2.12</td></tr>
-<tr><td>Refresh resume</td><td>2.10</td></tr>
-<tr><td>Setup → play</td><td>1.20, 2.11</td></tr>
-<tr><td>Review → new game</td><td>1.25, 2.15</td></tr>
-<tr><td>Member restrictions</td><td>1.17</td></tr>
-<tr><td>Context menu</td><td>2.14</td></tr>
-<tr><td>Online invite / moves</td><td>3.1–3.4</td></tr>
-<tr><td>Online resign / cancel</td><td>3.5–3.6</td></tr>
-<tr><td>Online refresh / classic</td><td>3.7, 3.9</td></tr>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Quick probe</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>New game W/B</td>
+<td>1.1, 1.2</td>
+</tr>
+<tr>
+<td>Move + engine</td>
+<td>2.1</td>
+</tr>
+<tr>
+<td>Undo/redo</td>
+<td>2.6</td>
+</tr>
+<tr>
+<td>Resign visual</td>
+<td>2.4, 2.12</td>
+</tr>
+<tr>
+<td>Refresh resume</td>
+<td>2.10</td>
+</tr>
+<tr>
+<td>Setup → play</td>
+<td>1.20, 2.11</td>
+</tr>
+<tr>
+<td>Review → new game</td>
+<td>1.25, 2.15</td>
+</tr>
+<tr>
+<td>Member restrictions</td>
+<td>1.17</td>
+</tr>
+<tr>
+<td>Context menu</td>
+<td>2.14</td>
+</tr>
+<tr>
+<td>Online invite / moves</td>
+<td>3.1–3.4</td>
+</tr>
+<tr>
+<td>Online resign / cancel</td>
+<td>3.5–3.6</td>
+</tr>
+<tr>
+<td>Online refresh / classic</td>
+<td>3.7, 3.9</td>
+</tr>
 </tbody></table>
-<hr />
-<h2>Phase 3 — OnlineMode on <code>/play</code></h2>
+<hr>
+<h2 id="phase-3--onlinemode-on-play">Phase 3 — OnlineMode on <code>/play</code></h2>
 <p><strong>Prerequisites:</strong> Two logged-in users (e.g. Member A and Member B) in two browsers or profiles. Friends of each other. Server restarted; hard-refresh <code>/play</code>.</p>
 <p><strong>Out of scope for Phase 3 (expect deferred / disabled):</strong> draw offers, rematch, chat, watchers on <code>/play</code>, reconnect forfeit countdown UI.</p>
-<h3>3.1 — Invite lands both players on <code>/play</code></h3>
+<h3 id="31--invite-lands-both-players-on-play">3.1 — Invite lands both players on <code>/play</code></h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>As user A, open Friends and invite user B to a game.</li>
@@ -727,7 +763,7 @@
 <li>Play shell loads (board, clocks, action rail, player names).</li>
 <li>User A is White; user B is Black (board orientation matches).</li>
 </ul>
-<h3>3.2 — Waiting for opponent (White)</h3>
+<h3 id="32--waiting-for-opponent-white">3.2 — Waiting for opponent (White)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>As user A, send an invite and stay on the game page before B accepts (or use a flow where White is alone briefly).</li>
@@ -740,7 +776,7 @@
 <li>When B joins: black name updates to B’s username; status clears to a normal play hint.</li>
 <li>Resign is available once the opponent is present (or per product rules after join).</li>
 </ul>
-<h3>3.3 — Moves both directions</h3>
+<h3 id="33--moves-both-directions">3.3 — Moves both directions</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>With both players connected on <code>/play?id=…</code>, as White play <code>e2–e4</code> (or any legal first move).</li>
@@ -754,7 +790,7 @@
 <li>No “double move” / echo (your own move does not fire a second time from the network).</li>
 <li>Illegal moves are rejected locally (piece does not stick on an illegal square).</li>
 </ul>
-<h3>3.4 — Server clocks</h3>
+<h3 id="34--server-clocks">3.4 — Server clocks</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>During an online game on <code>/play</code>, watch both clocks for a full move cycle (White moves, Black moves).</li>
@@ -766,7 +802,7 @@
 <li>After a move, clocks switch sides.</li>
 <li>After the opponent’s move, your remaining time looks consistent with play (server-driven timers / moveTime).</li>
 </ul>
-<h3>3.5 — Cancel before the first move</h3>
+<h3 id="35--cancel-before-the-first-move">3.5 — Cancel before the first move</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Start a fresh online game (invite accepted, <strong>0 moves</strong> played).</li>
@@ -779,7 +815,7 @@
 <li>No resign result / red king required for a zero-move cancel.</li>
 <li>Opponent is notified or lands in a cancelled / ended state (not stuck waiting forever).</li>
 </ul>
-<h3>3.6 — Resign after moves</h3>
+<h3 id="36--resign-after-moves">3.6 — Resign after moves</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play at least one move in an online <code>/play</code> game.</li>
@@ -791,9 +827,9 @@
 <li>Game ends; status indicates resign / winner.</li>
 <li>Resigned king shows red square + 90° tilt (same visual as SP resign).</li>
 <li>Opponent sees “Opponent resigned” (or equivalent) and the same terminal board.</li>
-<li>Draw / rematch remain unavailable or inert (Phase 4).</li>
+<li>Draw / rematch remain unavailable or inert mid-game (see Phase 4 for after game over).</li>
 </ul>
-<h3>3.7 — Mid-game refresh / reopen by id</h3>
+<h3 id="37--mid-game-refresh--reopen-by-id">3.7 — Mid-game refresh / reopen by id</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Play a few moves online on <code>/play?id=…</code>.</li>
@@ -807,7 +843,7 @@
 <li>Clocks rehydrate to sensible values.</li>
 <li>Local SP sessionStorage resume does <strong>not</strong> overwrite the online game.</li>
 </ul>
-<h3>3.8 — Disconnect messaging (basic)</h3>
+<h3 id="38--disconnect-messaging-basic">3.8 — Disconnect messaging (basic)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>During an online game with moves, close or kill one browser tab / disconnect network briefly for one player.</li>
@@ -817,10 +853,10 @@
 <p><strong>Expect</strong></p>
 <ul>
 <li>Connected player sees a disconnect-related status (e.g. “Opponent disconnected”).</li>
-<li>Phase 3 does <strong>not</strong> require full reconnect-forfeit countdown parity with classic <code>/game</code>.</li>
+<li>Phase 4 adds the full reconnect countdown + forfeit parity (see 4.5–4.6).</li>
 <li>If the opponent rejoins, a rejoined message / status is acceptable when the server sends it.</li>
 </ul>
-<h3>3.9 — Classic <code>/game</code> fallback</h3>
+<h3 id="39--classic-game-fallback">3.9 — Classic <code>/game</code> fallback</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Create or open an online game.</li>
@@ -833,7 +869,7 @@
 <li>Moves still sync across clients (protocol compatible).</li>
 <li>No server crash.</li>
 </ul>
-<h3>3.10 — Active games / Friends reopen → <code>/play</code></h3>
+<h3 id="310--active-games--friends-reopen-→-play">3.10 — Active games / Friends reopen → <code>/play</code></h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>With an in-progress online game as a participant, open <strong>Active games</strong> list and click the game.</li>
@@ -844,7 +880,7 @@
 <li>Play UI users land on <code>/play?id=…</code>.</li>
 <li>Game resumes as in 3.7.</li>
 </ul>
-<h3>3.11 — Out-of-time online (if easy)</h3>
+<h3 id="311--out-of-time-online-if-easy">3.11 — Out-of-time online (if easy)</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>If game time can be set very short for online invites, let a side flag.</li>
@@ -855,7 +891,7 @@
 <li>Flagged side loses; both clients show timeout / game over.</li>
 <li>Clocks stop.</li>
 </ul>
-<h3>3.12 — Single-player regression after OnlineMode</h3>
+<h3 id="312--single-player-regression-after-onlinemode">3.12 — Single-player regression after OnlineMode</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>After an online session (or on a fresh <code>/play</code>), use <strong>Play Now</strong> vs Brain.</li>
@@ -867,7 +903,7 @@
 <li>No WebSocket errors blocking SP.</li>
 <li>Undo still works in SP; Draw still disabled vs engine.</li>
 </ul>
-<h3>3.13 — Spectating not on <code>/play</code> yet</h3>
+<h3 id="313--spectating-not-on-play-yet">3.13 — Spectating not on <code>/play</code> yet</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>As a third user, open <code>/play?id=&lt;onlineGameId&gt;</code> for a game you are not in (or Watch from home).</li>
@@ -878,7 +914,7 @@
 <li>Prefer classic <code>/watch?id=</code> for spectating.</li>
 <li>If <code>/play?id=</code> is opened as a non-participant, a clear message / redirect is acceptable (no broken empty OnlineMode).</li>
 </ul>
-<h3>3.14 — Promotion in an online game</h3>
+<h3 id="314--promotion-in-an-online-game">3.14 — Promotion in an online game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>Reach a pawn promotion (or set up via a long game / known line).</li>
@@ -890,27 +926,175 @@
 <li>Completed promotion syncs to the opponent.</li>
 <li>Game continues normally.</li>
 </ul>
-<hr />
-<h2>Phase 4+ (placeholder)</h2>
-<h3>Phase 4 — Draw / rematch / rejoin forfeit (to be filled)</h3>
+<hr>
+<h2 id="phase-4--draw--rematch--reconnect-on-play">Phase 4 — Draw / rematch / reconnect on <code>/play</code></h2>
+<p>Phase 4 completes social online parity on the Play shell: draw offers, rematch with color choice, and disconnect countdown UX (opponent name red + clock hidden; forfeit via existing server reconnect rules).</p>
+<h3 id="41--draw-disabled-mid-game-until-legal">4.1 — Draw disabled mid-game until legal</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Start an online game on <code>/play</code> with two players.</li>
+<li>Before either side has a legal draw window (e.g. before White has moved, or while it is still your turn), check <strong>Draw</strong>.</li>
+</ol>
+<p><strong>Expect</strong></p>
 <ul>
-<li>[ ] Draw offer / accept / decline on <code>/play</code></li>
-<li>[ ] Rematch offer / accept</li>
-<li>[ ] Reconnect countdown + forfeit parity with classic</li>
+<li><strong>Draw</strong> is disabled when offering is not allowed (your turn / no moves yet), matching classic rules.</li>
+<li>After you have moved and it is the opponent’s turn, <strong>Draw</strong> becomes enabled.</li>
 </ul>
-<h3>Phase 5 — Watch / full Review mode (to be filled)</h3>
-<hr />
-<h2>Sign-off</h2>
-<table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
-<tr><td>Tester</td><td></td></tr>
-<tr><td>Date</td><td></td></tr>
-<tr><td>Build / branch</td><td></td></tr>
-<tr><td>Role(s) tested</td><td></td></tr>
-<tr><td>Web / Desktop</td><td></td></tr>
-<tr><td>Phase 1 result</td><td>Pass / Fail</td></tr>
-<tr><td>Phase 2 result</td><td>Pass / Fail</td></tr>
-<tr><td>Phase 3 result</td><td>Pass / Fail</td></tr>
-<tr><td>Notes</td><td></td></tr>
+<h3 id="42--offer-draw--accept">4.2 — Offer draw / accept</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>With Draw enabled, click <strong>Draw</strong>.</li>
+<li>On the opponent client, accept the offer dialog.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Offerer sees “Draw offer sent” (or equivalent status).</li>
+<li>Opponent sees a confirm dialog (“Opponent sent a draw offer…”).</li>
+<li>After Accept, both clients show a drawn game over; clocks stop.</li>
+<li>Resign / Draw become inactive; <strong>Rematch</strong> becomes available.</li>
+</ul>
+<h3 id="43--offer-draw--decline">4.3 — Offer draw / decline</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Offer a draw again in a new game (or if decline mid-game is still open).</li>
+<li>Opponent clicks <strong>Decline</strong>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Offerer sees decline status.</li>
+<li>Game continues; Draw can be offered again later when legal.</li>
+</ul>
+<h3 id="44--rematch-with-color-choice-accept">4.4 — Rematch with color choice (accept)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Finish an online game (resign or draw).</li>
+<li>Click <strong>Rematch</strong> (same rail slot as New game; label is <strong>Rematch</strong> online).</li>
+<li>In the color dialog, choose <strong>White</strong> (or <strong>Black</strong>).</li>
+<li>Opponent accepts; confirm the accept dialog mentions the offerer’s preferred color and your resulting color.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Offerer dialog offers <strong>White</strong> / <strong>Black</strong> / <strong>Cancel</strong>.</li>
+<li>After accept, both clients load a new <code>/play?id=…</code> game.</li>
+<li>Seats match the choice: offerer gets the color they picked; acceptor gets the other.</li>
+<li>New game clocks / names / board orientation match the new seats.</li>
+</ul>
+<h3 id="45--rematch-decline--cancel-color-dialog">4.5 — Rematch decline + cancel color dialog</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>After game over, open Rematch color dialog → <strong>Cancel</strong>.</li>
+<li>Offer rematch again → opponent <strong>Decline</strong>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Cancel does not send an offer.</li>
+<li>Decline leaves both on the finished game; no new id; Rematch still available to offer again.</li>
+</ul>
+<h3 id="46--disconnect-ux-countdown--chrome">4.6 — Disconnect UX (countdown + chrome)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Mid-game with moves played, close one client’s tab (or disconnect network) for ~2+ seconds.</li>
+<li>Watch the remaining client’s header and status for up to ~60s.</li>
+<li>Optionally reconnect the disconnected player before forfeit.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>After a short grace (~1s), status shows a disconnect countdown.</li>
+<li>Opponent name styling turns red; opponent clock is hidden while disconnected.</li>
+<li>If they rejoin in time, countdown clears and play continues.</li>
+<li>If they do not rejoin, server forfeit / “failed to reconnect” behavior matches classic expectations (game over for the disconnected side).</li>
+</ul>
+<h3 id="47--resign-still-stable-during-opponent-moves">4.7 — Resign still stable during opponent moves</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>During an online game, watch <strong>Resign</strong> while the opponent’s move animates.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Resign does <strong>not</strong> flicker disabled solely because of move animation.</li>
+<li>Resign still ends the game correctly when clicked on your turn / when allowed.</li>
+</ul>
+<h3 id="48--classic-game-rematch-still-works-no-color-required">4.8 — Classic <code>/game</code> rematch still works (no color required)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Finish an online game on classic <code>/game</code>.</li>
+<li>Offer rematch without a color field (legacy path).</li>
+<li>Accept from the other classic (or <code>/play</code>) client.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Rematch creates a new game with the <strong>same</strong> seats as before (legacy default).</li>
+<li>No server validation error on missing <code>offererWantsColor</code>.</li>
+</ul>
+<h3 id="49--single-player-regression-after-phase-4">4.9 — Single-player regression after Phase 4</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>On <code>/play</code>, start <strong>Play Now</strong> vs Brain.</li>
+<li>Confirm Draw stays disabled vs engine; New game still opens the new-game dialog (not rematch color).</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>LocalEngineMode unchanged.</li>
+<li>No online rematch dialog when not in an online finished game.</li>
+</ul>
+<hr>
+<h2 id="phase-5-placeholder">Phase 5+ (placeholder)</h2>
+<h3 id="phase-5--watch--full-review-mode-to-be-filled">Phase 5 — Watch / full Review mode (to be filled)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> Live watch on <code>/play</code> (non-participant)</li>
+<li><input disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code></li>
+<li><input disabled="" type="checkbox"> Prefer-Play redirects from <code>/watch</code> and <code>/review</code></li>
+</ul>
+<hr>
+<h2 id="sign-off">Sign-off</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tester</td>
+<td></td>
+</tr>
+<tr>
+<td>Date</td>
+<td></td>
+</tr>
+<tr>
+<td>Build / branch</td>
+<td></td>
+</tr>
+<tr>
+<td>Role(s) tested</td>
+<td></td>
+</tr>
+<tr>
+<td>Web / Desktop</td>
+<td></td>
+</tr>
+<tr>
+<td>Phase 1 result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 2 result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 3 result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 4 result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td></td>
+</tr>
 </tbody></table>
+
 </body>
 </html>

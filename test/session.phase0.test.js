@@ -31,14 +31,14 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.chat, false);
     });
 
-    it("online capabilities require network and resign; Phase 3 defers draw/chat", function () {
+    it("online capabilities require network, resign, draw, and rematch", function () {
         const caps = getModeCapabilities(MODE_IDS.ONLINE);
         assert.strictEqual(caps.network, true);
         assert.strictEqual(caps.resign, true);
         assert.strictEqual(caps.engine, false);
         assert.strictEqual(caps.undo, false);
-        assert.strictEqual(caps.draw, false);
-        assert.strictEqual(caps.rematch, false);
+        assert.strictEqual(caps.draw, true);
+        assert.strictEqual(caps.rematch, true);
         assert.strictEqual(caps.chat, false);
         assert.strictEqual(caps.watchers, false);
     });

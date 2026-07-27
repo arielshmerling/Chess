@@ -316,7 +316,8 @@ class GameBase {
         }
 
     }
-    createRemtach(isWhite, callback) {
+    createRemtach(isWhite, callback, options) {
+        const opts = options || {};
         const player = isWhite ? this.whitePlayer : this.blackPlayer;
         this.raiseEvent(this.OnRematch, {
             oldGame: this,
@@ -324,6 +325,8 @@ class GameBase {
             blackPlayer: this.blackPlayer,
             initiator: player,
             cb: callback,
+            acceptorIsWhite: isWhite === true,
+            offererWantsColor: opts.offererWantsColor,
         });
     }
 

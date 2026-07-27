@@ -1,10 +1,10 @@
-# Manual QA: Shmerling Play UI (Phase 1–3)
+# Manual QA: Shmerling Play UI (Phase 1–4)
 
 **Product surface:** Web `/play` and Desktop Electron Play shell (shared UI).  
-**Scope:** Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode on `/play` (core play). Classic `/game` remains as fallback.  
-**Last updated:** 2026-07-26 (Phase 3 OnlineMode on `/play`)
+**Scope:** Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on `/play`. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic `/game` remains as fallback.  
+**Last updated:** 2026-07-26 (Phase 4 draw / rematch / reconnect on `/play`)
 
-Use this document as the living checklist. Add Phase 4+ sections at the bottom without rewriting earlier phases.
+Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.
 
 ---
 
@@ -702,7 +702,7 @@ Run these after any large Play/session change:
 - Game ends; status indicates resign / winner.
 - Resigned king shows red square + 90° tilt (same visual as SP resign).
 - Opponent sees “Opponent resigned” (or equivalent) and the same terminal board.
-- Draw / rematch remain unavailable or inert (Phase 4).
+- Draw / rematch remain unavailable or inert mid-game (see Phase 4 for after game over).
 
 ### 3.7 — Mid-game refresh / reopen by id
 
@@ -726,7 +726,7 @@ Run these after any large Play/session change:
 
 **Expect**
 - Connected player sees a disconnect-related status (e.g. “Opponent disconnected”).
-- Phase 3 does **not** require full reconnect-forfeit countdown parity with classic `/game`.
+- Phase 4 adds the full reconnect countdown + forfeit parity (see 4.5–4.6).
 - If the opponent rejoins, a rejoined message / status is acceptable when the server sends it.
 
 ### 3.9 — Classic `/game` fallback
@@ -795,15 +795,118 @@ Run these after any large Play/session change:
 
 ---
 
-## Phase 4+ (placeholder)
+## Phase 4 — Draw / rematch / reconnect on `/play`
 
-### Phase 4 — Draw / rematch / rejoin forfeit (to be filled)
+Phase 4 completes social online parity on the Play shell: draw offers, rematch with color choice, and disconnect countdown UX (opponent name red + clock hidden; forfeit via existing server reconnect rules).
 
-- [ ] Draw offer / accept / decline on `/play`
-- [ ] Rematch offer / accept
-- [ ] Reconnect countdown + forfeit parity with classic
+### 4.1 — Draw disabled mid-game until legal
+
+**Steps**
+1. Start an online game on `/play` with two players.
+2. Before either side has a legal draw window (e.g. before White has moved, or while it is still your turn), check **Draw**.
+
+**Expect**
+- **Draw** is disabled when offering is not allowed (your turn / no moves yet), matching classic rules.
+- After you have moved and it is the opponent’s turn, **Draw** becomes enabled.
+
+### 4.2 — Offer draw / accept
+
+**Steps**
+1. With Draw enabled, click **Draw**.
+2. On the opponent client, accept the offer dialog.
+
+**Expect**
+- Offerer sees “Draw offer sent” (or equivalent status).
+- Opponent sees a confirm dialog (“Opponent sent a draw offer…”).
+- After Accept, both clients show a drawn game over; clocks stop.
+- Resign / Draw become inactive; **Rematch** becomes available.
+
+### 4.3 — Offer draw / decline
+
+**Steps**
+1. Offer a draw again in a new game (or if decline mid-game is still open).
+2. Opponent clicks **Decline**.
+
+**Expect**
+- Offerer sees decline status.
+- Game continues; Draw can be offered again later when legal.
+
+### 4.4 — Rematch with color choice (accept)
+
+**Steps**
+1. Finish an online game (resign or draw).
+2. Click **Rematch** (same rail slot as New game; label is **Rematch** online).
+3. In the color dialog, choose **White** (or **Black**).
+4. Opponent accepts; confirm the accept dialog mentions the offerer’s preferred color and your resulting color.
+
+**Expect**
+- Offerer dialog offers **White** / **Black** / **Cancel**.
+- After accept, both clients load a new `/play?id=…` game.
+- Seats match the choice: offerer gets the color they picked; acceptor gets the other.
+- New game clocks / names / board orientation match the new seats.
+
+### 4.5 — Rematch decline + cancel color dialog
+
+**Steps**
+1. After game over, open Rematch color dialog → **Cancel**.
+2. Offer rematch again → opponent **Decline**.
+
+**Expect**
+- Cancel does not send an offer.
+- Decline leaves both on the finished game; no new id; Rematch still available to offer again.
+
+### 4.6 — Disconnect UX (countdown + chrome)
+
+**Steps**
+1. Mid-game with moves played, close one client’s tab (or disconnect network) for ~2+ seconds.
+2. Watch the remaining client’s header and status for up to ~60s.
+3. Optionally reconnect the disconnected player before forfeit.
+
+**Expect**
+- After a short grace (~1s), status shows a disconnect countdown.
+- Opponent name styling turns red; opponent clock is hidden while disconnected.
+- If they rejoin in time, countdown clears and play continues.
+- If they do not rejoin, server forfeit / “failed to reconnect” behavior matches classic expectations (game over for the disconnected side).
+
+### 4.7 — Resign still stable during opponent moves
+
+**Steps**
+1. During an online game, watch **Resign** while the opponent’s move animates.
+
+**Expect**
+- Resign does **not** flicker disabled solely because of move animation.
+- Resign still ends the game correctly when clicked on your turn / when allowed.
+
+### 4.8 — Classic `/game` rematch still works (no color required)
+
+**Steps**
+1. Finish an online game on classic `/game`.
+2. Offer rematch without a color field (legacy path).
+3. Accept from the other classic (or `/play`) client.
+
+**Expect**
+- Rematch creates a new game with the **same** seats as before (legacy default).
+- No server validation error on missing `offererWantsColor`.
+
+### 4.9 — Single-player regression after Phase 4
+
+**Steps**
+1. On `/play`, start **Play Now** vs Brain.
+2. Confirm Draw stays disabled vs engine; New game still opens the new-game dialog (not rematch color).
+
+**Expect**
+- LocalEngineMode unchanged.
+- No online rematch dialog when not in an online finished game.
+
+---
+
+## Phase 5+ (placeholder)
 
 ### Phase 5 — Watch / full Review mode (to be filled)
+
+- [ ] Live watch on `/play` (non-participant)
+- [ ] History / PGN review deep-links into `/play`
+- [ ] Prefer-Play redirects from `/watch` and `/review`
 
 ---
 
@@ -819,4 +922,5 @@ Run these after any large Play/session change:
 | Phase 1 result | Pass / Fail |
 | Phase 2 result | Pass / Fail |
 | Phase 3 result | Pass / Fail |
+| Phase 4 result | Pass / Fail |
 | Notes | |

@@ -17,6 +17,7 @@ const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
 const { effectivePreferPlayPage } = require("../../play/playPaths");
+const { assignRematchPlayers } = require("./rematchColors");
 
 function setGamePageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -898,9 +899,14 @@ const onRematch = async (e) => {
     });
     gamesManagerService.AddGame(newGame);
 
-    //for now , keep same players colors
-    newGame.whitePlayer = whitePlayer;
-    newGame.blackPlayer = blackPlayer;
+    const seats = assignRematchPlayers({
+        whitePlayer: whitePlayer,
+        blackPlayer: blackPlayer,
+        acceptorIsWhite: e.acceptorIsWhite === true,
+        offererWantsColor: e.offererWantsColor,
+    });
+    newGame.whitePlayer = seats.whitePlayer;
+    newGame.blackPlayer = seats.blackPlayer;
 
     const gameDoc = await gamesManagerService.storeGameInDB(newGame);
     newGame.gameId = gameDoc.id;

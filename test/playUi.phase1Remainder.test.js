@@ -83,6 +83,23 @@ describe("play-ui action buttons policy", function () {
         assert.strictEqual(map.redoBtn, true);
     });
 
+    it("does not disable resign while the board is animating", function () {
+        const map = ActionButtonsPolicy.disabledMap({
+            hasGame: true,
+            playSessionReady: true,
+            gameActive: true,
+            humanTurn: false,
+            animating: true,
+            hasMoves: true,
+            allowUndo: false,
+            canUndoMovePair: false,
+            redoPairAvailable: false,
+            canUsePositionSetup: false,
+            canUseBrainConfig: false,
+        });
+        assert.strictEqual(map.resignBtn, false);
+    });
+
     it("disables draw/undo when mode capabilities forbid them", function () {
         const map = ActionButtonsPolicy.disabledMap({
             hasGame: true,
@@ -107,6 +124,46 @@ describe("play-ui action buttons policy", function () {
         assert.strictEqual(map.drawBtn, true);
         assert.strictEqual(map.undoBtn, true);
         assert.strictEqual(map.redoBtn, false);
+    });
+
+    it("online draw requires canOfferDraw; rematch requires canRematch", function () {
+        const base = {
+            hasGame: true,
+            playSessionReady: true,
+            gameActive: true,
+            humanTurn: false,
+            allowUndo: false,
+            canUndoMovePair: false,
+            redoPairAvailable: false,
+            hasMoves: true,
+            canUsePositionSetup: false,
+            canUseBrainConfig: false,
+            capabilities: {
+                resign: true,
+                draw: true,
+                rematch: true,
+                undo: false,
+                redo: false,
+                network: true,
+            },
+        };
+        const blocked = ActionButtonsPolicy.disabledMap(base);
+        assert.strictEqual(blocked.drawBtn, true);
+        assert.strictEqual(blocked.rematchBtn, true);
+
+        const offerOk = ActionButtonsPolicy.disabledMap(
+            Object.assign({}, base, { canOfferDraw: true }),
+        );
+        assert.strictEqual(offerOk.drawBtn, false);
+
+        const rematchOk = ActionButtonsPolicy.disabledMap(
+            Object.assign({}, base, {
+                gameOver: true,
+                canRematch: true,
+            }),
+        );
+        assert.strictEqual(rematchOk.rematchBtn, false);
+        assert.strictEqual(rematchOk.drawBtn, true);
     });
 
     it("applies a map through setDisabled", function () {

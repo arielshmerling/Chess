@@ -59,6 +59,7 @@
      * @param {number} [opts.blackTimer]
      * @param {string} [opts.loser]
      * @param {*} [opts.data]
+     * @param {"white"|"black"} [opts.offererWantsColor]
      */
     function buildInfoMessage(opts) {
         const o = opts || {};
@@ -91,11 +92,14 @@
         if (o.data !== undefined) {
             msg.data = o.data;
         }
+        if (o.offererWantsColor === "white" || o.offererWantsColor === "black") {
+            msg.offererWantsColor = o.offererWantsColor;
+        }
         return msg;
     }
 
     /**
-     * Classify an inbound server message for OnlineMode (Phase 3 core only).
+     * Classify an inbound server message for OnlineMode (Phase 3–4).
      * @param {object} message
      * @returns {{ kind: string, payload?: * }}
      */
@@ -132,6 +136,18 @@
                     return { kind: "moveValidationFailed", payload: message };
                 case "Opponenet left the game":
                     return { kind: "opponentLeft", payload: message };
+                case "offer draw":
+                    return { kind: "offerDraw", payload: message };
+                case "draw accepted":
+                    return { kind: "drawAccepted", payload: message };
+                case "draw declined":
+                    return { kind: "drawDeclined", payload: message };
+                case "offer rematch":
+                    return { kind: "offerRematch", payload: message };
+                case "rematch accepted":
+                    return { kind: "rematchAccepted", payload: message };
+                case "rematch declined":
+                    return { kind: "rematchDeclined", payload: message };
                 default:
                     return { kind: "infoOther", payload: message };
             }

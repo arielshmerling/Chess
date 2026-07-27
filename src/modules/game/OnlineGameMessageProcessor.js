@@ -1,5 +1,6 @@
 
 const { MessageProcessor } = require("./MessageProcessor");
+const { normalizeOffererWantsColor } = require("./rematchColors");
 
 class OnlineGameMessageProcessor extends MessageProcessor {
 
@@ -10,9 +11,9 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         "offer draw": this.drawOfferForward,
         "draw accepted": this.drawOfferAccepted,
         "draw declined": this.opponentForwardHandler,
-        "offer rematch": this.opponentForwardHandler,
+        "offer rematch": this.rematchOfferForward,
         "rematch accepted": this.rematchOfferAccepted,
-        "rematch declined": this.opponentForwardHandler,
+        "rematch declined": this.rematchOfferDeclined,
         "outOfTime": this.reportOutOfTime,
         "chat": this.chatHandler,
     };
@@ -64,17 +65,54 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         game.sendInfoToWatchers(msg);
     }
 
+    rematchOfferForward(game, msg) {
+        const offererWantsColor = normalizeOffererWantsColor(msg.offererWantsColor);
+        if (offererWantsColor) {
+            msg.offererWantsColor = offererWantsColor;
+        } else {
+            delete msg.offererWantsColor;
+        }
+        game.pendingRematchOffer = {
+            offererIsWhite: msg.isWhite === true,
+            offererWantsColor: offererWantsColor,
+        };
+        game.sendMessageToOpponent(msg, msg.isWhite);
+        game.sendInfoToWatchers(msg);
+    }
+
+    rematchOfferDeclined(game, msg) {
+        game.pendingRematchOffer = null;
+        game.sendMessageToOpponent(msg, msg.isWhite);
+        game.sendInfoToWatchers(msg);
+    }
+
     rematchOfferAccepted(game, msg) {
-        game.createRemtach(msg.isWhite, (newGame) => {
-            const spectatorText = "New game started — go to Home to watch.";
-            game.sendSpectatorRematchNewGameNotice(newGame.gameId, spectatorText);
-            game.closeGame();
-            msg.gameId = newGame.gameId;
-            newGame.sendMessage(msg, msg.isWhite);
-            newGame.sendMessageToOpponent(msg, msg.isWhite);
-            newGame.init(newGame.whitePlayer.channel, newGame.whitePlayer.userId);
-            newGame.init(newGame.blackPlayer.channel, newGame.blackPlayer.userId);
-        });
+        const pending = game.pendingRematchOffer;
+        if (pending && pending.offererIsWhite === (msg.isWhite === true)) {
+            /* Acceptor must be the opponent of the offerer. */
+            return;
+        }
+        const fromPending = pending && normalizeOffererWantsColor(pending.offererWantsColor);
+        const fromMsg = normalizeOffererWantsColor(msg.offererWantsColor);
+        const offererWantsColor = fromPending || fromMsg || undefined;
+        game.pendingRematchOffer = null;
+        game.createRemtach(
+            msg.isWhite,
+            (newGame) => {
+                const spectatorText = "New game started — go to Home to watch.";
+                game.sendSpectatorRematchNewGameNotice(newGame.gameId, spectatorText);
+                game.closeGame();
+                msg.gameId = newGame.gameId;
+                if (offererWantsColor) {
+                    msg.offererWantsColor = offererWantsColor;
+                }
+                newGame.sendMessage(msg, msg.isWhite);
+                newGame.sendMessageToOpponent(msg, msg.isWhite);
+                newGame.init(newGame.whitePlayer.channel, newGame.whitePlayer.userId);
+                newGame.init(newGame.blackPlayer.channel, newGame.blackPlayer.userId);
+            },
+            { offererWantsColor: offererWantsColor },
+        );
     }
 
     drawOfferAccepted(game, msg) {

@@ -413,6 +413,38 @@
         }
 
         /**
+         * Accept a draw offer (local ChessGame terminal + session events).
+         * @param {string} offeredBy - "white" | "black" (side that offered)
+         * @returns {boolean}
+         */
+        function acceptDraw(offeredBy) {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            const by =
+                offeredBy === "black" || offeredBy === "Black" ? "black" : "white";
+            if (typeof game.drawOfferAccepted === "function") {
+                game.drawOfferAccepted(by);
+            } else if (game.GameState) {
+                game.GameState.draw = true;
+                game.GameState.drawReason = by + " player's draw offer accepted";
+            }
+            stopClocks();
+            bus.emit("gameOver", {
+                kind: "draw",
+                reason:
+                    (game.GameState && game.GameState.drawReason) ||
+                    by + " player's draw offer accepted",
+            });
+            bus.emit("statusChanged", "draw");
+            emitBoardAndTurn({ reason: "draw" });
+            if (mode && typeof mode.onGameOver === "function") {
+                mode.onGameOver(api, { kind: "draw" });
+            }
+            return true;
+        }
+
+        /**
          * Undo one human+engine half-move pair (two ChessGame undos).
          * @returns {boolean}
          */
@@ -529,6 +561,7 @@
             externalMoveApplied: externalMoveApplied,
             selectPromotion: selectPromotion,
             resign: resign,
+            acceptDraw: acceptDraw,
             undo: undoPair,
             redo: redoPair,
             flagTimeout: flagTimeout,
