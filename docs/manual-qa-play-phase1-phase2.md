@@ -962,6 +962,45 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ---
 
+## Phase 6 — Practice / Debug on `/play` (slice 1)
+
+### 6.1 — Prefer-Play Debug entry
+
+**Steps**
+1. As Admin or Partner (Prefer-Play), click **Debug** in the top bar (or open `/play?mode=practice`).
+2. Confirm URL is `/play?mode=practice`.
+
+**Expect**
+- Header shows **Practice Mode**.
+- Status like “Practice — both sides”.
+- Both White and Black pieces are playable on their turns (self-play).
+- Draw is disabled; Rematch/New game stays available for a fresh practice game.
+- No engine thinking / no brain HTTP after your moves.
+- Members do not see Debug; `/play?mode=practice` as Member shows an error / does not start practice.
+
+### 6.2 — Undo / resign / exit
+
+**Steps**
+1. Play a few plies as both colors.
+2. Undo once (single ply), then redo.
+3. Resign (confirm “Are you sure?”).
+4. Start another practice via New game, then Exit mid-game after a move (confirm “Are you sure?”).
+
+**Expect**
+- Undo removes one ply at a time and stays enabled until the start position (all saved plies undone); redo stays enabled while the redo stack has items.
+- Position Setup is disabled for the whole practice session.
+- Resign ends the game for the side to move.
+- Exit after moves confirms with “Are you sure?” then leaves.
+- Classic `/game?gameType=3` still works for non–Prefer-Play clients.
+
+### Phase 6 remaining
+
+- [x] PracticeMode on `/play` for Prefer-Play Admin/Partner
+- [ ] Optional: Electron Debug entry parity
+- [ ] Retire any remaining “debug always classic” comments once QA signed off
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -976,4 +1015,5 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 3 result | Pass / Fail |
 | Phase 4 result | Pass / Fail |
 | Phase 5 (watch slice) result | Pass / Fail |
+| Phase 6 (practice slice) result | Pass / Fail |
 | Notes | |

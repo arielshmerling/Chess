@@ -168,9 +168,9 @@
     }
 
     /**
-     * Optional shell mode from the Play URL (`watch` | `review`).
+     * Optional shell mode from the Play URL (`watch` | `review` | `practice`).
      * @param {string|URLSearchParams|null|undefined} search
-     * @returns {"watch"|"review"|null}
+     * @returns {"watch"|"review"|"practice"|null}
      */
     function getModeFromSearch(search) {
         try {
@@ -179,7 +179,7 @@
                     ? search
                     : new URLSearchParams(search || "");
             const mode = params.get("mode");
-            if (mode === "watch" || mode === "review") {
+            if (mode === "watch" || mode === "review" || mode === "practice") {
                 return mode;
             }
             return null;

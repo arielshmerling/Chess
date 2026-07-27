@@ -118,6 +118,24 @@ describe("playPaths", function () {
         });
     });
 
+    describe("resolvePracticeHref", function () {
+        const { resolvePracticeHref } = require("../src/play/playPaths");
+
+        it("uses /play?mode=practice when usePlayPage", function () {
+            assert.strictEqual(
+                resolvePracticeHref({ usePlayPage: true }),
+                "/play?mode=practice",
+            );
+        });
+
+        it("uses classic /game?gameType=3 otherwise", function () {
+            assert.strictEqual(
+                resolvePracticeHref({ usePlayPage: false }),
+                "/game?gameType=3",
+            );
+        });
+    });
+
     describe("canAccessPlayPage", function () {
         it("allows any logged-in user (Admin, Partner, Member)", function () {
             assert.strictEqual(

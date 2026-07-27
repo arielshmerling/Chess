@@ -211,7 +211,10 @@ function startNewGameFromModal(event) {
 
 /* eslint-disable-next-line no-unused-vars */
 function startPracticeGame() {
-    /* Debug / Practice always uses the classic /game UI */
+    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
+        window.location = "/play?mode=practice";
+        return;
+    }
     window.location = getClassicPlayGameBasePath() + "?gameType=3";
 }
 /* eslint-disable-next-line no-unused-vars */

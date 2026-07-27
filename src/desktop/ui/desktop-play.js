@@ -33,6 +33,7 @@
     const GameSessionApi = window.ShmerlingGameSession;
     const LocalEngineModeApi = window.ShmerlingLocalEngineMode;
     const ReviewModeApi = window.ShmerlingReviewMode;
+    const PracticeModeApi = window.ShmerlingPracticeMode;
     const OnlineModeApi = window.ShmerlingOnlineMode;
     const WsTransportApi = window.ShmerlingWsTransport;
     const Clocks = window.PlayClocksController.create({
@@ -98,6 +99,8 @@
     let allowUndo = true;
     /** Position Setup + Config — always on for Electron; web uses launch-context. */
     let canPlayAdvancedTools = true;
+    /** Debug / Practice — Admin/Partner only (web launch-context). */
+    let canDebug = true;
     let launchContextPromise = null;
     /** Username from /api/play/launch-context (web); used when New Game dialog omits it. */
     let webLaunchUsername = null;
@@ -139,6 +142,8 @@
     let positionSetupMode = false;
     let configurationMode = false;
     let reviewMode = false;
+    /** Local self-play / Debug on /play (Phase 6). */
+    let practiceMode = false;
     let reviewFullMoves = [];
     let reviewOriginStateStr = null;
     /** Starting position for the active game; survives exitReviewMode for auto-save. */
@@ -185,6 +190,8 @@
     let lastServerReviewType = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
+    /** @type {ReturnType<typeof PracticeModeApi.create>|null} */
+    let playPracticeMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
     let playCapabilities = null;
 
@@ -293,6 +300,7 @@
             reviewPlayback: reviewPlaybackPlaying,
             review: reviewMode,
             watch: !!(onlineGameInfo && onlineGameInfo.watcher),
+            practice: practiceMode,
         });
     }
 
@@ -1361,6 +1369,9 @@
     }
 
     function canUsePositionSetup() {
+        if (practiceMode) {
+            return false;
+        }
         return SessionMode.canUsePositionSetup({
             canPlayAdvancedTools: canPlayAdvancedTools,
             hasGame: !!game,
@@ -2174,6 +2185,9 @@
     }
 
     function onPositionSetupToggle() {
+        if (practiceMode) {
+            return;
+        }
         const btn = $("positionSetupBtn");
         if (btn && btn.disabled) {
             return;
@@ -2250,6 +2264,9 @@
     }
 
     function isHumanTurn() {
+        if (practiceMode) {
+            return !!(game && !game.GameOver);
+        }
         return (
             (game.Turn === "white" && currentPlayerIsWhite) ||
             (game.Turn === "black" && !currentPlayerIsWhite)
@@ -2257,6 +2274,9 @@
     }
 
     function isAiTurn() {
+        if (practiceMode) {
+            return false;
+        }
         return game && !game.GameOver && !isHumanTurn();
     }
 
@@ -2265,7 +2285,28 @@
             return false;
         }
         const moveCount = game.Moves ? game.Moves.length : 0;
+        if (practiceMode) {
+            /* Single-ply undo for as long as moves remain (saved states). */
+            return moveCount >= 1;
+        }
         return isHumanTurn() && moveCount >= 2;
+    }
+
+    function canRedoMoves() {
+        if (!allowUndo || !game || game.GameOver || animating || engineThinking || dialogOn) {
+            return false;
+        }
+        const stack =
+            typeof game.RedoStackSize === "number"
+                ? game.RedoStackSize
+                : game.CanRedo
+                  ? 1
+                  : 0;
+        if (practiceMode) {
+            return stack >= 1;
+        }
+        /* Local engine undoes human+engine pairs. */
+        return stack >= 2;
     }
 
     function tableMovesFromGame() {
@@ -2335,7 +2376,7 @@
                 humanTurn: !!(game && isHumanTurn()),
                 allowUndo: allowUndo,
                 canUndoMovePair: canUndoMovePair(),
-                redoPairAvailable: redoPairAvailable,
+                redoPairAvailable: canRedoMoves(),
                 canUsePositionSetup: canUsePositionSetup(),
                 canUseBrainConfig: canUseBrainConfig(),
                 capabilities: playCapabilities,
@@ -3549,6 +3590,7 @@
         playLocalEngineMode = null;
         playOnlineMode = null;
         playReviewMode = null;
+        playPracticeMode = null;
         playCapabilities = null;
     }
 
@@ -3613,6 +3655,11 @@
         if (!playGameSession || !LocalEngineModeApi) {
             return;
         }
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
+        }
         playReviewMode = null;
         if (playOnlineMode && typeof playOnlineMode.detach === "function") {
             try {
@@ -3631,6 +3678,48 @@
             playCapabilities = playLocalEngineMode.capabilities();
         }
         syncPrimaryGameButtonLabel();
+    }
+
+    function createPracticeMode() {
+        return PracticeModeApi.create({
+            onStatus: function (message, kind) {
+                showStatus(message, kind === "info" ? 0 : 0, kind || "info");
+            },
+        });
+    }
+
+    function attachPlayPracticeMode() {
+        if (!playGameSession || !PracticeModeApi) {
+            return;
+        }
+        practiceMode = true;
+        playReviewMode = null;
+        if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
+            playLocalEngineMode.abort();
+        }
+        playLocalEngineMode = null;
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        onlineGameInfo = null;
+        playGameSession.setEngine(null);
+        if (!playPracticeMode) {
+            playPracticeMode = createPracticeMode();
+        }
+        playGameSession.attachMode(playPracticeMode);
+        if (typeof playPracticeMode.capabilities === "function") {
+            playCapabilities = playPracticeMode.capabilities();
+        }
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(true);
+        }
+        syncPrimaryGameButtonLabel();
+        updateMatchHeader();
     }
 
     function createOnlineMode(gameInfo) {
@@ -3954,6 +4043,11 @@
         if (!playGameSession || !OnlineModeApi || !WsTransportApi || !gameInfo) {
             return;
         }
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
+        }
         playReviewMode = null;
         if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
             playLocalEngineMode.abort();
@@ -3982,6 +4076,11 @@
         ensurePlayGameSession();
         if (!playGameSession) {
             return;
+        }
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
         }
         if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
             playLocalEngineMode.abort();
@@ -4131,7 +4230,7 @@
             !!WsTransportApi;
         if (playGameSession && playGameSession.getGame() === game) {
             playGameSession.setHumanIsWhite(currentPlayerIsWhite);
-            playGameSession.setEngine(wantOnline ? null : Engine);
+            playGameSession.setEngine(wantOnline || practiceMode ? null : Engine);
             playGameSession.setMeta(playSessionMetaFromShell());
             if (!playGameSession.isActive()) {
                 playGameSession.load({
@@ -4143,7 +4242,11 @@
             if (!reviewMode) {
                 if (wantOnline && !playOnlineMode) {
                     attachPlayOnlineMode(onlineGameInfo);
-                } else if (!wantOnline && !playLocalEngineMode && LocalEngineModeApi) {
+                } else if (practiceMode && PracticeModeApi) {
+                    if (!playPracticeMode) {
+                        attachPlayPracticeMode();
+                    }
+                } else if (!wantOnline && !practiceMode && !playLocalEngineMode && LocalEngineModeApi) {
                     attachPlayLocalEngineMode();
                 }
             }
@@ -4153,7 +4256,7 @@
         playGameSession = GameSessionApi.create({
             game: game,
             humanIsWhite: currentPlayerIsWhite,
-            engine: wantOnline ? null : Engine,
+            engine: wantOnline || practiceMode ? null : Engine,
             meta: playSessionMetaFromShell(),
             clocks: {
                 onTurn: function (turn) {
@@ -4289,6 +4392,8 @@
         });
         if (wantOnline) {
             attachPlayOnlineMode(onlineGameInfo);
+        } else if (practiceMode && PracticeModeApi) {
+            attachPlayPracticeMode();
         } else if (LocalEngineModeApi) {
             attachPlayLocalEngineMode();
         }
@@ -4327,7 +4432,13 @@
     }
 
     function completeUserResign() {
-        const player = currentPlayerIsWhite ? "White" : "Black";
+        const player = practiceMode
+            ? game && game.Turn === "black"
+                ? "Black"
+                : "White"
+            : currentPlayerIsWhite
+              ? "White"
+              : "Black";
         abortEngineSearch();
         if (playOnlineMode && typeof playOnlineMode.requestResign === "function") {
             Promise.resolve(playOnlineMode.requestResign()).catch(function (err) {
@@ -4598,28 +4709,33 @@
         launchContextPromise = (async function () {
             if (!isWebPlayPage()) {
                 canPlayAdvancedTools = true;
+                canDebug = true;
                 return {
                     ok: true,
                     canPlayAdvanced: true,
+                    canDebug: true,
                     username: null,
                     lastGameOptions: null,
                 };
             }
             canPlayAdvancedTools = false;
+            canDebug = false;
             if (!Api || typeof Api.get !== "function") {
-                return { ok: false, canPlayAdvanced: false };
+                return { ok: false, canPlayAdvanced: false, canDebug: false };
             }
             try {
                 const ctx = await Api.get("/api/play/launch-context");
                 canPlayAdvancedTools = !!(ctx && ctx.canPlayAdvanced);
+                canDebug = !!(ctx && ctx.canDebug);
                 if (ctx && ctx.username) {
                     webLaunchUsername = ctx.username;
                 }
-                return ctx || { ok: false, canPlayAdvanced: false };
+                return ctx || { ok: false, canPlayAdvanced: false, canDebug: false };
             } catch (err) {
                 console.warn("[Play] Could not load launch context:", err);
                 canPlayAdvancedTools = false;
-                return { ok: false, canPlayAdvanced: false };
+                canDebug = false;
+                return { ok: false, canPlayAdvanced: false, canDebug: false };
             }
         })();
         return launchContextPromise;
@@ -4646,6 +4762,10 @@
 
     function clearWebLaunchQueryString(options) {
         if (!isWebPlayPage() || !window.history || !window.history.replaceState) {
+            return;
+        }
+        if (options && options.keepPractice) {
+            window.history.replaceState({}, "", "/play?mode=practice");
             return;
         }
         const keepId = options && options.keepId && currentGameId;
@@ -4824,6 +4944,98 @@
         return true;
     }
 
+    /**
+     * Local self-play / Debug (Admin/Partner). No engine, both colors human.
+     * @returns {Promise<boolean>}
+     */
+    async function beginPracticeGame() {
+        if (!canDebug) {
+            return false;
+        }
+        if (!PracticeModeApi) {
+            showStatus("Practice mode is not available", 0, "error");
+            return false;
+        }
+        const username = resolveHumanUsername(webLaunchUsername);
+        const name = username || "Player";
+        practiceMode = true;
+        onlineGameInfo = null;
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        setOpponentConnectionLost(false);
+        applySessionSettings({
+            color: "white",
+            username: name,
+            whitePlayerName: name,
+            blackPlayerName: name,
+            timeMinutes:
+                session && typeof session.gameTimeMinutes === "number"
+                    ? session.gameTimeMinutes
+                    : 90,
+            allowUndo: true,
+        });
+        if (session) {
+            session.whitePlayerName = name;
+            session.blackPlayerName = name;
+            session.engine = null;
+        }
+        currentPlayerIsWhite = true;
+        if (Board.setHumanColor) {
+            Board.setHumanColor(true);
+        }
+        if (Board.setPlayerView) {
+            Board.setPlayerView(true);
+        }
+        assignNewGameId();
+        gameHistoryLogged = false;
+        gameAutoBookmarked = false;
+        clearLoadedBookmarkDisplayMoves();
+        game.startNewGame(true);
+        clearDisplayedEvaluation();
+        resetClocks();
+        redoPairAvailable = false;
+        lastCheckNotifySide = null;
+        alertMode = false;
+        Board.clearArrows();
+        Board.syncFromGameState();
+        updateMovesTable([]);
+        updateHeaderTurn();
+        gameActive = true;
+        exitConfigurationIfGameStarting();
+        exitReviewMode();
+        setPlayOriginState(game.GameState);
+        document.body.classList.add("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(true);
+        }
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(true);
+        }
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
+        updateActionButtons();
+        syncGameRunPanelOptions();
+        updateGameRunPanelVisibility();
+        updateMatchHeader();
+        persistActiveGame();
+        ensurePlayGameSession();
+        if (!playPracticeMode) {
+            attachPlayPracticeMode();
+        }
+        syncPrimaryGameButtonLabel();
+        if (!game.GameOver) {
+            switchClocks();
+            showStatus("Practice — both sides", 2000, "info");
+        }
+        return true;
+    }
+
     async function maybeAutoStartWebGame() {
         if (!isWebPlayPage()) {
             return;
@@ -4854,6 +5066,15 @@
             LaunchOptions && typeof LaunchOptions.getGameIdFromSearch === "function"
                 ? LaunchOptions.getGameIdFromSearch(window.location.search || "")
                 : null;
+        if (launchMode === "practice") {
+            const started = await beginPracticeGame();
+            if (started) {
+                clearWebLaunchQueryString({ keepPractice: true });
+                return;
+            }
+            showStatus("Practice / Debug is not available for this account", 0, "error");
+            return;
+        }
         if (launchMode === "review" && onlineId) {
             const reviewType =
                 LaunchOptions && typeof LaunchOptions.getReviewTypeFromSearch === "function"
@@ -5236,6 +5457,11 @@
         if (username) {
             launchOpts.username = username;
         }
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
+        }
         onlineGameInfo = null;
         if (playOnlineMode && typeof playOnlineMode.detach === "function") {
             try {
@@ -5501,6 +5727,12 @@
         if (game.GameOver) {
             return;
         }
+        if (practiceMode) {
+            confirmDialog("Are you sure?", function () {
+                completeUserResign();
+            });
+            return;
+        }
         confirmDialog("Resign this game?", "You will lose the game.", function () {
             completeUserResign();
         });
@@ -5552,6 +5784,10 @@
             gs.undo();
             batchUndoRedo = false;
             animating = false;
+            if (Board.refreshHumanPieceInput) {
+                Board.refreshHumanPieceInput();
+            }
+            updateActionButtons();
             persistActiveGame();
             return;
         }
@@ -5564,12 +5800,15 @@
         syncBoardFromGame();
         animating = false;
         updateMovesTable(tableMovesFromGame());
+        if (Board.refreshHumanPieceInput) {
+            Board.refreshHumanPieceInput();
+        }
         updateActionButtons();
         persistActiveGame();
     }
 
     async function onRedo() {
-        if (!allowUndo || !redoPairAvailable || $("redoBtn").disabled || game.GameOver || dialogOn || animating || engineThinking) {
+        if (!canRedoMoves() || ($("redoBtn") && $("redoBtn").disabled)) {
             return;
         }
         animating = true;
@@ -5579,6 +5818,10 @@
             gs.redo();
             batchUndoRedo = false;
             animating = false;
+            if (Board.refreshHumanPieceInput) {
+                Board.refreshHumanPieceInput();
+            }
+            updateActionButtons();
             persistActiveGame();
             return;
         }
@@ -5612,6 +5855,10 @@
 
     function onRematch() {
         if ($("rematchBtn") && $("rematchBtn").disabled) {
+            return;
+        }
+        if (practiceMode && canDebug) {
+            beginPracticeGame();
             return;
         }
         if (
@@ -5708,6 +5955,26 @@
             });
             return;
         }
+        if (practiceMode) {
+            if (!anyMovePlayed) {
+                leavePlayShell();
+                return;
+            }
+            confirmDialog("Are you sure?", function () {
+                const player =
+                    game && game.Turn === "black" ? "Black" : "White";
+                abortEngineSearch();
+                const gs = ensurePlayGameSession();
+                if (gs && typeof gs.resign === "function") {
+                    gs.resign(player);
+                } else {
+                    game.resign(player);
+                }
+                tryLogCompletedGame();
+                leavePlayShell();
+            });
+            return;
+        }
         const humanHasMoved = currentPlayerIsWhite
             ? game.Moves.length >= 1
             : game.Moves.length >= 2;
@@ -5733,6 +6000,11 @@
         clearActiveGameSnapshot();
         disposePlayGameSession();
         onlineGameInfo = null;
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
+        }
         setOpponentConnectionLost(false);
         syncPrimaryGameButtonLabel();
         if (configurationMode) {

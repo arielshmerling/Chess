@@ -43,6 +43,18 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.watchers, false);
     });
 
+    it("practice capabilities are local self-play (no engine/network)", function () {
+        const caps = getModeCapabilities(MODE_IDS.PRACTICE);
+        assert.strictEqual(caps.undo, true);
+        assert.strictEqual(caps.redo, true);
+        assert.strictEqual(caps.resign, true);
+        assert.strictEqual(caps.draw, false);
+        assert.strictEqual(caps.rematch, true);
+        assert.strictEqual(caps.engine, false);
+        assert.strictEqual(caps.network, false);
+        assert.strictEqual(caps.reviewNav, false);
+    });
+
     it("unknown mode returns all-false capabilities", function () {
         const caps = getModeCapabilities("nope");
         assert.strictEqual(caps.engine, false);

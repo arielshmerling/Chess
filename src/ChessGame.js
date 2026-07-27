@@ -267,6 +267,20 @@ class ChessGame {
     }
 
     /**
+     * Number of single-ply undos that can still be redone.
+     */
+    get RedoStackSize() {
+        return this.#undoList.length;
+    }
+
+    /**
+     * True when at least one undone ply can be redone.
+     */
+    get CanRedo() {
+        return this.#undoList.length > 0;
+    }
+
+    /**
      * 
      * Returns the last move of the game
      */
@@ -504,6 +518,7 @@ class ChessGame {
 
         this.#simulation = false;
         this.#undoList = [];
+        this.#undoMoves = [];
 
         // 1. perform the move
         this.#performMove(move);

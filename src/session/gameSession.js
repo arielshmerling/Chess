@@ -467,6 +467,31 @@
         }
 
         /**
+         * Undo a single ply (Practice / Debug).
+         * @returns {boolean}
+         */
+        function undoPly() {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            if (typeof game.undo !== "function") {
+                return false;
+            }
+            const moveCount = game.Moves ? game.Moves.length : 0;
+            if (moveCount < 1) {
+                return false;
+            }
+            if (mode && typeof mode.abort === "function") {
+                mode.abort();
+            }
+            game.undo();
+            bus.emit("undone", { pair: false });
+            emitBoardAndTurn({ reason: "undo" });
+            bus.emit("statusChanged", "inProgress");
+            return true;
+        }
+
+        /**
          * Redo one human+engine half-move pair (two ChessGame redos).
          * @returns {boolean}
          */
@@ -483,6 +508,46 @@
             emitBoardAndTurn({ reason: "redo" });
             emitStatusFromGame();
             return true;
+        }
+
+        /**
+         * Redo a single ply (Practice / Debug).
+         * @returns {boolean}
+         */
+        function redoPly() {
+            if (disposed || !active || game.GameOver) {
+                return false;
+            }
+            if (typeof game.redo !== "function") {
+                return false;
+            }
+            game.redo();
+            bus.emit("redone", { pair: false });
+            emitBoardAndTurn({ reason: "redo" });
+            emitStatusFromGame();
+            return true;
+        }
+
+        /**
+         * Undo — single ply when PracticeMode is attached, else a pair.
+         * @returns {boolean}
+         */
+        function undo() {
+            if (mode && mode.undoPly === true) {
+                return undoPly();
+            }
+            return undoPair();
+        }
+
+        /**
+         * Redo — single ply when PracticeMode is attached, else a pair.
+         * @returns {boolean}
+         */
+        function redo() {
+            if (mode && mode.redoPly === true) {
+                return redoPly();
+            }
+            return redoPair();
         }
 
         /**
@@ -562,8 +627,12 @@
             selectPromotion: selectPromotion,
             resign: resign,
             acceptDraw: acceptDraw,
-            undo: undoPair,
-            redo: redoPair,
+            undo: undo,
+            redo: redo,
+            undoPair: undoPair,
+            redoPair: redoPair,
+            undoPly: undoPly,
+            redoPly: redoPly,
             flagTimeout: flagTimeout,
             leave: leave,
             dispose: dispose,

@@ -78,12 +78,13 @@
             watchers: false,
             chat: false,
         }),
+        /* rematch:true = local "New game" after finish (not online rematch offers). */
         [MODE_IDS.PRACTICE]: caps({
             undo: true,
             redo: true,
             resign: true,
             draw: false,
-            rematch: false,
+            rematch: true,
             engine: false,
             network: false,
             reviewNav: false,

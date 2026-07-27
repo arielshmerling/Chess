@@ -11,7 +11,7 @@
 |----|------|----------|------------------|
 | 1 | AI / SinglePlayer | yes | `/play` (shell) or classic `/game` |
 | 2 | Online | yes | `/play` (Play UI users) or classic `/game` |
-| 3 | Practice / Debug | yes | classic `/game` (Admin/Partner) |
+| 3 | Practice / Debug | yes | `/play?mode=practice` (Admin/Partner Prefer-Play) or classic `/game?gameType=3` |
 | 4 | Review | no (mode) | `/play?mode=review` (Prefer-Play) or classic `/review`, `/mobile-review`; shell also has bookmark review |
 | 5 | Research | no (legacy) | removed from home; setup lives in Play shell |
 
@@ -24,7 +24,7 @@
 | Friend invite (create) | friends API → open game | `/play?id=` (Play UI) or `/game?id=` |
 | Friend invite (join) | `/game?gameType=2&joinGame=` then redirect | `/play?id=` (Play UI) or classic `/game` |
 | Active game reopen | `/play?id=` or `/game?id=` | Play shell OnlineMode or classic |
-| Debug | `/game?gameType=3` | classic `/game` |
+| Debug | `/play?mode=practice` (Prefer-Play Admin/Partner) or `/game?gameType=3` | PracticeMode on Play shell, or classic `/game` |
 | Review | `/review?id=` → Prefer-Play redirects to `/play?mode=review&id=&type=` | Play shell ReviewMode; classic `game.ejs` / mobile-review fallback |
 | Watch | `/watch?id=` → Prefer-Play redirects to `/play?id=&mode=watch` | Play shell (watch) or classic `game.ejs` |
 | Desktop Electron | `/app/play` | Play shell (local SP) |
@@ -33,7 +33,9 @@
 
 **Phase 4 (done):** draw / rematch (with color) / reconnect countdown on `/play`.
 
-**Phase 5 (in progress):** live watch on `/play`; Prefer-Play history/PGN `/review` → `/play?mode=review`.
+**Phase 5 (done for Prefer-Play desktop web):** live watch + history/PGN review on `/play`.
+
+**Phase 6 (in progress):** Practice / Debug on `/play` (`PracticeMode`); classic `/game?gameType=3` remains for non–Prefer-Play.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

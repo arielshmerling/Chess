@@ -14,6 +14,7 @@
      * @param {boolean} [state.reviewPlayback]
      * @param {boolean} [state.review]
      * @param {boolean} [state.watch]
+     * @param {boolean} [state.practice]
      * @returns {string}
      */
     function sessionTypeLabel(state) {
@@ -32,6 +33,9 @@
         }
         if (s.watch) {
             return "Watch Mode";
+        }
+        if (s.practice) {
+            return "Practice Mode";
         }
         return "Play Mode";
     }

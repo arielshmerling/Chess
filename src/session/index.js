@@ -3,6 +3,7 @@
  * Phase 0: contracts + capabilities.
  * Phase 2: GameSession, LocalEngineMode, ReviewMode.
  * Phase 3: OnlineMode + WsTransport + online protocol helpers.
+ * Phase 6: PracticeMode (local self-play / Debug).
  */
 
 "use strict";
@@ -16,6 +17,7 @@ const ReviewMode = require("./reviewMode");
 const OnlineMode = require("./onlineMode");
 const OnlineProtocol = require("./onlineProtocol");
 const WsTransport = require("./wsTransport");
+const PracticeMode = require("./practiceMode");
 
 module.exports = {
     MODE_IDS,
@@ -28,4 +30,5 @@ module.exports = {
     OnlineMode,
     OnlineProtocol,
     WsTransport,
+    PracticeMode,
 };

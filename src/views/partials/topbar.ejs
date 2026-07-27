@@ -13,7 +13,7 @@
     <div class="menuBarMenuItem"><a href="/friends">Friends</a></div>
     <div class="menuBarMenuItem topBarMenu-groups"><a href="#">Groups</a></div>
     <% if (typeof canDebug !== 'undefined' && canDebug) { %>
-    <div class="menuBarMenuItem"><a href="/game?gameType=3">Debug</a></div>
+    <div class="menuBarMenuItem"><a href="<%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play?mode=practice' : '/game?gameType=3' %>">Debug</a></div>
     <% } %>
   </div>
   <% } %>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI (Phase 1–5)</title>
+<title>Manual QA: Shmerling Play UI (Phase 1–6)</title>
 <style>
 @page { size: Letter; margin: 0.7in; }
 body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
@@ -1102,6 +1102,45 @@ strong { font-weight: 600; }
 <li>No OnlineMode / WebSocket play session attached.</li>
 </ul>
 <hr>
+<h2 id="phase-6--practice--debug-on-play-slice-1">Phase 6 — Practice / Debug on <code>/play</code> (slice 1)</h2>
+<h3 id="61--prefer-play-debug-entry">6.1 — Prefer-Play Debug entry</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>As Admin or Partner (Prefer-Play), click <strong>Debug</strong> in the top bar (or open <code>/play?mode=practice</code>).</li>
+<li>Confirm URL is <code>/play?mode=practice</code>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Header shows <strong>Practice Mode</strong>.</li>
+<li>Status like “Practice — both sides”.</li>
+<li>Both White and Black pieces are playable on their turns (self-play).</li>
+<li>Draw is disabled; Rematch/New game stays available for a fresh practice game.</li>
+<li>No engine thinking / no brain HTTP after your moves.</li>
+<li>Members do not see Debug; <code>/play?mode=practice</code> as Member shows an error / does not start practice.</li>
+</ul>
+<h3 id="62--undo--resign--exit">6.2 — Undo / resign / exit</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Play a few plies as both colors.</li>
+<li>Undo once (single ply), then redo.</li>
+<li>Resign (confirm “Are you sure?”).</li>
+<li>Start another practice via New game, then Exit mid-game after a move (confirm “Are you sure?”).</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Undo removes one ply at a time and stays enabled until the start position (all saved plies undone); redo stays enabled while the redo stack has items.</li>
+<li>Position Setup is disabled for the whole practice session.</li>
+<li>Resign ends the game for the side to move.</li>
+<li>Exit after moves confirms with “Are you sure?” then leaves.</li>
+<li>Classic <code>/game?gameType=3</code> still works for non–Prefer-Play clients.</li>
+</ul>
+<h3 id="phase-6-remaining">Phase 6 remaining</h3>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> PracticeMode on <code>/play</code> for Prefer-Play Admin/Partner</li>
+<li><input disabled="" type="checkbox"> Optional: Electron Debug entry parity</li>
+<li><input disabled="" type="checkbox"> Retire any remaining “debug always classic” comments once QA signed off</li>
+</ul>
+<hr>
 <h2 id="sign-off">Sign-off</h2>
 <table>
 <thead>
@@ -1148,6 +1187,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 5 (watch slice) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 6 (practice slice) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

@@ -89,6 +89,18 @@ function resolveReviewHref(gameId, opts) {
 }
 
 /**
+ * Debug / Practice self-play URL.
+ * @param {{ usePlayPage?: boolean }} [opts]
+ * @returns {string}
+ */
+function resolvePracticeHref(opts) {
+    if (opts && opts.usePlayPage) {
+        return "/play?mode=practice";
+    }
+    return "/game?gameType=3";
+}
+
+/**
  * Whether the logged-in user may open the Play shell.
  * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
  */
@@ -125,6 +137,7 @@ module.exports = {
     resolveOnlineParticipantHref,
     resolveOnlineWatchHref,
     resolveReviewHref,
+    resolvePracticeHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,

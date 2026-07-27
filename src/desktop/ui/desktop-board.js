@@ -63,6 +63,8 @@
     let sourcePosition = null;
     let clickToMoveSelected = null;
     let currentPlayerIsWhite = true;
+    /** Practice / Debug: either color may move on their turn. */
+    let bothSidesHuman = false;
     let showAvailableMoves = true;
     let mousePreference = "drag";
     let onHumanMove = null;
@@ -195,6 +197,22 @@
     function setHumanPlayEnabled(enabled) {
         humanPlayEnabled = !!enabled;
         refreshHumanPieceInput();
+    }
+
+    function setBothSidesHuman(enabled) {
+        bothSidesHuman = !!enabled;
+        refreshHumanPieceInput();
+    }
+
+    function isBothSidesHuman() {
+        return bothSidesHuman;
+    }
+
+    function activeHumanColor() {
+        if (bothSidesHuman && chessGame && chessGame.Turn) {
+            return chessGame.Turn;
+        }
+        return currentPlayerIsWhite ? "white" : "black";
     }
 
     function getImageUrl(piece) {
@@ -464,7 +482,7 @@
         if (!piece || chessGame.GameOver) {
             return false;
         }
-        const humanColor = currentPlayerIsWhite ? "white" : "black";
+        const humanColor = activeHumanColor();
         if (piece.color !== humanColor) {
             return false;
         }
@@ -880,7 +898,7 @@
             innerBoardEl.classList.remove("move-mode-double");
             document.querySelectorAll("#innerBoard .square img").forEach(function (img) {
                 const pieceColor = img.src.indexOf("white") !== -1 ? "white" : "black";
-                const humanColor = currentPlayerIsWhite ? "white" : "black";
+                const humanColor = activeHumanColor();
                 const ourTurn = chessGame && chessGame.Turn === humanColor;
                 const ours = ourTurn && pieceColor === humanColor;
                 img.className = ours ? "draggable" : "nondraggable";
@@ -1034,12 +1052,12 @@
         const col = parseInt(square.getAttribute("data-col"), 10);
         const pos = { row: row, col: col };
         const pieceImg = square.querySelector("img");
+        const humanColor = activeHumanColor();
         const isOurPiece =
             pieceImg &&
-            ((currentPlayerIsWhite && pieceImg.src.indexOf("white") !== -1) ||
-                (!currentPlayerIsWhite && pieceImg.src.indexOf("black") !== -1));
-        const ourTurn =
-            chessGame.Turn === (currentPlayerIsWhite ? "white" : "black");
+            ((humanColor === "white" && pieceImg.src.indexOf("white") !== -1) ||
+                (humanColor === "black" && pieceImg.src.indexOf("black") !== -1));
+        const ourTurn = chessGame.Turn === humanColor;
 
         if (!clickToMoveSelected) {
             if (isOurPiece && ourTurn) {
@@ -1394,6 +1412,8 @@
         setHumanMoveHandler: setHumanMoveHandler,
         setHumanMoveApplicator: setHumanMoveApplicator,
         setHumanPlayEnabled: setHumanPlayEnabled,
+        setBothSidesHuman: setBothSidesHuman,
+        isBothSidesHuman: isBothSidesHuman,
         mount: mount,
         drawBoard: drawBoard,
         syncFromGameState: syncFromGameState,

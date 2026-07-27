@@ -19,6 +19,7 @@ describe("play-ui session mode", function () {
             );
             assert.strictEqual(SessionMode.sessionTypeLabel({ review: true }), "Review Mode");
             assert.strictEqual(SessionMode.sessionTypeLabel({ watch: true }), "Watch Mode");
+            assert.strictEqual(SessionMode.sessionTypeLabel({ practice: true }), "Practice Mode");
             assert.strictEqual(SessionMode.sessionTypeLabel({}), "Play Mode");
         });
     });
