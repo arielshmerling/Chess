@@ -3245,6 +3245,31 @@ function menuLoadEventHandler() {
 /// Web Sockets and comminications
 
 function startWebSockets(username, isWhite, isWatcher) {
+    /*
+     * Phase 8: on mobile OnlineGame (participant), session OnlineMode owns /ws.
+     * Watchers and SinglePlayer keep the classic socket (SP still needs it for
+     * clientEngineMove + human moves).
+     */
+    if (
+        typeof window !== "undefined" &&
+        document.body &&
+        document.body.classList.contains("mobile-game-shell") &&
+        typeof gameInfo !== "undefined" &&
+        gameInfo &&
+        gameInfo.gameType === "OnlineGame" &&
+        !isWatcher &&
+        !gameInfo.watcher &&
+        window.ShmerlingMobileSessionOnline
+    ) {
+        window.__SHMERLING_PENDING_MOBILE_ONLINE__ = {
+            username: username,
+            isWhite: isWhite,
+            isWatcher: false,
+        };
+        console.log("[chessboard] classic WS deferred to mobile OnlineMode");
+        return;
+    }
+
     console.log("starting web sockets");
     // Use same protocol (ws/wss) and host as the current page, connect to /ws route
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";

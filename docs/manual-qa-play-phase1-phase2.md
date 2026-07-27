@@ -1075,21 +1075,34 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Resign / game over still work.
 - Classic desktop `/game` SP (no Prefer-Play) still uses **server** brain (no mobile adapter).
 
-### 8.3 — Classic mobile online unchanged
+### 8.3 — Mobile online uses OnlineMode
 
 **Steps**
-1. Start or join a mobile online game via `/mobile-game`.
+1. Restart server, hard-refresh. On a phone UA (or narrow window), start or join an **online** game so you land on `/mobile-game` as a participant (not watch).
+2. Confirm both sides can move; clocks update; resign / draw / disconnect messaging still work.
+3. In console: `window.__SHMERLING_MOBILE_ONLINE_SESSION__` is set after load.
+4. Optionally rematch — page should reload into the new game id.
 
 **Expect**
-- Still classic WS path (no LocalEngineMode attach).
-- `gameInfo.clientEngine` is absent / false for OnlineGame.
+- Mobile CSS/DOM unchanged (not desktop `/play`).
+- Classic WS is deferred (`[chessboard] classic WS deferred to mobile OnlineMode` in console).
+- SP mobile games still use LocalEngineMode (`__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__`), not OnlineMode.
+- Watchers on mobile (if any) still use classic WS (no OnlineMode attach).
+
+### 8.4 — Classic desktop `/game` online unchanged
+
+**Steps**
+1. On desktop without Prefer-Play (or classic fallback), play online on `/game`.
+
+**Expect**
+- Still classic `chessboard.js` WebSocket path (no mobile OnlineMode).
 
 ### Phase 8 remaining
 
 - [x] Thin ReviewMode adapter on `/mobile-review`
 - [x] Mobile SP LocalEngineMode (`clientEngine` + HTTP EnginePort)
-- [ ] Mobile OnlineMode
-- [ ] Mobile watch shell (today still classic `game.ejs`)
+- [x] Mobile OnlineMode (participant `/mobile-game`)
+- [ ] Mobile watch shell (today still classic `game.ejs` / classic WS)
 
 ---
 
@@ -1144,5 +1157,6 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 7 (setup/config) result | Pass / Fail |
 | Phase 8 (mobile review) result | Pass / Fail |
 | Phase 8 (mobile SP LocalEngine) result | Pass / Fail |
+| Phase 8 (mobile OnlineMode) result | Pass / Fail |
 | Phase 9 (brain adapters) result | Pass / Fail |
 | Notes | |

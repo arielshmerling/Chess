@@ -1217,22 +1217,36 @@ strong { font-weight: 600; }
 <li>Resign / game over still work.</li>
 <li>Classic desktop <code>/game</code> SP (no Prefer-Play) still uses <strong>server</strong> brain (no mobile adapter).</li>
 </ul>
-<h3 id="83--classic-mobile-online-unchanged">8.3 — Classic mobile online unchanged</h3>
+<h3 id="83--mobile-online-uses-onlinemode">8.3 — Mobile online uses OnlineMode</h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>Start or join a mobile online game via <code>/mobile-game</code>.</li>
+<li>Restart server, hard-refresh. On a phone UA (or narrow window), start or join an <strong>online</strong> game so you land on <code>/mobile-game</code> as a participant (not watch).</li>
+<li>Confirm both sides can move; clocks update; resign / draw / disconnect messaging still work.</li>
+<li>In console: <code>window.__SHMERLING_MOBILE_ONLINE_SESSION__</code> is set after load.</li>
+<li>Optionally rematch — page should reload into the new game id.</li>
 </ol>
 <p><strong>Expect</strong></p>
 <ul>
-<li>Still classic WS path (no LocalEngineMode attach).</li>
-<li><code>gameInfo.clientEngine</code> is absent / false for OnlineGame.</li>
+<li>Mobile CSS/DOM unchanged (not desktop <code>/play</code>).</li>
+<li>Classic WS is deferred (<code>[chessboard] classic WS deferred to mobile OnlineMode</code> in console).</li>
+<li>SP mobile games still use LocalEngineMode (<code>__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__</code>), not OnlineMode.</li>
+<li>Watchers on mobile (if any) still use classic WS (no OnlineMode attach).</li>
+</ul>
+<h3 id="84--classic-desktop-game-online-unchanged">8.4 — Classic desktop <code>/game</code> online unchanged</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>On desktop without Prefer-Play (or classic fallback), play online on <code>/game</code>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Still classic <code>chessboard.js</code> WebSocket path (no mobile OnlineMode).</li>
 </ul>
 <h3 id="phase-8-remaining">Phase 8 remaining</h3>
 <ul>
 <li><input checked="" disabled="" type="checkbox"> Thin ReviewMode adapter on <code>/mobile-review</code></li>
 <li><input checked="" disabled="" type="checkbox"> Mobile SP LocalEngineMode (<code>clientEngine</code> + HTTP EnginePort)</li>
-<li><input disabled="" type="checkbox"> Mobile OnlineMode</li>
-<li><input disabled="" type="checkbox"> Mobile watch shell (today still classic <code>game.ejs</code>)</li>
+<li><input checked="" disabled="" type="checkbox"> Mobile OnlineMode (participant <code>/mobile-game</code>)</li>
+<li><input disabled="" type="checkbox"> Mobile watch shell (today still classic <code>game.ejs</code> / classic WS)</li>
 </ul>
 <hr>
 <h2 id="phase-9--desktop-adapters-slice-1-brain-engineport">Phase 9 — Desktop adapters (slice 1: brain EnginePort)</h2>
@@ -1330,6 +1344,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 8 (mobile SP LocalEngine) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 8 (mobile OnlineMode) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

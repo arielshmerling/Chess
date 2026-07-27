@@ -39,16 +39,20 @@
 
   <div id="chessboard"> </div>
 
-  <!-- Phase 8: shared session package for LocalEngineMode (mobile CSS/DOM stay separate). -->
+  <!-- Phase 8: shared session package for LocalEngineMode / OnlineMode (mobile CSS/DOM stay separate). -->
   <script src="/app/play-ui/engine-turn.js"></script>
   <script src="/app/session/eventBus.js"></script>
   <script src="/app/session/contracts.js"></script>
   <script src="/app/session/capabilities.js"></script>
   <script src="/app/session/gameSession.js"></script>
   <script src="/app/session/localEngineMode.js"></script>
+  <script src="/app/session/onlineProtocol.js"></script>
+  <script src="/app/session/wsTransport.js"></script>
+  <script src="/app/session/onlineMode.js"></script>
   <script src="/app/adapters/brainHttp.js"></script>
   <script src="/app/adapters/createEnginePort.js"></script>
   <script src="/app/mobile/mobile-session-local-engine.js"></script>
+  <script src="/app/mobile/mobile-session-online.js"></script>
 
   <div class="mobile-captures-row">
     <div id="whiteCapturedPiece" class="sideBlock captureToolsList mobile-capture-tray"></div>
