@@ -1079,6 +1079,39 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ---
 
+## Phase 9 — Desktop adapters (slice 1: brain EnginePort)
+
+### 9.1 — Web Play still uses HTTP brain
+
+**Steps**
+1. Restart server, hard-refresh `/play`.
+2. Start a single-player game vs brain; play a few moves.
+3. Optionally open evaluation overlay if available.
+
+**Expect**
+- Engine moves still arrive via `/api/brain/*` (Network tab).
+- No console error about `ShmerlingCreateEnginePort`.
+- Session / LocalEngineMode behavior unchanged.
+
+### 9.2 — Electron Play still uses IPC brain (if desktop build available)
+
+**Steps**
+1. Run desktop app Play shell.
+2. Start SP game and confirm engine replies.
+
+**Expect**
+- Brain uses IPC (`brain:computeMove`), not web `/api/brain` to a remote host.
+- Abort / new game still stops thinking.
+
+### Phase 9 remaining
+
+- [x] Extract `brainHttp` / `brainIpc` / `createEnginePort`; slim `desktop-engine.js`
+- [x] Document `EnginePort` on session contracts
+- [ ] Optional: prefs/themes adapters beyond existing split
+- [ ] Optional: remove legacy shell `runEngineMove` fallback path
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -1096,4 +1129,5 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 6 (practice slice) result | Pass / Fail |
 | Phase 7 (setup/config) result | Pass / Fail |
 | Phase 8 (mobile review) result | Pass / Fail |
+| Phase 9 (brain adapters) result | Pass / Fail |
 | Notes | |

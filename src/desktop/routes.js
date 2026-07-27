@@ -37,6 +37,7 @@ function mountDesktopRoutes(app) {
     app.use("/app/play-ui", express.static(PLAY_UI_DIR));
     app.use("/app/session", express.static(SESSION_DIR));
     app.use("/app/mobile", express.static(MOBILE_DIR));
+    app.use("/app/adapters", express.static(path.join(__dirname, "../adapters")));
 
     app.get("/", (_req, res) => {
         res.redirect("/app/play");

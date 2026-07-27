@@ -27,6 +27,7 @@ function mountWebPlayRoutes(app) {
     app.use("/app/play-ui", express.static(PLAY_UI_DIR));
     app.use("/app/session", express.static(SESSION_DIR));
     app.use("/app/mobile", express.static(MOBILE_DIR));
+    app.use("/app/adapters", express.static(path.join(__dirname, "../adapters")));
 
     app.post("/api/brain/compute-move", requireLogin, brainApi.computeMove);
     app.post("/api/brain/evaluate-position", requireLogin, brainApi.evaluatePosition);

@@ -39,7 +39,9 @@
 
 **Phase 7 (done):** Position Setup + Configuration as session modes; refuse online/watch leak.
 
-**Phase 8 (in progress):** mobile `/mobile-review` consumes `GameSession` + `ReviewMode` (thin adapter; classic board draw).
+**Phase 8 (done for review slice):** mobile `/mobile-review` consumes `GameSession` + `ReviewMode`.
+
+**Phase 9 (in progress):** brain transport via `src/adapters` (`brainHttp` / `brainIpc` / `createEnginePort`); session core stays fetch-free.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

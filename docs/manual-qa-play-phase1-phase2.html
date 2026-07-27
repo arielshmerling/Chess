@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI (Phase 1–8)</title>
+<title>Manual QA: Shmerling Play UI (Phase 1–9)</title>
 <style>
 @page { size: Letter; margin: 0.7in; }
 body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
@@ -1220,6 +1220,39 @@ strong { font-weight: 600; }
 <li><input disabled="" type="checkbox"> Mobile watch shell (today still classic <code>game.ejs</code>)</li>
 </ul>
 <hr>
+<h2 id="phase-9--desktop-adapters-slice-1-brain-engineport">Phase 9 — Desktop adapters (slice 1: brain EnginePort)</h2>
+<h3 id="91--web-play-still-uses-http-brain">9.1 — Web Play still uses HTTP brain</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Restart server, hard-refresh <code>/play</code>.</li>
+<li>Start a single-player game vs brain; play a few moves.</li>
+<li>Optionally open evaluation overlay if available.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Engine moves still arrive via <code>/api/brain/*</code> (Network tab).</li>
+<li>No console error about <code>ShmerlingCreateEnginePort</code>.</li>
+<li>Session / LocalEngineMode behavior unchanged.</li>
+</ul>
+<h3 id="92--electron-play-still-uses-ipc-brain-if-desktop-build-available">9.2 — Electron Play still uses IPC brain (if desktop build available)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Run desktop app Play shell.</li>
+<li>Start SP game and confirm engine replies.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Brain uses IPC (<code>brain:computeMove</code>), not web <code>/api/brain</code> to a remote host.</li>
+<li>Abort / new game still stops thinking.</li>
+</ul>
+<h3 id="phase-9-remaining">Phase 9 remaining</h3>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> Extract <code>brainHttp</code> / <code>brainIpc</code> / <code>createEnginePort</code>; slim <code>desktop-engine.js</code></li>
+<li><input checked="" disabled="" type="checkbox"> Document <code>EnginePort</code> on session contracts</li>
+<li><input disabled="" type="checkbox"> Optional: prefs/themes adapters beyond existing split</li>
+<li><input disabled="" type="checkbox"> Optional: remove legacy shell <code>runEngineMove</code> fallback path</li>
+</ul>
+<hr>
 <h2 id="sign-off">Sign-off</h2>
 <table>
 <thead>
@@ -1278,6 +1311,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 8 (mobile review) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 9 (brain adapters) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>
