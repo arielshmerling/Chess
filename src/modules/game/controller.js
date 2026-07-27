@@ -16,7 +16,7 @@ const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
-const { effectivePreferPlayPage, resolveOnlineWatchHref } = require("../../play/playPaths");
+const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
 
 function setGamePageNoCache(res) {
@@ -71,9 +71,10 @@ function renderPlayGame(req, res, locals) {
 }
 
 /**
- * Loads or creates the review game in session and renders the given view (`game` or `mobile-review`).
+ * Loads or creates the review game in memory (history Mongo id or PGN UUID).
+ * @returns {Promise<object|null>}
  */
-async function executeReview(req, res, viewName) {
+async function ensureReviewGameLoaded(req) {
     validate(req.query, "review");
     const { id } = req.query;
     req.session.gameId = id;
@@ -82,14 +83,24 @@ async function executeReview(req, res, viewName) {
     if (game == null) {
         const gameInfo = await gamesManagerService.findReviewGame(id, req.session.user_name);
         if (!gameInfo) {
-            res.redirect("login");
-            return;
+            return null;
         }
         game = gameService.createReviewGame(req.session.user_id, req.session.user_name, gameInfo, "review");
         gamesManagerService.AddGame(game);
-    }
-    else {
+    } else {
         game.mode = "review";
+    }
+    return game;
+}
+
+/**
+ * Loads or creates the review game in session and renders the given view (`game` or `mobile-review`).
+ */
+async function executeReview(req, res, viewName) {
+    const game = await ensureReviewGameLoaded(req);
+    if (!game) {
+        res.redirect("/home");
+        return;
     }
 
     setGamePageNoCache(res);
@@ -98,11 +109,28 @@ async function executeReview(req, res, viewName) {
 
 /**
  * Review game (desktop `game.ejs`). Mobile user-agents are redirected to `/mobile-review` unless `desktop=1`.
+ * Prefer-Play desktop users are redirected to `/play?mode=review&id=…`.
  */
 exports.review = catchAsync(async (req, res) => {
     if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
         const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
         return res.redirect(302, "/mobile-review" + q);
+    }
+    if (effectivePreferPlayPage(req) && !userAgentLooksMobile(req)) {
+        const game = await ensureReviewGameLoaded(req);
+        if (!game) {
+            return res.redirect("/home");
+        }
+        const qType = req.query.type === "pgn" || req.query.type === "history"
+            ? req.query.type
+            : (game.reviewType === "pgn" || game.reviewType === "history" ? game.reviewType : null);
+        return res.redirect(
+            302,
+            resolveReviewHref(game.gameId != null ? game.gameId : req.query.id, {
+                usePlayPage: true,
+                type: qType,
+            }),
+        );
     }
     await executeReview(req, res, REVIEW_VIEW_DESKTOP);
 });

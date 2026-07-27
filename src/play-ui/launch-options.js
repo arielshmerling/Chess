@@ -188,6 +188,27 @@
         }
     }
 
+    /**
+     * Review type from the Play URL (`history` | `pgn`).
+     * @param {string|URLSearchParams|null|undefined} search
+     * @returns {"history"|"pgn"|null}
+     */
+    function getReviewTypeFromSearch(search) {
+        try {
+            const params =
+                search instanceof URLSearchParams
+                    ? search
+                    : new URLSearchParams(search || "");
+            const type = params.get("type");
+            if (type === "history" || type === "pgn") {
+                return type;
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
     const LaunchOptions = {
         normalizeLaunchEngine: normalizeLaunchEngine,
         mergeStored: mergeStored,
@@ -196,6 +217,7 @@
         getGameIdFromSearch: getGameIdFromSearch,
         getJoinGameIdFromSearch: getJoinGameIdFromSearch,
         getModeFromSearch: getModeFromSearch,
+        getReviewTypeFromSearch: getReviewTypeFromSearch,
     };
 
     global.PlayLaunchOptions = LaunchOptions;

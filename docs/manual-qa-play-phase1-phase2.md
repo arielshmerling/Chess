@@ -932,8 +932,33 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ### Phase 5 remaining (to be filled)
 
-- [ ] History / PGN review deep-links into `/play`
-- [ ] Prefer-Play redirects from `/review`
+- [x] Live watch on `/play` (non-participant)
+- [x] History / PGN review deep-links into `/play` (Prefer-Play)
+- [ ] Optional: update Home/Search links to `/play?mode=review` directly (redirect covers Prefer-Play)
+
+### 5.3 — History review on `/play`
+
+**Steps**
+1. From Home (or Games list), open a finished game row (history).
+2. Confirm URL becomes `/play?mode=review&id=…&type=history` (after `/review` redirect).
+
+**Expect**
+- Review Mode header; ply nav works (start / back / forward / end / play).
+- Moves list matches the finished game and includes the result (`1-0` / `0-1` / `1/2-1/2`).
+- Status shows the outcome (e.g. “White wins”, “Black resigned”, “Draw”).
+- Header clocks show the times stored on the current ply (when moves include `whiteTimer`/`blackTimer` or `moveTime`); clocks do not run or flag.
+- Pieces are not playable.
+- Mobile UA still uses `/mobile-review` (unchanged).
+
+### 5.4 — PGN review on `/play` (if Search available)
+
+**Steps**
+1. From Search, open a PGN game.
+2. Confirm `/play?mode=review&…&type=pgn`.
+
+**Expect**
+- PGN converts and ply nav works from the start position.
+- No OnlineMode / WebSocket play session attached.
 
 ---
 

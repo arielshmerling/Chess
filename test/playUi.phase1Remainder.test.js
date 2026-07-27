@@ -228,6 +228,9 @@ describe("play-ui launch options", function () {
         assert.strictEqual(LaunchOptions.getModeFromSearch("?id=abc&mode=watch"), "watch");
         assert.strictEqual(LaunchOptions.getModeFromSearch("?mode=review"), "review");
         assert.strictEqual(LaunchOptions.getModeFromSearch("?id=abc"), null);
+        assert.strictEqual(LaunchOptions.getReviewTypeFromSearch("?type=history"), "history");
+        assert.strictEqual(LaunchOptions.getReviewTypeFromSearch("?type=pgn&id=x"), "pgn");
+        assert.strictEqual(LaunchOptions.getReviewTypeFromSearch("?id=x"), null);
     });
 });
 

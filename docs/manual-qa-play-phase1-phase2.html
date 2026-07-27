@@ -1071,8 +1071,35 @@ strong { font-weight: 600; }
 </ul>
 <h3 id="phase-5-remaining-to-be-filled">Phase 5 remaining (to be filled)</h3>
 <ul>
-<li><input disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code></li>
-<li><input disabled="" type="checkbox"> Prefer-Play redirects from <code>/review</code></li>
+<li><input checked="" disabled="" type="checkbox"> Live watch on <code>/play</code> (non-participant)</li>
+<li><input checked="" disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code> (Prefer-Play)</li>
+<li><input disabled="" type="checkbox"> Optional: update Home/Search links to <code>/play?mode=review</code> directly (redirect covers Prefer-Play)</li>
+</ul>
+<h3 id="53--history-review-on-play">5.3 — History review on <code>/play</code></h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>From Home (or Games list), open a finished game row (history).</li>
+<li>Confirm URL becomes <code>/play?mode=review&amp;id=…&amp;type=history</code> (after <code>/review</code> redirect).</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Review Mode header; ply nav works (start / back / forward / end / play).</li>
+<li>Moves list matches the finished game and includes the result (<code>1-0</code> / <code>0-1</code> / <code>1/2-1/2</code>).</li>
+<li>Status shows the outcome (e.g. “White wins”, “Black resigned”, “Draw”).</li>
+<li>Header clocks show the times stored on the current ply (when moves include <code>whiteTimer</code>/<code>blackTimer</code> or <code>moveTime</code>); clocks do not run or flag.</li>
+<li>Pieces are not playable.</li>
+<li>Mobile UA still uses <code>/mobile-review</code> (unchanged).</li>
+</ul>
+<h3 id="54--pgn-review-on-play-if-search-available">5.4 — PGN review on <code>/play</code> (if Search available)</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>From Search, open a PGN game.</li>
+<li>Confirm <code>/play?mode=review&amp;…&amp;type=pgn</code>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>PGN converts and ply nav works from the start position.</li>
+<li>No OnlineMode / WebSocket play session attached.</li>
 </ul>
 <hr>
 <h2 id="sign-off">Sign-off</h2>

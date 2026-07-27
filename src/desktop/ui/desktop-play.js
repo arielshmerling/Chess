@@ -40,7 +40,12 @@
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
         },
         isStopped: function () {
-            return !!(game && game.GameOver);
+            return (
+                !!(game && game.GameOver) ||
+                !!reviewMode ||
+                !gameActive ||
+                !!positionSetupMode
+            );
         },
         onFlag: function () {
             outOfTime();
@@ -143,6 +148,8 @@
     let reviewFinalStateStr = null;
     /** Game result (1-0, 0-1, etc.) from loaded bookmark; kept for review at earlier plies. */
     let reviewResultMoveStr = null;
+    /** @type {"resign"|"draw"|"checkmate"|"timeout"|null} */
+    let reviewEndKind = null;
     /** Resigning side from the loaded bookmark final state (for review playback). */
     let reviewResignedColor = null;
     let reviewPlyIndex = 0;
@@ -174,6 +181,8 @@
     let opponentConnectionLost = false;
     /** @type {boolean|null} which seat is disconnected (from server); used for watchers + chrome */
     let disconnectedSeatIsWhite = null;
+    /** @type {"history"|"pgn"|null} last server review launch type (for URL keep) */
+    let lastServerReviewType = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
@@ -388,6 +397,10 @@
     }
 
     function outOfTime() {
+        if (reviewMode || !gameActive || positionSetupMode || configurationMode) {
+            Clocks.stop();
+            return;
+        }
         if (playOnlineMode && typeof playOnlineMode.reportOutOfTime === "function") {
             playOnlineMode.reportOutOfTime(game && game.Turn);
             return;
@@ -1416,12 +1429,14 @@
             playReviewMode.clearNavigation();
             syncReviewShellFromMode();
             reviewResultMoveStr = null;
+            reviewEndKind = null;
             return;
         }
         reviewFullMoves = [];
         reviewOriginStateStr = null;
         reviewFinalStateStr = null;
         reviewResultMoveStr = null;
+        reviewEndKind = null;
         reviewResignedColor = null;
         reviewPlyIndex = 0;
         reviewBranchPly = null;
@@ -1435,9 +1450,175 @@
             game.ResultMove.moveStr
         ) {
             reviewResultMoveStr = game.ResultMove.moveStr;
+        }
+        /* Do not clear reviewResultMoveStr when replaying mid-game positions. */
+    }
+
+    /**
+     * Capture result / resign from a finished review position + move list.
+     * @param {string} finalStateStr
+     * @param {object[]} moves
+     * @returns {{ resultStr: string|null, resignedColor: string|null, endKind: string|null }}
+     */
+    function captureReviewOutcome(finalStateStr, moves) {
+        let resultStr = null;
+        let resignedColor = resignedColorFromStateStr(finalStateStr);
+        let endKind = null;
+        try {
+            const st = finalStateStr ? JSON.parse(finalStateStr) : null;
+            if (st) {
+                if (st.draw) {
+                    resultStr = "1/2-1/2";
+                    endKind = "draw";
+                } else if (st.outOfTime) {
+                    const loser = String(st.outOfTime).toLowerCase();
+                    resultStr = loser === "black" ? "1-0" : "0-1";
+                    endKind = "timeout";
+                } else if (st.checkmate) {
+                    const turn = st.turn === "black" ? "black" : "white";
+                    resultStr = turn === "black" ? "1-0" : "0-1";
+                    endKind = "checkmate";
+                } else if (st.resigned) {
+                    const r = String(st.resigned).toLowerCase();
+                    resignedColor = r === "black" || r === "white" ? r : resignedColor;
+                    resultStr = r === "black" ? "1-0" : "0-1";
+                    endKind = "resign";
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        const list = Array.isArray(moves) ? moves : [];
+        for (let i = list.length - 1; i >= 0; i--) {
+            const m = list[i];
+            if (m && m.moveStr && isTableResultMove(m)) {
+                resultStr = m.moveStr;
+                break;
+            }
+        }
+        if (!endKind && resultStr === "1/2-1/2") {
+            endKind = "draw";
+        } else if (!endKind && resignedColor) {
+            endKind = "resign";
+        } else if (!endKind && (resultStr === "1-0" || resultStr === "0-1")) {
+            endKind = "checkmate";
+        }
+        return {
+            resultStr: resultStr,
+            resignedColor: resignedColor,
+            endKind: endKind,
+        };
+    }
+
+    function formatReviewOutcomeStatus() {
+        const str = reviewResultMoveStr;
+        if (!str) {
+            return "Review mode";
+        }
+        if (str === "1/2-1/2") {
+            return "Result: Draw (1/2-1/2)";
+        }
+        if (str === "1-0") {
+            if (reviewEndKind === "resign" || reviewResignedColor === "black") {
+                return "Result: Black resigned — White wins (1-0)";
+            }
+            if (reviewEndKind === "timeout") {
+                return "Result: Black lost on time — White wins (1-0)";
+            }
+            if (reviewEndKind === "checkmate") {
+                return "Result: Checkmate — White wins (1-0)";
+            }
+            return "Result: White wins (1-0)";
+        }
+        if (str === "0-1") {
+            if (reviewEndKind === "resign" || reviewResignedColor === "white") {
+                return "Result: White resigned — Black wins (0-1)";
+            }
+            if (reviewEndKind === "timeout") {
+                return "Result: White lost on time — Black wins (0-1)";
+            }
+            if (reviewEndKind === "checkmate") {
+                return "Result: Checkmate — Black wins (0-1)";
+            }
+            return "Result: Black wins (0-1)";
+        }
+        return "Result: " + str;
+    }
+
+    function reviewOutcomeStatusKind() {
+        if (reviewResultMoveStr === "1/2-1/2") {
+            return "draw";
+        }
+        if (reviewResultMoveStr === "1-0" || reviewResultMoveStr === "0-1") {
+            if (reviewEndKind === "checkmate") {
+                return "checkmate";
+            }
+            if (reviewEndKind === "timeout") {
+                return "timeout";
+            }
+            return "info";
+        }
+        return "info";
+    }
+
+    function showReviewOutcomeStatus() {
+        showStatus(formatReviewOutcomeStatus(), 0, reviewOutcomeStatusKind());
+    }
+
+    /**
+     * Show clocks as stored on the move (stopped). Prefer whiteTimer/blackTimer; else moveTime.
+     * @param {object|null|undefined} move
+     * @param {number} [plyIndexZeroBased]
+     */
+    function applyReviewClockDisplays(move, plyIndexZeroBased) {
+        Clocks.stop();
+        if (
+            move &&
+            typeof move.whiteTimer === "number" &&
+            Number.isFinite(move.whiteTimer) &&
+            typeof move.blackTimer === "number" &&
+            Number.isFinite(move.blackTimer)
+        ) {
+            Clocks.set({
+                white: Math.max(0, Math.round(move.whiteTimer)),
+                black: Math.max(0, Math.round(move.blackTimer)),
+            });
             return;
         }
-        reviewResultMoveStr = null;
+        if (!move || !Number.isFinite(move.moveTime)) {
+            return;
+        }
+        const clocks = Clocks.get();
+        const next = { white: clocks.white, black: clocks.black };
+        const parity =
+            typeof plyIndexZeroBased === "number" ? plyIndexZeroBased : 0;
+        if (parity % 2 === 0) {
+            next.white = Math.max(0, Math.round(move.moveTime));
+        } else {
+            next.black = Math.max(0, Math.round(move.moveTime));
+        }
+        Clocks.set(next);
+    }
+
+    /** Sync header clocks to the position after `reviewPlyIndex` plies. */
+    function syncReviewClocksForCurrentPly() {
+        if (!reviewMode) {
+            return;
+        }
+        Clocks.stop();
+        if (reviewPlyIndex <= 0) {
+            resetClocks();
+            return;
+        }
+        for (let i = reviewPlyIndex - 1; i >= 0; i--) {
+            const m = reviewFullMoves[i];
+            if (!m || isTableResultMove(m)) {
+                continue;
+            }
+            applyReviewClockDisplays(m, i);
+            return;
+        }
+        resetClocks();
     }
 
     function resignedColorFromStateStr(stateStr) {
@@ -1810,6 +1991,7 @@
             }
             syncReviewBoardFromGame();
             refreshReviewMovesTable();
+            syncReviewClocksForCurrentPly();
             return true;
         } catch (err) {
             console.warn("[desktop-play] Review playback step failed:", err);
@@ -1953,9 +2135,11 @@
         }
         replayReviewMovesUpTo(clamped);
         syncReviewBoardFromGame();
+        syncReviewClocksForCurrentPly();
         refreshReviewMovesTable();
         syncGameRunPanelOptions();
         updateReviewNavBar();
+        showReviewOutcomeStatus();
     }
 
     function movesForDisplay() {
@@ -2757,6 +2941,16 @@
             }
             initReviewNavigation(stateStr, parsedMoves, entry.originState);
             syncReviewResultMoveFromGame();
+            const outcome = captureReviewOutcome(stateStr, parsedMoves);
+            if (outcome.resignedColor) {
+                reviewResignedColor = outcome.resignedColor;
+            }
+            if (outcome.resultStr) {
+                reviewResultMoveStr = outcome.resultStr;
+            }
+            if (outcome.endKind) {
+                reviewEndKind = outcome.endKind;
+            }
             refreshReviewMovesTable();
             pauseClocksForSetup();
             gameActive = false;
@@ -2832,10 +3026,12 @@
             if (options.atStart && hasMoves) {
                 showReviewAtPly(0);
             } else {
+                syncReviewClocksForCurrentPly();
                 refreshReviewMovesTable();
+                updateReviewNavBar();
+                showReviewOutcomeStatus();
             }
             syncGameRunPanelOptions();
-            showStatus("");
         } catch (err) {
             showStatus(err.message || "Could not load saved game", 0, "error");
         } finally {
@@ -3963,7 +4159,13 @@
                 onTurn: function (turn) {
                     Clocks.stop();
                     updateHeaderTurn();
-                    if (game && !game.GameOver) {
+                    if (
+                        game &&
+                        !game.GameOver &&
+                        gameActive &&
+                        !reviewMode &&
+                        !positionSetupMode
+                    ) {
                         Clocks.startFor(turn);
                     }
                 },
@@ -3977,6 +4179,10 @@
         });
         playGameSession.on("gameOver", function (payload) {
             if (!payload) {
+                return;
+            }
+            if (reviewMode || !gameActive) {
+                Clocks.stop();
                 return;
             }
             updateMovesTable(tableMovesFromGame());
@@ -4447,6 +4653,13 @@
             let url = "/play?id=" + encodeURIComponent(String(currentGameId));
             if (onlineGameInfo && onlineGameInfo.watcher) {
                 url += "&mode=watch";
+            } else if (options && options.keepReview) {
+                url =
+                    "/play?mode=review&id=" +
+                    encodeURIComponent(String(currentGameId));
+                if (lastServerReviewType === "history" || lastServerReviewType === "pgn") {
+                    url += "&type=" + encodeURIComponent(lastServerReviewType);
+                }
             }
             window.history.replaceState({}, "", url);
             return;
@@ -4633,10 +4846,25 @@
                 "/game?gameType=2&joinGame=" + encodeURIComponent(joinId);
             return;
         }
+        const launchMode =
+            LaunchOptions && typeof LaunchOptions.getModeFromSearch === "function"
+                ? LaunchOptions.getModeFromSearch(window.location.search || "")
+                : null;
         const onlineId =
             LaunchOptions && typeof LaunchOptions.getGameIdFromSearch === "function"
                 ? LaunchOptions.getGameIdFromSearch(window.location.search || "")
                 : null;
+        if (launchMode === "review" && onlineId) {
+            const reviewType =
+                LaunchOptions && typeof LaunchOptions.getReviewTypeFromSearch === "function"
+                    ? LaunchOptions.getReviewTypeFromSearch(window.location.search || "")
+                    : null;
+            const started = await beginReviewFromServerId(onlineId, reviewType);
+            if (started) {
+                clearWebLaunchQueryString({ keepId: true, keepReview: true });
+                return;
+            }
+        }
         if (onlineId) {
             const started = await beginOnlineFromServerId(onlineId);
             if (started) {
@@ -4651,6 +4879,206 @@
         const opts = await resolveWebAutoStartOptions();
         await beginNewGame(opts);
         clearWebLaunchQueryString();
+    }
+
+    /**
+     * Expand PGN SAN moves into full board moves for ReviewMode / loadMoves.
+     * @param {object[]} rawMoves
+     * @returns {object[]}
+     */
+    function expandPgnMovesForReview(rawMoves) {
+        const list = Array.isArray(rawMoves) ? rawMoves : [];
+        const trial = new ChessGame(true);
+        trial.startNewGame(true);
+        const out = [];
+        for (let i = 0; i < list.length; i++) {
+            const pgnMove = list[i];
+            if (!pgnMove) {
+                continue;
+            }
+            if (typeof trial.isResultMove === "function" && trial.isResultMove(pgnMove)) {
+                out.push({ moveStr: pgnMove.moveStr });
+                continue;
+            }
+            try {
+                const converted = trial.convertPGNMove(pgnMove);
+                const actual = trial.makeMove(converted.source, converted.target);
+                if (actual && actual.promotion) {
+                    actual.selectedPiece = trial.letterToPiece(converted.promotedTo);
+                    trial.completePromotion(actual);
+                }
+                const stored = Object.assign({}, actual || converted);
+                if (converted.moveStr) {
+                    stored.moveStr = converted.moveStr;
+                } else if (pgnMove.moveStr) {
+                    stored.moveStr = pgnMove.moveStr;
+                }
+                out.push(stored);
+            } catch (err) {
+                console.warn("[Play] PGN convert failed at ply", i, err);
+                break;
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Clone history review moves (coordinate objects from the server).
+     * @param {object[]} rawMoves
+     * @returns {object[]}
+     */
+    function cloneHistoryMovesForReview(rawMoves) {
+        const list = Array.isArray(rawMoves) ? rawMoves : [];
+        const out = [];
+        for (let i = 0; i < list.length; i++) {
+            const m = list[i];
+            if (!m) {
+                continue;
+            }
+            out.push(typeof m === "object" ? Object.assign({}, m) : m);
+        }
+        return out;
+    }
+
+    async function beginReviewFromServerId(gameId, reviewTypeHint) {
+        if (!Api || typeof Api.get !== "function") {
+            showStatus("Review requires the web API", 0, "error");
+            return false;
+        }
+        let info;
+        let movesObj;
+        try {
+            info = await Api.get("/gameInfo?id=" + encodeURIComponent(String(gameId)));
+            movesObj = await Api.get("/gameMoves?id=" + encodeURIComponent(String(gameId)));
+        } catch (err) {
+            console.warn("[Play] Could not load review game:", err);
+            showStatus((err && err.message) || "Could not load review game", 0, "error");
+            return false;
+        }
+        if (!info || info.mode !== "review") {
+            showStatus("This link is not a review game", 0, "error");
+            return false;
+        }
+        const reviewType =
+            (movesObj && (movesObj.type || movesObj.reviewType)) ||
+            info.reviewType ||
+            reviewTypeHint ||
+            "history";
+        lastServerReviewType =
+            reviewType === "pgn" || reviewType === "history" ? reviewType : null;
+
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        onlineGameInfo = null;
+        setOpponentConnectionLost(false);
+        clearActiveGameSnapshot();
+        exitReviewMode();
+
+        const username = info.username != null ? String(info.username) : "";
+        const whiteName = info.whitePlayerName || "White";
+        const blackName = info.blackPlayerName || "Black";
+        currentPlayerIsWhite =
+            reviewType === "pgn"
+                ? true
+                : !(username && username === blackName && username !== whiteName);
+
+        session = {
+            engine: null,
+            thinkingTimeSeconds: null,
+            difficulty: null,
+            whitePlayerName: whiteName,
+            blackPlayerName: blackName,
+            username: username,
+            mouse: info.mousePreference || "drag",
+            showAvailableMoves: info.showAvailableMoves !== false,
+            timeMinutes:
+                info.gameTimeMinutes != null ? info.gameTimeMinutes : 90,
+        };
+        allowUndo = false;
+        setCurrentGameId(info.id != null ? info.id : gameId);
+        gameHistoryLogged = false;
+        gameAutoBookmarked = false;
+        clearLoadedBookmarkDisplayMoves();
+        pauseClocksForSetup();
+        resetClocks();
+
+        const rawMoves = (movesObj && movesObj.moves) || [];
+        const parsedMoves =
+            reviewType === "pgn"
+                ? expandPgnMovesForReview(rawMoves)
+                : cloneHistoryMovesForReview(rawMoves);
+
+        const originTrial = new ChessGame(true);
+        originTrial.startNewGame(currentPlayerIsWhite);
+        const originStateStr = JSON.stringify(originTrial.GameState);
+
+        game.startNewGame(currentPlayerIsWhite);
+        if (parsedMoves.length) {
+            game.loadMoves(parsedMoves);
+        } else {
+            game.loadMoves([]);
+        }
+        const finalStateStr = JSON.stringify(game.GameState);
+        const outcome = captureReviewOutcome(finalStateStr, parsedMoves);
+        if (game.GameOver && game.ResultMove && game.ResultMove.moveStr) {
+            outcome.resultStr = game.ResultMove.moveStr;
+        }
+
+        game.loadGame(originStateStr);
+        game.loadMoves([]);
+
+        if (Board.setPlayerView) {
+            Board.setPlayerView(currentPlayerIsWhite);
+        }
+        Board.setPreferences({
+            mouse: session.mouse,
+            showAvailableMoves: session.showAvailableMoves,
+        });
+        clearDisplayedEvaluation();
+        pauseClocksForSetup();
+        redoPairAvailable = false;
+        lastCheckNotifySide = null;
+        alertMode = false;
+        Board.clearArrows();
+        Board.syncFromGameState();
+        if (Board.updateCaptureLists && game.GameState && game.GameState.capturedPiecesList) {
+            Board.updateCaptureLists(game.GameState.capturedPiecesList);
+        }
+
+        syncLoadedBookmarkDisplayMoves(parsedMoves);
+        initReviewNavigation(finalStateStr, parsedMoves, originStateStr);
+        if (outcome.resignedColor) {
+            reviewResignedColor = outcome.resignedColor;
+        }
+        if (outcome.resultStr) {
+            reviewResultMoveStr = outcome.resultStr;
+        }
+        if (outcome.endKind) {
+            reviewEndKind = outcome.endKind;
+        }
+        syncReviewResultMoveFromGame();
+        refreshReviewMovesTable();
+        gameActive = false;
+        document.body.classList.remove("desktop-play-has-active-game");
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(false);
+        }
+        lastLoadedSavedGameId = null;
+        editingSavedGameId = null;
+        enterReviewMode();
+        showReviewAtPly(0);
+        updateMatchHeader();
+        updateHeaderTurn();
+        updateActionButtons();
+        updateGameRunPanelVisibility();
+        pauseClocksForSetup();
+        return true;
     }
 
     function resolveOnlineHumanIsWhite(info) {

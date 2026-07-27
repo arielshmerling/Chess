@@ -96,6 +96,28 @@ describe("playPaths", function () {
         });
     });
 
+    describe("resolveReviewHref", function () {
+        const { resolveReviewHref } = require("../src/play/playPaths");
+
+        it("uses /play?mode=review when usePlayPage", function () {
+            assert.strictEqual(
+                resolveReviewHref("abc123", { usePlayPage: true, type: "history" }),
+                "/play?mode=review&id=abc123&type=history",
+            );
+            assert.strictEqual(
+                resolveReviewHref("abc123", { usePlayPage: true, type: "pgn" }),
+                "/play?mode=review&id=abc123&type=pgn",
+            );
+        });
+
+        it("uses classic /review otherwise", function () {
+            assert.strictEqual(
+                resolveReviewHref("abc123", { usePlayPage: false, type: "history" }),
+                "/review?id=abc123&type=history",
+            );
+        });
+    });
+
     describe("canAccessPlayPage", function () {
         it("allows any logged-in user (Admin, Partner, Member)", function () {
             assert.strictEqual(

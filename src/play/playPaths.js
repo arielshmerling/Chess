@@ -65,6 +65,30 @@ function resolveOnlineWatchHref(gameId, opts) {
 }
 
 /**
+ * History / PGN review URL.
+ * @param {string|number} gameId
+ * @param {{ usePlayPage?: boolean, type?: "history"|"pgn"|string|null }} [opts]
+ * @returns {string}
+ */
+function resolveReviewHref(gameId, opts) {
+    const type =
+        opts && (opts.type === "history" || opts.type === "pgn") ? opts.type : null;
+    if (opts && opts.usePlayPage) {
+        let url =
+            "/play?mode=review&id=" + encodeURIComponent(String(gameId));
+        if (type) {
+            url += "&type=" + encodeURIComponent(type);
+        }
+        return url;
+    }
+    let classic = "/review?id=" + encodeURIComponent(String(gameId));
+    if (type) {
+        classic += "&type=" + encodeURIComponent(type);
+    }
+    return classic;
+}
+
+/**
  * Whether the logged-in user may open the Play shell.
  * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
  */
@@ -100,6 +124,7 @@ module.exports = {
     resolvePlayGamePath,
     resolveOnlineParticipantHref,
     resolveOnlineWatchHref,
+    resolveReviewHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,
