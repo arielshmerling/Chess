@@ -132,6 +132,38 @@ describe("session GameSession (Phase 2)", function () {
         session.dispose();
     });
 
+    it("applyMove emits promotionNeeded when the game is promoting", function () {
+        const completed = [];
+        const fakeGame = {
+            GameOver: false,
+            Turn: "white",
+            GameState: { turn: "white", promoting: false },
+            makeMove: function () {
+                this.GameState = { turn: "white", promoting: true };
+                this.Turn = "white";
+                const move = { promotion: true, valid: true };
+                this.LastMove = move;
+                return move;
+            },
+            completePromotion: function (move) {
+                completed.push(move);
+                this.GameState = { turn: "black", promoting: false };
+            },
+        };
+        const session = GameSession.create({ game: fakeGame, humanIsWhite: true });
+        session.load({ active: true });
+        let needed = null;
+        session.on("promotionNeeded", function (turn) {
+            needed = turn;
+        });
+        const executed = session.applyMove({ row: 1, col: 0 }, { row: 0, col: 0 });
+        assert.ok(executed);
+        assert.strictEqual(needed, "white");
+        assert.ok(session.selectPromotion(5));
+        assert.strictEqual(completed.length, 1);
+        session.dispose();
+    });
+
     it("emits clocksUpdated after turnChanged when a clocks port is provided", function () {
         const game = silentGame();
         const turns = [];

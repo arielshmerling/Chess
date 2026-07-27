@@ -25,10 +25,12 @@
      * @param {boolean} [state.redoPairAvailable]
      * @param {boolean} [state.canUsePositionSetup]
      * @param {boolean} [state.canUseBrainConfig]
+     * @param {object} [state.capabilities] - ModeCapabilities from session
      * @returns {Object.<string, boolean>}
      */
     function disabledMap(state) {
         const s = state || {};
+        const caps = s.capabilities || null;
         const out = {};
 
         if (!s.hasGame || !s.playSessionReady) {
@@ -95,6 +97,24 @@
         out.flipBtn = !!s.animating;
         out.saveBtn = !s.hasGame || !!s.animating || !!s.dialogOn;
         out.rematchBtn = !!s.animating || !!s.dialogOn;
+
+        if (caps) {
+            if (caps.resign === false) {
+                out.resignBtn = true;
+            }
+            if (caps.draw === false) {
+                out.drawBtn = true;
+            }
+            if (caps.undo === false) {
+                out.undoBtn = true;
+            }
+            if (caps.redo === false) {
+                out.redoBtn = true;
+            }
+            if (caps.rematch === false) {
+                out.rematchBtn = true;
+            }
+        }
         return out;
     }
 

@@ -76,6 +76,7 @@ const MODE_IDS = Object.freeze({
  * @property {(side: "white"|"black") => void} [turnChanged]
  * @property {(status: string) => void} [statusChanged]
  * @property {(result: object) => void} [gameOver]
+ * @property {(turn: string, move?: object) => void} [promotionNeeded]
  * @property {(payload?: object) => void} [opponentDisconnected]
  * @property {(payload?: object) => void} [opponentRejoined]
  * @property {(payload?: object) => void} [drawOffered]

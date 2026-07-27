@@ -167,6 +167,8 @@
     let playLocalEngineMode = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
     let playReviewMode = null;
+    /** @type {import("../../session/contracts").ModeCapabilities|null} */
+    let playCapabilities = null;
 
     function $(id) {
         return document.getElementById(id);
@@ -966,6 +968,7 @@
         editingSavedGameId = null;
         updateGameRunPanelVisibility();
         persistActiveGame();
+        ensurePlayGameSession();
         if (!game.GameOver && isHumanTurn()) {
             switchClocks();
             showStatus("Your move", 2000, "info");
@@ -2056,6 +2059,7 @@
                 redoPairAvailable: redoPairAvailable,
                 canUsePositionSetup: canUsePositionSetup(),
                 canUseBrainConfig: canUseBrainConfig(),
+                capabilities: playCapabilities,
             }),
             setButtonDisabled,
         );
@@ -2953,8 +2957,18 @@
 
     function registerGameEvents() {
         game.OnUpdate = onGameUpdate;
-        game.OnPromotion = onPromotion;
-        game.OnDraw = onDraw;
+        game.OnPromotion = function (turn) {
+            if (sessionDrivesActivePlayBoard()) {
+                return;
+            }
+            return onPromotion(turn);
+        };
+        game.OnDraw = function (reason) {
+            if (sessionDrivesActivePlayOutcomes()) {
+                return;
+            }
+            return onDraw(reason);
+        };
         game.OnUndo = onUndoEvent;
     }
 
@@ -3131,8 +3145,14 @@
         }
 
         try {
-            if (adjusted.promotion) {
-                await Board.animateMove(adjusted);
+            await Board.animateMove(adjusted);
+            const gs = ensurePlayGameSession();
+            if (gs && typeof gs.playMove === "function") {
+                const executed = gs.playMove(adjusted, { source: "engine" });
+                if (!executed) {
+                    return false;
+                }
+            } else if (adjusted.promotion) {
                 const actual = game.makeMove(adjusted.source, adjusted.target);
                 actual.selectedPiece = adjusted.selectedPiece;
                 actual.promotion = true;
@@ -3141,7 +3161,6 @@
                 }
                 game.completePromotion(actual);
             } else {
-                await Board.animateMove(adjusted);
                 game.makeMove(adjusted.source, adjusted.target);
             }
             if (Board.refreshHumanPieceInput) {
@@ -3152,7 +3171,7 @@
                 Board.clearBoardAnimating();
             }
         }
-        /* Moves table / lastMove chrome: externalMoveApplied → onSessionMoveApplied. */
+        /* Session playMove emits moveApplied / boardChanged for chrome + paint. */
         return true;
     }
 
@@ -3182,6 +3201,7 @@
         playGameSession = null;
         playLocalEngineMode = null;
         playReviewMode = null;
+        playCapabilities = null;
     }
 
     function syncReviewShellFromMode() {
@@ -3223,13 +3243,6 @@
                         showStatus("Engine move could not be applied", 0, "error");
                         return false;
                     }
-                    if (playGameSession && typeof playGameSession.externalMoveApplied === "function") {
-                        playGameSession.externalMoveApplied(game.LastMove || move, {
-                            source: "engine",
-                        });
-                    } else {
-                        switchClocks();
-                    }
                     if (isHumanTurn()) {
                         showStatus("", 0, "info");
                     }
@@ -3257,6 +3270,9 @@
             playLocalEngineMode = createLocalEngineMode();
         }
         playGameSession.attachMode(playLocalEngineMode);
+        if (typeof playLocalEngineMode.capabilities === "function") {
+            playCapabilities = playLocalEngineMode.capabilities();
+        }
     }
 
     function attachPlayReviewMode() {
@@ -3434,7 +3450,6 @@
                 },
             },
         });
-        attachPlayLocalEngineMode();
         playGameSession.on("gameOver", function (payload) {
             if (!payload) {
                 return;
@@ -3512,6 +3527,13 @@
         playGameSession.on("boardChanged", function (state) {
             onSessionBoardChanged(state);
         });
+        playGameSession.on("promotionNeeded", function (turn) {
+            onPromotion(turn);
+        });
+        playGameSession.on("capabilitiesChanged", function (caps) {
+            playCapabilities = caps || null;
+            updateActionButtons();
+        });
         playGameSession.on("undone", function () {
             redoPairAvailable = true;
             onSessionNavChrome();
@@ -3520,6 +3542,7 @@
             redoPairAvailable = false;
             onSessionNavChrome();
         });
+        attachPlayLocalEngineMode();
         playGameSession.load({
             active: true,
             humanIsWhite: currentPlayerIsWhite,
@@ -4440,8 +4463,13 @@
         }
         confirmDialog("Leave game?", "Your game will be resigned.", function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
-            game.resign(player);
             abortEngineSearch();
+            const gs = ensurePlayGameSession();
+            if (gs && typeof gs.resign === "function") {
+                gs.resign(player);
+            } else {
+                game.resign(player);
+            }
             tryLogCompletedGame();
             leavePlayShell();
         });

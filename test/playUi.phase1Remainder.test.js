@@ -83,6 +83,32 @@ describe("play-ui action buttons policy", function () {
         assert.strictEqual(map.redoBtn, true);
     });
 
+    it("disables draw/undo when mode capabilities forbid them", function () {
+        const map = ActionButtonsPolicy.disabledMap({
+            hasGame: true,
+            playSessionReady: true,
+            gameActive: true,
+            humanTurn: true,
+            allowUndo: true,
+            canUndoMovePair: true,
+            redoPairAvailable: true,
+            hasMoves: true,
+            canUsePositionSetup: true,
+            canUseBrainConfig: true,
+            capabilities: {
+                resign: true,
+                draw: false,
+                undo: false,
+                redo: true,
+                rematch: true,
+            },
+        });
+        assert.strictEqual(map.resignBtn, false);
+        assert.strictEqual(map.drawBtn, true);
+        assert.strictEqual(map.undoBtn, true);
+        assert.strictEqual(map.redoBtn, false);
+    });
+
     it("applies a map through setDisabled", function () {
         const seen = {};
         ActionButtonsPolicy.apply({ resignBtn: true, flipBtn: false }, function (id, disabled) {

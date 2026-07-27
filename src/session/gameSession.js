@@ -257,6 +257,13 @@
             if (!executed || executed.valid === false) {
                 return null;
             }
+            if (game.GameState && game.GameState.promoting) {
+                bus.emit(
+                    "promotionNeeded",
+                    game.Turn || (game.GameState && game.GameState.turn),
+                    executed,
+                );
+            }
             return executed;
         }
 
