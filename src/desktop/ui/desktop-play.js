@@ -3374,7 +3374,9 @@
             }
             Board.updateCaptureLists(gameState.capturedPiecesList || []);
         }
-        if (gameState.checkmate || gameState.check) {
+        if (gameState.resigned && Board.applyResignedKingTilt) {
+            Board.applyResignedKingTilt(gameState.resigned);
+        } else if (gameState.checkmate || gameState.check) {
             if (Board.applyCheckedHighlight) {
                 Board.applyCheckedHighlight();
             }
@@ -4569,6 +4571,9 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("contextmenu", function (ev) {
+            ev.preventDefault();
+        });
         document.addEventListener("click", handleDismissEvaluationOnClick, true);
         document.addEventListener("keydown", handleKeyboardShortcuts);
         document.addEventListener("shmerling-game-preferences-changed", function (e) {

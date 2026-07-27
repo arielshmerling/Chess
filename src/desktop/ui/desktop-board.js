@@ -580,6 +580,10 @@
         if (!chessGame || !guiBoard[0][0]) {
             return;
         }
+        if (chessGame.GameState && chessGame.GameState.resigned) {
+            applyResignedKingTilt(chessGame.GameState.resigned);
+            return;
+        }
         clearKingHighlights();
         if (chessGame.Draw || (chessGame.GameState && chessGame.GameState.draw)) {
             return;
