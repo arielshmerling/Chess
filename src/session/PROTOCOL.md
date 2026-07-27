@@ -35,7 +35,9 @@
 
 **Phase 5 (done for Prefer-Play desktop web):** live watch + history/PGN review on `/play`.
 
-**Phase 6 (in progress):** Practice / Debug on `/play` (`PracticeMode`); classic `/game?gameType=3` remains for non–Prefer-Play.
+**Phase 6 (done for Prefer-Play):** Practice / Debug on `/play` (`PracticeMode`).
+
+**Phase 7 (in progress):** Position Setup + Configuration as session modes; refuse online/watch leak.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

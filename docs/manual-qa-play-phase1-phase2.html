@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI (Phase 1–6)</title>
+<title>Manual QA: Shmerling Play UI (Phase 1–7)</title>
 <style>
 @page { size: Letter; margin: 0.7in; }
 body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
@@ -1141,6 +1141,52 @@ strong { font-weight: 600; }
 <li><input disabled="" type="checkbox"> Retire any remaining “debug always classic” comments once QA signed off</li>
 </ul>
 <hr>
+<h2 id="phase-7--position-setup--config-as-modes-slice-1">Phase 7 — Position Setup / Config as modes (slice 1)</h2>
+<h3 id="71--position-setup-attaches-positionsetupmode">7.1 — Position Setup attaches PositionSetupMode</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>As Admin/Partner on <code>/play</code> (local SP idle or game over / zero moves), open Position Setup.</li>
+<li>Confirm header shows <strong>Position Setup</strong>.</li>
+<li>Place pieces, validate, Play from position.</li>
+<li>Cancel setup (restore) from a local SP game over / zero-move board.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Setup dock works as before; resign/draw/undo stay disabled while in setup.</li>
+<li>After Play from position, LocalEngine play starts (engine may move if it is Black’s turn).</li>
+<li>Cancel restores the previous board snapshot.</li>
+</ul>
+<h3 id="72--online--practice--watch-cannot-open-setup-or-config">7.2 — Online / Practice / Watch cannot open setup or config</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>During an online <code>/play</code> game (or watch), try Position Setup and Configuration.</li>
+<li>In Practice / Debug, try Position Setup and Configuration.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Buttons stay disabled (or show a short status if somehow triggered).</li>
+<li>Opening setup never leaves OnlineMode attached to a mutated board.</li>
+<li>Members still do not see the advanced docks.</li>
+</ul>
+<h3 id="73--configuration-attaches-configurationmode">7.3 — Configuration attaches ConfigurationMode</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>From idle <code>/play</code> (Admin/Partner), open Configuration, edit/save or discard, exit.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Header shows <strong>Configuration mode</strong>.</li>
+<li>Unsaved discard confirm still works.</li>
+<li>Exiting restores LocalEngine caps when returning to local play.</li>
+</ul>
+<h3 id="phase-7-remaining">Phase 7 remaining</h3>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> PositionSetupMode + ConfigurationMode plugins</li>
+<li><input checked="" disabled="" type="checkbox"> Online/watch/practice leak guards for setup/config</li>
+<li><input disabled="" type="checkbox"> Optional: Prefer-Play deep-link for setup</li>
+<li><input disabled="" type="checkbox"> Optional: move more setup board logic out of <code>desktop-play.js</code></li>
+</ul>
+<hr>
 <h2 id="sign-off">Sign-off</h2>
 <table>
 <thead>
@@ -1191,6 +1237,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 6 (practice slice) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 7 (setup/config) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

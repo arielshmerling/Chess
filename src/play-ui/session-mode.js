@@ -61,17 +61,25 @@
     /**
      * Position setup may open when advanced tools are allowed and either the
      * game is over or no moves have been played yet.
+     * Blocked for practice, online/watch, and network sessions (Phase 7).
      *
      * @param {object} state
      * @param {boolean} state.canPlayAdvancedTools
      * @param {boolean} state.hasGame
      * @param {boolean} [state.gameOver]
      * @param {number} [state.moveCount]
+     * @param {boolean} [state.practice]
+     * @param {boolean} [state.online]
+     * @param {boolean} [state.watch]
+     * @param {boolean} [state.network]
      * @returns {boolean}
      */
     function canUsePositionSetup(state) {
         const s = state || {};
         if (!s.canPlayAdvancedTools || !s.hasGame) {
+            return false;
+        }
+        if (s.practice || s.online || s.watch || s.network) {
             return false;
         }
         if (s.gameOver) {
@@ -83,16 +91,24 @@
     /**
      * Brain configuration may open when advanced tools are allowed and the
      * shell is not in position setup or an active game.
+     * Blocked for practice, online/watch (Phase 7).
      *
      * @param {object} state
      * @param {boolean} state.canPlayAdvancedTools
      * @param {boolean} [state.positionSetup]
      * @param {boolean} [state.gameActive]
+     * @param {boolean} [state.practice]
+     * @param {boolean} [state.online]
+     * @param {boolean} [state.watch]
+     * @param {boolean} [state.network]
      * @returns {boolean}
      */
     function canUseBrainConfig(state) {
         const s = state || {};
         if (!s.canPlayAdvancedTools) {
+            return false;
+        }
+        if (s.practice || s.online || s.watch || s.network) {
             return false;
         }
         return !s.positionSetup && !s.gameActive;

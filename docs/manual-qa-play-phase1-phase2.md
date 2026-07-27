@@ -1001,6 +1001,51 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ---
 
+## Phase 7 — Position Setup / Config as modes (slice 1)
+
+### 7.1 — Position Setup attaches PositionSetupMode
+
+**Steps**
+1. As Admin/Partner on `/play` (local SP idle or game over / zero moves), open Position Setup.
+2. Confirm header shows **Position Setup**.
+3. Place pieces, validate, Play from position.
+4. Cancel setup (restore) from a local SP game over / zero-move board.
+
+**Expect**
+- Setup dock works as before; resign/draw/undo stay disabled while in setup.
+- After Play from position, LocalEngine play starts (engine may move if it is Black’s turn).
+- Cancel restores the previous board snapshot.
+
+### 7.2 — Online / Practice / Watch cannot open setup or config
+
+**Steps**
+1. During an online `/play` game (or watch), try Position Setup and Configuration.
+2. In Practice / Debug, try Position Setup and Configuration.
+
+**Expect**
+- Buttons stay disabled (or show a short status if somehow triggered).
+- Opening setup never leaves OnlineMode attached to a mutated board.
+- Members still do not see the advanced docks.
+
+### 7.3 — Configuration attaches ConfigurationMode
+
+**Steps**
+1. From idle `/play` (Admin/Partner), open Configuration, edit/save or discard, exit.
+
+**Expect**
+- Header shows **Configuration mode**.
+- Unsaved discard confirm still works.
+- Exiting restores LocalEngine caps when returning to local play.
+
+### Phase 7 remaining
+
+- [x] PositionSetupMode + ConfigurationMode plugins
+- [x] Online/watch/practice leak guards for setup/config
+- [ ] Optional: Prefer-Play deep-link for setup
+- [ ] Optional: move more setup board logic out of `desktop-play.js`
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -1016,4 +1061,5 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 4 result | Pass / Fail |
 | Phase 5 (watch slice) result | Pass / Fail |
 | Phase 6 (practice slice) result | Pass / Fail |
+| Phase 7 (setup/config) result | Pass / Fail |
 | Notes | |

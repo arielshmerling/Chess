@@ -34,6 +34,8 @@
     const LocalEngineModeApi = window.ShmerlingLocalEngineMode;
     const ReviewModeApi = window.ShmerlingReviewMode;
     const PracticeModeApi = window.ShmerlingPracticeMode;
+    const PositionSetupModeApi = window.ShmerlingPositionSetupMode;
+    const ConfigurationModeApi = window.ShmerlingConfigurationMode;
     const OnlineModeApi = window.ShmerlingOnlineMode;
     const WsTransportApi = window.ShmerlingWsTransport;
     const Clocks = window.PlayClocksController.create({
@@ -192,6 +194,10 @@
     let playReviewMode = null;
     /** @type {ReturnType<typeof PracticeModeApi.create>|null} */
     let playPracticeMode = null;
+    /** @type {ReturnType<typeof PositionSetupModeApi.create>|null} */
+    let playPositionSetupMode = null;
+    /** @type {ReturnType<typeof ConfigurationModeApi.create>|null} */
+    let playConfigurationMode = null;
     /** @type {import("../../session/contracts").ModeCapabilities|null} */
     let playCapabilities = null;
 
@@ -808,9 +814,12 @@
             }
         }
         setConfigurationUi(false);
+        playConfigurationMode = null;
         showStatus("");
+        restoreModeAfterDockExit();
         updateActionButtons();
         restoreSidebarPreferences();
+        updateMatchHeader();
         return true;
     }
 
@@ -820,12 +829,18 @@
             return;
         }
         if (!canUseBrainConfig()) {
+            if (isNetworkSessionActive()) {
+                showStatus("Leave the online game before opening Configuration", 3500, "info");
+            } else if (practiceMode) {
+                showStatus("Configuration is not available in Practice mode", 3500, "info");
+            }
             return;
         }
         exitReviewMode();
         if (positionSetupMode) {
             exitPositionSetupMode(false);
         }
+        clearOnlineSessionForLocalTools();
         setConfigurationUi(true);
         expandMovesSidebar();
         ensureConfigurationPanel();
@@ -833,6 +848,8 @@
             const engine = session && session.engine ? session.engine : "brain43";
             BrainConfig.syncEngine(engine);
         }
+        ensurePlayGameSession();
+        attachPlayConfigurationMode();
         showStatus("Configuration mode — edit values and save", 0, "info");
         updateActionButtons();
     }
@@ -1119,12 +1136,21 @@
             showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
             return;
         }
+        if (!canUsePositionSetup()) {
+            if (isNetworkSessionActive()) {
+                showStatus("Leave the online game before opening Position Setup", 3500, "info");
+            } else if (practiceMode) {
+                showStatus("Position Setup is not available in Practice mode", 3500, "info");
+            }
+            return;
+        }
         if (configurationMode) {
             if (!exitConfigurationMode()) {
                 return;
             }
         }
         exitReviewMode();
+        clearOnlineSessionForLocalTools();
         setPositionSetupUi(true);
         setCurrentGameId(null);
         positionSetupSnapshot = capturePositionSetupSnapshot();
@@ -1161,6 +1187,8 @@
         } else if (Setup && Setup.refreshFlagCheckboxes) {
             Setup.refreshFlagCheckboxes();
         }
+        ensurePlayGameSession();
+        attachPlayPositionSetupMode();
         showStatus("Position setup — place pieces on the board", 0, "info");
         updateActionButtons();
     }
@@ -1190,6 +1218,7 @@
         Board.setSetupMode(false);
         clearDisplayedEvaluation();
         setPositionSetupUi(false);
+        playPositionSetupMode = null;
         showStatus("");
         if (restore && positionSetupSnapshot) {
             restorePositionSetupSnapshot();
@@ -1197,9 +1226,15 @@
         } else {
             positionSetupSnapshot = null;
         }
+        if (!restore) {
+            /* Playing from setup — LocalEngine attaches via ensurePlayGameSession. */
+        } else {
+            restoreModeAfterDockExit();
+        }
         updateGameRunPanelVisibility();
         updateActionButtons();
         restoreSidebarPreferences();
+        updateMatchHeader();
     }
 
     function clearDisplayedEvaluation() {
@@ -1321,6 +1356,12 @@
         if (!validatePositionSetup("play")) {
             return;
         }
+        clearOnlineSessionForLocalTools();
+        practiceMode = false;
+        playPracticeMode = null;
+        if (Board.setBothSidesHuman) {
+            Board.setBothSidesHuman(false);
+        }
         assignNewGameId();
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
@@ -1354,6 +1395,10 @@
         if (Board.setHumanPlayEnabled) {
             Board.setHumanPlayEnabled(true);
         }
+        ensurePlayGameSession();
+        if (!playLocalEngineMode && LocalEngineModeApi) {
+            attachPlayLocalEngineMode();
+        }
         updateActionButtons();
         editingSavedGameId = null;
         updateGameRunPanelVisibility();
@@ -1369,14 +1414,15 @@
     }
 
     function canUsePositionSetup() {
-        if (practiceMode) {
-            return false;
-        }
         return SessionMode.canUsePositionSetup({
             canPlayAdvancedTools: canPlayAdvancedTools,
             hasGame: !!game,
             gameOver: !!(game && game.GameOver),
             moveCount: game && game.Moves ? game.Moves.length : 0,
+            practice: practiceMode,
+            online: !!(onlineGameInfo && onlineGameInfo.gameType === "OnlineGame"),
+            watch: !!(onlineGameInfo && onlineGameInfo.watcher),
+            network: !!(playCapabilities && playCapabilities.network === true),
         });
     }
 
@@ -1385,7 +1431,52 @@
             canPlayAdvancedTools: canPlayAdvancedTools,
             positionSetup: positionSetupMode,
             gameActive: gameActive,
+            practice: practiceMode,
+            online: !!(onlineGameInfo && onlineGameInfo.gameType === "OnlineGame"),
+            watch: !!(onlineGameInfo && onlineGameInfo.watcher),
+            network: !!(playCapabilities && playCapabilities.network === true),
         });
+    }
+
+    function isNetworkSessionActive() {
+        return !!(
+            playOnlineMode ||
+            (onlineGameInfo && onlineGameInfo.gameType === "OnlineGame") ||
+            (playCapabilities && playCapabilities.network === true)
+        );
+    }
+
+    function clearOnlineSessionForLocalTools() {
+        if (playOnlineMode && typeof playOnlineMode.detach === "function") {
+            try {
+                playOnlineMode.detach();
+            } catch {
+                /* ignore */
+            }
+        }
+        playOnlineMode = null;
+        onlineGameInfo = null;
+        setOpponentConnectionLost(false);
+    }
+
+    function restoreModeAfterDockExit() {
+        if (!playGameSession || !game) {
+            return;
+        }
+        if (reviewMode && ReviewModeApi) {
+            attachPlayReviewMode();
+            return;
+        }
+        if (practiceMode && PracticeModeApi) {
+            attachPlayPracticeMode();
+            return;
+        }
+        if (isNetworkSessionActive()) {
+            return;
+        }
+        if (LocalEngineModeApi && gameActive !== false) {
+            attachPlayLocalEngineMode();
+        }
     }
 
     function exitConfigurationIfGameStarting() {
@@ -1393,6 +1484,7 @@
             return;
         }
         setConfigurationUi(false);
+        playConfigurationMode = null;
     }
 
     function exitConfigurationSilently() {
@@ -1400,6 +1492,7 @@
             return;
         }
         setConfigurationUi(false);
+        playConfigurationMode = null;
     }
 
     function enterReviewMode() {
@@ -1407,6 +1500,7 @@
         if (positionSetupMode) {
             Board.setSetupMode(false);
             setPositionSetupUi(false);
+            playPositionSetupMode = null;
         }
         reviewMode = true;
         attachPlayReviewMode();
@@ -3591,6 +3685,8 @@
         playOnlineMode = null;
         playReviewMode = null;
         playPracticeMode = null;
+        playPositionSetupMode = null;
+        playConfigurationMode = null;
         playCapabilities = null;
     }
 
@@ -3657,6 +3753,8 @@
         }
         practiceMode = false;
         playPracticeMode = null;
+        playPositionSetupMode = null;
+        playConfigurationMode = null;
         if (Board.setBothSidesHuman) {
             Board.setBothSidesHuman(false);
         }
@@ -3694,6 +3792,8 @@
         }
         practiceMode = true;
         playReviewMode = null;
+        playPositionSetupMode = null;
+        playConfigurationMode = null;
         if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
             playLocalEngineMode.abort();
         }
@@ -3717,6 +3817,70 @@
         }
         if (Board.setBothSidesHuman) {
             Board.setBothSidesHuman(true);
+        }
+        syncPrimaryGameButtonLabel();
+        updateMatchHeader();
+    }
+
+    function createPositionSetupMode() {
+        return PositionSetupModeApi.create({
+            onStatus: function (message, kind) {
+                showStatus(message, 0, kind || "info");
+            },
+        });
+    }
+
+    function attachPlayPositionSetupMode() {
+        if (!playGameSession || !PositionSetupModeApi) {
+            return;
+        }
+        playReviewMode = null;
+        playPracticeMode = null;
+        playConfigurationMode = null;
+        if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
+            playLocalEngineMode.abort();
+        }
+        playLocalEngineMode = null;
+        clearOnlineSessionForLocalTools();
+        playGameSession.setEngine(null);
+        if (!playPositionSetupMode) {
+            playPositionSetupMode = createPositionSetupMode();
+        }
+        playGameSession.attachMode(playPositionSetupMode);
+        if (typeof playPositionSetupMode.capabilities === "function") {
+            playCapabilities = playPositionSetupMode.capabilities();
+        }
+        syncPrimaryGameButtonLabel();
+        updateMatchHeader();
+    }
+
+    function createConfigurationMode() {
+        return ConfigurationModeApi.create({
+            onStatus: function (message, kind) {
+                showStatus(message, 0, kind || "info");
+            },
+        });
+    }
+
+    function attachPlayConfigurationMode() {
+        if (!playGameSession || !ConfigurationModeApi) {
+            return;
+        }
+        playReviewMode = null;
+        playPracticeMode = null;
+        playPositionSetupMode = null;
+        if (playLocalEngineMode && typeof playLocalEngineMode.abort === "function") {
+            playLocalEngineMode.abort();
+        }
+        playLocalEngineMode = null;
+        clearOnlineSessionForLocalTools();
+        playGameSession.setEngine(null);
+        if (!playConfigurationMode) {
+            playConfigurationMode = createConfigurationMode();
+        }
+        playGameSession.attachMode(playConfigurationMode);
+        if (typeof playConfigurationMode.capabilities === "function") {
+            playCapabilities = playConfigurationMode.capabilities();
         }
         syncPrimaryGameButtonLabel();
         updateMatchHeader();
@@ -4045,6 +4209,8 @@
         }
         practiceMode = false;
         playPracticeMode = null;
+        playPositionSetupMode = null;
+        playConfigurationMode = null;
         if (Board.setBothSidesHuman) {
             Board.setBothSidesHuman(false);
         }
@@ -4079,6 +4245,8 @@
         }
         practiceMode = false;
         playPracticeMode = null;
+        playPositionSetupMode = null;
+        playConfigurationMode = null;
         if (Board.setBothSidesHuman) {
             Board.setBothSidesHuman(false);
         }
@@ -4230,7 +4398,11 @@
             !!WsTransportApi;
         if (playGameSession && playGameSession.getGame() === game) {
             playGameSession.setHumanIsWhite(currentPlayerIsWhite);
-            playGameSession.setEngine(wantOnline || practiceMode ? null : Engine);
+            playGameSession.setEngine(
+                wantOnline || practiceMode || positionSetupMode || configurationMode
+                    ? null
+                    : Engine,
+            );
             playGameSession.setMeta(playSessionMetaFromShell());
             if (!playGameSession.isActive()) {
                 playGameSession.load({
@@ -4239,7 +4411,7 @@
                     meta: playSessionMetaFromShell(),
                 });
             }
-            if (!reviewMode) {
+            if (!reviewMode && !positionSetupMode && !configurationMode) {
                 if (wantOnline && !playOnlineMode) {
                     attachPlayOnlineMode(onlineGameInfo);
                 } else if (practiceMode && PracticeModeApi) {
@@ -4256,7 +4428,10 @@
         playGameSession = GameSessionApi.create({
             game: game,
             humanIsWhite: currentPlayerIsWhite,
-            engine: wantOnline || practiceMode ? null : Engine,
+            engine:
+                wantOnline || practiceMode || positionSetupMode || configurationMode
+                    ? null
+                    : Engine,
             meta: playSessionMetaFromShell(),
             clocks: {
                 onTurn: function (turn) {
@@ -4390,7 +4565,11 @@
             redoPairAvailable = false;
             onSessionNavChrome();
         });
-        if (wantOnline) {
+        if (positionSetupMode && PositionSetupModeApi) {
+            attachPlayPositionSetupMode();
+        } else if (configurationMode && ConfigurationModeApi) {
+            attachPlayConfigurationMode();
+        } else if (wantOnline) {
             attachPlayOnlineMode(onlineGameInfo);
         } else if (practiceMode && PracticeModeApi) {
             attachPlayPracticeMode();

@@ -17,6 +17,7 @@
         REVIEW: "review",
         WATCH: "watch",
         POSITION_SETUP: "positionSetup",
+        CONFIGURATION: "configuration",
     });
 
     const Contracts = {

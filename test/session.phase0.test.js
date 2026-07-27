@@ -19,6 +19,7 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(MODE_IDS.REVIEW, "review");
         assert.strictEqual(MODE_IDS.WATCH, "watch");
         assert.strictEqual(MODE_IDS.POSITION_SETUP, "positionSetup");
+        assert.strictEqual(MODE_IDS.CONFIGURATION, "configuration");
     });
 
     it("localEngine capabilities match single-player Play shell intent", function () {
@@ -53,6 +54,23 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.engine, false);
         assert.strictEqual(caps.network, false);
         assert.strictEqual(caps.reviewNav, false);
+    });
+
+    it("positionSetup capabilities allow setup only", function () {
+        const caps = getModeCapabilities(MODE_IDS.POSITION_SETUP);
+        assert.strictEqual(caps.positionSetup, true);
+        assert.strictEqual(caps.brainConfig, false);
+        assert.strictEqual(caps.engine, false);
+        assert.strictEqual(caps.network, false);
+        assert.strictEqual(caps.resign, false);
+    });
+
+    it("configuration capabilities allow brainConfig only", function () {
+        const caps = getModeCapabilities(MODE_IDS.CONFIGURATION);
+        assert.strictEqual(caps.brainConfig, true);
+        assert.strictEqual(caps.positionSetup, false);
+        assert.strictEqual(caps.engine, false);
+        assert.strictEqual(caps.network, false);
     });
 
     it("unknown mode returns all-false capabilities", function () {

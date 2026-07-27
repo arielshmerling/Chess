@@ -99,6 +99,45 @@ describe("play-ui session mode", function () {
                 false,
             );
         });
+
+        it("blocks practice, online, watch, and network sessions", function () {
+            assert.strictEqual(
+                SessionMode.canUsePositionSetup({
+                    canPlayAdvancedTools: true,
+                    hasGame: true,
+                    moveCount: 0,
+                    practice: true,
+                }),
+                false,
+            );
+            assert.strictEqual(
+                SessionMode.canUsePositionSetup({
+                    canPlayAdvancedTools: true,
+                    hasGame: true,
+                    gameOver: true,
+                    online: true,
+                }),
+                false,
+            );
+            assert.strictEqual(
+                SessionMode.canUsePositionSetup({
+                    canPlayAdvancedTools: true,
+                    hasGame: true,
+                    moveCount: 0,
+                    watch: true,
+                }),
+                false,
+            );
+            assert.strictEqual(
+                SessionMode.canUsePositionSetup({
+                    canPlayAdvancedTools: true,
+                    hasGame: true,
+                    moveCount: 0,
+                    network: true,
+                }),
+                false,
+            );
+        });
     });
 
     describe("canUseBrainConfig", function () {
@@ -126,6 +165,25 @@ describe("play-ui session mode", function () {
                     gameActive: false,
                 }),
                 true,
+            );
+        });
+
+        it("blocks practice and online/watch sessions", function () {
+            assert.strictEqual(
+                SessionMode.canUseBrainConfig({
+                    canPlayAdvancedTools: true,
+                    gameActive: false,
+                    practice: true,
+                }),
+                false,
+            );
+            assert.strictEqual(
+                SessionMode.canUseBrainConfig({
+                    canPlayAdvancedTools: true,
+                    gameActive: false,
+                    online: true,
+                }),
+                false,
             );
         });
     });
