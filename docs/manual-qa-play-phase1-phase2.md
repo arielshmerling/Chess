@@ -1046,6 +1046,39 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ---
 
+## Phase 8 — Mobile session package (slice 1: review)
+
+### 8.1 — Mobile history review uses ReviewMode
+
+**Steps**
+1. On a phone UA (or narrow window), open Home → a finished game → `/mobile-review?type=history&id=…`.
+2. Use start / prev / next / end / play on the review toolbar.
+3. Open the moves sheet and jump around if available.
+
+**Expect**
+- Page still uses mobile CSS (not desktop `/play`).
+- In the browser console, `window.__SHMERLING_MOBILE_REVIEW_SESSION__` is set after load.
+- Ply nav works; board and clocks update; pieces are not playable.
+- Desktop Prefer-Play still uses `/play?mode=review` (unchanged).
+
+### 8.2 — Classic mobile game path unchanged
+
+**Steps**
+1. Start a mobile SP or online game via `/mobile-game`.
+
+**Expect**
+- Still classic `chessboard.js` (no session ReviewMode attach).
+- `/mobile-review` remains the only Phase 8 consumer for now.
+
+### Phase 8 remaining
+
+- [x] Thin ReviewMode adapter on `/mobile-review`
+- [ ] Mobile SP LocalEngineMode
+- [ ] Mobile OnlineMode
+- [ ] Mobile watch shell (today still classic `game.ejs`)
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -1062,4 +1095,5 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 | Phase 5 (watch slice) result | Pass / Fail |
 | Phase 6 (practice slice) result | Pass / Fail |
 | Phase 7 (setup/config) result | Pass / Fail |
+| Phase 8 (mobile review) result | Pass / Fail |
 | Notes | |

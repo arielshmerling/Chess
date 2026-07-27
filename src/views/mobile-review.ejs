@@ -45,6 +45,15 @@
 
   <div id="gameNav" class="gameNav mobile-review-game-nav" role="toolbar" aria-label="Replay navigation"></div>
 
+  <!-- Phase 8: shared session package for ReviewMode (mobile CSS/DOM stay separate). -->
+  <script src="/app/session/eventBus.js"></script>
+  <script src="/app/session/contracts.js"></script>
+  <script src="/app/session/capabilities.js"></script>
+  <script src="/app/session/gameSession.js"></script>
+  <script src="/app/play-ui/review-model.js"></script>
+  <script src="/app/session/reviewMode.js"></script>
+  <script src="/app/mobile/mobile-session-review.js"></script>
+
   <div id="mobileMovesPanel" class="mobile-moves-panel" aria-hidden="true">
     <div class="mobile-moves-panel__backdrop" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-hidden="true"></div>
     <div class="mobile-moves-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="mobileMovesPanelTitle">
