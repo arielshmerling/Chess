@@ -144,8 +144,8 @@
         const localEngineMode = global.ShmerlingLocalEngineMode.create({
             autoRunOnAttach: false,
             canRun: function () {
+                /* Do not read window.animating — chessboard keeps animating as a let binding. */
                 return !(
-                    global.animating ||
                     global.dialogOn ||
                     (game && game.GameOver)
                 );
@@ -157,9 +157,10 @@
                     humanIsWhite: humanIsWhite,
                 });
             },
-            onStatus: function (message) {
-                if (typeof global.displayMessage === "function" && message) {
-                    global.displayMessage(String(message), 2500);
+            onStatus: function (message, kind) {
+                /* Mobile board flash is full-screen — only surface errors, not "Engine thinking…". */
+                if (kind === "error" && typeof global.displayMessage === "function" && message) {
+                    global.displayMessage(String(message), 3000);
                 }
             },
         });
@@ -176,16 +177,22 @@
             },
         });
 
+        function runEngineAfterHumanMove() {
+            if (localEngineMode && typeof localEngineMode.maybeRunEngine === "function") {
+                return localEngineMode.maybeRunEngine("afterHumanMove");
+            }
+            return null;
+        }
+
+        /* Direct hook from chessboard tryMove (more reliable than wrapping sendMove alone). */
+        global.__SHMERLING_AFTER_HUMAN_MOVE__ = runEngineAfterHumanMove;
+
         if (typeof global.sendMove === "function") {
             originalSendMove = global.sendMove;
             wrappedSendMove = true;
             global.sendMove = async function (moveObj) {
                 const result = await originalSendMove.apply(this, arguments);
-                Promise.resolve().then(function () {
-                    if (localEngineMode && typeof localEngineMode.maybeRunEngine === "function") {
-                        return localEngineMode.maybeRunEngine("afterHumanMove");
-                    }
-                });
+                Promise.resolve().then(runEngineAfterHumanMove);
                 return result;
             };
         }
@@ -195,6 +202,13 @@
         });
 
         function dispose() {
+            if (global.__SHMERLING_AFTER_HUMAN_MOVE__ === runEngineAfterHumanMove) {
+                try {
+                    delete global.__SHMERLING_AFTER_HUMAN_MOVE__;
+                } catch {
+                    global.__SHMERLING_AFTER_HUMAN_MOVE__ = null;
+                }
+            }
             if (wrappedSendMove && originalSendMove) {
                 global.sendMove = originalSendMove;
             }
@@ -228,7 +242,11 @@
 
         try {
             if (typeof global.animateMove === "function") {
-                await global.animateMove(move);
+                try {
+                    await global.animateMove(move, { skipFinalSync: true });
+                } catch (animErr) {
+                    /* Apply move even if animation cannot run (missing img, etc.). */
+                }
             }
 
             let moveObj;
@@ -320,21 +338,18 @@
         if (!isMobileGamePage() || !sessionApisReady()) {
             return;
         }
-        let tries = 0;
-        const maxTries = 200;
-        const handle = setInterval(function () {
-            tries += 1;
+
+        function tryAttach() {
+            if (global.__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__) {
+                return true;
+            }
             const gameInfo = global.gameInfo;
             const game = global.game;
             if (!game || !gameInfo || !gameInfo.gameType) {
-                if (tries >= maxTries) {
-                    clearInterval(handle);
-                }
-                return;
+                return false;
             }
-            clearInterval(handle);
             if (!shouldAttach(gameInfo)) {
-                return;
+                return false;
             }
             const bridge = attach({
                 game: game,
@@ -343,9 +358,26 @@
             });
             if (!bridge) {
                 console.warn("[MobileSessionLocalEngine] Could not attach LocalEngineMode");
-                return;
+                return false;
             }
             global.__SHMERLING_MOBILE_LOCAL_ENGINE_SESSION__ = bridge;
+            console.log("[MobileSessionLocalEngine] LocalEngineMode attached");
+            return true;
+        }
+
+        if (typeof global.document !== "undefined") {
+            global.document.addEventListener("shmerling-chessboard-ready", function onReady() {
+                tryAttach();
+            });
+        }
+
+        let tries = 0;
+        const maxTries = 200;
+        const handle = setInterval(function () {
+            tries += 1;
+            if (tryAttach() || tries >= maxTries) {
+                clearInterval(handle);
+            }
         }, 100);
     }
 

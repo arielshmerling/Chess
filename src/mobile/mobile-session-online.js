@@ -149,7 +149,11 @@
             }
 
             if (typeof global.animateMove === "function") {
-                await global.animateMove(adjusted);
+                try {
+                    await global.animateMove(adjusted, { skipFinalSync: true });
+                } catch (animErr) {
+                    /* Apply move even if animation cannot run (missing img, etc.). */
+                }
             }
 
             let moveObj;
@@ -520,32 +524,22 @@
         if (!isMobileGamePage() || !sessionApisReady()) {
             return;
         }
-        let tries = 0;
-        const maxTries = 200;
-        const handle = setInterval(function () {
-            tries += 1;
+
+        function tryAttach() {
+            if (global.__SHMERLING_MOBILE_ONLINE_SESSION__) {
+                return true;
+            }
             const gameInfo = global.gameInfo;
             const game = global.game;
             if (!game || !gameInfo || !gameInfo.gameType) {
-                if (tries >= maxTries) {
-                    clearInterval(handle);
-                }
-                return;
+                return false;
             }
             if (!shouldAttach(gameInfo)) {
-                clearInterval(handle);
-                return;
+                return "skip";
             }
             /* Wait until classic deferred the socket (or rematch pending). */
-            if (
-                !global.__SHMERLING_PENDING_MOBILE_ONLINE__ &&
-                tries < 30
-            ) {
-                return;
-            }
-            clearInterval(handle);
-            if (global.__SHMERLING_MOBILE_ONLINE_SESSION__) {
-                return;
+            if (!global.__SHMERLING_PENDING_MOBILE_ONLINE__) {
+                return false;
             }
             const bridge = attach({
                 game: game,
@@ -555,9 +549,27 @@
             });
             if (!bridge) {
                 console.warn("[MobileSessionOnline] Could not attach OnlineMode");
-                return;
+                return false;
             }
             global.__SHMERLING_MOBILE_ONLINE_SESSION__ = bridge;
+            console.log("[MobileSessionOnline] OnlineMode attached");
+            return true;
+        }
+
+        if (typeof global.document !== "undefined") {
+            global.document.addEventListener("shmerling-chessboard-ready", function () {
+                tryAttach();
+            });
+        }
+
+        let tries = 0;
+        const maxTries = 200;
+        const handle = setInterval(function () {
+            tries += 1;
+            const result = tryAttach();
+            if (result === true || result === "skip" || tries >= maxTries) {
+                clearInterval(handle);
+            }
         }, 100);
     }
 

@@ -28,6 +28,28 @@ let gameMoves = { moves: [] };
 let bookmarks = [];
 let autoCompletePromotion = false;
 let animating = false;
+
+/**
+ * Mobile session adapters read window.game / window.gameInfo. Top-level `let`
+ * bindings are not window properties, so publish explicitly after updates.
+ */
+function publishChessboardGlobals() {
+    if (typeof window === "undefined") {
+        return;
+    }
+    window.game = game;
+    window.gameInfo = gameInfo;
+    window.currentPlayerIsWhite = currentPlayerIsWhite;
+    window.gameMoves = gameMoves;
+    window.lastMove = lastMove;
+    window.gameType = gameType;
+    window.whiteTimer = whiteTimer;
+    window.blackTimer = blackTimer;
+    window.whiteHandle = whiteHandle;
+    window.blackHandle = blackHandle;
+    window.dialogOn = dialogOn;
+    window.animating = animating;
+}
 let pause = false;
 let draggedImage, offsetX, offsetY, chessboard, coordX, coordY, sourcePosition, targetPosition;
 let currentEditingBookmark = null;
@@ -439,6 +461,7 @@ window.onload = function () {
         window.location.pathname == "/mobile-review" ||
         window.location.pathname == "/research") {
         game = new ChessGame();
+        publishChessboardGlobals();
         createGUIBoard();
         const mainEl = document.getElementById("main");
         const isResearchMode = mainEl && mainEl.getAttribute("data-research-mode") === "true";
@@ -664,20 +687,37 @@ async function stopDrag() {
 async function tryMove(sourcePos, targetPos) {
     const moveObj = game.validateMove(sourcePos, targetPos, game.Turn);
     if (moveObj.valid) {
-        const executed = game.makeMove(sourcePos, targetPos);
+        let executed;
+        try {
+            executed = game.makeMove(sourcePos, targetPos);
+        } catch (err) {
+            console.error("[chessboard] makeMove failed during tryMove:", err);
+            /* Soft-patch may have thrown inside OnUpdate; recover board and continue if move applied. */
+            try {
+                const state = game.GameState;
+                if (state && state.board) {
+                    drawBoard(state.board);
+                }
+            } catch (drawErr) {
+                console.error(drawErr);
+            }
+            executed = game.Moves && game.Moves.length ? game.Moves[game.Moves.length - 1] : null;
+            if (!executed) {
+                return false;
+            }
+        }
         lastMove = executed;
         switchClocks();
         await sendMove(executed);
-        const state = game.GameState;
-        if (state && state.board) {
-            drawBoard(state.board);
-            if (state.capturedPiecesList) {
-                updateCaptureLists(state.capturedPiecesList);
-            }
-            if (gameInfo.mousePreference === "double") {
-                applyMousePreference("double");
-            }
+        /* Prefer-Play / mobile LocalEngineMode: reliable after-move hook (sendMove wrap alone is brittle). */
+        if (typeof window !== "undefined" && typeof window.__SHMERLING_AFTER_HUMAN_MOVE__ === "function") {
+            Promise.resolve().then(function () {
+                return window.__SHMERLING_AFTER_HUMAN_MOVE__(executed);
+            }).catch(function (hookErr) {
+                console.warn("[chessboard] after-human-move hook failed:", hookErr);
+            });
         }
+        /* Board paint comes from OnUpdate → patchBoardFromState (avoid a second full wipe). */
         gameMoves = await getMovesForTable();
         updateMovesTable(gameMoves.moves);
         moveIndex = gameMoves.moves ? gameMoves.moves.length : 0;
@@ -742,6 +782,7 @@ async function startGame(isRematch) {
     //console.log(gameInfo);
     gameType = gameInfo.gameType;
     currentPlayerIsWhite = gameInfo.username == gameInfo.whitePlayerName;
+    publishChessboardGlobals();
 
     registerGameEvents();
     resetAlerts();
@@ -832,6 +873,12 @@ async function startGame(isRematch) {
         }
     }
     await applyBookmarkFromUrlIfPresent();
+    publishChessboardGlobals();
+    try {
+        document.dispatchEvent(new CustomEvent("shmerling-chessboard-ready"));
+    } catch {
+        /* ignore */
+    }
 }
 
 async function applyBookmarkFromUrlIfPresent() {
@@ -1861,6 +1908,96 @@ function drawBoard(board) {
 }
 
 /**
+ * True when the square's current <img> already matches `piece` (or both empty).
+ * Used to avoid wiping/recreating every piece image on each move (mobile blink).
+ * Compares by piece filename so relative vs absolute / themed vs legacy URLs still match.
+ */
+function pieceMatchesSquareCell(cell, piece) {
+    const img = cell && cell.querySelector("img");
+    if (!piece) {
+        return !img;
+    }
+    if (!img) {
+        return false;
+    }
+    const url = getImageUrl(piece);
+    if (!url) {
+        return false;
+    }
+    const srcAttr = img.getAttribute("src") || "";
+    if (srcAttr === url) {
+        return true;
+    }
+    if (img.src && img.src.indexOf(url) !== -1) {
+        return true;
+    }
+    /* Basename match: ".../black-pawn.png" vs "images/black-pawn.png" */
+    const wanted = String(url).split("/").pop();
+    const have = String(srcAttr || img.src || "").split("/").pop();
+    return !!(wanted && have && wanted === have);
+}
+
+/**
+ * Incremental board paint: only rebuild squares whose piece actually changed.
+ */
+function patchBoardFromState(board) {
+    if (!board || !guiBoard[0] || guiBoard[0][0] == null) {
+        return;
+    }
+    if (typeof syncWebPieceUrlArrays === "function") {
+        syncWebPieceUrlArrays();
+    }
+    let changed = false;
+    for (let i = 0; i < game.BOARD_ROWS; i++) {
+        for (let j = 0; j < game.BOARD_COLUMNS; j++) {
+            const div = findSquareDivElement(i, j);
+            if (!div) {
+                continue;
+            }
+            if (pieceMatchesSquareCell(div, board[i][j])) {
+                continue;
+            }
+            changed = true;
+            div.innerHTML = "";
+            const url = getImageUrl(board[i][j]);
+            if (url) {
+                placePiece(url, i, j);
+            }
+        }
+    }
+    if (changed) {
+        if (shouldUseTapToMoveOnTouchShell() && typeof gameInfo !== "undefined" && gameInfo) {
+            applyMousePreference(gameInfo.mousePreference || "drag");
+        } else if (typeof gameInfo !== "undefined" && gameInfo && gameInfo.mousePreference === "double") {
+            applyMousePreference("double");
+        }
+    }
+    applyCheckedKingSquareHighlight();
+}
+
+/**
+ * After animating a remote/engine move, leave the piece on the target square so
+ * the following makeMove soft-patch does not recreate all images.
+ */
+function settleAnimatedPieceOnTarget(move, img) {
+    if (!move || !img || !move.target) {
+        return;
+    }
+    const targetDiv = findSquareDivElement(move.target.row, move.target.col);
+    if (!targetDiv) {
+        return;
+    }
+    img.style.position = "relative";
+    img.style.marginLeft = "0px";
+    img.style.marginTop = "0px";
+    img.style.left = "0px";
+    img.style.top = "0px";
+    img.style.zIndex = "";
+    targetDiv.innerHTML = "";
+    targetDiv.appendChild(img);
+}
+
+/**
  * Highlights the king square of the side to move when that side is in check (including checkmate).
  */
 function applyCheckedKingSquareHighlight() {
@@ -1900,7 +2037,7 @@ function applyCheckedKingSquareHighlight() {
 function syncBoardFromGameStateOnly() {
     const state = game.GameState;
     if (state && state.board) {
-        drawBoard(state.board);
+        patchBoardFromState(state.board);
         updateCaptureLists(state.capturedPiecesList || []);
     }
     if (typeof gameInfo !== "undefined" && gameInfo && gameInfo.mousePreference === "double") {
@@ -2117,12 +2254,16 @@ function createPiece(url) {
 function updateCaptureLists(captured) {
     const divWhite = document.getElementById("whiteCapturedPiece");
     const divBlack = document.getElementById("blackCapturedPiece");
+    if (!divWhite || !divBlack) {
+        return;
+    }
 
     divWhite.innerHTML = "";
     divBlack.innerHTML = "";
 
-    for (let i = 0; i < captured.length; i++) {
-        const element = captured[i];
+    const list = Array.isArray(captured) ? captured : [];
+    for (let i = 0; i < list.length; i++) {
+        const element = list[i];
         if (element.color == "white") {
             addPiecesImages(divWhite, element);
         }
@@ -2771,12 +2912,24 @@ function messageBox(text, yesCallback, noCallback) {
  */
 async function onUpdateReceivedEventHandler(gameState) {
     drag = false;
-    const { board, capturedPiecesList } = gameState;
-    drawBoard(board);
-    if (gameInfo.mousePreference === "double") {
-        applyMousePreference("double");
+    try {
+        const board = gameState && gameState.board;
+        const capturedPiecesList = gameState && gameState.capturedPiecesList;
+        if (board) {
+            patchBoardFromState(board);
+        }
+        updateCaptureLists(capturedPiecesList);
+    } catch (paintErr) {
+        console.error("[chessboard] soft board patch failed; falling back to drawBoard:", paintErr);
+        try {
+            if (gameState && gameState.board) {
+                drawBoard(gameState.board);
+                updateCaptureLists(gameState.capturedPiecesList);
+            }
+        } catch (drawErr) {
+            console.error("[chessboard] drawBoard fallback failed:", drawErr);
+        }
     }
-    updateCaptureLists(capturedPiecesList);
 
     if (gameInfo.mode != "review") {
         gameMoves = await getMovesForTable();
@@ -2985,26 +3138,47 @@ function updateMovesTable(moves) {
 
 }
 
-async function animateMove(move) {
+async function animateMove(move, options) {
+    const opts = options || {};
+    const skipFinalSync = opts.skipFinalSync === true;
 
     return new Promise((resolve, reject) => {
         animating = true;
         const speed = 20;
 
+        function finishOk() {
+            animating = false;
+            resolve();
+        }
+
+        function finishFail(err) {
+            animating = false;
+            reject(err);
+        }
+
         if (move) {
             clearArrows();
 
             const divMoveTarget = findSquareDivElement(move.source.row, move.source.col);
-            const img = divMoveTarget.childNodes[0];
+            const img = divMoveTarget && divMoveTarget.querySelector
+                ? divMoveTarget.querySelector("img")
+                : (divMoveTarget && divMoveTarget.childNodes[0]);
             if (!img) {
-                syncBoardFromGameStateOnly();
-                animating = false;
-                reject();
+                /*
+                 * With skipFinalSync the caller applies makeMove next; resolve so the
+                 * engine/opponent move is not dropped when the img node is missing.
+                 */
+                if (skipFinalSync) {
+                    finishOk();
+                } else {
+                    syncBoardFromGameStateOnly();
+                    finishFail();
+                }
                 return;
 
             }
-            const squareWidth = divMoveTarget.offsetWidth;
-            const squareHeight = divMoveTarget.offsetWidth;
+            const squareWidth = divMoveTarget.offsetWidth || 0;
+            const squareHeight = divMoveTarget.offsetWidth || 0;
             const horizontalDistance = (move.target.col - move.source.col) * squareWidth;
             const verticallDistance = (move.target.row - move.source.row) * squareHeight;
             const verticalSteps = verticallDistance / speed;
@@ -3016,28 +3190,49 @@ async function animateMove(move) {
             img.style.zIndex = "2";
             img.style.position = "absolute";
 
+            /* Zero-size board or null move: skip tween and settle/sync immediately. */
+            if (!squareWidth || (horizontalDistance === 0 && verticallDistance === 0)) {
+                if (skipFinalSync) {
+                    settleAnimatedPieceOnTarget(move, img);
+                } else {
+                    img.style.position = "relative";
+                    img.style.marginLeft = "0px";
+                    img.style.marginTop = "0px";
+                    syncBoardFromGameStateOnly();
+                }
+                finishOk();
+                return;
+            }
+
+            let ticks = 0;
+            const maxTicks = 120;
             const interval = setInterval(() => {
+                ticks += 1;
                 left += horizontalSteps;
                 top += verticalSteps;
                 img.style.marginLeft = left + "px";
                 img.style.marginTop = top + "px";
 
-                if (Math.abs(left - horizontalDistance * 2) < 1
-                    && Math.abs(top - verticallDistance * 2) < 1) {
+                const reached =
+                    Math.abs(left - horizontalDistance * 2) < 1 &&
+                    Math.abs(top - verticallDistance * 2) < 1;
+                if (reached || ticks >= maxTicks) {
                     clearInterval(interval);
-                    img.style.position = "relative";
-                    img.style.marginLeft = "0px";
-                    img.style.marginTop = "0px";
-                    syncBoardFromGameStateOnly();
-                    animating = false;
-                    resolve();
+                    if (skipFinalSync) {
+                        settleAnimatedPieceOnTarget(move, img);
+                    } else {
+                        img.style.position = "relative";
+                        img.style.marginLeft = "0px";
+                        img.style.marginTop = "0px";
+                        syncBoardFromGameStateOnly();
+                    }
+                    finishOk();
                 }
             }
                 , 2);
         }
         else {
-            animating = false;
-            reject("error");
+            finishFail("error");
         }
     });
 }
@@ -3304,13 +3499,17 @@ function startWebSockets(username, isWhite, isWatcher) {
                     return;
                 }
                 else {
-                    await animateMove(move);
+                    try {
+                        await animateMove(move, { skipFinalSync: true });
+                    } catch (animErr) { /* apply below */ }
                     moveObj = game.makeMove(move.source, move.target);
                     game.completePromotion(move);
                 }
             }
             else {
-                await animateMove(move);
+                try {
+                    await animateMove(move, { skipFinalSync: true });
+                } catch (animErr) { /* apply below */ }
                 moveObj = game.makeMove(move.source, move.target);
             }
 
@@ -4678,7 +4877,7 @@ async function showMoveForReview(move, animnate, plyIndexZeroBased) {
     }
 
 
-    if (animnate) { await animateMove(move); }
+    if (animnate) { await animateMove(move, { skipFinalSync: true }); }
 
     game.makeMove(move.source, move.target);
     if (move.promotion) {

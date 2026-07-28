@@ -1270,7 +1270,27 @@ strong { font-weight: 600; }
 <td>Phase 9 optional</td>
 <td>prefs/themes adapters; remove legacy <code>runEngineMove</code> fallback in <code>desktop-play.js</code></td>
 </tr>
+<tr>
+<td>Mobile board blink (fixed)</td>
+<td>Soft <code>patchBoardFromState</code> + <code>animateMove({ skipFinalSync })</code> so moves don’t wipe all 64 squares</td>
+</tr>
 </tbody></table>
+<hr>
+<h2 id="mobile-board-polish--no-full-board-blink-after-moves">Mobile board polish — no full-board blink after moves</h2>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Restart server; hard-refresh <code>/mobile-game</code> (or open a mobile UA game).</li>
+<li>Play a move as human; wait for engine/opponent reply (with animation).</li>
+<li>Play several more moves (including a capture if easy).</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Board does <strong>not</strong> flash / fully refresh after each move.</li>
+<li>Pieces update in place; opponent/engine animation settles without a snap-back blink.</li>
+<li>Clocks, captures, and moves list still update normally.</li>
+<li>Brain replies on every turn (not only the first); no “Something went wrong” after the engine’s first move.</li>
+<li>No full-board “Engine thinking…” flash (errors may still flash).</li>
+</ul>
 <hr>
 <h2 id="phase-9--desktop-adapters-slice-1-brain-engineport">Phase 9 — Desktop adapters (slice 1: brain EnginePort)</h2>
 <h3 id="91--web-play-still-uses-http-brain">9.1 — Web Play still uses HTTP brain</h3>
@@ -1342,7 +1362,7 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <ul>
 <li><input checked="" disabled="" type="checkbox"> Soft Prefer-Play redirects <code>/game</code> → <code>/play</code> (+ <code>classic=1</code> escape)</li>
 <li><input checked="" disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Prefer-Play accept → <code>/play?id=</code> without classic hop)</li>
-<li><input disabled="" type="checkbox"> Redirect or migrate remaining SP <code>?id=</code> reopen (needs <code>/play</code> server-SP hydrate)</li>
+<li><input checked="" disabled="" type="checkbox"> <strong>Won’t do:</strong> migrate SP <code>/game?id=</code> reopen to <code>/play</code> (rare; Prefer-Play SP is client LocalEngineMode; classic reopen stays on <code>/game</code>)</li>
 <li><input disabled="" type="checkbox"> After parity sign-off: remove <code>/game</code> play render + retire <code>chessboard.js</code> play path</li>
 <li><input disabled="" type="checkbox"> Short public deprecation notice / final cutover</li>
 </ul>

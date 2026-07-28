@@ -1119,6 +1119,23 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 |---|---|
 | Mobile watch visual polish | `/watch` should consistently use mobile-game shell CSS on phones; today session wiring works but look may still be classic web UI |
 | Phase 9 optional | prefs/themes adapters; remove legacy `runEngineMove` fallback in `desktop-play.js` |
+| Mobile board blink (fixed) | Soft `patchBoardFromState` + `animateMove({ skipFinalSync })` so moves don’t wipe all 64 squares |
+
+---
+
+## Mobile board polish — no full-board blink after moves
+
+**Steps**
+1. Restart server; hard-refresh `/mobile-game` (or open a mobile UA game).
+2. Play a move as human; wait for engine/opponent reply (with animation).
+3. Play several more moves (including a capture if easy).
+
+**Expect**
+- Board does **not** flash / fully refresh after each move.
+- Pieces update in place; opponent/engine animation settles without a snap-back blink.
+- Clocks, captures, and moves list still update normally.
+- Brain replies on every turn (not only the first); no “Something went wrong” after the engine’s first move.
+- No full-board “Engine thinking…” flash (errors may still flash).
 
 ---
 
@@ -1192,7 +1209,7 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 
 - [x] Soft Prefer-Play redirects `/game` → `/play` (+ `classic=1` escape)
 - [x] Resolve `/play` joinGame bounce (Prefer-Play accept → `/play?id=` without classic hop)
-- [ ] Redirect or migrate remaining SP `?id=` reopen (needs `/play` server-SP hydrate)
+- [x] **Won’t do:** migrate SP `/game?id=` reopen to `/play` (rare; Prefer-Play SP is client LocalEngineMode; classic reopen stays on `/game`)
 - [ ] After parity sign-off: remove `/game` play render + retire `chessboard.js` play path
 - [ ] Short public deprecation notice / final cutover
 

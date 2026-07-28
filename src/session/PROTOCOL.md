@@ -46,13 +46,15 @@ Mobile watch **visual** shell polish deferred.
 `createEnginePort`); session core stays fetch-free. Optional prefs leftovers deferred.
 
 **Phase 10 (slice 1 done):** Prefer-Play soft-redirects `/game` → `/play`
-(via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`. SP `?id=` reopen
-stays classic.
+(via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`.
 
-**Phase 10 (slice 2):** Prefer-Play friend accept navigates to `/play?id=`
-(no `/game?joinGame=` hop). `/play?joinGame=` opens OnlineMode by id.
-Unjoined deep-link `/game?joinGame=` still uses classic join, then Prefer-Play
-redirects when already joined.
+**Phase 10 (slice 2 done):** Prefer-Play friend accept → `/play?id=`;
+`/play?joinGame=` opens OnlineMode by id. Unjoined deep-link `/game?joinGame=`
+still uses classic join when needed.
+
+**Phase 10 decision:** Do **not** migrate classic SP `/game?id=` reopen to
+`/play` (rare; Prefer-Play SP is client LocalEngineMode). Keep that path on
+classic until final cutover. Do not delete `chessboard.js` yet.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

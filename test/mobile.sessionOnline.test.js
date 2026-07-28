@@ -62,4 +62,39 @@ describe("mobile session online adapter", function () {
         assert.strictEqual(typeof clocks.white, "number");
         assert.strictEqual(typeof clocks.black, "number");
     });
+
+    it("applyClassicRemoteMove animates with skipFinalSync", async function () {
+        const animateOpts = [];
+        const prevAnimate = global.animateMove;
+        const prevAdjust = global.adjustIncomingNetworkMoveForBoardView;
+        global.animateMove = async function (_move, opts) {
+            animateOpts.push(opts || null);
+        };
+        global.adjustIncomingNetworkMoveForBoardView = function (m) {
+            return m;
+        };
+        try {
+            const move = {
+                source: { row: 6, col: 4 },
+                target: { row: 4, col: 4 },
+            };
+            const game = {
+                GameOver: false,
+                makeMove: function () {
+                    return move;
+                },
+            };
+            const ok = await MobileSessionOnline.applyClassicRemoteMove(move, {
+                game: game,
+                gameInfo: { id: "g1" },
+                humanIsWhite: true,
+            });
+            assert.strictEqual(ok, true);
+            assert.strictEqual(animateOpts.length, 1);
+            assert.deepStrictEqual(animateOpts[0], { skipFinalSync: true });
+        } finally {
+            global.animateMove = prevAnimate;
+            global.adjustIncomingNetworkMoveForBoardView = prevAdjust;
+        }
+    });
 });

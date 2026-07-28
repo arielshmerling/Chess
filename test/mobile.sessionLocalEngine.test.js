@@ -64,6 +64,47 @@ describe("mobile session local-engine adapter", function () {
         game.WhitePlayerView = true;
         assert.strictEqual(MobileSessionLocalEngine.toServerWhiteViewMove(move, game), move);
     });
+
+    it("applyClassicEngineMove animates with skipFinalSync", async function () {
+        const animateOpts = [];
+        const prevAnimate = global.animateMove;
+        global.animateMove = async function (_move, opts) {
+            animateOpts.push(opts || null);
+        };
+        try {
+            const move = {
+                source: { row: 1, col: 4 },
+                target: { row: 3, col: 4 },
+            };
+            const game = {
+                GameOver: false,
+                WhitePlayerView: true,
+                makeMove: function () {
+                    return move;
+                },
+            };
+            const ok = await MobileSessionLocalEngine.applyClassicEngineMove(move, {
+                game: game,
+                gameInfo: { id: "g1", userId: "u1", username: "tester" },
+                humanIsWhite: true,
+            });
+            assert.strictEqual(ok, true);
+            assert.strictEqual(animateOpts.length, 1);
+            assert.deepStrictEqual(animateOpts[0], { skipFinalSync: true });
+        } finally {
+            global.animateMove = prevAnimate;
+        }
+    });
+
+    it("shouldAttach requires published window gameInfo.clientEngine", function () {
+        assert.strictEqual(
+            MobileSessionLocalEngine.shouldAttach({
+                gameType: "SinglePlayerGame",
+                clientEngine: true,
+            }),
+            true,
+        );
+    });
 });
 
 describe("SinglePlayerGame clientEngine", function () {
@@ -146,5 +187,33 @@ describe("SinglePlayerGame clientEngine", function () {
             },
         });
         assert.strictEqual(result.ok, true);
+    });
+
+    it("process(cmd clientEngineMove) keeps processor this binding", async function () {
+        const processor = new SinglePlayerMessageProcessor();
+        let called = 0;
+        const game = {
+            usesClientEngine: function () {
+                return true;
+            },
+            startedOn: null,
+            lastMoveOn: null,
+            chessGame: { GameOver: false },
+            handleMove: async function () {
+                called += 1;
+                return { valid: true, moveStr: "e5" };
+            },
+            updateLastMoveTime: function () {},
+            sendMoveToWatchers: function () {},
+            sendMessage: function () {},
+        };
+        await processor.process(game, {
+            type: "cmd",
+            info: "clientEngineMove",
+            gameId: "bbbbbbbbbbbbbbbbbbbbbbbb",
+            isWhite: false,
+            data: { source: { row: 1, col: 4 }, target: { row: 3, col: 4 } },
+        });
+        assert.strictEqual(called, 1);
     });
 });
