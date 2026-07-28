@@ -18,6 +18,21 @@
         return global.ShmerlingSessionCapabilities || null;
     }
 
+    function loadT() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("../strings/t-bridge").t;
+            } catch {
+                /* fall through */
+            }
+        }
+        return typeof global.ShmerlingT === "function" ? global.ShmerlingT : function (key) {
+            return key;
+        };
+    }
+
+    const t = loadT();
+
     function loadContracts() {
         if (typeof module === "object" && module && module.exports) {
             try {
@@ -87,7 +102,7 @@
             if (session && typeof session.emit === "function") {
                 session.emit("capabilitiesChanged", capabilities());
             }
-            status("Position setup — place pieces on the board", "info");
+            status(t("session.positionSetupPlacePieces"), "info");
         }
 
         function detach() {

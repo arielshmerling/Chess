@@ -9,8 +9,17 @@
 (function (global) {
     "use strict";
 
-    const UNKNOWN_PLAYERS = { white: "White", black: "Black" };
-    const DEFAULT_ENGINE_NAME = "Engine";
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
+    const UNKNOWN_PLAYERS = { white: t("common.white"), black: t("common.black") };
+    const DEFAULT_ENGINE_NAME = t("common.engine");
     const DEFAULT_ENGINE_ID = "brain43";
 
     /**
@@ -110,9 +119,11 @@
     function formatTurn(entry) {
         const turn = turnFromEntry(entry);
         if (!turn) {
-            return "Next move: —";
+            return t("play.savedGames.nextMoveDash");
         }
-        return "Next move: " + (turn === "white" ? "White" : "Black");
+        return t("play.savedGames.nextMove", {
+            side: turn === "white" ? t("common.white") : t("common.black"),
+        });
     }
 
     /**
@@ -134,12 +145,12 @@
             typeof engineLabel === "function"
                 ? engineLabel(entry.engine || DEFAULT_ENGINE_ID)
                 : DEFAULT_ENGINE_NAME;
-        return { white: "Player", black: engineName };
+        return { white: t("play.savedGames.player"), black: engineName };
     }
 
     function formatPlayers(entry, engineLabel) {
         const names = resolvePlayers(entry, engineLabel);
-        return names.white + " vs. " + names.black;
+        return t("play.savedGames.playersVs", { white: names.white, black: names.black });
     }
 
     /**
@@ -152,7 +163,7 @@
         const parts = [];
         const when = formatDate(entry && entry.date);
         if (when) {
-            parts.push("Saved: " + when);
+            parts.push(t("play.savedGames.savedAt", { when: when }));
         }
         const players = formatPlayers(entry, engineLabel);
         if (players) {
@@ -160,7 +171,7 @@
         }
         const id = entryId(entry);
         if (id) {
-            parts.push("Game ID: " + id);
+            parts.push(t("play.savedGames.gameId", { id: id }));
         }
         return parts.join("\n");
     }

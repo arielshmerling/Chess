@@ -63,7 +63,7 @@
     <div class="mobile-moves-panel__backdrop" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-hidden="true"></div>
     <div class="mobile-moves-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="mobileMovesPanelTitle">
       <div class="mobile-moves-panel__header">
-        <h2 id="mobileMovesPanelTitle" class="mobile-moves-panel__title">Moves</h2>
+        <h2 id="mobileMovesPanelTitle" class="mobile-moves-panel__title"><%= t('site.mobileGame.moves') %></h2>
         <button type="button" class="mobile-moves-panel__header-btn mobile-moves-panel__header-btn--close" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-label="Close moves list">&times;</button>
       </div>
       <div class="mobile-moves-panel__body">
@@ -72,8 +72,8 @@
             <table class="movesTableHeader">
               <tr>
                 <th>#</th>
-                <th>White</th>
-                <th>Black</th>
+                <th><%= t('common.white') %></th>
+                <th><%= t('common.black') %></th>
               </tr>
             </table>
           </div>
@@ -116,75 +116,75 @@
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
     <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
     <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
-      <h2 id="playNowModalTitle" class="play-now-modal-title">New game</h2>
+      <h2 id="playNowModalTitle" class="play-now-modal-title"><%= t('site.playNow.title') %></h2>
       <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
         <div class="play-now-field">
-          <label class="play-now-label">Playing color</label>
+          <label class="play-now-label"><%= t('site.playNow.playingColor') %></label>
           <div class="play-now-radio-group">
             <label class="play-now-radio">
               <input type="radio" name="color" value="white" checked>
-              <span>White</span>
+              <span><%= t('common.white') %></span>
             </label>
             <label class="play-now-radio">
               <input type="radio" name="color" value="black">
-              <span>Black</span>
+              <span><%= t('common.black') %></span>
             </label>
           </div>
         </div>
         <div class="play-now-field">
           <div class="play-now-engine-time-row">
             <div class="play-now-engine-col">
-              <label class="play-now-label" for="playNowEngine">Engine</label>
+              <label class="play-now-label" for="playNowEngine"><%= t('common.engine') %></label>
               <select id="playNowEngine" name="engine" class="play-now-select play-now-select--compact">
-                <option value="brain43" selected>Brain 4.3</option>
-                <option value="brain42">Brain 4.2</option>
-                <option value="brain41">Brain 4.1</option>
-                <option value="brain4">Brain 4.0</option>
-                <option value="brain3">Brain 3</option>
-                <option value="brain2">Brain 2</option>
+                <option value="brain43" selected><%= t('play.newGameDialog.brain43') %></option>
+                <option value="brain42"><%= t('play.newGameDialog.brain42') %></option>
+                <option value="brain41"><%= t('play.newGameDialog.brain41') %></option>
+                <option value="brain4"><%= t('play.newGameDialog.brain4') %></option>
+                <option value="brain3"><%= t('site.playNow.brain3') %></option>
+                <option value="brain2"><%= t('site.playNow.brain2') %></option>
               </select>
             </div>
             <div class="play-now-time-col">
-              <label class="play-now-label" for="playNowTimeMinutes">Time (min)</label>
+              <label class="play-now-label" for="playNowTimeMinutes"><%= t('site.playNow.timeMin') %></label>
               <input type="number" id="playNowTimeMinutes" name="timeMinutes" class="play-now-time-input" min="1" max="180" step="1" value="90" title="Clock time per side in minutes">
             </div>
           </div>
         </div>
         <div class="play-now-field">
-          <label class="play-now-label" for="playNowDifficulty">Difficulty (1–5)</label>
+          <label class="play-now-label" for="playNowDifficulty"><%= t('site.playNow.difficulty') %></label>
           <div class="play-now-slider-row">
             <input type="range" min="1" max="6" value="3" name="difficulty" id="playNowDifficulty" class="play-now-slider" oninput="document.getElementById('playNowDifficultyValue').textContent=this.value">
             <span id="playNowDifficultyValue" class="play-now-slider-value">3</span>
           </div>
         </div>
         <div class="play-now-field">
-          <label class="play-now-label">Mouse preference</label>
+          <label class="play-now-label"><%= t('site.playNow.mousePreference') %></label>
           <div class="play-now-radio-group">
             <label class="play-now-radio" id="mouseDragLabel">
               <input type="radio" name="mouse" value="drag" id="mouseDrag" checked>
-              <span>Drag</span>
+              <span><%= t('site.playNow.drag') %></span>
             </label>
             <label class="play-now-radio">
               <input type="radio" name="mouse" value="double" id="mouseDouble">
-              <span>Double click</span>
+              <span><%= t('site.playNow.doubleClick') %></span>
             </label>
           </div>
         </div>
         <div class="play-now-field">
           <label class="play-now-checkbox-label">
             <input type="checkbox" name="showMoves" id="playNowShowMoves" value="1" checked>
-            <span>Show available moves</span>
+            <span><%= t('site.playNow.showAvailableMoves') %></span>
           </label>
         </div>
         <div class="play-now-field">
           <label class="play-now-checkbox-label" title="A private game is not visible to other members and is not shown on the club homepage.">
             <input type="checkbox" name="private" id="playNowPrivate" value="1">
-            <span>Private</span>
+            <span><%= t('site.playNow.private') %></span>
           </label>
         </div>
         <div class="play-now-modal-actions">
-          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()">Cancel</button>
-          <button type="submit" class="play-now-btn-start">Start</button>
+          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()"><%= t('site.cancel') %></button>
+          <button type="submit" class="play-now-btn-start"><%= t('common.start') %></button>
         </div>
       </form>
     </div>

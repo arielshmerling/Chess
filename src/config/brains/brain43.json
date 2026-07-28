@@ -1,24 +1,109 @@
 {
-  "pieceScores": {
-    "pawn": 1,
-    "rook": 5,
-    "knight": 3,
-    "bishop": 3.25,
-    "queen": 9,
-    "king": 10000
+  "gamePhase": {
+    "midGameAfterMoves": 10,
+    "endGameOpponentMaxPieces": 8
   },
-  "specialEvaluations": {
-    "doublePawnPenalty": 0.25,
-    "pawnAdvancedBonus": 0.2,
-    "firstKingMovePenalty": 0.1,
-    "firstRookMovePenalty": 0.1,
-    "pawnsChainCountPenalty": 0.5,
-    "drawMaterialDiffThreshold": 3,
-    "drawScoreWhenAhead": -5,
-    "drawScoreWhenBehind": 5,
-    "drawScoreWhenEven": -0.1,
-    "bestOpenRookOnSeventhMultiplier": 1.25,
-    "veryGoodOpenRookMultiplier": 1.125,
-    "poorClosedFileRookMultiplier": 0.75
+  "pawnFileValues": {
+    "openingMidGame": {
+      "a": 0.75,
+      "b": 1,
+      "c": 1.25,
+      "d": 1.5,
+      "e": 1.5,
+      "f": 1.25,
+      "g": 1,
+      "h": 0.75
+    },
+    "endGame": {
+      "a": 1.5,
+      "b": 1.25,
+      "c": 1,
+      "d": 0.75,
+      "e": 0.75,
+      "f": 1,
+      "g": 1.25,
+      "h": 1.5
+    }
+  },
+  "adaptiveDepth": {
+    "enabled": true,
+    "referenceRootMoves": 30,
+    "avgBranchingFactor": 32,
+    "minSearchDepth": 1,
+    "maxSearchDepth": 6,
+    "fullAdaptiveBelowTotalPieces": 12,
+    "noAdaptiveAboveTotalPieces": 24
+  },
+  "startGame": {
+    "pieceScores": {
+      "pawn": 1,
+      "rook": 5,
+      "knight": 3,
+      "bishop": 3.25,
+      "queen": 9,
+      "king": 10000
+    },
+    "specialEvaluations": {
+      "doublePawnPenalty": 0.25,
+      "pawnAdvancedBonus": 0.2,
+      "firstKingMovePenalty": 0.1,
+      "firstRookMovePenalty": 0.1,
+      "pawnsChainCountPenalty": 0.5,
+      "drawMaterialDiffThreshold": 3,
+      "drawScoreWhenAhead": -5,
+      "drawScoreWhenBehind": 5,
+      "drawScoreWhenEven": -0.1,
+      "bestOpenRookOnSeventhMultiplier": 1.25,
+      "veryGoodOpenRookMultiplier": 1.125,
+      "poorClosedFileRookMultiplier": 0.75
+    }
+  },
+  "midGame": {
+    "pieceScores": {
+      "pawn": 1,
+      "rook": 5,
+      "knight": 3,
+      "bishop": 3.25,
+      "queen": 9,
+      "king": 10000
+    },
+    "specialEvaluations": {
+      "doublePawnPenalty": 0.25,
+      "pawnAdvancedBonus": 0.2,
+      "firstKingMovePenalty": 0.1,
+      "firstRookMovePenalty": 0.1,
+      "pawnsChainCountPenalty": 0.5,
+      "drawMaterialDiffThreshold": 3,
+      "drawScoreWhenAhead": -5,
+      "drawScoreWhenBehind": 5,
+      "drawScoreWhenEven": -0.1,
+      "bestOpenRookOnSeventhMultiplier": 1.25,
+      "veryGoodOpenRookMultiplier": 1.125,
+      "poorClosedFileRookMultiplier": 0.75
+    }
+  },
+  "endGame": {
+    "pieceScores": {
+      "pawn": 1,
+      "rook": 5,
+      "knight": 3,
+      "bishop": 3.25,
+      "queen": 9,
+      "king": 10000
+    },
+    "specialEvaluations": {
+      "doublePawnPenalty": 0.25,
+      "pawnAdvancedBonus": 0.2,
+      "firstKingMovePenalty": 0.1,
+      "firstRookMovePenalty": 0.1,
+      "pawnsChainCountPenalty": 0.5,
+      "drawMaterialDiffThreshold": 3,
+      "drawScoreWhenAhead": -5,
+      "drawScoreWhenBehind": 5,
+      "drawScoreWhenEven": -0.1,
+      "bestOpenRookOnSeventhMultiplier": 1.25,
+      "veryGoodOpenRookMultiplier": 1.125,
+      "poorClosedFileRookMultiplier": 0.75
+    }
   }
 }

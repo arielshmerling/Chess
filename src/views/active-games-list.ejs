@@ -7,8 +7,8 @@
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="hero-text-section">
-        <h1 class="hero-greeting">Active games</h1>
-        <p class="hero-tagline">All games in progress</p>
+        <h1 class="hero-greeting"><%= t('site.activeGamesList.title') %></h1>
+        <p class="hero-tagline"><%= t('site.activeGamesList.tagline') %></p>
       </div>
     </div>
   </div>
@@ -17,8 +17,8 @@
     <div class="games-panel online-games-panel active-games-list-panel">
       <div class="panel-header">
         <div class="panel-title-group">
-          <h2 class="panel-title">Live games</h2>
-          <span class="panel-badge">Live</span>
+          <h2 class="panel-title"><%= t('site.activeGamesList.liveGames') %></h2>
+          <span class="panel-badge"><%= t('site.welcome.live') %></span>
         </div>
       </div>
       <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="active-list-container">
@@ -27,10 +27,10 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Game</th>
-                <th>Started</th>
-                <th>Moves</th>
-                <th>Status</th>
+                <th><%= t('site.activeGamesList.game') %></th>
+                <th><%= t('site.activeGamesList.started') %></th>
+                <th><%= t('site.activeGames.moves') %></th>
+                <th><%= t('site.activeGames.status') %></th>
               </tr>
             </thead>
             <tbody id="active-list-tbody">
@@ -55,7 +55,7 @@
           </table>
         </div>
         <div class="no-games-message" id="active-list-no-games">
-          <p>No games at the moment</p>
+          <p><%= t('site.welcome.noGamesNow') %></p>
         </div>
       </div>
     </div>

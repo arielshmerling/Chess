@@ -9,6 +9,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const Api = window.DesktopApi;
     const Board = window.DesktopBoard;
     const Setup = window.DesktopPositionSetup;
@@ -425,7 +432,7 @@
             return;
         }
         const loser = game.Turn;
-        showStatus("Time's up! " + loser + " lost", 5000, "timeout");
+        showStatus(t("play.status.timesUpLost", { loser: loser }), 5000, "timeout");
         game.OutOfTime = loser;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
@@ -825,14 +832,14 @@
 
     function enterConfigurationMode() {
         if (!game || !playSessionReady) {
-            showStatus("Board is still loading…", 2500, "info");
+            showStatus(t("play.status.boardLoading"), 2500, "info");
             return;
         }
         if (!canUseBrainConfig()) {
             if (isNetworkSessionActive()) {
-                showStatus("Leave the online game before opening Configuration", 3500, "info");
+                showStatus(t("play.status.leaveOnlineBeforeConfiguration"), 3500, "info");
             } else if (practiceMode) {
-                showStatus("Configuration is not available in Practice mode", 3500, "info");
+                showStatus(t("play.status.configurationNotInPractice"), 3500, "info");
             }
             return;
         }
@@ -850,7 +857,7 @@
         }
         ensurePlayGameSession();
         attachPlayConfigurationMode();
-        showStatus("Configuration mode — edit values and save", 0, "info");
+        showStatus(t("play.status.configurationModeEdit"), 0, "info");
         updateActionButtons();
     }
 
@@ -874,7 +881,7 @@
             return;
         }
         if (!playSessionReady || !game) {
-            showStatus("Board is still loading…", 2500, "info");
+            showStatus(t("play.status.boardLoading"), 2500, "info");
             return;
         }
         if (configurationMode) {
@@ -1023,14 +1030,14 @@
         }
         if (!boardHasPieces()) {
             showStatus(
-                "Select a saved game or set up a position on the board first",
+                t("play.status.selectSavedOrSetup"),
                 3000,
                 "info",
             );
             return;
         }
         if (gameActive) {
-            showStatus("A game is already in progress", 2500, "info");
+            showStatus(t("play.status.gameAlreadyInProgress"), 2500, "info");
             return;
         }
         await startGameFromLoadedPosition();
@@ -1100,10 +1107,10 @@
         ensurePlayGameSession();
         if (!game.GameOver && isHumanTurn()) {
             switchClocks();
-            showStatus("Your move", 2000, "info");
+            showStatus(t("play.status.yourMove"), 2000, "info");
         } else if (!game.GameOver && isAiTurn()) {
             switchClocks();
-            showStatus("Engine to move…", 0, "info");
+            showStatus(t("play.status.engineToMove"), 0, "info");
             await runEngineMove();
         }
     }
@@ -1133,14 +1140,14 @@
 
     function enterPositionSetupMode() {
         if (!game || !game.GameState) {
-            showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
+            showStatus(t("play.status.boardNotReady"), 3000, "info");
             return;
         }
         if (!canUsePositionSetup()) {
             if (isNetworkSessionActive()) {
-                showStatus("Leave the online game before opening Position Setup", 3500, "info");
+                showStatus(t("play.status.leaveOnlineBeforePositionSetup"), 3500, "info");
             } else if (practiceMode) {
-                showStatus("Position Setup is not available in Practice mode", 3500, "info");
+                showStatus(t("play.status.positionSetupNotInPractice"), 3500, "info");
             }
             return;
         }
@@ -1189,7 +1196,7 @@
         }
         ensurePlayGameSession();
         attachPlayPositionSetupMode();
-        showStatus("Position setup — place pieces on the board", 0, "info");
+        showStatus(t("play.status.positionSetupPlacePieces"), 0, "info");
         updateActionButtons();
     }
 
@@ -1199,19 +1206,19 @@
         }
         const gameState = game.GameState;
         if (gameState.draw) {
-            showStatus("Draw — " + (gameState.drawReason || "Draw"), 0, "draw");
+            showStatus(t("play.status.drawWithReason", { reason: gameState.drawReason || t("common.draw") }), 0, "draw");
             return;
         }
         if (gameState.checkmate) {
             const winner = game.opponent(game.Turn);
-            showStatus("Checkmate — " + game.colorName(winner) + " wins", 0, "checkmate");
+            showStatus(t("play.status.checkmateWins", { winner: game.colorName(winner) }), 0, "checkmate");
             return;
         }
         if (gameState.check) {
-            showStatus("Check", 0, "check");
+            showStatus(t("play.status.check"), 0, "check");
             return;
         }
-        showStatus("Position setup — place pieces on the board", 0, "info");
+        showStatus(t("play.status.positionSetupPlacePieces"), 0, "info");
     }
 
     function exitPositionSetupMode(restore) {
@@ -1246,11 +1253,11 @@
 
     async function displayPositionEvaluation() {
         if (!game || !game.GameState) {
-            showStatus("Board is not ready yet. Please wait and try again.", 3000, "info");
+            showStatus(t("play.status.boardNotReady"), 3000, "info");
             return;
         }
         if (animating || engineThinking) {
-            showStatus("Wait for the current move to finish before evaluating", 2500, "info");
+            showStatus(t("play.status.waitBeforeEvaluate"), 2500, "info");
             return;
         }
         if (!validatePositionSetup("play")) {
@@ -1258,7 +1265,7 @@
             return;
         }
         if (!Engine || typeof Engine.evaluatePosition !== "function") {
-            showStatus("Evaluation is not available. Restart the Shmerling Chess app.", 0, "error");
+            showStatus(t("play.status.evaluationUnavailable"), 0, "error");
             return;
         }
         const state = JSON.parse(JSON.stringify(game.GameState));
@@ -1273,7 +1280,7 @@
                 : { turn: game.Turn || "white" };
         state.turn = setupOpts.turn === "black" ? "black" : "white";
         try {
-            showStatus("Evaluating position…", 0, "info");
+            showStatus(t("play.status.evaluatingPosition"), 0, "info");
             const result = await Engine.evaluatePosition({
                 gameState: state,
                 engine: (session && session.engine) || "brain43",
@@ -1291,7 +1298,7 @@
             );
         } catch (err) {
             clearDisplayedEvaluation();
-            showStatus(err.message || "Evaluation failed", 0, "error");
+            showStatus(err.message || t("play.status.evaluationFailed"), 0, "error");
         }
     }
 
@@ -1304,13 +1311,13 @@
 
     async function openSavedGamesPgnFolder() {
         if (!GameLog || typeof GameLog.openGamesLogFolder !== "function") {
-            showStatus("Open folder is only available in the desktop app", 3000, "info");
+            showStatus(t("play.status.openFolderDesktopOnly"), 3000, "info");
             return;
         }
         try {
             await GameLog.openGamesLogFolder();
         } catch (err) {
-            showStatus(err.message || "Could not open games log folder", 0, "error");
+            showStatus(err.message || t("play.status.couldNotOpenGamesLogFolder"), 0, "error");
         }
     }
 
@@ -1345,7 +1352,7 @@
             return;
         }
         if (validatePositionSetup("play")) {
-            showStatus("Position is valid", 2500, "info");
+            showStatus(t("play.status.positionValid"), 2500, "info");
         }
     }
 
@@ -1405,9 +1412,9 @@
         if (!game.GameOver) {
             switchClocks();
             if (isHumanTurn()) {
-                showStatus("Playing from custom position", 3000, "info");
+                showStatus(t("play.status.playingFromCustomPosition"), 3000, "info");
             } else {
-                showStatus("Engine to move…", 0, "info");
+                showStatus(t("play.status.engineToMove"), 0, "info");
                 await runEngineMove();
             }
         }
@@ -2287,7 +2294,7 @@
             return;
         }
         if (!playSessionReady || !game) {
-            showStatus("Board is still loading…", 2500, "info");
+            showStatus(t("play.status.boardLoading"), 2500, "info");
             return;
         }
         if (positionSetupMode) {
@@ -2312,43 +2319,43 @@
         const items = [
             {
                 id: "rematchBtn",
-                label: "New game",
+                label: t("play.actions.newGame"),
                 icon: "newGame",
                 onClick: onRematch,
                 accent: true,
             },
-            { id: "resignBtn", label: "Resign", icon: "resign", onClick: onResign },
-            { id: "drawBtn", label: "Draw", icon: "draw", onClick: onDrawOfferClick },
+            { id: "resignBtn", label: t("play.actions.resign"), icon: "resign", onClick: onResign },
+            { id: "drawBtn", label: t("play.actions.draw"), icon: "draw", onClick: onDrawOfferClick },
             { type: "spacer" },
-            { id: "undoBtn", label: "Undo", icon: "undo", onClick: onUndo },
-            { id: "redoBtn", label: "Redo", icon: "redo", onClick: onRedo },
-            { id: "lastMoveBtn", label: "Last move", icon: "lastMove", onClick: onLastMove },
+            { id: "undoBtn", label: t("play.actions.undo"), icon: "undo", onClick: onUndo },
+            { id: "redoBtn", label: t("play.actions.redo"), icon: "redo", onClick: onRedo },
+            { id: "lastMoveBtn", label: t("play.actions.lastMove"), icon: "lastMove", onClick: onLastMove },
         ];
         if (canPlayAdvancedTools) {
             items.push(
                 {
                     id: "positionSetupBtn",
-                    label: "Position setup",
+                    label: t("play.actions.positionSetup"),
                     icon: "positionSetup",
                     onClick: onPositionSetupToggle,
                 },
                 {
                     id: "configurationBtn",
-                    label: "Config",
+                    label: t("play.actions.config"),
                     icon: "configuration",
                     onClick: onConfigurationToggle,
                 },
             );
         }
         items.push(
-            { id: "flipBtn", label: "Flip", icon: "flip", onClick: onFlip },
+            { id: "flipBtn", label: t("play.actions.flip"), icon: "flip", onClick: onFlip },
         );
         if (canPlayAdvancedTools) {
-            items.push({ id: "saveBtn", label: "Save", icon: "save", onClick: onSaveGame });
+            items.push({ id: "saveBtn", label: t("play.actions.save"), icon: "save", onClick: onSaveGame });
         }
         items.push(
             { type: "spacer" },
-            { id: "homeBtn", label: "Exit", icon: "exit", onClick: onHome },
+            { id: "homeBtn", label: t("play.actions.exit"), icon: "exit", onClick: onHome },
         );
         ActionRail.mount(rail, items);
         updateActionButtons();
@@ -2522,7 +2529,7 @@
         }
         Dialog.prompt({
             title: options.title || "Save position",
-            label: "Position name",
+            label: t("play.prompts.positionName"),
             defaultValue: formatPositionSetupSaveName(),
             confirmLabel: options.confirmLabel || "Save",
             onSubmit: onSave,
@@ -2557,7 +2564,7 @@
         }
         const state = game.GameState;
         if (!state) {
-            showStatus("Nothing to save", 2000, "error");
+            showStatus(t("play.status.nothingToSave"), 2000, "error");
             return;
         }
         try {
@@ -2572,9 +2579,9 @@
                 editingSavedGameId = newId;
                 lastLoadedSavedGameId = newId;
             }
-            showStatus(options.statusMessage || "Position saved", 2500, "info");
+            showStatus(options.statusMessage || t("play.status.positionSaved"), 2500, "info");
         } catch (err) {
-            showStatus(err.message || "Could not save position", 0, "error");
+            showStatus(err.message || t("play.status.couldNotSavePosition"), 0, "error");
         }
     }
 
@@ -2586,7 +2593,7 @@
             return savedGameId(b) === String(editingSavedGameId);
         });
         if (!entry) {
-            showStatus("Saved position not found", 0, "error");
+            showStatus(t("play.status.savedPositionNotFound"), 0, "error");
             editingSavedGameId = null;
             return;
         }
@@ -2594,7 +2601,7 @@
             return;
         }
         if (!game.GameState) {
-            showStatus("Nothing to save", 2000, "error");
+            showStatus(t("play.status.nothingToSave"), 2000, "error");
             return;
         }
         try {
@@ -2615,9 +2622,9 @@
             lastLoadedSavedGameId = savedGameId(entry);
             renderSavedGamesList();
             syncGameRunPanelOptions();
-            showStatus("Position updated", 2500, "info");
+            showStatus(t("play.status.positionUpdated"), 2500, "info");
         } catch (err) {
-            showStatus(err.message || "Could not update position", 0, "error");
+            showStatus(err.message || t("play.status.couldNotUpdatePosition"), 0, "error");
         }
     }
 
@@ -2629,7 +2636,7 @@
             return;
         }
         if (!game.GameState) {
-            showStatus("Nothing to save", 2000, "error");
+            showStatus(t("play.status.nothingToSave"), 2000, "error");
             return;
         }
         if (editingSavedGameId) {
@@ -2649,7 +2656,7 @@
             return;
         }
         if (!game.GameState) {
-            showStatus("Nothing to save", 2000, "error");
+            showStatus(t("play.status.nothingToSave"), 2000, "error");
             return;
         }
         showPositionSaveNameDialog(
@@ -2660,7 +2667,7 @@
                 });
             },
             {
-                title: "Save position as",
+                title: t("play.prompts.savePositionAs"),
                 confirmLabel: "Save As",
             },
         );
@@ -2869,7 +2876,7 @@
             window.DesktopContextMenu.show(ev.clientX, ev.clientY, [
                 { header: true, label: count + " items selected" },
                 {
-                    label: "Delete",
+                    label: t("common.delete"),
                     onClick: function () {
                         deleteSavedGames(Array.from(selectedSavedGameIds));
                     },
@@ -2893,7 +2900,7 @@
                 },
             },
             {
-                label: "Load to start",
+                label: t("play.actions.loadToStart"),
                 disabled: blocked,
                 onClick: function () {
                     loadSavedGame(bookmarkId, { atStart: true });
@@ -2902,7 +2909,7 @@
         ];
         if (canPlayAdvancedTools) {
             items.push({
-                label: "Edit position",
+                label: t("play.actions.editPosition"),
                 disabled: blocked,
                 onClick: function () {
                     editSavedGame(bookmarkId);
@@ -2911,14 +2918,14 @@
         }
         items.push(
             {
-                label: "Rename",
+                label: t("common.rename"),
                 onClick: function () {
                     startRenameSavedGame(bookmarkId);
                 },
             },
             { separator: true },
             {
-                label: "Delete",
+                label: t("common.delete"),
                 onClick: function () {
                     deleteSavedGame(bookmarkId);
                 },
@@ -2937,7 +2944,7 @@
     async function commitRenameSavedGame(bookmarkId, newName) {
         const trimmed = (newName || "").trim();
         if (!trimmed) {
-            showStatus("Name cannot be empty", 2000, "error");
+            showStatus(t("play.status.nameCannotBeEmpty"), 2000, "error");
             return;
         }
         const entry = savedGames.find(function (b) {
@@ -2956,9 +2963,9 @@
             entry.name = trimmed;
             renamingSavedGameId = null;
             renderSavedGamesList();
-            showStatus("Game renamed", 2000, "info");
+            showStatus(t("play.status.gameRenamed"), 2000, "info");
         } catch (err) {
-            showStatus(err.message || "Could not rename game", 0, "error");
+            showStatus(err.message || t("play.status.couldNotRenameGame"), 0, "error");
         }
     }
 
@@ -3015,13 +3022,13 @@
             renderSavedGamesList();
             updateGameRunPanelVisibility();
             showStatus(
-                deleted === 1 ? "Game deleted" : deleted + " items deleted",
+                deleted === 1 ? t("play.status.gameDeleted") : t("play.status.itemsDeleted", { count: deleted }),
                 2000,
                 "info",
             );
         } catch (err) {
             renderSavedGamesList();
-            showStatus(err.message || "Could not delete selected items", 0, "error");
+            showStatus(err.message || t("play.status.couldNotDeleteSelected"), 0, "error");
         }
     }
 
@@ -3168,7 +3175,7 @@
             }
             syncGameRunPanelOptions();
         } catch (err) {
-            showStatus(err.message || "Could not load saved game", 0, "error");
+            showStatus(err.message || t("play.status.couldNotLoadSavedGame"), 0, "error");
         } finally {
             animating = false;
             updateActionButtons();
@@ -3198,9 +3205,9 @@
             setCurrentGameId(null);
             exitReviewMode();
             enterPositionSetupMode();
-            showStatus("Editing position — Save to update this bookmark", 0, "info");
+            showStatus(t("play.status.editingPositionSaveBookmark"), 0, "info");
         } catch (err) {
-            showStatus(err.message || "Could not open position for editing", 0, "error");
+            showStatus(err.message || t("play.status.couldNotOpenPositionForEditing"), 0, "error");
         } finally {
             animating = false;
             updateActionButtons();
@@ -3347,7 +3354,7 @@
         }
         const state = game.GameState;
         if (!state) {
-            showStatus("Nothing to save", 2000, "error");
+            showStatus(t("play.status.nothingToSave"), 2000, "error");
             return;
         }
         setButtonDisabled("saveBtn", true);
@@ -3365,9 +3372,9 @@
                 await loadSavedGames();
             }
             renderSavedGamesList();
-            showStatus("Game saved", 2000, "info");
+            showStatus(t("play.status.gameSaved"), 2000, "info");
         } catch (err) {
-            showStatus(err.message || "Could not save game", 0, "error");
+            showStatus(err.message || t("play.status.couldNotSaveGame"), 0, "error");
         } finally {
             updateActionButtons();
         }
@@ -3498,13 +3505,13 @@
 
     function onCheck(turn) {
         alertMode = true;
-        showStatus("Check", 2000, "check");
+        showStatus(t("play.status.check"), 2000, "check");
     }
 
     function onCheckmate(matedTurn) {
         alertMode = true;
         const winner = game.opponent(matedTurn);
-        showStatus("Checkmate — " + game.colorName(winner) + " wins", 0, "checkmate");
+        showStatus(t("play.status.checkmateWins", { winner: game.colorName(winner) }), 0, "checkmate");
         Clocks.stop();
         updateActionButtons();
         tryLogCompletedGame();
@@ -3512,14 +3519,14 @@
 
     function onDraw(reason) {
         if (positionSetupMode) {
-            showStatus("Draw — " + reason, 0, "draw");
+            showStatus(t("play.status.drawWithReason", { reason: reason }), 0, "draw");
             if (Board.applyDrawHighlight) {
                 Board.applyDrawHighlight();
             }
             return;
         }
         alertMode = true;
-        showStatus("Draw — " + reason, 0, "draw");
+        showStatus(t("play.status.drawWithReason", { reason: reason }), 0, "draw");
         Board.applyDrawHighlight();
         Clocks.stop();
         updateActionButtons();
@@ -3726,7 +3733,7 @@
                 try {
                     const applied = await applyEngineMove(move);
                     if (!applied) {
-                        showStatus("Engine move could not be applied", 0, "error");
+                        showStatus(t("play.status.engineMoveNotApplied"), 0, "error");
                         return false;
                     }
                     if (isHumanTurn()) {
@@ -3978,8 +3985,8 @@
                     return;
                 }
                 Dialog.confirm({
-                    title: "Draw offer",
-                    message: "Opponent sent a draw offer. Accept?",
+                    title: t("play.status.drawOfferTitle"),
+                    message: t("play.status.drawOfferMessage"),
                     confirmLabel: "Accept",
                     cancelLabel: "Decline",
                     onConfirm: function () {
@@ -4016,7 +4023,7 @@
                         ". Agree?";
                 }
                 Dialog.confirm({
-                    title: "Rematch",
+                    title: t("play.status.rematchTitle"),
                     message: message,
                     confirmLabel: "Accept",
                     cancelLabel: "Decline",
@@ -4054,27 +4061,28 @@
                         who =
                             (onlineGameInfo.whitePlayerName &&
                                 String(onlineGameInfo.whitePlayerName).trim()) ||
-                            "White";
+                            t("common.white");
                     } else if (disconnectedSeatIsWhite === false) {
                         who =
                             (onlineGameInfo.blackPlayerName &&
                                 String(onlineGameInfo.blackPlayerName).trim()) ||
-                            "Black";
+                            t("common.black");
                     } else {
-                        who = "A player";
+                        who = t("common.aPlayer");
                     }
                     showStatus(
-                        who +
-                            " disconnected — waiting for rejoin (" +
-                            formatDisconnectCountdown(seconds) +
-                            ")",
+                        t("play.status.playerDisconnectedWaiting", {
+                            who: who,
+                            countdown: formatDisconnectCountdown(seconds),
+                        }),
                         0,
                         "info",
                     );
                 } else {
                     showStatus(
-                        "Opponent disconnected — " +
-                            formatDisconnectCountdown(seconds),
+                        t("play.status.opponentDisconnectedCountdown", {
+                            countdown: formatDisconnectCountdown(seconds),
+                        }),
                         0,
                         "info",
                     );
@@ -4111,11 +4119,7 @@
                 return;
             }
             if (data.status === "cancelled") {
-                showStatus(
-                    "Game cancelled — Reconnect timed out with no moves played.",
-                    0,
-                    "info",
-                );
+                showStatus(t("play.status.gameCancelledReconnectTimeout"), 0, "info");
                 Clocks.stop();
                 clearActiveGameSnapshot();
                 updateActionButtons();
@@ -4158,16 +4162,15 @@
                         ? (onlineGameInfo.whitePlayerName || "White")
                         : (onlineGameInfo.blackPlayerName || "Black");
                 showStatus(
-                    loserName + " failed to reconnect — " + winnerName + " wins",
+                    t("play.status.playerFailedToReconnectWins", {
+                        loser: loserName,
+                        winner: winnerName,
+                    }),
                     0,
                     "info",
                 );
             } else {
-                showStatus(
-                    "Game over — opponent failed to reconnect.",
-                    0,
-                    "info",
-                );
+                showStatus(t("play.status.gameOverOpponentFailedReconnect"), 0, "info");
             }
             Clocks.stop();
             updateActionButtons();
@@ -4178,7 +4181,7 @@
 
     async function beginOnlineRematch(newGameId) {
         if (!Api || typeof Api.post !== "function") {
-            showStatus("Could not start rematch", 0, "error");
+            showStatus(t("play.status.couldNotStartRematch"), 0, "error");
             return;
         }
         try {
@@ -4199,7 +4202,7 @@
         const started = await beginOnlineFromServerId(newGameId);
         if (started) {
             clearWebLaunchQueryString({ keepId: true });
-            showStatus("Rematch started", 2000, "info");
+            showStatus(t("play.status.rematchStarted"), 2000, "info");
         }
     }
 
@@ -4470,8 +4473,8 @@
                 clearActiveGameSnapshot();
                 showStatus(
                     payload.detail
-                        ? "Game cancelled — " + payload.detail
-                        : "Game cancelled",
+                        ? t("play.status.gameCancelledWithDetail", { detail: payload.detail })
+                        : t("play.status.gameCancelled"),
                     0,
                     "info",
                 );
@@ -4495,7 +4498,7 @@
                     winner && game && typeof game.colorName === "function"
                         ? game.colorName(winner)
                         : winner || "Winner";
-                showStatus("Checkmate — " + winnerName + " wins", 0, "checkmate");
+                showStatus(t("play.status.checkmateWins", { winner: winnerName }), 0, "checkmate");
                 Clocks.stop();
                 if (Board.applyCheckedHighlight) {
                     Board.applyCheckedHighlight();
@@ -4507,7 +4510,7 @@
             if (payload.kind === "draw") {
                 lastCheckNotifySide = null;
                 alertMode = true;
-                showStatus("Draw — " + (payload.reason || "Draw"), 0, "draw");
+                showStatus(t("play.status.drawWithReason", { reason: payload.reason || t("common.draw") }), 0, "draw");
                 if (Board.applyDrawHighlight) {
                     Board.applyDrawHighlight();
                 }
@@ -4520,7 +4523,7 @@
                 lastCheckNotifySide = null;
                 alertMode = true;
                 const loser = payload.loser || (game && game.Turn) || "white";
-                showStatus("Time's up! " + loser + " lost", 5000, "timeout");
+                showStatus(t("play.status.timesUpLost", { loser: loser }), 5000, "timeout");
                 Clocks.stop();
                 updateActionButtons();
                 tryLogCompletedGame();
@@ -4542,7 +4545,7 @@
             showStatus(message, 0, kind || "info");
         });
         playGameSession.on("error", function (message) {
-            showStatus(message || "Session error", 0, "error");
+            showStatus(message || t("play.status.sessionError"), 0, "error");
         });
         playGameSession.on("moveApplied", function (executed, info) {
             onSessionMoveApplied(executed, info);
@@ -4622,7 +4625,7 @@
         if (playOnlineMode && typeof playOnlineMode.requestResign === "function") {
             Promise.resolve(playOnlineMode.requestResign()).catch(function (err) {
                 console.warn("[Play] Online resign failed:", err);
-                showStatus((err && err.message) || "Resign failed", 0, "error");
+                showStatus((err && err.message) || t("play.status.resignFailed"), 0, "error");
             });
             return;
         }
@@ -4692,7 +4695,7 @@
         await yieldForPaint();
         engineThinking = true;
         updateActionButtons();
-        showStatus("Engine thinking…", 0, "info");
+        showStatus(t("play.status.engineThinking"), 0, "info");
         try {
             const prefs = Settings.loadGamePreferences();
             const move = await Engine.computeMove(
@@ -4724,7 +4727,7 @@
                 return;
             }
             if (decision.action === "error") {
-                showStatus(decision.message || "Engine could not find a move", 0, "error");
+                showStatus(decision.message || t("play.status.engineCouldNotFindMove"), 0, "error");
                 return;
             }
             if (decision.logScore) {
@@ -4741,7 +4744,7 @@
             updateActionButtons();
             const applied = await applyEngineMove(decision.move);
             if (!applied) {
-                showStatus("Engine move could not be applied", 0, "error");
+                showStatus(t("play.status.engineMoveNotApplied"), 0, "error");
                 return;
             }
             switchClocks();
@@ -4753,7 +4756,7 @@
                 return;
             }
             console.error(err);
-            showStatus(err.message || "Engine error", 0, "error");
+            showStatus(err.message || t("play.status.engineError"), 0, "error");
         } finally {
             engineThinking = false;
             animating = false;
@@ -5114,11 +5117,11 @@
         ensurePlayGameSession();
         if (isAiTurn()) {
             switchClocks();
-            showStatus("Engine to move…", 0, "info");
+            showStatus(t("play.status.engineToMove"), 0, "info");
             await runEngineMove();
         } else {
             switchClocks();
-            showStatus("Game resumed — your move", 2000, "info");
+            showStatus(t("play.status.gameResumedYourMove"), 2000, "info");
         }
         return true;
     }
@@ -5132,7 +5135,7 @@
             return false;
         }
         if (!PracticeModeApi) {
-            showStatus("Practice mode is not available", 0, "error");
+            showStatus(t("play.status.practiceNotAvailable"), 0, "error");
             return false;
         }
         const username = resolveHumanUsername(webLaunchUsername);
@@ -5210,7 +5213,7 @@
         syncPrimaryGameButtonLabel();
         if (!game.GameOver) {
             switchClocks();
-            showStatus("Practice — both sides", 2000, "info");
+            showStatus(t("session.practiceBothSides"), 2000, "info");
         }
         return true;
     }
@@ -5239,7 +5242,7 @@
                 clearWebLaunchQueryString({ keepId: true });
                 return;
             }
-            showStatus("Could not join this game on /play", 0, "error");
+            showStatus(t("play.status.couldNotJoinOnPlay"), 0, "error");
             return;
         }
         const launchMode =
@@ -5256,7 +5259,7 @@
                 clearWebLaunchQueryString({ keepPractice: true });
                 return;
             }
-            showStatus("Practice / Debug is not available for this account", 0, "error");
+            showStatus(t("play.status.practiceDebugNotAvailable"), 0, "error");
             return;
         }
         if (launchMode === "review" && onlineId) {
@@ -5347,7 +5350,7 @@
 
     async function beginReviewFromServerId(gameId, reviewTypeHint) {
         if (!Api || typeof Api.get !== "function") {
-            showStatus("Review requires the web API", 0, "error");
+            showStatus(t("play.status.reviewRequiresWebApi"), 0, "error");
             return false;
         }
         let info;
@@ -5357,11 +5360,11 @@
             movesObj = await Api.get("/gameMoves?id=" + encodeURIComponent(String(gameId)));
         } catch (err) {
             console.warn("[Play] Could not load review game:", err);
-            showStatus((err && err.message) || "Could not load review game", 0, "error");
+            showStatus((err && err.message) || t("play.status.couldNotLoadReviewGame"), 0, "error");
             return false;
         }
         if (!info || info.mode !== "review") {
-            showStatus("This link is not a review game", 0, "error");
+            showStatus(t("play.status.notReviewGameLink"), 0, "error");
             return false;
         }
         const reviewType =
@@ -5504,7 +5507,7 @@
 
     async function beginOnlineFromServerId(gameId) {
         if (!Api || typeof Api.get !== "function") {
-            showStatus("Online play requires the web API", 0, "error");
+            showStatus(t("play.status.onlineRequiresWebApi"), 0, "error");
             return false;
         }
         let info;
@@ -5512,11 +5515,11 @@
             info = await Api.get("/gameInfo?id=" + encodeURIComponent(String(gameId)));
         } catch (err) {
             console.warn("[Play] Could not load gameInfo:", err);
-            showStatus((err && err.message) || "Could not load online game", 0, "error");
+            showStatus((err && err.message) || t("play.status.couldNotLoadOnlineGame"), 0, "error");
             return false;
         }
         if (!info || info.gameType !== "OnlineGame") {
-            showStatus("This link is not an online game on /play", 0, "error");
+            showStatus(t("play.status.notOnlineGameOnPlay"), 0, "error");
             return false;
         }
         await beginOnlineGame(info);
@@ -5621,13 +5624,13 @@
         if (!game.GameOver) {
             switchClocks();
             if (isWatcher) {
-                showStatus("Watching live game", 0, "info");
+                showStatus(t("play.status.watchingLiveGame"), 0, "info");
             } else {
                 const waiting =
                     currentPlayerIsWhite &&
                     !(info.blackPlayerName && String(info.blackPlayerName).trim());
                 showStatus(
-                    waiting ? "Waiting for opponent…" : "Online game — connected",
+                    waiting ? t("play.status.waitingForOpponent") : t("play.status.onlineGameConnected"),
                     waiting ? 0 : 2000,
                     "info",
                 );
@@ -5702,17 +5705,17 @@
         syncPrimaryGameButtonLabel();
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
-            showStatus("Engine to move…", 0, "info");
+            showStatus(t("play.status.engineToMove"), 0, "info");
             await runEngineMove();
         } else if (!game.GameOver) {
             switchClocks();
-            showStatus("Your move", 2000, "info");
+            showStatus(t("play.status.yourMove"), 2000, "info");
         }
     }
 
     function beginPositionSetupFromMenu() {
         if (!game) {
-            showStatus("Board is still loading…", 2500, "info");
+            showStatus(t("play.status.boardLoading"), 2500, "info");
             return;
         }
         exitReviewMode();
@@ -5742,7 +5745,7 @@
         }
         dialogOn = true;
         animating = true;
-        showStatus("Choose promotion piece", 0, "promotion");
+        showStatus(t("play.status.choosePromotionPiece"), 0, "promotion");
         return new Promise(function (resolve) {
             Board.showPromotionDialog(turn, async function (selectedPiece) {
                 let runBrainAfter = false;
@@ -5757,7 +5760,7 @@
                         selectedPiece < game.KNIGHT ||
                         selectedPiece > game.QUEEN
                     ) {
-                        showStatus("Invalid promotion piece", 0, "error");
+                        showStatus(t("play.status.invalidPromotionPiece"), 0, "error");
                         return;
                     }
                     const gs = ensurePlayGameSession();
@@ -5945,14 +5948,14 @@
         }
         if (playOnlineMode && typeof playOnlineMode.offerDraw === "function") {
             if (!playOnlineMode.offerDraw()) {
-                showStatus("Draw offer is not available now", 2500, "info");
+                showStatus(t("play.status.drawOfferNotAvailable"), 2500, "info");
             }
             updateActionButtons();
             return;
         }
         Dialog.alert({
-            title: "Draw offer",
-            message: "Draw offers are not available when playing against the engine.",
+            title: t("play.status.drawOfferTitle"),
+            message: t("classic.drawOffersNotVsEngine"),
         });
     }
 
@@ -6057,7 +6060,7 @@
             }
             let rematchColorHandle;
             rematchColorHandle = Dialog.open({
-                title: "Rematch",
+                title: t("play.status.rematchTitle"),
                 body: "Choose your color for the rematch:",
                 panelClass: "desktop-play-dialog--confirm",
                 buttons: [
@@ -6222,7 +6225,7 @@
         updateMovesTable([]);
         updateMatchHeader();
         updateHeaderTurn();
-        showStatus("Choose New game or Position setup from the sidebar", 0, "info");
+        showStatus(t("play.status.chooseNewGameOrSetup"), 0, "info");
         updateActionButtons();
         updateGameModeTooltip();
     }

@@ -1,11 +1,12 @@
 const BaseJoi = require("joi");
+const { t } = require("./strings");
 const sanitizeHtml = require("sanitize-html");
 const ExpressError = require("../src/utils/ExpressError");
 
 const extention = (joi) => ({
     type: "string",
     base: joi.string(),
-    messages: { "string.escapeHTML": "{{#label}} must not include HTML." },
+    messages: { "string.escapeHTML": t("validation.noHtml").replace(/\{\{label\}\}/g, "{{#label}}") },
     rules: {
         escapeHTML: {
             validate(value, helpers) {

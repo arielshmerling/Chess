@@ -1,4 +1,10 @@
-/*global axios, ChessGame*/
+/*global axios, ChessGame, ShmerlingT*/
+function t(key, params) {
+    if (typeof ShmerlingT === "function") {
+        return ShmerlingT(key, params);
+    }
+    return key;
+}
 //const { ChessGame } = require("./ChessGame");
 // Globals
 let promotionCallback = null;
@@ -170,9 +176,9 @@ function setPlayerStatusDot(el, state) {
         return;
     }
     const map = {
-        online: { title: "Online", mod: "friends-status-online" },
-        disconnected: { title: "Disconnected", mod: "friends-status-disconnected" },
-        offline: { title: "Offline", mod: "friends-status-offline" },
+        online: { title: t("classic.playerOnline"), mod: "friends-status-online" },
+        disconnected: { title: t("classic.playerDisconnectedStatus"), mod: "friends-status-disconnected" },
+        offline: { title: t("classic.playerOffline"), mod: "friends-status-offline" },
     };
     const row = map[state] || map.offline;
     el.className = "friends-status-dot " + row.mod;
@@ -180,14 +186,14 @@ function setPlayerStatusDot(el, state) {
     el.setAttribute("aria-label", row.title);
 }
 
-const DISCONNECT_COUNTDOWN_TOOLTIP = "Waiting for opponent to rejoin";
+function getDisconnectCountdownTooltip() { return t("classic.waitingOpponentRejoin"); }
 
 function formatDisconnectionCountdown(seconds) {
     const s = Math.max(0, Math.floor(seconds));
     if (s === 1) {
-        return "Timeout: 1 sec";
+        return t("classic.timeoutOneSec");
     }
-    return "Timeout: " + s + " sec";
+    return t("classic.timeoutSecs", { count: s });
 }
 
 function getOpponentStatusElement() {
@@ -298,8 +304,8 @@ async function syncReconnectTimeoutFromServer() {
         if (st === "cancelled") {
             clearOpponentDisconnectGrace();
             hideDisconnectionCountdown();
-            const detail = "Reconnect timed out with no moves played.";
-            const shown = "Game cancelled — " + detail;
+            const detail = t("classic.reconnectTimeoutNoMoves");
+            const shown = t("play.status.gameCancelledWithDetail", { detail: detail });
             displayMessage(shown);
             log("System", shown);
             hideMessageBox();
@@ -327,7 +333,9 @@ async function syncReconnectTimeoutFromServer() {
         }
         const winner = loser === "White" ? "Black" : "White";
         const winnerName = winner === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
-        const summary = "Game over — opponent failed to reconnect. " + winnerName + " wins.";
+        const summary = t("classic.gameOverOpponentFailedReconnectWinsClassic", {
+            winner: winnerName,
+        });
         clearOpponentDisconnectGrace();
         hideDisconnectionCountdown();
         displayMessage(summary);
@@ -394,23 +402,23 @@ const guiBoard = [
 ];
 
 const Labels = {
-    LOAD_GAME: "Load Game",
-    LOAD: "Load",
-    ENTER_GAME_STATE: "Paste game state here...",
-    CANCEL: "Cancel",
-    YES: "Yes",
-    NO: "No",
-    REMATCH: "Rematch",
-    RESIGN: "Resign",
-    DRAW: "Draw Offer",
-    UNDO: "Undo",
-    REDO: "Redo",
-    LAST_MOVE: "Last Move",
-    HOME: "Exit",
-    FLIP: "Flip",
-    BOOKMARKS: "Bookmarks",
-    OK: "OK",
-    BOOKMARK_ALERT_TITLE: "Bookmark position",
+    get LOAD_GAME() { return t("classic.loadGame"); },
+    get LOAD() { return t("classic.load"); },
+    get ENTER_GAME_STATE() { return t("classic.enterGameState"); },
+    get CANCEL() { return t("common.cancel"); },
+    get YES() { return t("common.yes"); },
+    get NO() { return t("common.no"); },
+    get REMATCH() { return t("classic.rematch"); },
+    get RESIGN() { return t("play.actions.resign"); },
+    get DRAW() { return t("classic.drawOffer"); },
+    get UNDO() { return t("play.actions.undo"); },
+    get REDO() { return t("play.actions.redo"); },
+    get LAST_MOVE() { return t("classic.lastMove"); },
+    get HOME() { return t("play.actions.exit"); },
+    get FLIP() { return t("play.actions.flip"); },
+    get BOOKMARKS() { return t("classic.bookmarks"); },
+    get OK() { return t("common.ok"); },
+    get BOOKMARK_ALERT_TITLE() { return t("classic.bookmarkAlertTitle"); },
 };
 
 function isPlayGamePage() {
@@ -765,7 +773,7 @@ function updateDebugGameId() {
     const el = document.getElementById("debugGameId");
     if (el) {
         const id = (typeof gameInfo !== "undefined" && gameInfo && gameInfo.id) ? gameInfo.id : "(none)";
-        el.textContent = "Game ID: " + id;
+        el.textContent = t("mobile.gameId", { id: id });
     }
     try {
         const gid = (typeof gameInfo !== "undefined" && gameInfo && gameInfo.id) ? String(gameInfo.id) : "";
@@ -1280,7 +1288,7 @@ function createResearchToolbox() {
         btn.setAttribute("data-piece", String(pieceType));
         const img = document.createElement("img");
         img.src = whitePiecesURL[pieceType];
-        img.alt = "White piece";
+        img.alt = t("classic.whitePieceAlt");
         btn.appendChild(img);
         btn.onclick = function () { researchSelected = { color: "white", pieceType: pieceType }; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); updateResearchCursor(); };
         whiteCol.appendChild(btn);
@@ -1295,7 +1303,7 @@ function createResearchToolbox() {
         btn.setAttribute("data-piece", String(pieceType));
         const img = document.createElement("img");
         img.src = blackPiecesURL[pieceType];
-        img.alt = "Black piece";
+        img.alt = t("classic.blackPieceAlt");
         btn.appendChild(img);
         btn.onclick = function () { researchSelected = { color: "black", pieceType: pieceType }; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); btn.classList.add("selected"); updateResearchCursor(); };
         blackCol.appendChild(btn);
@@ -1310,24 +1318,24 @@ function createResearchToolbox() {
     const eraserBtn = document.createElement("button");
     eraserBtn.type = "button";
     eraserBtn.className = "research-toolbox-eraser";
-    eraserBtn.setAttribute("title", "Eraser");
-    eraserBtn.setAttribute("aria-label", "Eraser – remove piece from square");
+    eraserBtn.setAttribute("title", t("classic.eraserTitle"));
+    eraserBtn.setAttribute("aria-label", t("classic.eraserAria"));
     eraserBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21\"/><path d=\"M22 21H7\"/><path d=\"m5 11 9 9\"/></svg>";
     eraserBtn.onclick = function () { researchSelected = "eraser"; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); eraserBtn.classList.add("selected"); updateResearchCursor(); };
     toolsRow.appendChild(eraserBtn);
     const selectBtn = document.createElement("button");
     selectBtn.type = "button";
     selectBtn.className = "research-toolbox-select";
-    selectBtn.setAttribute("title", "Select");
-    selectBtn.setAttribute("aria-label", "Select – drag pieces to move them");
+    selectBtn.setAttribute("title", t("classic.selectTitle"));
+    selectBtn.setAttribute("aria-label", t("classic.selectAria"));
     selectBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0\"/><path d=\"M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2\"/><path d=\"M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8\"/><path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/></svg>";
     selectBtn.onclick = function () { researchSelected = "select"; panel.querySelectorAll(researchToolSelector()).forEach(function (el) { el.classList.remove("selected"); }); selectBtn.classList.add("selected"); updateResearchCursor(); };
     toolsRow.appendChild(selectBtn);
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className = "research-toolbox-reset";
-    resetBtn.setAttribute("title", "Reset");
-    resetBtn.setAttribute("aria-label", "Reset – clear all pieces");
+    resetBtn.setAttribute("title", t("desktop.brainConfig.reset"));
+    resetBtn.setAttribute("aria-label", t("classic.resetAria"));
     resetBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg>";
     resetBtn.onclick = function () {
         const state = JSON.parse(JSON.stringify(game.GameState));
@@ -1344,8 +1352,8 @@ function createResearchToolbox() {
     const defaultPosBtn = document.createElement("button");
     defaultPosBtn.type = "button";
     defaultPosBtn.className = "research-toolbox-default";
-    defaultPosBtn.setAttribute("title", "Default position");
-    defaultPosBtn.setAttribute("aria-label", "Default position – set up standard starting position");
+    defaultPosBtn.setAttribute("title", t("desktop.positionSetup.startingPosition"));
+    defaultPosBtn.setAttribute("aria-label", t("classic.defaultPositionAria"));
     defaultPosBtn.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>";
     defaultPosBtn.onclick = function () {
         const whitePlayerView = game.GameState && game.GameState.whitePlayerView !== false;
@@ -1502,7 +1510,7 @@ async function loadResearchBrainConfig(engineName) {
     if (panel) {
         const statusEl = panel.querySelector(".research-brain-config-status");
         if (statusEl) {
-            statusEl.textContent = "Loading...";
+            statusEl.textContent = t("classic.loading");
         }
     }
     const response = await getServerInfo("/brain-config?engine=" + encodeURIComponent(safeEngine));
@@ -1571,7 +1579,7 @@ function createResearchBrainConfigPanel() {
     panel.className = "research-brain-config";
     const titleBar = document.createElement("div");
     titleBar.className = "research-brain-config-titlebar";
-    titleBar.textContent = "Brain Config";
+    titleBar.textContent = t("classic.researchBrainConfig");
     panel.appendChild(titleBar);
 
     const body = document.createElement("div");
@@ -1580,7 +1588,7 @@ function createResearchBrainConfigPanel() {
     const topRow = document.createElement("div");
     topRow.className = "research-brain-config-row";
     const engineLabel = document.createElement("label");
-    engineLabel.textContent = "Engine";
+    engineLabel.textContent = t("classic.engineLabel");
     engineLabel.setAttribute("for", "researchBrainEngineSelect");
     const engineSelect = document.createElement("select");
     engineSelect.id = "researchBrainEngineSelect";
@@ -1595,7 +1603,7 @@ function createResearchBrainConfigPanel() {
     engineSelect.addEventListener("change", function () {
         loadResearchBrainConfig(engineSelect.value).catch(function (error) {
             console.error("Failed to load brain config:", error);
-            alertMessageBox("Failed to load brain config.");
+            alertMessageBox(t("classic.failedLoadBrainConfig"));
         });
     });
     topRow.appendChild(engineLabel);
@@ -1622,7 +1630,7 @@ function createResearchBrainConfigPanel() {
     saveBtn.addEventListener("click", function () {
         saveResearchBrainConfig().catch(function (error) {
             console.error("Failed to save brain config:", error);
-            alertMessageBox("Failed to save brain config.");
+            alertMessageBox(t("classic.failedSaveBrainConfig"));
         });
     });
     const discardBtn = document.createElement("button");
@@ -2448,7 +2456,7 @@ async function promotionEventHandler(turn) {
 
     return new Promise((resolve) => {
 
-        displayMessage("Promotion!");
+        displayMessage(t("classic.promotion"));
         log("System", "Promotion");
         //menuSaveEventHandler();
         promotingMode = true;
@@ -2585,188 +2593,15 @@ function displayMessage(message, durationMs) {
  * @param {"add"|"save"} [purpose] "add" when creating a bookmark; "save" when saving position in edit mode.
  */
 function getResearchBookmarkPositionValidationMessage(purpose) {
-    const header = purpose === "save"
-        ? "Cannot save this bookmark:\n\n"
-        : "Cannot add this bookmark:\n\n";
-
-    const g = game;
-    if (!g || !g.GameState) {
-        return header + "Could not read the board. Try again after the board has loaded.";
-    }
-
-    /* Snapshot like loadGame/save would see; avoids stale refs. Same dimensions as ChessGame. */
-    let board;
-    try {
-        const snap = JSON.parse(JSON.stringify(g.GameState));
-        board = snap && snap.board;
-    } catch {
-        board = g.GameState.board;
-    }
-    if (!board || !Array.isArray(board)) {
-        return header + "Could not read the board. Try again after the board has loaded.";
-    }
-
-    const rows = (typeof g.BOARD_ROWS === "number") ? g.BOARD_ROWS : 8;
-    const cols = (typeof g.BOARD_COLUMNS === "number") ? g.BOARD_COLUMNS : 8;
-
-    /* ChessGame piece codes (fixed); match ChessGame.js — do not read only from instance (PAWN=0 is falsy). */
-    const PT_PAWN = 0;
-    const PT_KING = 1;
-    const PT_KNIGHT = 2;
-    const PT_BISHOP = 3;
-    const PT_ROOK = 4;
-    const PT_QUEEN = 5;
-
-    function normalizeBookmarkPieceColor(raw) {
-        if (raw == null) {
-            return null;
-        }
-        const s = String(raw).trim().toLowerCase();
-        if (s === "white") {
-            return "white";
-        }
-        if (s === "black") {
-            return "black";
-        }
+    const api = typeof ShmerlingPositionValidation !== "undefined"
+        ? ShmerlingPositionValidation
+        : null;
+    if (!api || typeof api.getMessage !== "function") {
         return null;
     }
-
-    function cellPieceType(cell) {
-        let pt = cell.pieceType;
-        if (pt === undefined || pt === null) {
-            pt = cell.PieceType;
-        }
-        const n = Number(pt);
-        return Number.isFinite(n) ? n : NaN;
-    }
-
-    const fresh = function () {
-        return { pawn: 0, rook: 0, knight: 0, bishop: 0, queen: 0, king: 0 };
-    };
-    const byColor = { white: fresh(), black: fresh() };
-    let whiteKingPos = null;
-    let blackKingPos = null;
-    let whiteBishopSquare = null;
-    let blackBishopSquare = null;
-
-    for (let r = 0; r < rows; r++) {
-        const row = board[r];
-        if (!row || !Array.isArray(row)) {
-            continue;
-        }
-        const rowLen = Math.min(cols, row.length);
-        for (let c = 0; c < rowLen; c++) {
-            const cell = row[c];
-            if (!cell || typeof cell !== "object") {
-                continue;
-            }
-            const col = normalizeBookmarkPieceColor(cell.color);
-            if (!col) {
-                continue;
-            }
-            const t = cellPieceType(cell);
-            if (!Number.isFinite(t)) {
-                continue;
-            }
-            const bucket = byColor[col];
-            if (t === PT_PAWN) {bucket.pawn++;}
-            else if (t === PT_ROOK) {bucket.rook++;}
-            else if (t === PT_KNIGHT) {bucket.knight++;}
-            else if (t === PT_BISHOP) {
-                bucket.bishop++;
-                if (col === "white") {
-                    whiteBishopSquare = { row: r, col: c };
-                } else {
-                    blackBishopSquare = { row: r, col: c };
-                }
-            } else if (t === PT_QUEEN) {bucket.queen++;}
-            else if (t === PT_KING) {
-                bucket.king++;
-                if (col === "white") {
-                    whiteKingPos = { row: r, col: c };
-                } else {
-                    blackKingPos = { row: r, col: c };
-                }
-            }
-        }
-    }
-
-    const wk = byColor.white.king;
-    if (wk !== 1) {
-        if (wk === 0) {return header + "There must be exactly one white king on the board. None was found.";}
-        return header + "There must be exactly one white king on the board. Found " + wk + " white kings.";
-    }
-    const bk = byColor.black.king;
-    if (bk !== 1) {
-        if (bk === 0) {return header + "There must be exactly one black king on the board. None was found.";}
-        return header + "There must be exactly one black king on the board. Found " + bk + " black kings.";
-    }
-
-    if (whiteKingPos && blackKingPos) {
-        const dr = Math.abs(whiteKingPos.row - blackKingPos.row);
-        const dc = Math.abs(whiteKingPos.col - blackKingPos.col);
-        if (dr <= 1 && dc <= 1) {
-            return header + "The two kings cannot be on adjacent squares (including diagonally).";
-        }
-    }
-
-    const W = byColor.white;
-    const B = byColor.black;
-    const nonKingWhite = W.pawn + W.rook + W.knight + W.bishop + W.queen;
-    const nonKingBlack = B.pawn + B.rook + B.knight + B.bishop + B.queen;
-    const totalPieces = 2 + nonKingWhite + nonKingBlack;
-    const minorsTotal = W.bishop + W.knight + B.bishop + B.knight;
-    const heavyOrPawnTotal = W.pawn + W.rook + W.queen + B.pawn + B.rook + B.queen;
-
-    /* Automatic insufficient material (common FIDE-style cases), from piece counts only (+ bishop squares for KB vs KB). */
-    if (nonKingWhite === 0 && nonKingBlack === 0) {
-        return header + "This position is a draw by insufficient material (king versus king). Add pieces so checkmate remains possible.";
-    }
-    if (totalPieces === 3 && heavyOrPawnTotal === 0 && minorsTotal === 1) {
-        return header + "This position is a draw by insufficient material (king and bishop or knight versus lone king). Add pieces so checkmate remains possible.";
-    }
-    if (totalPieces === 4 && W.bishop === 1 && B.bishop === 1 && W.knight + W.queen + W.rook + W.pawn === 0 && B.knight + B.queen + B.rook + B.pawn === 0) {
-        if (whiteBishopSquare && blackBishopSquare) {
-            const wSum = whiteBishopSquare.row + whiteBishopSquare.col;
-            const bSum = blackBishopSquare.row + blackBishopSquare.col;
-            if (wSum % 2 === bSum % 2) {
-                return header + "This position is a draw by insufficient material (bishop versus bishop on the same square color). Add pieces so checkmate remains possible.";
-            }
-        }
-    }
-
-    if (byColor.white.queen > 9) {
-        return header + "White has " + byColor.white.queen + " queens; the maximum is 9 per color.";
-    }
-    if (byColor.black.queen > 9) {
-        return header + "Black has " + byColor.black.queen + " queens; the maximum is 9 per color.";
-    }
-    if (byColor.white.rook > 10) {
-        return header + "White has " + byColor.white.rook + " rooks; the maximum is 10 per color.";
-    }
-    if (byColor.black.rook > 10) {
-        return header + "Black has " + byColor.black.rook + " rooks; the maximum is 10 per color.";
-    }
-    if (byColor.white.bishop > 10) {
-        return header + "White has " + byColor.white.bishop + " bishops; the maximum is 10 per color.";
-    }
-    if (byColor.black.bishop > 10) {
-        return header + "Black has " + byColor.black.bishop + " bishops; the maximum is 10 per color.";
-    }
-    if (byColor.white.knight > 10) {
-        return header + "White has " + byColor.white.knight + " knights; the maximum is 10 per color.";
-    }
-    if (byColor.black.knight > 10) {
-        return header + "Black has " + byColor.black.knight + " knights; the maximum is 10 per color.";
-    }
-    if (byColor.white.pawn > 8) {
-        return header + "White has " + byColor.white.pawn + " pawns; the maximum is 8 per color.";
-    }
-    if (byColor.black.pawn > 8) {
-        return header + "Black has " + byColor.black.pawn + " pawns; the maximum is 8 per color.";
-    }
-
-    return null;
+    const mapped =
+        purpose === "save" ? "saveBookmark" : purpose === "add" ? "addBookmark" : purpose;
+    return api.getMessage(game, mapped);
 }
 
 function createAlertMessageBox(text) {
@@ -2990,7 +2825,7 @@ async function onUpdateReceivedEventHandler(gameState) {
 function checkEventHandler(turn) {
     alertMode = true;
     console.log(`Check! ${game.colorName(turn)} under attack`);
-    displayMessage("Check", 2000);
+    displayMessage(t("classic.check"), 2000);
     const playerName = turn === "black" ? gameInfo.blackPlayerName : gameInfo.whitePlayerName;
     log(playerName, "Check!");
     const frame = document.getElementsByClassName("frame");
@@ -2999,7 +2834,7 @@ function checkEventHandler(turn) {
 
 async function checkmateEventHandler(turn) {
     alertMode = true;
-    displayMessage(`Checkmate! ${game.colorName(turn)} wins!`, 5000);
+    displayMessage(t("classic.checkmateWins", { winner: game.colorName(turn) }), 5000);
     const playerName = game.colorName(turn) === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
     log(playerName, "Checkmate!");
     const frame = document.getElementsByClassName("frame");
@@ -3020,7 +2855,7 @@ async function drawEventHandler(reason) {
     clearInterval(whiteHandle);
     clearInterval(blackHandle);
     alertMode = true;
-    displayMessage(`Draw! ${reason}`, 5000);
+    displayMessage(t("classic.drawReason", { reason: reason }), 5000);
     log("System", "Draw");
     log("System", reason);
     const frame = document.getElementsByClassName("frame");
@@ -3563,7 +3398,7 @@ function startWebSockets(username, isWhite, isWatcher) {
             const info = message.info;
             if (info == "game over") {
                 clearOpponentDisconnectGrace();
-                //displayMessage("Game Over");
+                //displayMessage(t("classic.gameOver"));
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
                 gameMoves = await getMovesForTable();
@@ -3584,7 +3419,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                 clearOpponentDisconnectGrace();
                 hideDisconnectionCountdown();
                 const detail = message.data && String(message.data).trim() ? String(message.data).trim() : "";
-                const shown = detail ? "Game cancelled — " + detail : "Game cancelled";
+                const shown = detail
+                    ? t("play.status.gameCancelledWithDetail", { detail: detail })
+                    : t("classic.gameCancelled");
                 displayMessage(shown);
                 log("System", shown);
                 if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
@@ -3615,7 +3452,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                         return;
                     }
                     if (!gameInfo.watcher) {
-                        displayMessage("The opponent disconnected");
+                        displayMessage(t("classic.opponentDisconnected"));
                         log("System", "The opponent disconnected");
                         setPlayerStatusDot(getOpponentStatusElement(), "disconnected");
                         hideMessageBox();
@@ -3635,8 +3472,9 @@ function startWebSockets(username, isWhite, isWatcher) {
                             (currentPlayerIsWhite ? "Black" : "White");
                 const winner = loser === "White" ? "Black" : "White";
                 const winnerName = winner === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
-                const summary =
-                    "Game over — opponent failed to reconnect. " + winnerName + " wins.";
+                const summary = t("classic.gameOverOpponentFailedReconnectWinsClassic", {
+                    winner: winnerName,
+                });
                 displayMessage(summary);
                 log("System", summary);
                 game.resign(loser);
@@ -3666,7 +3504,7 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (info == "Opponent resigned") {
                 const resignedPlayer = (message.isWhite === true) ? "White" : "Black";
                 const winner = resignedPlayer === "White" ? "Black" : "White";
-                displayMessage(`The opponent resigned, ${winner} wins `);
+                displayMessage(t("classic.opponentResignedWins", { winner: winner }));
                 const playerName = resignedPlayer === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
                 log(playerName, "I resign!");
                 hideMessageBox();
@@ -3694,7 +3532,7 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             if (info == "move validation failed") {
                 const player = currentPlayerIsWhite ? "White" : "Black";
-                displayMessage("Something went wrong");
+                displayMessage(t("classic.somethingWentWrong"));
                 log("Server", "Something went wrong");
                 hideMessageBox();
                 game.resign(player);
@@ -3738,17 +3576,17 @@ function startWebSockets(username, isWhite, isWatcher) {
                     if (!quickRejoin) {
                         if (rw === true || rw === false) {
                             const name = onlinePlayerLabelForSide(rw);
-                            displayMessage(name + " rejoined");
+                            displayMessage(t("classic.playerRejoined", { name: name }));
                             log("System", name + " rejoined");
                         } else {
-                            displayMessage("A player rejoined");
+                            displayMessage(t("classic.aPlayerRejoined"));
                             log("System", "A player rejoined");
                         }
                     }
                 } else {
                     setPlayerStatusDot(getOpponentStatusElement(), "online");
                     if (!quickRejoin) {
-                        displayMessage("The opponent rejoined");
+                        displayMessage(t("classic.opponentRejoined"));
                         log("System", "The opponent rejoined");
                     }
                     if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher && !game.GameOver) {
@@ -3766,7 +3604,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                 } else {
                     displayMessage("");
                     if (gameInfo.gameType == "OnlineGame") {
-                        messageBox("Opponenet offer a rematch, agree?", acceptRematch, declineRematch);
+                        messageBox(t("classic.rematchOfferAccept"), acceptRematch, declineRematch);
                     } else if (gameInfo.gameType == "SinglePlayerGame") {
                         if (typeof gameInfo !== "undefined" && gameInfo) {
                             window.__LAST_GAME_OPTIONS__ = {
@@ -3791,7 +3629,7 @@ function startWebSockets(username, isWhite, isWatcher) {
                     const text =
                         message.data && String(message.data).trim()
                             ? String(message.data).trim()
-                            : "New game started — go to Home to watch.";
+                            : t("mobile.newGameWatchFromHome");
                     displayMessage(text);
                     log("System", text);
                 }
@@ -3802,7 +3640,7 @@ function startWebSockets(username, isWhite, isWatcher) {
 
                 // Online
                 if (gameInfo.gameType == "OnlineGame") {
-                    displayMessage("Rematch offer accepted");
+                    displayMessage(t("classic.rematchOfferAccepted"));
                     log("System", "Rematch offer accepted");
                     enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
                     disableButtons(["rematchBtn"]);
@@ -3822,7 +3660,7 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             if (info == "rematch declined") {
                 if (gameInfo.gameType == "OnlineGame") {
-                    displayMessage("Rematch offer declined");
+                    displayMessage(t("classic.rematchOfferDeclined"));
                     log("System", "Rematch offer declined");
                 }
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
@@ -3841,10 +3679,10 @@ function startWebSockets(username, isWhite, isWatcher) {
                     log("System", label + " offered a draw");
                 } else if (gameInfo.gameType != "SinglePlayerGame") {
                     displayMessage("");
-                    messageBox("Opponent sent a draw offer, accept?", acceptDraw, declineDraw);
+                    messageBox(t("classic.drawOfferAccept"), acceptDraw, declineDraw);
                 } else if (gameInfo.gameType === "SinglePlayerGame") {
                     const side = message.isWhite ? "White" : "Black";
-                    displayMessage(side + " offers draw");
+                    displayMessage(t("classic.sideOffersDraw", { side: side }));
                     log("System", side + " offers draw");
                 }
             }
@@ -3855,7 +3693,7 @@ function startWebSockets(username, isWhite, isWatcher) {
             }
 
             if (info == "draw declined") {
-                displayMessage("Draw offer declined");
+                displayMessage(t("classic.drawOfferDeclined"));
                 log("System", "Draw offer declined");
                 if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
                     enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
@@ -3867,7 +3705,7 @@ function startWebSockets(username, isWhite, isWatcher) {
 
             if (info == "new watcher") {
                 const watcherName = message.data;
-                displayMessage(watcherName + " is watching the game");
+                displayMessage(t("classic.watcherWatching", { name: watcherName }));
             }
 
             if (info == "chat") {
@@ -3902,7 +3740,7 @@ async function declineDraw() {
         await sendMessage(message);
     }
 
-    displayMessage("Draw offer declined");
+    displayMessage(t("classic.drawOfferDeclined"));
     log("System", "Draw offer declined");
     if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {
         enableButtons(["resignBtn", "lastMoveBtn", "homeBtn"]);
@@ -4011,7 +3849,7 @@ async function offerDraw() {
         };
         await sendMessage(message);
 
-        displayMessage("Draw offer sent");
+        displayMessage(t("classic.drawOfferSent"));
         log("System", "Draw offer sent");
         disableButtons(["drawBtn"]);
     }
@@ -4115,7 +3953,7 @@ function menuOfferDrawEventHandler() {
         }
     }
 
-    messageBox("Offer a Draw?", offerDraw, offerCanceled);
+    messageBox(t("classic.offerDrawConfirm"), offerDraw, offerCanceled);
 }
 
 async function menuRematchEventHandler() {
@@ -4155,14 +3993,14 @@ async function menuRematchEventHandler() {
         };
         await sendMessage(message);
 
-        displayMessage("Rematch offer sent");
+        displayMessage(t("classic.rematchOfferSent"));
         log("System", "Rematch offer sent");
         disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
         document.getElementById("rematchBtn").classList.remove("btnDisabled");
         return;
     }
 
-    displayMessage("New Game Started");
+    displayMessage(t("classic.newGameStarted"));
     startGame();
 }
 
@@ -4215,7 +4053,7 @@ async function menuResignEventHandler() {
 
     const player = currentPlayerIsWhite ? "White" : "Black";
     if (gameInfo.gameType == "PracticeGame") {
-        displayMessage("Game Over");
+        displayMessage(t("classic.gameOver"));
         game.resign(player);
         log("System", "Game over.");
         const message = {
@@ -4237,7 +4075,7 @@ async function menuResignEventHandler() {
         const anyMovePlayed = game.Moves.length >= 1;
         if (gameInfo.gameType === "OnlineGame" && !anyMovePlayed) {
             await postServerInfo("/cancel-before-move", { gameId: gameInfo.id });
-            displayMessage("Game cancelled");
+            displayMessage(t("classic.gameCancelled"));
             log("System", "Game cancelled");
             hideMessageBox();
             clearInterval(whiteHandle);
@@ -4270,10 +4108,10 @@ async function menuResignEventHandler() {
         }
         updateMovesTable(gameMoves.moves);
         if (gameInfo.gameType === "OnlineGame") {
-            displayMessage(`You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins `);
+            displayMessage(t("classic.youResignedWins", { winner: !currentPlayerIsWhite ? t("common.white") : t("common.black") }));
             log(currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName, "I resign!");
         } else {
-            displayMessage(humanHasMoved ? `You resigned, ${!currentPlayerIsWhite ? "White" : "Black"} wins ` : "Game cancelled");
+            displayMessage(humanHasMoved ? t("classic.youResignedWins", { winner: !currentPlayerIsWhite ? t("common.white") : t("common.black") }) : t("classic.gameCancelled"));
             log(humanHasMoved ? currentPlayerIsWhite ? gameInfo.whitePlayerName : gameInfo.blackPlayerName : "System", humanHasMoved ? "I resign!" : "Game cancelled");
         }
         if (game.GameOver) {
@@ -4462,8 +4300,8 @@ function startDisconnectionTimer() {
 
     disconnectionTimer = 60;
     playerDiconnectionTimer.classList.remove("hide");
-    playerDiconnectionTimer.setAttribute("title", DISCONNECT_COUNTDOWN_TOOLTIP);
-    playerDiconnectionTimer.setAttribute("aria-label", DISCONNECT_COUNTDOWN_TOOLTIP);
+    playerDiconnectionTimer.setAttribute("title", getDisconnectCountdownTooltip());
+    playerDiconnectionTimer.setAttribute("aria-label", getDisconnectCountdownTooltip());
     playerDiconnectionTimer.innerText = formatDisconnectionCountdown(disconnectionTimer);
     disconnectionTimerHandle = setInterval(() => {
         if (game.GameOver) {
@@ -4589,7 +4427,7 @@ function switchClocks() {
 
 function outOfTime() {
     const loser = game.Turn;
-    displayMessage(`Time's up! ${loser} lost`);
+    displayMessage(t("play.status.timesUpLost", { loser: loser }));
     log("System", `Time's up — ${loser} ran out of time.`);
     game.OutOfTime = loser;
     sendOutOfTime(loser);
@@ -4901,14 +4739,14 @@ function movesExport() {
 
 
     navigator.clipboard.writeText(arr.join(" ")).then(() => {
-        displayMessage("Moves copied to clipboard!");
+        displayMessage(t("classic.movesCopied"));
         // Clear the message after 2 seconds
         setTimeout(() => {
             displayMessage("");
         }, 2000);
     }).catch(err => {
         console.error("Failed to copy moves to clipboard:", err);
-        displayMessage("Failed to copy moves");
+        displayMessage(t("classic.failedCopyMoves"));
         setTimeout(() => {
             displayMessage("");
         }, 2000);
@@ -4972,7 +4810,8 @@ async function backToHome() {
         goBackHome();
         return;
     }
-    const confirmText = gameInfo.gameType === "PracticeGame" ? "Are you sure?" : "Resign?";
+    const confirmText =
+        gameInfo.gameType === "PracticeGame" ? t("classic.areYouSure") : t("classic.resignConfirm");
     messageBox(confirmText, goBackHome, () => { });
 };
 
@@ -5018,12 +4857,12 @@ let mobileMovesPanelScrollLockPrev = "";
 
 /** Short label under the icon (mobile toolbar). */
 const MOBILE_OPT_CAPTION = {
-    resign: "Resign",
-    rematch: "Rematch",
-    draw: "Draw",
-    flip: "Flip",
-    lastMove: "Last",
-    movesList: "Moves",
+    get resign() { return t("classic.mobileResign"); },
+    get rematch() { return t("classic.mobileRematch"); },
+    get draw() { return t("classic.mobileDraw"); },
+    get flip() { return t("classic.mobileFlip"); },
+    get lastMove() { return t("classic.mobileLastMove"); },
+    get movesList() { return t("classic.mobileMovesList"); },
 };
 
 function createMobileIconButton(id, onclick, ariaLabel, iconHtml, captionKey) {
@@ -5551,7 +5390,7 @@ function createBookmarkDiv(bookmarkId, bookmarkName, bookmarkDate) {
                 executeBookmarkFromResearch(bookmarkObj, bookmarkId)
                     .catch(function (error) {
                         console.error("Failed to execute bookmark from research:", error);
-                        alertMessageBox("Failed to start game from bookmark.");
+                        alertMessageBox(t("classic.failedStartFromBookmark"));
                     })
                     .finally(function () {
                         executeBtn.disabled = false;

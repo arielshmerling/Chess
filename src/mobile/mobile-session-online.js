@@ -10,6 +10,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     /**
      * @returns {boolean}
      */
@@ -337,7 +346,7 @@
             },
             onOpponentJoined: function (name) {
                 const label =
-                    name && String(name).trim() ? String(name).trim() : "Opponent";
+                    name && String(name).trim() ? String(name).trim() : t("session.opponentDefault");
                 if (watcher) {
                     /* Spectators keep both name plates from gameInfo / later updates. */
                     return;
@@ -380,7 +389,7 @@
                 }
                 if (typeof global.messageBox === "function") {
                     global.messageBox(
-                        "Opponent offered a draw, agree?",
+                        t("mobile.drawOfferAgree"),
                         function () {
                             if (onlineMode && onlineMode.acceptDrawOffer) {
                                 onlineMode.acceptDrawOffer();
@@ -400,7 +409,7 @@
                 }
                 if (typeof global.messageBox === "function") {
                     global.messageBox(
-                        "Opponent offered a rematch, agree?",
+                        t("mobile.rematchOfferAgree"),
                         function () {
                             const wants =
                                 payload &&
@@ -423,10 +432,7 @@
             onRematchAccepted: function (payload) {
                 if (watcher) {
                     if (typeof global.displayMessage === "function") {
-                        global.displayMessage(
-                            "New game started — go to Home to watch.",
-                            4000,
-                        );
+                        global.displayMessage(t("mobile.newGameWatchFromHome"), 4000);
                     }
                     return;
                 }
@@ -440,7 +446,7 @@
             },
             onGameCancelled: function () {
                 if (typeof global.displayMessage === "function") {
-                    global.displayMessage("Game cancelled", 3000);
+                    global.displayMessage(t("classic.gameCancelled"), 3000);
                 }
             },
             onDisconnectCountdown: function (seconds) {

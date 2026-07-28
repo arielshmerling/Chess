@@ -5,6 +5,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     function getConfirmEls() {
         var overlay = document.getElementById("site-confirm-overlay");
         if (!overlay) {
@@ -45,10 +52,10 @@
                 resolve(window.confirm(String(message)));
                 return;
             }
-            els.titleEl.textContent = opts.title != null ? String(opts.title) : "Confirm";
+            els.titleEl.textContent = opts.title != null ? String(opts.title) : t("site.confirm");
             els.msgEl.textContent = String(message);
-            els.btnOk.textContent = opts.confirmLabel != null ? String(opts.confirmLabel) : "Confirm";
-            els.btnCancel.textContent = opts.cancelLabel != null ? String(opts.cancelLabel) : "Cancel";
+            els.btnOk.textContent = opts.confirmLabel != null ? String(opts.confirmLabel) : t("site.confirm");
+            els.btnCancel.textContent = opts.cancelLabel != null ? String(opts.cancelLabel) : t("site.cancel");
 
             var prevOverflow = document.body.style.overflow;
             document.body.style.overflow = "hidden";
@@ -106,7 +113,7 @@
                 resolve();
                 return;
             }
-            els.titleEl.textContent = title != null ? String(title) : "Notice";
+            els.titleEl.textContent = title != null ? String(title) : t("site.notice");
             els.msgEl.textContent = String(message);
 
             var prevOverflow = document.body.style.overflow;

@@ -4,6 +4,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const Settings = window.DesktopGameSettings;
     const Dialog = window.DesktopDialog;
 
@@ -26,32 +33,40 @@
         const row = document.createElement("section");
         row.className = "desktop-new-game-block";
         row.innerHTML =
-            '<h2 class="desktop-form-section-title">Your color</h2>' +
+            '<h2 class="desktop-form-section-title">' + t("play.newGameDialog.yourColor") + "</h2>" +
             '<div class="desktop-option-group desktop-option-group--equal" role="radiogroup">' +
             '<label class="desktop-option-pill"><input type="radio" name="color" value="white"' +
             (last.color !== "black" ? " checked" : "") +
-            '><span>White</span></label>' +
+            "><span>" + t("common.white") + "</span></label>" +
             '<label class="desktop-option-pill"><input type="radio" name="color" value="black"' +
             (last.color === "black" ? " checked" : "") +
-            "><span>Black</span></label></div>";
+            "><span>" + t("common.black") + "</span></label></div>";
         form.appendChild(row);
 
         const fields = document.createElement("section");
         fields.className = "desktop-new-game-fields";
         fields.innerHTML =
-            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgEngine">Engine</label>' +
-            '<select name="engine" id="dlgEngine">' +
+            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgEngine">' +
+            t("play.newGameDialog.engine") +
+            '</label><select name="engine" id="dlgEngine">' +
             '<option value="brain43"' +
             (last.engine === "brain43" ? " selected" : "") +
-            '>Brain 4.3</option>' +
+            ">" +
+            t("play.newGameDialog.brain43") +
+            "</option>" +
             '<option value="brain42"' +
             (last.engine === "brain42" ? " selected" : "") +
-            '>Brain 4.2</option>' +
+            ">" +
+            t("play.newGameDialog.brain42") +
+            "</option>" +
             '<option value="brain41"' +
             (last.engine === "brain41" ? " selected" : "") +
-            '>Brain 4.1</option></select></div>' +
-            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">Time per side (minutes)</label>' +
-            '<input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +
+            ">" +
+            t("play.newGameDialog.brain41") +
+            "</option></select></div>" +
+            '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">' +
+            t("play.newGameDialog.timePerSideMinutes") +
+            '</label><input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +
             (last.timeMinutes || 90) +
             '"></div></section>';
         form.appendChild(fields);
@@ -61,7 +76,9 @@
         checks.innerHTML =
             '<label class="desktop-check"><input type="checkbox" name="allowUndo" value="1"' +
             (last.allowUndo !== false ? " checked" : "") +
-            '><span class="desktop-check-box" aria-hidden="true"></span><span>Allow undo</span></label>';
+            '><span class="desktop-check-box" aria-hidden="true"></span><span>' +
+            t("play.newGameDialog.allowUndo") +
+            "</span></label>";
         form.appendChild(checks);
 
         const errP = document.createElement("p");
@@ -75,11 +92,11 @@
         const cancelBtn = document.createElement("button");
         cancelBtn.type = "button";
         cancelBtn.className = "desktop-btn";
-        cancelBtn.textContent = "Cancel";
+        cancelBtn.textContent = t("common.cancel");
         const startBtn = document.createElement("button");
         startBtn.type = "button";
         startBtn.className = "desktop-btn desktop-btn-gold";
-        startBtn.textContent = "Start";
+        startBtn.textContent = t("common.start");
         actions.appendChild(cancelBtn);
         actions.appendChild(startBtn);
         form.appendChild(actions);
@@ -113,7 +130,7 @@
         });
 
         activeHandle = Dialog.open({
-            title: "New game vs AI",
+            title: t("play.newGameDialog.title"),
             body: form,
             panelClass: "desktop-play-dialog--new-game",
             dismissOnBackdrop: true,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Error — Shmerling Chess</title>
+  <script src="/app/strings/en.js"></script><script src="/app/strings/en-extra.js"></script><script src="/app/strings/index.js"></script><title>Error — Shmerling Chess</title>
   <link rel="stylesheet" href="/app.css">
   <link rel="stylesheet" href="/app/ui/app.css">
 </head>
@@ -15,5 +15,18 @@
     <a class="desktop-btn desktop-btn-primary" href="/app/play">Back to main</a>
   </main>
   <script src="/app/ui/desktop-error.js"></script>
-</body>
+<script>
+(function () {
+  var t = window.ShmerlingStrings && window.ShmerlingStrings.t;
+  if (!t) return;
+  document.title = t("desktop.error.title");
+  var h = document.querySelector("h1");
+  if (h) h.textContent = t("desktop.error.title");
+  var msg = document.getElementById("desktopErrorMessage");
+  if (msg && !msg.textContent.trim()) msg.textContent = t("desktop.error.body");
+  else if (msg && msg.textContent === "An error occurred.") msg.textContent = t("desktop.error.body");
+  var a = document.querySelector("a");
+  if (a) a.textContent = t("desktop.error.back");
+})();
+</script></body>
 </html>

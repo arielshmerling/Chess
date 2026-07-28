@@ -3,17 +3,17 @@
   <form method="post" action="/register" class="validated-form" novalidate>
     <div class="loginBoxWrapper">
       <div class="loginBox">
-        <div class="labelRow"> <label for="username">Username:</label> </div>
+        <div class="labelRow"> <label for="username"><%= t('site.username') %></label> </div>
         <div class="labelRow"> <input id="username" username="username" name="username" autofocus autocomplete="username" required><span></span></div><span id="usernameValidationMessage" class="validationMessage"></span>
         <br>
-        <div class="labelRow"><label for="password">Password:</label></div>
+        <div class="labelRow"><label for="password"><%= t('site.password') %></label></div>
         <div class="labelRow"> <input id="password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="30"><span></span></div><span id="passwordValidationMessage" class="validationMessage"></span>
         <br>
         <div class="labelRow"><label for="confirmPassword">Confirm password:</label> </div>
         <div class="labelRow"> <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required><span class="ht"></span></div>
         <span id="confirmPasswordValidationMessage" class="validationMessage"></span>
         <br>
-        <div class="labelRow"><label for="email">Email:</label> </div>
+        <div class="labelRow"><label for="email"><%= t('site.email') %></label> </div>
         <div class="labelRow"> <input id="email" name="email" type="email" autocomplete="email" required><span></span></div>
         <span id="emailValidationMessage" class="validationMessage"></span>
         <br>
@@ -21,14 +21,14 @@
         <div class="selectionBox">
           <div class="selectionOption selectedOption" name="level" onclick="selectOption(this)">Rookie
           </div>
-          <div class="selectionOption" name="level" onclick="selectOption(this)">Skilled</div>
-          <div class="selectionOption" name="level" onclick="selectOption(this)">Elite</div>
-          <div class="selectionOption" name="level" onclick="selectOption(this)">Grand Master</div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)"><%= t('site.register.skilled') %></div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)"><%= t('site.register.elite') %></div>
+          <div class="selectionOption" name="level" onclick="selectOption(this)"><%= t('site.register.grandMaster') %></div>
         </div>
         <input type="hidden" id="level" name="level" value="Rookie" />
 
         <br><br>
-        <button class="button">Register</button>
+        <button class="button"><%= t('site.register') %></button>
       </div>
     </div>
   </form>

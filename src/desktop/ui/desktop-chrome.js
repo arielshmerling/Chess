@@ -5,6 +5,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     function getHomeHref() {
         if (
             window.ShmerlingPlayShell
@@ -15,64 +22,68 @@
         return "/app/play";
     }
 
-    var PREFS_HTML = [
+    function buildPrefsHtml() {
+        return [
         '<div class="desktop-prefs">',
         '  <button type="button" class="desktop-prefs-trigger" id="desktopPrefsTrigger"',
         '    aria-expanded="false" aria-controls="desktopPrefsPanel" aria-haspopup="dialog">',
         '    <span class="desktop-prefs-trigger-icon" aria-hidden="true">&#9881;</span>',
-        '    <span class="desktop-prefs-trigger-label">Preferences</span>',
+        '    <span class="desktop-prefs-trigger-label">' + t("desktop.chrome.preferences") + "</span>",
         "  </button>",
         '  <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
         '    aria-labelledby="desktopPrefsTitle" hidden>',
-        '    <h2 class="desktop-prefs-title" id="desktopPrefsTitle">Preferences</h2>',
+        '    <h2 class="desktop-prefs-title" id="desktopPrefsTitle">' + t("desktop.chrome.preferences") + "</h2>",
         '    <section class="desktop-prefs-section desktop-prefs-section--theme">',
-        '      <h3 class="desktop-prefs-section-title">Color theme</h3>',
-        '      <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="Built-in themes">',
+        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.boardTheme") + "</h3>",
+        '      <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="' + t("desktop.chrome.builtInThemesAria") + '">',
         '        <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
         '          <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
-        '          <span class="desktop-theme-name">Blue</span>',
+        '          <span class="desktop-theme-name">' + t("desktop.chrome.themeBlue") + '</span>',
         "        </button>",
         '        <button type="button" class="desktop-theme-choice" data-theme="dark" aria-pressed="false">',
         '          <span class="desktop-theme-swatch desktop-theme-swatch--dark" aria-hidden="true"></span>',
-        '          <span class="desktop-theme-name">Dark</span>',
+        '          <span class="desktop-theme-name">' + t("desktop.chrome.themeDark") + '</span>',
         "        </button>",
         "      </div>",
-        '      <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="Saved custom themes"></div>',
-        '      <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">Customize theme…</button>',
+        '      <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="' + t("desktop.chrome.savedCustomThemesAria") + '"></div>',
+        '      <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">' + t("desktop.chrome.customizeTheme") + "</button>",
         "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--pieces">',
-        '      <h3 class="desktop-prefs-section-title">Piece set</h3>',
-        '      <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="Piece sets"></div>',
+        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.pieceSet") + "</h3>",
+        '      <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="' + t("desktop.chrome.pieceSetsAria") + '"></div>',
         "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--gameplay">',
-        '      <h3 class="desktop-prefs-section-title">Gameplay</h3>',
+        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.gameplay") + "</h3>",
         '      <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
         "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--display">',
-        '      <h3 class="desktop-prefs-section-title">Display</h3>',
+        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.display") + "</h3>",
         '      <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
         "    </section>",
         "  </div>",
         "</div>",
     ].join("");
+    }
 
-    var TOPBAR_HTML = [
+    function buildTopbarHtml() {
+        return [
         '<header class="desktop-topbar" role="banner">',
-        '  <a href="' + getHomeHref() + '" class="desktop-topbar-logo" aria-label="Shmerling Chess home">',
+        '  <a href="' + getHomeHref() + '" class="desktop-topbar-logo" aria-label="' + t("desktop.chrome.homeAria") + '">',
         '    <img src="/images/shmerling.png" alt="">',
         "  </a>",
         '  <div class="desktop-topbar-spacer"></div>',
         '  <div class="desktop-topbar-actions">',
-        PREFS_HTML,
+        buildPrefsHtml(),
         "  </div>",
         "</header>",
     ].join("");
+    }
 
     function mountPreferencesInto(host) {
         if (!host || document.getElementById("desktopPrefsTrigger")) {
             return false;
         }
-        host.innerHTML = PREFS_HTML;
+        host.innerHTML = buildPrefsHtml();
         initPreferencesMenu();
         return true;
     }
@@ -136,7 +147,7 @@
             return;
         }
         var wrap = document.createElement("div");
-        wrap.innerHTML = TOPBAR_HTML;
+        wrap.innerHTML = buildTopbarHtml();
         var bar = wrap.firstElementChild;
         if (!bar) {
             return;

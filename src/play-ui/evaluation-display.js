@@ -6,6 +6,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     /**
      * @param {object|null|undefined} result
      * @returns {string}
@@ -15,10 +24,10 @@
             return "";
         }
         if (result.terminal === "checkmate") {
-            return "Checkmate";
+            return t("play.status.checkmate");
         }
         if (result.terminal === "draw") {
-            return "Draw (0)";
+            return t("play.status.drawZero");
         }
         const value = result.total;
         if (!Number.isFinite(value)) {
@@ -53,7 +62,7 @@
             return item.label + ": " + sign + item.value;
         });
         if (totalText) {
-            lines.push("Total: " + totalText);
+            lines.push(t("play.status.totalLabel", { value: totalText }));
         }
         return lines.join("\n");
     }
@@ -91,9 +100,10 @@
      * @returns {string}
      */
     function statusMessage(result) {
-        const sideLabel = result && result.sideToMove === "black" ? "Black" : "White";
+        const sideLabel =
+            result && result.sideToMove === "black" ? t("common.black") : t("common.white");
         const scoreText = formatTotalText(result);
-        return "Evaluation (" + sideLabel + " to move): " + scoreText;
+        return t("play.status.evaluationLine", { side: sideLabel, score: scoreText });
     }
 
     const EvaluationDisplay = {

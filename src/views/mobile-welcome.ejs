@@ -7,15 +7,15 @@
   <div class="mobile-home-hero">
     <p class="mobile-home-greeting"><span class="mobile-home-greeting-strong">Hi <%= typeof username !== "undefined" && username ? username : "there" %></span>, let's play some chess.</p>
     <button type="button" class="mobile-home-play-computer" id="startAIGame" onclick="openPlayNowModal()">
-      <span class="mobile-home-play-computer-label">Play computer</span>
+      <span class="mobile-home-play-computer-label"><%= t('site.playNow.playComputer') %></span>
     </button>
   </div>
 
   <div class="mobile-home-tabs-wrap">
     <div class="mobile-home-tabs" role="tablist" aria-label="Home sections">
-      <button type="button" class="mobile-home-tab mobile-home-tab--active" role="tab" aria-selected="true" aria-controls="mobile-home-tab-friends" id="mobile-home-tabbtn-friends" data-tab="friends">Friends</button>
-      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-games" id="mobile-home-tabbtn-games" data-tab="games">Games</button>
-      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-library" id="mobile-home-tabbtn-library" data-tab="library">Library</button>
+      <button type="button" class="mobile-home-tab mobile-home-tab--active" role="tab" aria-selected="true" aria-controls="mobile-home-tab-friends" id="mobile-home-tabbtn-friends" data-tab="friends"><%= t('site.mobileWelcome.friends') %></button>
+      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-games" id="mobile-home-tabbtn-games" data-tab="games"><%= t('play.shell.games') %></button>
+      <button type="button" class="mobile-home-tab" role="tab" aria-selected="false" aria-controls="mobile-home-tab-library" id="mobile-home-tabbtn-library" data-tab="library"><%= t('site.mobileWelcome.library') %></button>
     </div>
   </div>
 
@@ -27,7 +27,7 @@
     <div class="mobile-home-subsection">
       <div class="mobile-home-subsection-head">
         <h3 class="mobile-home-h3">Live &amp; public</h3>
-        <a class="mobile-home-inline-link" href="/active-games-list">Browse all</a>
+        <a class="mobile-home-inline-link" href="/active-games-list"><%= t('site.playNow.browseAll') %></a>
       </div>
       <div class="mobile-home-card">
         <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
@@ -46,8 +46,8 @@
 
     <div class="mobile-home-subsection">
       <div class="mobile-home-subsection-head">
-        <h3 class="mobile-home-h3">Your history</h3>
-        <a class="mobile-home-inline-link" href="/list">Full list</a>
+        <h3 class="mobile-home-h3"><%= t('site.playNow.yourHistory') %></h3>
+        <a class="mobile-home-inline-link" href="/list"><%= t('site.playNow.fullList') %></a>
       </div>
       <div class="mobile-home-card mobile-home-card--table">
         <div class="panel-body mobile-home-my-games-body">
@@ -151,84 +151,84 @@
   <div id="mobile-home-tab-library" class="mobile-home-tab-panel" role="tabpanel" aria-labelledby="mobile-home-tabbtn-library" hidden>
     <div class="mobile-home-library-card">
       <div class="mobile-home-library-icon" aria-hidden="true">♟</div>
-      <h3 class="mobile-home-library-title">Game library</h3>
+      <h3 class="mobile-home-library-title"><%= t('site.playNow.gameLibrary') %></h3>
       <p class="mobile-home-library-copy">Search famous games by player, event, or opening — open any result in review mode with full navigation.</p>
-      <a class="mobile-home-library-cta" href="/search">Open library search</a>
+      <a class="mobile-home-library-cta" href="/search"><%= t('site.playNow.openLibrarySearch') %></a>
     </div>
   </div>
 
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
     <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
     <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
-      <h2 id="playNowModalTitle" class="play-now-modal-title">Start a new Game</h2>
+      <h2 id="playNowModalTitle" class="play-now-modal-title"><%= t('site.playNow.startTitle') %></h2>
       <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
         <div class="play-now-field">
-          <label class="play-now-label">Playing color</label>
+          <label class="play-now-label"><%= t('site.playNow.playingColor') %></label>
           <div class="play-now-radio-group">
             <label class="play-now-radio">
               <input type="radio" name="color" value="white" checked>
-              <span>White</span>
+              <span><%= t('common.white') %></span>
             </label>
             <label class="play-now-radio">
               <input type="radio" name="color" value="black">
-              <span>Black</span>
+              <span><%= t('common.black') %></span>
             </label>
           </div>
         </div>
         <div class="play-now-field">
           <div class="play-now-engine-time-row">
             <div class="play-now-engine-col">
-              <label class="play-now-label" for="playNowEngine">Engine</label>
+              <label class="play-now-label" for="playNowEngine"><%= t('common.engine') %></label>
               <select id="playNowEngine" name="engine" class="play-now-select play-now-select--compact">
-                <option value="brain43" selected>Brain 4.3</option>
-                <option value="brain42">Brain 4.2</option>
-                <option value="brain41">Brain 4.1</option>
-                <option value="brain4">Brain 4.0</option>
-                <option value="brain3">Brain 3</option>
-                <option value="brain2">Brain 2</option>
+                <option value="brain43" selected><%= t('play.newGameDialog.brain43') %></option>
+                <option value="brain42"><%= t('play.newGameDialog.brain42') %></option>
+                <option value="brain41"><%= t('play.newGameDialog.brain41') %></option>
+                <option value="brain4"><%= t('play.newGameDialog.brain4') %></option>
+                <option value="brain3"><%= t('site.playNow.brain3') %></option>
+                <option value="brain2"><%= t('site.playNow.brain2') %></option>
               </select>
             </div>
             <div class="play-now-time-col">
-              <label class="play-now-label" for="playNowTimeMinutes">Time (min)</label>
+              <label class="play-now-label" for="playNowTimeMinutes"><%= t('site.playNow.timeMin') %></label>
               <input type="number" id="playNowTimeMinutes" name="timeMinutes" class="play-now-time-input" min="1" max="180" step="1" value="90" title="Clock time per side in minutes">
             </div>
           </div>
         </div>
         <div class="play-now-field">
-          <label class="play-now-label" for="playNowDifficulty">Difficulty (1–5)</label>
+          <label class="play-now-label" for="playNowDifficulty"><%= t('site.playNow.difficulty') %></label>
           <div class="play-now-slider-row">
             <input type="range" min="1" max="6" value="3" name="difficulty" id="playNowDifficulty" class="play-now-slider" oninput="document.getElementById('playNowDifficultyValue').textContent=this.value">
             <span id="playNowDifficultyValue" class="play-now-slider-value">3</span>
           </div>
         </div>
         <div class="play-now-field">
-          <label class="play-now-label">Mouse preference</label>
+          <label class="play-now-label"><%= t('site.playNow.mousePreference') %></label>
           <div class="play-now-radio-group">
             <label class="play-now-radio" id="mouseDragLabel">
               <input type="radio" name="mouse" value="drag" id="mouseDrag" checked>
-              <span>Drag</span>
+              <span><%= t('site.playNow.drag') %></span>
             </label>
             <label class="play-now-radio">
               <input type="radio" name="mouse" value="double" id="mouseDouble">
-              <span>Double click</span>
+              <span><%= t('site.playNow.doubleClick') %></span>
             </label>
           </div>
         </div>
         <div class="play-now-field">
           <label class="play-now-checkbox-label">
             <input type="checkbox" name="showMoves" id="playNowShowMoves" value="1" checked>
-            <span>Show available moves</span>
+            <span><%= t('site.playNow.showAvailableMoves') %></span>
           </label>
         </div>
         <div class="play-now-field">
           <label class="play-now-checkbox-label" title="A private game is not visible to other members and is not shown on the club homepage.">
             <input type="checkbox" name="private" id="playNowPrivate" value="1">
-            <span>Private</span>
+            <span><%= t('site.playNow.private') %></span>
           </label>
         </div>
         <div class="play-now-modal-actions">
-          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()">Cancel</button>
-          <button type="submit" class="play-now-btn-start">Start</button>
+          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()"><%= t('site.cancel') %></button>
+          <button type="submit" class="play-now-btn-start"><%= t('common.start') %></button>
         </div>
       </form>
     </div>

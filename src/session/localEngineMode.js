@@ -19,6 +19,21 @@
         return global.PlayEngineTurn;
     }
 
+    function loadT() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("../strings/t-bridge").t;
+            } catch {
+                /* fall through */
+            }
+        }
+        return typeof global.ShmerlingT === "function" ? global.ShmerlingT : function (key) {
+            return key;
+        };
+    }
+
+    const t = loadT();
+
     function loadCapabilities() {
         if (typeof module === "object" && module && module.exports) {
             try {
@@ -143,7 +158,7 @@
             const token = ++runToken;
             thinking = true;
             session.emit("statusChanged", "engineThinking");
-            status("Engine thinking…", "info");
+            status(t("session.engineThinking"), "info");
 
             try {
                 const immediateResign =
@@ -185,8 +200,8 @@
                     return;
                 }
                 if (decision.action === "error") {
-                    status(decision.message || "Engine could not find a move", "error");
-                    session.emit("error", decision.message || "Engine could not find a move");
+                    status(decision.message || t("session.engineCouldNotFindMove"), "error");
+                    session.emit("error", decision.message || t("session.engineCouldNotFindMove"));
                     return;
                 }
 
@@ -205,7 +220,7 @@
                 if (game.GameOver) {
                     return;
                 }
-                const message = (err && err.message) || "Engine error";
+                const message = (err && err.message) || t("session.engineError");
                 status(message, "error");
                 session.emit("error", message);
             } finally {

@@ -7,6 +7,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     const STATUS_BAR_CLASSES = [
         "desktop-play-status-bar--event",
         "desktop-play-status-bar--check",
@@ -44,16 +53,16 @@
                 return "";
             }
             if (s.boardHasPieces) {
-                return "Set move, color, engine, and think time in the header, then press Play";
+                return t("play.status.setMoveColorEngineThinkTime");
             }
             return s.canPlayAdvancedTools
-                ? "Choose New game or Position setup from the sidebar"
-                : "Choose New game from the sidebar";
+                ? t("play.status.chooseNewGameOrSetup")
+                : t("play.status.chooseNewGame");
         }
         if (s.gameOver) {
-            return "Game over";
+            return t("play.status.gameOver");
         }
-        return "Game in progress";
+        return t("play.status.gameInProgress");
     }
 
     /**
@@ -128,10 +137,10 @@
             return;
         }
         if (els.whiteNameEl) {
-            els.whiteNameEl.textContent = d.whiteName || "White";
+            els.whiteNameEl.textContent = d.whiteName || t("common.white");
         }
         if (els.blackNameEl) {
-            els.blackNameEl.textContent = d.blackName || "Black";
+            els.blackNameEl.textContent = d.blackName || t("common.black");
         }
     }
 

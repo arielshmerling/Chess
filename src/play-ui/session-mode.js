@@ -7,6 +7,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     /**
      * @param {object} state
      * @param {boolean} [state.positionSetup]
@@ -20,24 +29,24 @@
     function sessionTypeLabel(state) {
         const s = state || {};
         if (s.positionSetup) {
-            return "Position Setup";
+            return t("play.sessionMode.positionSetup");
         }
         if (s.configuration) {
-            return "Configuration mode";
+            return t("play.sessionMode.configuration");
         }
         if (s.reviewPlayback) {
-            return "Playback Mode";
+            return t("play.sessionMode.playback");
         }
         if (s.review) {
-            return "Review Mode";
+            return t("play.sessionMode.review");
         }
         if (s.watch) {
-            return "Watch Mode";
+            return t("play.sessionMode.watch");
         }
         if (s.practice) {
-            return "Practice Mode";
+            return t("play.sessionMode.practice");
         }
-        return "Play Mode";
+        return t("play.sessionMode.play");
     }
 
     /**

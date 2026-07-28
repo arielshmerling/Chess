@@ -4,6 +4,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     let lockHandler = null;
     let openCount = 0;
 
@@ -132,13 +139,13 @@
         opts = opts || {};
         let handle;
         handle = openDialog({
-            title: opts.title || "Confirm",
+            title: opts.title || t("common.confirm"),
             body: opts.message || "",
             panelClass: "desktop-play-dialog--confirm",
             dismissOnBackdrop: opts.dismissOnBackdrop !== false,
             buttons: [
                 {
-                    label: opts.cancelLabel || "No",
+                    label: opts.cancelLabel || t("common.no"),
                     className: "desktop-btn",
                     onClick: function () {
                         handle.close();
@@ -148,7 +155,7 @@
                     },
                 },
                 {
-                    label: opts.confirmLabel || "Yes",
+                    label: opts.confirmLabel || t("common.yes"),
                     className: "desktop-btn desktop-btn-gold",
                     onClick: function () {
                         handle.close();
@@ -167,13 +174,13 @@
         opts = opts || {};
         let handle;
         handle = openDialog({
-            title: opts.title || "Notice",
+            title: opts.title || t("common.notice"),
             body: opts.message || "",
             panelClass: "desktop-play-dialog--alert",
             dismissOnBackdrop: opts.dismissOnBackdrop !== false,
             buttons: [
                 {
-                    label: opts.okLabel || "OK",
+                    label: opts.okLabel || t("common.ok"),
                     className: "desktop-btn desktop-btn-gold",
                     onClick: function () {
                         handle.close();
@@ -217,7 +224,7 @@
         function submit() {
             const trimmed = input.value.trim();
             if (!trimmed && opts.required !== false) {
-                errorEl.textContent = opts.errorMessage || "Please enter a value.";
+                errorEl.textContent = opts.errorMessage || t("common.pleaseEnterValue");
                 errorEl.hidden = false;
                 input.focus();
                 input.select();
@@ -231,13 +238,13 @@
         }
 
         handle = openDialog({
-            title: opts.title || "Input",
+            title: opts.title || t("common.input"),
             body: body,
             panelClass: "desktop-play-dialog--prompt",
             dismissOnBackdrop: opts.dismissOnBackdrop !== false,
             buttons: [
                 {
-                    label: opts.cancelLabel || "Cancel",
+                    label: opts.cancelLabel || t("common.cancel"),
                     className: "desktop-btn",
                     onClick: function () {
                         handle.close();
@@ -247,7 +254,7 @@
                     },
                 },
                 {
-                    label: opts.confirmLabel || "OK",
+                    label: opts.confirmLabel || t("common.ok"),
                     className: "desktop-btn desktop-btn-gold",
                     onClick: submit,
                 },

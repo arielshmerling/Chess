@@ -4,6 +4,13 @@
 (function (global) {
     "use strict";
 
+    function t(key, params) {
+        if (global.ShmerlingStrings && typeof global.ShmerlingStrings.t === "function") {
+            return global.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const SVG_PLAY =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
 
@@ -25,9 +32,9 @@
     let engineSelect = null;
     const DEFAULT_THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
     const DEFAULT_ENGINE_OPTIONS = [
-        { value: "brain43", label: "Brain 4.3" },
-        { value: "brain42", label: "Brain 4.2" },
-        { value: "brain41", label: "Brain 4.1" },
+        { value: "brain43", label: t("play.newGameDialog.brain43") },
+        { value: "brain42", label: t("play.newGameDialog.brain42") },
+        { value: "brain41", label: t("play.newGameDialog.brain41") },
     ];
 
     function updateSwatchPair(whiteBtn, blackBtn, isWhiteSelected) {
@@ -66,8 +73,8 @@
         whiteBtn.type = "button";
         whiteBtn.className =
             "desktop-play-game-run-swatch desktop-play-game-run-swatch--white";
-        whiteBtn.title = "White";
-        whiteBtn.setAttribute("aria-label", "White");
+        whiteBtn.title = t("common.white");
+        whiteBtn.setAttribute("aria-label", t("common.white"));
         appendSwatchSelectionDot(whiteBtn);
         whiteBtn.addEventListener("click", function () {
             onPick(true);
@@ -77,8 +84,8 @@
         blackBtn.type = "button";
         blackBtn.className =
             "desktop-play-game-run-swatch desktop-play-game-run-swatch--black";
-        blackBtn.title = "Black";
-        blackBtn.setAttribute("aria-label", "Black");
+        blackBtn.title = t("common.black");
+        blackBtn.setAttribute("aria-label", t("common.black"));
         appendSwatchSelectionDot(blackBtn);
         blackBtn.addEventListener("click", function () {
             onPick(false);
@@ -189,12 +196,12 @@
 
         const label = document.createElement("span");
         label.className = "desktop-play-game-run-label";
-        label.textContent = "Engine";
+        label.textContent = t("desktop.gameRun.engine");
         row.appendChild(label);
 
         const select = document.createElement("select");
         select.className = "desktop-play-game-run-select desktop-play-game-run-engine";
-        select.setAttribute("aria-label", "Engine");
+        select.setAttribute("aria-label", t("desktop.gameRun.engine"));
         engineOptionsList().forEach(function (opt) {
             const option = document.createElement("option");
             option.value = opt.value;
@@ -220,7 +227,7 @@
 
         const label = document.createElement("span");
         label.className = "desktop-play-game-run-label";
-        label.textContent = "Think time (s)";
+        label.textContent = t("desktop.gameRun.thinkTime");
         row.appendChild(label);
 
         const select = document.createElement("select");
@@ -339,8 +346,8 @@
         const playBtn = document.createElement("button");
         playBtn.type = "button";
         playBtn.className = "desktop-play-game-run-play";
-        playBtn.setAttribute("title", "Play");
-        playBtn.setAttribute("aria-label", "Play");
+        playBtn.setAttribute("title", t("desktop.gameRun.play"));
+        playBtn.setAttribute("aria-label", t("desktop.gameRun.play"));
         playBtn.innerHTML = SVG_PLAY;
         playBtn.addEventListener("click", function () {
             if (onPlay) {

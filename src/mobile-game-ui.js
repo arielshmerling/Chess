@@ -2,6 +2,13 @@
  * Mobile play page only (`body.mobile-game-shell`). Desktop game does not load this file.
  */
 (function () {
+    function t(key, params) {
+        if (typeof ShmerlingT === "function") {
+            return ShmerlingT(key, params);
+        }
+        return key;
+    }
+
     function qs(id) {
         return document.getElementById(id);
     }
@@ -38,7 +45,7 @@
             btn.removeAttribute("title");
             return;
         }
-        btn.title = "Game ID: " + id;
+        btn.title = t("mobile.gameId", { id: id });
     }
 
     function init() {
@@ -65,7 +72,7 @@
                 bar.setAttribute("data-game-id", raw);
             }
             if (btn) {
-                btn.title = raw ? ("Game ID: " + raw) : "";
+                btn.title = raw ? t("mobile.gameId", { id: raw }) : "";
             }
         });
 

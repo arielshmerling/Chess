@@ -63,6 +63,11 @@ const {
     canAccessPlayPage,
 } = require("./modules/user/roles");
 
+const { t } = require("./strings");
+
+// Available to every EJS view (including error pages / includes).
+app.locals.t = t;
+
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
     res.locals.admin = isAdminSession(req.session);
@@ -72,6 +77,7 @@ app.use((req, res, next) => {
     res.locals.canUsePlayPage = canAccessPlayPage(req.session);
     res.locals.messages = req.flash("messages");
     res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
+    res.locals.t = t;
     next();
 });
 

@@ -141,6 +141,14 @@ function main() {
     copyDirFiltered(uiDir, uiDest, { excludeNames: DESKTOP_UI_EXCLUDE });
 
     copyDirFiltered(
+        path.join(ROOT, "src", "validation"),
+        path.join(BUNDLE, "src", "validation"),
+    );
+    copyDirFiltered(
+        path.join(ROOT, "src", "strings"),
+        path.join(BUNDLE, "src", "strings"),
+    );
+    copyDirFiltered(
         path.join(ROOT, "src", "play-ui"),
         path.join(BUNDLE, "src", "play-ui"),
     );

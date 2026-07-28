@@ -2,18 +2,18 @@
 <div id="header">
   <div id="logoArea" class="flexRow">
     <div class="site-title">
-      <a href="/home" aria-label="Home"><img src="/images/shmerling.png" alt="Shmerling" class="site-logo-img"></a>
+      <a href="/home" aria-label="<%= t('site.homeAria') %>"><img src="/images/shmerling.png" alt="Shmerling" class="site-logo-img"></a>
     </div>
   </div>
 
   <% if (!minimalTopbar) { %>
   <div class="topBarMenu">
-    <div class="menuBarMenuItem topBarMenu-home"><a href="/home">Home</a></div>
-    <div class="menuBarMenuItem"><a href="/search">Search</a></div>
-    <div class="menuBarMenuItem"><a href="/friends">Friends</a></div>
-    <div class="menuBarMenuItem topBarMenu-groups"><a href="#">Groups</a></div>
+    <div class="menuBarMenuItem topBarMenu-home"><a href="/home"><%= t('site.home') %></a></div>
+    <div class="menuBarMenuItem"><a href="/search"><%= t('site.search') %></a></div>
+    <div class="menuBarMenuItem"><a href="/friends"><%= t('site.friends') %></a></div>
+    <div class="menuBarMenuItem topBarMenu-groups"><a href="#"><%= t('site.groups') %></a></div>
     <% if (typeof canDebug !== 'undefined' && canDebug) { %>
-    <div class="menuBarMenuItem"><a href="<%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play?mode=practice' : '/game?gameType=3' %>">Debug</a></div>
+    <div class="menuBarMenuItem"><a href="<%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play?mode=practice' : '/game?gameType=3' %>"><%= t('site.debug') %></a></div>
     <% } %>
   </div>
   <% } %>
@@ -42,13 +42,13 @@
         </svg>
       </button>
       <div id="webUserMenuPanel" class="web-user-menu-panel" role="menu" hidden>
-        <button type="button" class="web-user-menu-item" role="menuitem" disabled>Account</button>
-        <button type="button" id="webUserPreferencesAction" class="web-user-menu-item" role="menuitem">Preferences</button>
+        <button type="button" class="web-user-menu-item" role="menuitem" disabled><%= t('site.account') %></button>
+        <button type="button" id="webUserPreferencesAction" class="web-user-menu-item" role="menuitem"><%= t('site.preferences') %></button>
         <% if (admin) { %>
-        <a href="/admin" class="web-user-menu-item" role="menuitem">Administrate</a>
+        <a href="/admin" class="web-user-menu-item" role="menuitem"><%= t('site.administrate') %></a>
         <% } %>
         <div class="web-user-menu-separator" role="separator"></div>
-        <a href="/logout" class="web-user-menu-item" role="menuitem">Log out</a>
+        <a href="/logout" class="web-user-menu-item" role="menuitem"><%= t('site.logOut') %></a>
       </div>
     </div>
     <div id="webDesktopPrefsHost" class="web-desktop-prefs-host" aria-live="polite"></div>
@@ -62,12 +62,12 @@
     </label>
     <% if (!minimalTopbar) { %>
     <% if (username) { %>
-    <a href="/logout"> Log out </a>
+    <a href="/logout"> <%= t('site.logOut') %> </a>
     <% } else { %>
-    <a href="/Login"> Log in </a>
+    <a href="/Login"> <%= t('site.logIn') %> </a>
     <% } %>
     <% if (admin) { %>
-    <a href="/admin"> Admin </a>
+    <a href="/admin"> <%= t('site.admin') %> </a>
     <% } %>
     <% } %>
     <% } %>
@@ -77,13 +77,13 @@
 
 
 <div id="mainMenu" class="mainMenu" style="visibility: hidden;">
-  <div class="menuItem" onclick="menuNewGameOnePlayer()">Human Vs. Computer</div>
-  <div class="menuItem" onclick="menuNewGameTwoPlayers()">New Game 2 Players</div>
-  <div class="menuItem" onclick="menuResignEventHandler()">Resign</div>
-  <div class="menuItem" onclick="menuUndo()">Undo</div>
-  <div class="menuItem" onclick="menuSaveEventHandler();">Save</div>
-  <div class="menuItem" onclick="menuLoadEventHandler()">Load</div>
-  <div class="menuItem" onclick="menuPositionSetup()">Position Setup</div>
-  <div class="menuItem" onclick="menuSettings()">Settings</div>
-  <div class="menuItem last" onclick="">Help</div>
+  <div class="menuItem" onclick="menuNewGameOnePlayer()"><%= t('classic.humanVsComputer') %></div>
+  <div class="menuItem" onclick="menuNewGameTwoPlayers()"><%= t('classic.newGameTwoPlayers') %></div>
+  <div class="menuItem" onclick="menuResignEventHandler()"><%= t('play.actions.resign') %></div>
+  <div class="menuItem" onclick="menuUndo()"><%= t('play.actions.undo') %></div>
+  <div class="menuItem" onclick="menuSaveEventHandler();"><%= t('play.actions.save') %></div>
+  <div class="menuItem" onclick="menuLoadEventHandler()"><%= t('classic.load') %></div>
+  <div class="menuItem" onclick="menuPositionSetup()"><%= t('play.actions.positionSetup') %></div>
+  <div class="menuItem" onclick="menuSettings()"><%= t('classic.settings') %></div>
+  <div class="menuItem last" onclick=""><%= t('classic.help') %></div>
 </div>

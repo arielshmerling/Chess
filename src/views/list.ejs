@@ -2,7 +2,7 @@
 
     <section id="PlayerGameList">
         <br><br><br><br>
-        <h1>All Games</h1>
+        <h1><%= t('site.list.title') %></h1>
         <br><br>
         <% if (playerGames && playerGames.length > 0) { %>
         <div class="gamesTableContainer">
@@ -22,7 +22,7 @@
                     </th>
                         <% } %>
                     <% } %>
-                    <th>Action</th>
+                    <th><%= t('site.list.action') %></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -45,7 +45,7 @@
                             <form action="/list/<%= obj.Id %>?_method=delete" method="POST" class="list-delete-form">
                                 <input type="hidden" name="sortKey" value="">
                                 <input type="hidden" name="sortOrder" value="">
-                                <a href="javascript:{}" onclick="this.closest('form').submit();return false;">Delete</a>
+                                <a href="javascript:{}" onclick="this.closest('form').submit();return false;"><%= t('common.delete') %></a>
                             </form>
                         </td>
                     </tr>
@@ -147,7 +147,7 @@
         </script>
         <% } else { %>
         <div class="no-games-message">
-            <p>No completed games yet</p>
+            <p><%= t('site.welcome.noCompleted') %></p>
         </div>
         <% } %>
     </section>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-title="play.appTitle">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,12 @@
   <link rel="stylesheet" href="/app/ui/app.css">
   <link rel="stylesheet" href="/app/ui/desktop-play.css">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="/app/strings/en.js"></script>
+  <script src="/app/strings/en-extra.js"></script>
+  <script src="/app/strings/index.js"></script>
+  <script src="/app/strings/t-bridge.js"></script>
+  <script src="/app/strings/applyPlayShell.js"></script>
+  <script src="/validation/positionValidation.js"></script>
   <script src="/ChessGame.js"></script>
   <script src="/themes.js"></script>
   <script src="/pieceSets.js"></script>
@@ -70,35 +76,37 @@
 </head>
 <body class="desktop-shell desktop-play-page desktop-has-topbar">
   <div class="desktop-play-shell">
-    <nav id="desktopPlayActions" class="desktop-play-actions" aria-label="Game actions"></nav>
+    <nav id="desktopPlayActions" class="desktop-play-actions" data-i18n="play.shell.gameActions" data-i18n-attr="aria-label"></nav>
 
     <div class="desktop-play-workspace">
-      <header class="desktop-play-header" id="desktopPlayHeader" aria-label="Players and clocks">
-        <p id="desktopPlayMatchTitle" class="desktop-play-header-match">Play Mode</p>
+      <header class="desktop-play-header" id="desktopPlayHeader" data-i18n="play.shell.playersAndClocks" data-i18n-attr="aria-label">
+        <p id="desktopPlayMatchTitle" class="desktop-play-header-match" data-i18n="play.sessionMode.play">Play Mode</p>
 
         <div class="desktop-play-header-center">
           <div
             id="desktopPlayHeaderWhite"
             class="desktop-play-header-clock desktop-play-header-clock--white"
-            aria-label="White player clock"
+            data-i18n="play.shell.whitePlayerClock"
+            data-i18n-attr="aria-label"
           >
-            <span class="desktop-play-color-tag desktop-play-color-tag--white" aria-hidden="true">White</span>
-            <span id="desktopPlayWhiteName" class="desktop-play-header-player">White</span>
+            <span class="desktop-play-color-tag desktop-play-color-tag--white" aria-hidden="true" data-i18n="common.white">White</span>
+            <span id="desktopPlayWhiteName" class="desktop-play-header-player" data-i18n="common.white">White</span>
             <span id="whiteClockTimeText" class="desktop-play-header-time">00:00:00</span>
           </div>
 
           <div
             id="desktopPlayHeaderBlack"
             class="desktop-play-header-clock desktop-play-header-clock--black"
-            aria-label="Black player clock"
+            data-i18n="play.shell.blackPlayerClock"
+            data-i18n-attr="aria-label"
           >
-            <span class="desktop-play-color-tag desktop-play-color-tag--black" aria-hidden="true">Black</span>
-            <span id="desktopPlayBlackName" class="desktop-play-header-player">Black</span>
+            <span class="desktop-play-color-tag desktop-play-color-tag--black" aria-hidden="true" data-i18n="common.black">Black</span>
+            <span id="desktopPlayBlackName" class="desktop-play-header-player" data-i18n="common.black">Black</span>
             <span id="blackClockTimeText" class="desktop-play-header-time">00:00:00</span>
           </div>
         </div>
 
-        <div id="desktopPlayHeaderRun" class="desktop-play-header-run desktop-play-header-run--hidden" aria-label="Start game from loaded position" aria-hidden="true">
+        <div id="desktopPlayHeaderRun" class="desktop-play-header-run desktop-play-header-run--hidden" data-i18n="play.shell.startFromLoadedPosition" data-i18n-attr="aria-label" aria-hidden="true">
           <div id="desktopPlayGameRun"></div>
         </div>
       </header>
@@ -108,23 +116,26 @@
           id="desktopPlaySidebarMoves"
           class="desktop-play-sidebar desktop-play-sidebar--left desktop-play-sidebar--collapsed"
           aria-label="Moves"
+          data-i18n="play.shell.moves"
+          data-i18n-attr="aria-label"
         >
           <button
             type="button"
             class="desktop-play-sidebar-tab desktop-play-sidebar-tab--expand"
-            aria-label="Expand moves panel"
-            title="Expand moves"
+            data-i18n="play.shell.expandMovesPanel"
+            data-i18n-attr="aria-label title"
           >+</button>
           <div class="desktop-play-sidebar-stacks">
             <section class="desktop-play-dock desktop-play-moves">
             <div class="desktop-play-dock-title">
-              <span class="desktop-play-dock-title-text">Moves</span>
+              <span class="desktop-play-dock-title-text" data-i18n="play.shell.moves">Moves</span>
               <span class="desktop-play-dock-title-actions">
                 <button
                   type="button"
                   class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse desktop-play-dock-toggle--collapse-moves"
-                  aria-label="Collapse moves panel"
-                  title="Collapse"
+                  data-i18n="play.shell.collapseMovesPanel"
+                  data-i18n-attr="aria-label"
+                  data-i18n-title="common.collapse"
                 >−</button>
               </span>
             </div>
@@ -134,23 +145,26 @@
                 id="desktopPlayReviewNav"
                 class="desktop-play-review-nav"
                 hidden
-                aria-label="Review navigation"
+                data-i18n="play.shell.reviewNavigation"
+                data-i18n-attr="aria-label"
               ></div>
             </div>
             </section>
             <section
               id="desktopPlaySetupDock"
               class="desktop-play-dock desktop-play-setup"
-              aria-label="Position setup"
+              data-i18n="play.shell.positionSetup"
+              data-i18n-attr="aria-label"
             >
               <div class="desktop-play-dock-title">
-                <span class="desktop-play-dock-title-text">Pieces</span>
+                <span class="desktop-play-dock-title-text" data-i18n="play.shell.pieces">Pieces</span>
                 <span class="desktop-play-dock-title-actions">
                   <button
                     type="button"
                     class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse desktop-play-dock-toggle--collapse-setup"
-                    aria-label="Collapse pieces panel"
-                    title="Collapse"
+                    data-i18n="play.shell.collapsePiecesPanel"
+                    data-i18n-attr="aria-label"
+                    data-i18n-title="common.collapse"
                   >−</button>
                 </span>
               </div>
@@ -159,16 +173,18 @@
             <section
               id="desktopPlayConfigDock"
               class="desktop-play-dock desktop-play-config"
-              aria-label="Brain configuration"
+              data-i18n="play.shell.brainConfiguration"
+              data-i18n-attr="aria-label"
             >
               <div class="desktop-play-dock-title">
-                <span class="desktop-play-dock-title-text">Configuration</span>
+                <span class="desktop-play-dock-title-text" data-i18n="play.shell.configuration">Configuration</span>
                 <span class="desktop-play-dock-title-actions">
                   <button
                     type="button"
                     class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse desktop-play-dock-toggle--collapse-config"
-                    aria-label="Collapse configuration panel"
-                    title="Collapse"
+                    data-i18n="play.shell.collapseConfigurationPanel"
+                    data-i18n-attr="aria-label"
+                    data-i18n-title="common.collapse"
                   >−</button>
                 </span>
               </div>
@@ -186,23 +202,26 @@
         <aside
           id="desktopPlaySidebarGames"
           class="desktop-play-sidebar desktop-play-sidebar--right desktop-play-sidebar--collapsed"
-          aria-label="Games"
+          data-i18n="play.shell.games"
+          data-i18n-attr="aria-label"
         >
           <button
             type="button"
             class="desktop-play-sidebar-tab desktop-play-sidebar-tab--expand"
-            aria-label="Expand games panel"
-            title="Expand games"
+            data-i18n="play.shell.expandGamesPanel"
+            data-i18n-attr="aria-label"
+            data-i18n-title="play.shell.expandGames"
           >+</button>
           <section class="desktop-play-dock desktop-play-games">
             <div class="desktop-play-dock-title">
-              <div class="desktop-play-saved-list-filters" role="tablist" aria-label="Saved list filter">
+              <div class="desktop-play-saved-list-filters" role="tablist" data-i18n="play.shell.savedListFilter" data-i18n-attr="aria-label">
                 <button
                   type="button"
                   class="desktop-play-saved-list-filter is-active"
                   data-filter="games"
                   role="tab"
                   aria-selected="true"
+                  data-i18n="play.shell.games"
                 >Games</button>
                 <span class="desktop-play-saved-list-filter-sep" aria-hidden="true">|</span>
                 <button
@@ -211,14 +230,16 @@
                   data-filter="positions"
                   role="tab"
                   aria-selected="false"
+                  data-i18n="play.shell.positions"
                 >Positions</button>
               </div>
               <span class="desktop-play-dock-title-actions">
                 <button
                   type="button"
                   class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse"
-                  aria-label="Collapse games panel"
-                  title="Collapse"
+                  data-i18n="play.shell.collapseGamesPanel"
+                  data-i18n-attr="aria-label"
+                  data-i18n-title="common.collapse"
                 >−</button>
               </span>
             </div>
@@ -227,9 +248,9 @@
         </aside>
       </div>
 
-      <footer class="desktop-play-footer" id="desktopPlayFooter" aria-label="Game status">
+      <footer class="desktop-play-footer" id="desktopPlayFooter" data-i18n="play.shell.gameStatus" data-i18n-attr="aria-label">
         <p id="desktopPlayStatusBar" class="desktop-play-status-bar" aria-live="polite"></p>
-        <div class="desktop-play-footer-captured" aria-label="Captured pieces">
+        <div class="desktop-play-footer-captured" data-i18n="play.shell.capturedPieces" data-i18n-attr="aria-label">
           <div id="blackCapturedPiece" class="desktop-play-captured-row"></div>
           <div id="whiteCapturedPiece" class="desktop-play-captured-row"></div>
         </div>

@@ -4,6 +4,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (typeof ShmerlingT === "function") {
+            return ShmerlingT(key, params);
+        }
+        return key;
+    }
+
     var WHITE_URLS = [];
     var BLACK_URLS = [];
 
@@ -146,9 +153,9 @@
         namesEl.className = "active-highlight-names";
         namesEl.innerHTML =
             "<span class=\"active-highlight-white\">" +
-            esc(first.whitePlayerName || "White") +
+            esc(first.whitePlayerName || t("common.white")) +
             "</span><span class=\"active-highlight-vs\"> vs </span><span class=\"active-highlight-black\">" +
-            esc(first.blackPlayerName || "Black") +
+            esc(first.blackPlayerName || t("common.black")) +
             "</span>";
 
         var startedEl = document.createElement("p");
@@ -158,14 +165,20 @@
 
         var metaEl = document.createElement("div");
         metaEl.className = "active-highlight-meta";
-        var turn = first.turn === "black" ? "Black" : "White";
+        var turn = first.turn === "black" ? t("common.black") : t("common.white");
         metaEl.innerHTML =
-            "<span class=\"active-meta-item\"><span class=\"active-meta-label\">Moves</span> " +
+            "<span class=\"active-meta-item\"><span class=\"active-meta-label\">" +
+            t("site.activeGames.moves") +
+            "</span> " +
             esc(first.Moves != null ? first.Moves : "0") +
-            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">Turn</span> " +
+            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">" +
+            t("site.activeGames.turn") +
+            "</span> " +
             esc(turn) +
-            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">Status</span> " +
-            esc(first.Status || "In progress") +
+            "</span><span class=\"active-meta-item\"><span class=\"active-meta-label\">" +
+            t("site.activeGames.status") +
+            "</span> " +
+            esc(first.Status || t("site.activeGames.inProgress")) +
             "</span>";
 
         side.appendChild(namesEl);

@@ -4,6 +4,13 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     var STORAGE_KEY = "shmerling.desktop.customThemes";
     var PANEL_POS_KEY = "shmerling.desktop.customThemePanelPos";
 
@@ -455,29 +462,29 @@
 
         panelEl.innerHTML = [
             '<div class="desktop-custom-theme-header" data-drag-handle>',
-            '  <h2 id="desktopCustomThemeTitle" class="desktop-custom-theme-title">Customize theme</h2>',
-            '  <button type="button" class="desktop-custom-theme-close" id="desktopCustomThemeClose" aria-label="Close">×</button>',
+            '  <h2 id="desktopCustomThemeTitle" class="desktop-custom-theme-title">' + t("desktop.customTheme.title") + "</h2>",
+            '  <button type="button" class="desktop-custom-theme-close" id="desktopCustomThemeClose" aria-label="' + t("common.cancel") + '">×</button>',
             "</div>",
             '<div class="desktop-custom-theme-toolbar">',
             '  <label class="desktop-custom-theme-field">',
-            '    <span class="desktop-custom-theme-field-label">Saved</span>',
+            '    <span class="desktop-custom-theme-field-label">' + t("desktop.customTheme.saved") + "</span>",
             '    <select id="desktopCustomThemeLoad" class="desktop-custom-theme-select"></select>',
             "  </label>",
             '  <label class="desktop-custom-theme-field desktop-custom-theme-field--name">',
-            '    <span class="desktop-custom-theme-field-label">Name</span>',
-            '    <input type="text" id="desktopCustomThemeName" class="desktop-custom-theme-input desktop-custom-theme-name-input" maxlength="40" placeholder="My theme">',
+            '    <span class="desktop-custom-theme-field-label">' + t("desktop.customTheme.name") + "</span>",
+            '    <input type="text" id="desktopCustomThemeName" class="desktop-custom-theme-input desktop-custom-theme-name-input" maxlength="40" placeholder="' + t("desktop.customTheme.namePlaceholder") + '">',
             "  </label>",
-            '  <button type="button" class="desktop-btn desktop-btn-gold desktop-custom-theme-save" id="desktopCustomThemeSave">Save</button>',
-            '  <button type="button" class="desktop-btn desktop-custom-theme-delete" id="desktopCustomThemeDelete" hidden>Delete</button>',
+            '  <button type="button" class="desktop-btn desktop-btn-gold desktop-custom-theme-save" id="desktopCustomThemeSave">' + t("desktop.customTheme.save") + "</button>",
+            '  <button type="button" class="desktop-btn desktop-custom-theme-delete" id="desktopCustomThemeDelete" hidden>' + t("desktop.customTheme.delete") + "</button>",
             "</div>",
             '<div class="desktop-custom-theme-search">',
-            '  <label class="desktop-custom-theme-search-label" for="desktopCustomThemeSearch">Search properties</label>',
-            '  <input type="search" id="desktopCustomThemeSearch" class="desktop-custom-theme-input desktop-custom-theme-search-input" placeholder="Filter by property name…" autocomplete="off" spellcheck="false">',
+            '  <label class="desktop-custom-theme-search-label" for="desktopCustomThemeSearch">' + t("desktop.customTheme.searchProperties") + "</label>",
+            '  <input type="search" id="desktopCustomThemeSearch" class="desktop-custom-theme-input desktop-custom-theme-search-input" placeholder="' + t("desktop.customTheme.filterPlaceholder") + '" autocomplete="off" spellcheck="false">',
             "</div>",
             '<div class="desktop-custom-theme-scroll" id="desktopCustomThemeFields"></div>',
             '<div class="desktop-custom-theme-footer">',
-            '  <button type="button" class="desktop-btn" id="desktopCustomThemeCancel">Cancel</button>',
-            '  <button type="button" class="desktop-btn desktop-btn-gold" id="desktopCustomThemeApplyBuiltin">Reset to current preset</button>',
+            '  <button type="button" class="desktop-btn" id="desktopCustomThemeCancel">' + t("common.cancel") + "</button>",
+            '  <button type="button" class="desktop-btn desktop-btn-gold" id="desktopCustomThemeApplyBuiltin">' + t("desktop.customTheme.resetPreset") + "</button>",
             "</div>",
         ].join("\n");
 
@@ -924,7 +931,7 @@
         })
             .catch(function (err) {
                 console.error(err);
-                window.alert("Could not save theme. Try again.");
+                window.alert(t("desktop.customTheme.couldNotSave"));
             });
     }
 

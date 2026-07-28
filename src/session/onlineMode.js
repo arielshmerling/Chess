@@ -21,6 +21,21 @@
         return global.ShmerlingOnlineProtocol;
     }
 
+    function loadT() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("../strings/t-bridge").t;
+            } catch {
+                /* fall through */
+            }
+        }
+        return typeof global.ShmerlingT === "function" ? global.ShmerlingT : function (key) {
+            return key;
+        };
+    }
+
+    const t = loadT();
+
     function loadCapabilities() {
         if (typeof module === "object" && module && module.exports) {
             try {
@@ -106,20 +121,19 @@
         function playerLabelForSide(isWhiteSide) {
             if (isWhiteSide === true) {
                 const n = gameInfo.whitePlayerName && String(gameInfo.whitePlayerName).trim();
-                return n || "White";
+                return n || t("common.white");
             }
             if (isWhiteSide === false) {
                 const n = gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim();
-                return n || "Black";
+                return n || t("common.black");
             }
-            return "A player";
+            return t("common.aPlayer");
         }
 
         function watcherDisconnectWaitingStatus() {
-            return (
-                playerLabelForSide(disconnectedWasWhite) +
-                " disconnected — waiting for rejoin"
-            );
+            return t("session.playerDisconnectedWaitingRejoin", {
+                name: playerLabelForSide(disconnectedWasWhite),
+            });
         }
 
         function capabilities() {
@@ -291,7 +305,7 @@
                 if (watcher) {
                     status(watcherDisconnectWaitingStatus(), "info");
                 } else {
-                    status("Opponent disconnected", "info");
+                    status(t("session.opponentDisconnected"), "info");
                 }
                 startDisconnectCountdown();
             }, DISCONNECT_GRACE_MS);
@@ -315,9 +329,9 @@
             }
             if (!quickRejoin) {
                 if (watcher) {
-                    status(playerLabelForSide(rejoinedWasWhite) + " rejoined", "info");
+                    status(t("session.playerRejoined", { name: playerLabelForSide(rejoinedWasWhite) }), "info");
                 } else {
-                    status("Opponent rejoined", "info");
+                    status(t("session.opponentRejoined"), "info");
                 }
             }
         }
@@ -346,7 +360,7 @@
                 return false;
             }
             sendInfo("offer draw");
-            status("Draw offer sent", "info");
+            status(t("session.drawOfferSent"), "info");
             return true;
         }
 
@@ -372,7 +386,7 @@
                 return false;
             }
             sendInfo("draw declined");
-            status("Draw offer declined", "info");
+            status(t("session.drawOfferDeclined"), "info");
             return true;
         }
 
@@ -393,7 +407,7 @@
             } else {
                 sendInfo("offer rematch");
             }
-            status("Rematch offer sent", "info");
+            status(t("session.rematchOfferSent"), "info");
             return true;
         }
 
@@ -418,7 +432,7 @@
                 return false;
             }
             sendInfo("rematch declined");
-            status("Rematch offer declined", "info");
+            status(t("session.rematchOfferDeclined"), "info");
             return true;
         }
 
@@ -442,13 +456,13 @@
             } finally {
                 applyingRemote = false;
             }
-            status("Draw agreed", "info");
+            status(t("session.drawAgreed"), "info");
         }
 
         function onRematchAccepted(message) {
             const newId = message && message.gameId;
             if (newId == null) {
-                status("Rematch accepted but no new game id", "error");
+                status(t("session.rematchAcceptedNoGameId"), "error");
                 return;
             }
             gameInfo.id = newId;
@@ -460,7 +474,7 @@
             if (session) {
                 session.emit("info", "Rematch offer accepted", "info");
             }
-            status("Rematch offer accepted", "info");
+            status(t("session.rematchOfferAccepted"), "info");
         }
 
         function handleInbound(raw) {
@@ -479,9 +493,12 @@
                         );
                     }
                     status(
-                        (classified.payload && classified.payload.data
-                            ? String(classified.payload.data)
-                            : "Opponent") + " joined",
+                        t("session.opponentJoined", {
+                            name:
+                                classified.payload && classified.payload.data
+                                    ? String(classified.payload.data)
+                                    : t("session.opponentDefault"),
+                        }),
                         "info",
                     );
                     if (session) {
@@ -508,7 +525,7 @@
                     return onGameCancelled(classified.payload);
                 case "gameOverNotice":
                     clearDisconnectCountdown();
-                    status("Game over", "info");
+                    status(t("session.gameOver"), "info");
                     if (session) {
                         session.emit("statusChanged", "gameOver");
                     }
@@ -516,7 +533,7 @@
                 case "moveValidated":
                     return;
                 case "moveValidationFailed":
-                    status("Something went wrong", "error");
+                    status(t("session.somethingWentWrong"), "error");
                     if (session && !applyingRemote) {
                         applyingRemote = true;
                         try {
@@ -543,7 +560,7 @@
                     if (watcher) {
                         return;
                     }
-                    status("Draw offer declined", "info");
+                    status(t("session.drawOfferDeclined"), "info");
                     return;
                 case "offerRematch":
                     if (watcher) {
@@ -559,7 +576,7 @@
                     if (watcher) {
                         return;
                     }
-                    status("Rematch offer declined", "info");
+                    status(t("session.rematchOfferDeclined"), "info");
                     return;
                 default:
                     return;
@@ -610,7 +627,7 @@
             } finally {
                 applyingRemote = false;
             }
-            status("Opponent resigned", "info");
+            status(t("session.opponentResigned"), "info");
         }
 
         function onOpponentLeft() {
@@ -625,7 +642,7 @@
             } finally {
                 applyingRemote = false;
             }
-            status("Opponent left the game", "info");
+            status(t("session.opponentLeftGame"), "info");
         }
 
         function onOpponentFailedReconnect(message) {
@@ -660,11 +677,14 @@
                 const loserName = playerLabelForSide(loser === "White");
                 const winnerName = playerLabelForSide(winner === "White");
                 status(
-                    loserName + " failed to reconnect — " + winnerName + " wins",
+                    t("session.playerFailedToReconnectWins", {
+                        loser: loserName,
+                        winner: winnerName,
+                    }),
                     "info",
                 );
             } else {
-                status("Opponent failed to reconnect", "info");
+                status(t("session.opponentFailedToReconnect"), "info");
             }
         }
 
@@ -674,8 +694,8 @@
                     ? String(message.data).trim()
                     : "";
             const shown = detail
-                ? "Game cancelled — " + detail
-                : "Game cancelled";
+                ? t("session.gameCancelledWithDetail", { detail: detail })
+                : t("session.gameCancelled");
             status(shown, "info");
             if (typeof opts.onGameCancelled === "function") {
                 opts.onGameCancelled({ message: shown, detail: detail });
@@ -734,7 +754,7 @@
                     connected = true;
                     sendConnect();
                     if (!opponentPresent && humanIsWhite && !watcher) {
-                        status("Waiting for opponent…", "info");
+                        status(t("session.waitingForOpponent"), "info");
                     }
                 });
             }
@@ -745,10 +765,7 @@
             }
             if (typeof transport.onError === "function") {
                 transport.onError(function (err) {
-                    status(
-                        (err && err.message) || "Connection error",
-                        "error",
-                    );
+                    status((err && err.message) || t("session.connectionError"), "error");
                 });
             }
         }
@@ -770,7 +787,7 @@
                     ? global.ShmerlingWsTransport.defaultWsUrl()
                     : null);
             if (!url) {
-                status("Could not resolve WebSocket URL", "error");
+                status(t("session.couldNotResolveWebSocketUrl"), "error");
                 return;
             }
             transport.connect(url);

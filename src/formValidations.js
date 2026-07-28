@@ -1,6 +1,11 @@
-/*global axios*/
-
 (function () {
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const username = document.getElementById("username");
     const password = document.getElementById("password");
     const confirm_password = document.getElementById("confirmPassword");
@@ -17,7 +22,7 @@
             email.setCustomValidity("");
         }
         else {
-            email.setCustomValidity("Please fill in a valid email");
+            email.setCustomValidity(t("validation.validEmail"));
         }
         reportValidity(email);
     }
@@ -25,7 +30,7 @@
 
     function validatePassword() {
         if (password.value != confirm_password.value) {
-            confirm_password.setCustomValidity("Please ensure Password fields are identical.");
+            confirm_password.setCustomValidity(t("validation.passwordsMustMatch"));
         } else {
             confirm_password.setCustomValidity("");
         }
@@ -49,12 +54,12 @@
 
     async function validateUsername() {
         if (username == "") {
-            username.setCustomValidity("Please choose a username");
+            username.setCustomValidity(t("validation.chooseUsername"));
         }
         else if (await isUsernameAvailable(username.value)) {
             username.setCustomValidity("");
         } else {
-            username.setCustomValidity("This username is not available");
+            username.setCustomValidity(t("validation.usernameNotAvailable"));
         }
         reportValidity(username);
     }
@@ -68,38 +73,38 @@
         const value = password.value;
         const isNonWhiteSpace = /^\S*$/;
         if (!isNonWhiteSpace.test(value)) {
-            password.setCustomValidity("Password must not contain Whitespaces.");
+            password.setCustomValidity(t("validation.passwordNoWhitespace"));
             return;
         }
 
         const isContainsUppercase = /^(?=.*[A-Z]).*$/;
         if (!isContainsUppercase.test(value)) {
-            password.setCustomValidity("Password must have at least one Uppercase Character.");
+            password.setCustomValidity(t("validation.passwordUppercase"));
             return;
         }
 
         const isContainsLowercase = /^(?=.*[a-z]).*$/;
         if (!isContainsLowercase.test(value)) {
-            password.setCustomValidity("Password must have at least one Lowercase Character.");
+            password.setCustomValidity(t("validation.passwordLowercase"));
             return;
         }
 
         const isContainsNumber = /^(?=.*[0-9]).*$/;
         if (!isContainsNumber.test(value)) {
-            password.setCustomValidity("Password must contain at least one Digit.");
+            password.setCustomValidity(t("validation.passwordDigit"));
             return;
         }
 
         const isContainsSymbol =
             /^(?=.*[~`!@#$%^&*()--+={}\\[\]|\\:;"'<>,.?/_₹]).*$/;
         if (!isContainsSymbol.test(value)) {
-            password.setCustomValidity("Password must contain at least one Special Symbol.");
+            password.setCustomValidity(t("validation.passwordSymbol"));
             return;
         }
 
         const isValidLength = /^.{8,30}$/;
         if (!isValidLength.test(value)) {
-            password.setCustomValidity("Password must be 8-30 Characters Long.");
+            password.setCustomValidity(t("validation.passwordLength"));
             return;
         }
 

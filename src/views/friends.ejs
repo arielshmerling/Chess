@@ -8,8 +8,8 @@
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="hero-text-section">
-        <h1 class="hero-greeting">Friends</h1>
-        <p class="hero-tagline">Find new chess mates</p>
+        <h1 class="hero-greeting"><%= t('site.friendsPage.title') %></h1>
+        <p class="hero-tagline"><%= t('site.friendsPage.tagline') %></p>
       </div>
     </div>
   </div>
@@ -19,13 +19,13 @@
       <div class="games-panel friends-list-panel">
         <div class="panel-header">
           <div class="panel-title-group">
-            <h2 class="panel-title">My friends</h2>
+            <h2 class="panel-title"><%= t('site.friendsPage.myFriends') %></h2>
           </div>
           <div class="panel-subtitle"></div>
         </div>
         <div class="panel-body">
           <div id="friendsEmpty" class="no-games-message">
-            <p>No friends yet</p>
+            <p><%= t('site.friendsPage.noFriendsYet') %></p>
           </div>
           <ul id="friendsList" class="friends-user-list" aria-live="polite"></ul>
         </div>
@@ -34,18 +34,18 @@
       <div class="games-panel friends-search-panel">
         <div class="panel-header">
           <div class="panel-title-group">
-            <h2 class="panel-title">Find players</h2>
+            <h2 class="panel-title"><%= t('site.friendsPage.findPlayers') %></h2>
           </div>
-          <div class="panel-subtitle">Search by username</div>
+          <div class="panel-subtitle"><%= t('site.friendsPage.searchByUsername') %></div>
         </div>
         <div class="panel-body">
           <div class="friends-search-row">
-            <label class="friends-search-label" for="friendSearchInput">Username</label>
-            <input type="text" id="friendSearchInput" class="friends-search-input" autocomplete="off" maxlength="48" placeholder="Type to search…" aria-describedby="friendSearchHint">
+            <label class="friends-search-label" for="friendSearchInput"><%= t('site.username').replace(':', '') %></label>
+            <input type="text" id="friendSearchInput" class="friends-search-input" autocomplete="off" maxlength="48" placeholder="<%= t('site.friendsPage.searchPlaceholder') %>" aria-describedby="friendSearchHint">
           
           </div>
           <ul id="searchResults" class="friends-user-list friends-search-results" aria-live="polite"></ul>
-          <div id="searchPlaceholder" class="friends-search-placeholder">Enter at least one character to search</div>
+          <div id="searchPlaceholder" class="friends-search-placeholder"><%= t('site.friendsPage.enterCharToSearch') %></div>
         </div>
       </div>
     </div>
@@ -57,6 +57,13 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
 </script>
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function () {
+  function t(key, params) {
+    if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+      return window.ShmerlingStrings.t(key, params);
+    }
+    return key;
+  }
+
   var friendsList = document.getElementById("friendsList");
   var friendsEmpty = document.getElementById("friendsEmpty");
   var searchInput = document.getElementById("friendSearchInput");
@@ -106,17 +113,17 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       body: JSON.stringify(body || {}),
     }).then(function (r) {
       return r.json().then(function (data) {
-        if (!r.ok) throw new Error((data && data.message) || r.statusText || "Request failed");
+        if (!r.ok) throw new Error((data && data.message) || r.statusText || t("site.friendsPage.requestFailed"));
         return data;
       });
     });
   }
 
   function statusTitle(st) {
-    if (st === "playing") return "Playing";
-    if (st === "online") return "Online";
-    if (st === "pending") return "Pending friendship offer";
-    return "Offline";
+    if (st === "playing") return t("site.friendsPage.playing");
+    if (st === "online") return t("site.friendsPage.online");
+    if (st === "pending") return t("site.friendsPage.pendingFriendshipOffer");
+    return t("site.friendsPage.offline");
   }
 
   function computeEffectiveStatus(f) {
@@ -166,9 +173,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       gid === pendingInviterJoiningGameId &&
       Date.now() < pendingInviterJoiningUntil
     ) {
-      return "Joining";
+      return t("site.friendsPage.joining");
     }
-    return "Rejoin";
+    return t("site.friendsPage.rejoin");
   }
 
   function setPrimaryActionButton(li, status) {
@@ -188,7 +195,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       primary.classList.add("friends-btn-rejoin");
       return;
     }
-    primary.textContent = "Invite";
+    primary.textContent = t("site.friendsPage.invite");
     primary.removeAttribute("data-action");
     primary.removeAttribute("data-game-id");
     if (fid) primary.setAttribute("data-friend-id", fid);
@@ -240,7 +247,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       return;
     }
     friendsEmpty.style.display = "none";
-    var offerLabel = "Friend request";
+    var offerLabel = t("site.friendsPage.friendRequest");
     offers.forEach(function (o) {
       var li = document.createElement("li");
       li.className = "friends-friend-row friends-row-offer-in";
@@ -254,14 +261,14 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         '"></span>' +
         '<span class="friends-username">' +
         esc(o.username) +
-        ' <span class="friends-pending-suffix">(wants to be friends)</span></span>' +
+        ' <span class="friends-pending-suffix">' + t("site.friendsPage.wantsToBeFriends") + '</span></span>' +
         '<div class="friends-row-actions">' +
         '<button type="button" class="friends-btn friends-btn-primary" data-action="accept" data-id="' +
         esc(o.id) +
-        '">Accept</button>' +
+        '">' + t("site.friendsPage.accept") + '</button>' +
         '<button type="button" class="friends-btn friends-btn-muted" data-action="decline" data-id="' +
         esc(o.id) +
-        '">Decline</button>' +
+        '">' + t("site.friendsPage.decline") + '</button>' +
         "</div>";
       friendsList.appendChild(li);
     });
@@ -281,16 +288,16 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
           '"></span>' +
           '<span class="friends-username">' +
           esc(f.username) +
-          ' <span class="friends-pending-suffix">(pending friendship offer)</span></span>' +
+          ' <span class="friends-pending-suffix">' + t("site.friendsPage.pendingOfferSuffix") + '</span></span>' +
           '<div class="friends-row-actions">' +
           '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite" disabled data-friend-id="' +
           esc(f.id) +
           '" data-username="' +
           esc(f.username) +
-          '">Invite</button>' +
+          '">' + t("site.friendsPage.invite") + '</button>' +
           '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-invite" data-id="' +
           esc(f.id) +
-          '">Withdraw</button>' +
+          '">' + t("site.friendsPage.withdraw") + '</button>' +
           "</div>";
       } else {
         var pg =
@@ -298,7 +305,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
           pendingGameInvite.inviteeUserId === f.id &&
           f.rowType === "friend";
         if (pg) {
-          var pendTitle = "Waiting for your friend to respond";
+          var pendTitle = t("site.friendsPage.waitingFriendRespond");
           li.setAttribute("data-friend-game-invite-pending", "true");
           li.innerHTML =
             '<span class="friends-status-dot friends-status-online" title="' +
@@ -312,10 +319,10 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
             '<div class="friends-row-actions">' +
             '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-game-invite" data-game-id="' +
             esc(pendingGameInvite.gameId) +
-            '">Cancel invite</button>' +
+            '">' + t("site.friendsPage.cancelInvite") + '</button>' +
             '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
             esc(f.id) +
-            '" disabled title="Cancel the game invite before removing this friend">Remove</button>' +
+            '" disabled title="' + t("site.friendsPage.cancelBeforeRemove") + '">' + t("site.friendsPage.remove") + '</button>' +
             "</div>";
         } else {
           var st = computeEffectiveStatus(f);
@@ -343,7 +350,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
               esc(f.id) +
               '" data-username="' +
               esc(f.username) +
-              '">Invite</button>';
+              '">' + t("site.friendsPage.invite") + '</button>';
           }
           li.innerHTML =
             '<span class="' +
@@ -360,7 +367,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
             primaryBtn +
             '<button type="button" class="friends-btn friends-btn-danger" data-action="remove" data-id="' +
             esc(f.id) +
-            '">Remove</button>' +
+            '">' + t("site.friendsPage.remove") + '</button>' +
             "</div>";
         }
       }
@@ -372,7 +379,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     if (!searchResults || !searchPlaceholder) return;
     searchResults.innerHTML = "";
     if (!results || results.length === 0) {
-      searchPlaceholder.textContent = "No matching users";
+      searchPlaceholder.textContent = t("site.friendsPage.noMatchingUsers");
       searchPlaceholder.style.display = "block";
       return;
     }
@@ -382,16 +389,16 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       li.className = "friends-search-row-item";
       var addPart = "";
       if (u.isFriend) {
-        addPart = '<span class="friends-tag">Friends</span>';
+        addPart = '<span class="friends-tag">' + t("site.friendsPage.friendsTag") + '</span>';
       } else if (u.requestSent) {
-        addPart = '<span class="friends-tag">Offer sent</span>';
+        addPart = '<span class="friends-tag">' + t("site.friendsPage.offerSent") + '</span>';
       } else if (u.requestReceived) {
-        addPart = '<span class="friends-tag">Offer received — see Your friends</span>';
+        addPart = '<span class="friends-tag">' + t("site.friendsPage.offerReceivedTag") + '</span>';
       } else {
         addPart =
           '<button type="button" class="friends-btn friends-btn-primary" data-action="addfriend" data-id="' +
           esc(u.id) +
-          '">Add friend</button>';
+          '">' + t("site.friendsPage.addFriend") + '</button>';
       }
       li.innerHTML = '<span class="friends-username">' + esc(u.username) + "</span>" + addPart;
       searchResults.appendChild(li);
@@ -418,7 +425,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     if (clean.length < 1) {
       if (searchResults) searchResults.innerHTML = "";
       if (searchPlaceholder) {
-        searchPlaceholder.textContent = "Enter at least one character to search";
+        searchPlaceholder.textContent = "<%= t('site.friendsPage.enterCharToSearch') %>";
         searchPlaceholder.style.display = "block";
       }
       return;
@@ -441,23 +448,23 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     var id = t.getAttribute("data-id");
     if (action === "accept" && id) {
       postJson("/api/friends/accept", { fromUserId: id }).then(refreshData).catch(function (e) {
-        showSiteAlert(e.message || "Could not accept", "Could not accept");
+        showSiteAlert(e.message || t("site.friendsPage.couldNotAccept"), t("site.friendsPage.couldNotAccept"));
       });
     }
     if (action === "decline" && id) {
       postJson("/api/friends/decline", { fromUserId: id }).then(refreshData).catch(function (e) {
-        showSiteAlert(e.message || "Could not decline", "Could not decline");
+        showSiteAlert(e.message || t("site.friendsPage.couldNotDecline"), t("site.friendsPage.couldNotDecline"));
       });
     }
     if (action === "remove" && id) {
-      showSiteConfirm("Remove this friend from your list?", {
-        title: "Remove friend",
-        confirmLabel: "Remove",
-        cancelLabel: "Cancel",
+      showSiteConfirm(t("site.friendsPage.removeFriendConfirm"), {
+        title: t("site.friendsPage.removeFriendTitle"),
+        confirmLabel: t("site.friendsPage.remove"),
+        cancelLabel: t("site.cancel"),
       }).then(function (ok) {
         if (!ok) return;
         postJson("/api/friends/remove", { friendUserId: id }).then(refreshData).catch(function (e) {
-          showSiteAlert(e.message || "Could not remove", "Could not remove");
+          showSiteAlert(e.message || t("site.friendsPage.couldNotRemove"), t("site.friendsPage.couldNotRemove"));
         });
       });
     }
@@ -467,18 +474,18 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       postJson("/api/friends/game-invite-withdraw", { gameId: gid })
         .then(refreshData)
         .catch(function (e) {
-          showSiteAlert(e.message || "Could not cancel invite", "Game invite");
+          showSiteAlert(e.message || t("site.friendsPage.couldNotCancelInvite"), t("site.friendsPage.gameInvite"));
         });
     }
     if (action === "withdraw-invite" && id) {
-      showSiteConfirm("Withdraw this friendship offer?", {
-        title: "Withdraw offer",
-        confirmLabel: "Withdraw",
-        cancelLabel: "Cancel",
+      showSiteConfirm(t("site.friendsPage.withdrawOfferConfirm"), {
+        title: t("site.friendsPage.withdrawOfferTitle"),
+        confirmLabel: t("site.friendsPage.withdraw"),
+        cancelLabel: t("site.cancel"),
       }).then(function (ok) {
         if (!ok) return;
         postJson("/api/friends/withdraw", { targetUserId: id }).then(refreshData).catch(function (e) {
-          showSiteAlert(e.message || "Could not withdraw offer", "Could not withdraw");
+          showSiteAlert(e.message || t("site.friendsPage.couldNotWithdraw"), t("site.friendsPage.couldNotWithdraw"));
         });
       });
     }
@@ -492,7 +499,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
           runSearch(v);
         })
         .catch(function (e) {
-          showSiteAlert(e.message || "Could not send invite", "Could not send invite");
+          showSiteAlert(e.message || t("site.friendsPage.couldNotSendInvite"), t("site.friendsPage.couldNotSendInvite"));
         });
     }
     if (action === "rejoin-game") {
@@ -519,7 +526,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
           return refreshData();
         })
         .catch(function (e) {
-          showSiteAlert(e.message || "Could not send game invite", "Game invite");
+          showSiteAlert(e.message || t("site.friendsPage.couldNotSendGameInvite"), t("site.friendsPage.gameInvite"));
         });
     }
   });

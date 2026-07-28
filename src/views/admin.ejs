@@ -6,59 +6,59 @@
     <div class="games-panel admin-tabbed-panel">
       <div class="panel-header admin-panel-header">
         <div class="panel-title-group admin-panel-title-row">
-          <h2 class="panel-title">Admin</h2>
+          <h2 class="panel-title"><%= t('site.adminPage.title') %></h2>
         </div>
-        <div class="admin-tab-strip" role="tablist" aria-label="Admin sections">
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0">Users</button>
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-games" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Games</button>
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-engines" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">Engines</button>
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-states" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1">States</button>
+        <div class="admin-tab-strip" role="tablist" aria-label="<%= t('site.adminPage.sectionsAria') %>">
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0"><%= t('site.adminPage.users') %></button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-games" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.games') %></button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-engines" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.engines') %></button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-states" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.states') %></button>
         </div>
       </div>
       <div class="panel-body admin-panel-body">
         <div class="admin-tab-toolbar" id="admin-users-toolbar">
           <a href="/register" class="admin-add-user-btn">
             <span class="admin-add-user-icon" aria-hidden="true">+</span>
-            <span class="admin-add-user-label">Add user</span>
+            <span class="admin-add-user-label"><%= t('site.adminPage.addUser') %></span>
           </a>
         </div>
         <div class="admin-tab-toolbar" id="admin-states-toolbar" hidden>
           <a href="/admin/generate-state" class="admin-add-user-btn">
             <span class="admin-add-user-icon" aria-hidden="true">+</span>
-            <span class="admin-add-user-label">Generate</span>
+            <span class="admin-add-user-label"><%= t('site.adminPage.generate') %></span>
           </a>
           <p class="admin-opening-book-count" aria-live="polite">
-            Opening book:
+            <%= t('site.adminPage.openingBookLabel') %>
             <strong><%= typeof openingBookEntryCount !== 'undefined' ? openingBookEntryCount : 0 %></strong>
-            game lines
+            <%= t('site.adminPage.gameLines') %>
           </p>
         </div>
         <div class="table-scroll compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
           <div id="admin-games-empty" class="no-games-message admin-games-empty" hidden>
-            <p>No games in the database yet.</p>
+            <p><%= t('site.adminPage.noGamesInDb') %></p>
           </div>
           <div id="admin-table-shell" class="admin-table-shell">
             <table class="games-table" id="admin-main-table">
               <thead>
                 <tr id="admin-table-head-row">
-                  <th>#</th>
-                  <th>Username</th>
-                  <th>Type</th>
-                  <th>Email</th>
-                  <th>Password</th>
-                  <th>Level</th>
-                  <th>Elo</th>
-                  <th>Joined</th>
-                  <th>Last login</th>
-                  <th>Active games</th>
-                  <th>Friends</th>
-                  <th>Bookmarks</th>
+                  <th><%= t('site.adminPage.colNum') %></th>
+                  <th><%= t('site.adminPage.colUsername') %></th>
+                  <th><%= t('site.adminPage.colType') %></th>
+                  <th><%= t('site.adminPage.colEmail') %></th>
+                  <th><%= t('site.adminPage.colPassword') %></th>
+                  <th><%= t('site.adminPage.colLevel') %></th>
+                  <th><%= t('site.adminPage.colElo') %></th>
+                  <th><%= t('site.adminPage.colJoined') %></th>
+                  <th><%= t('site.adminPage.colLastLogin') %></th>
+                  <th><%= t('site.adminPage.colActiveGames') %></th>
+                  <th><%= t('site.adminPage.colFriends') %></th>
+                  <th><%= t('site.adminPage.colBookmarks') %></th>
                 </tr>
               </thead>
               <tbody id="admin-table-body"></tbody>
             </table>
           </div>
-          <nav id="admin-games-pages-nav" class="pagesNav admin-games-pages-nav" hidden aria-label="Games pagination"></nav>
+          <nav id="admin-games-pages-nav" class="pagesNav admin-games-pages-nav" hidden aria-label="<%= t('site.adminPage.gamesPaginationAria') %>"></nav>
         </div>
       </div>
     </div>
@@ -71,14 +71,42 @@
   window.__ADMIN_USERS__ = <%- adminUsersJson %>;
   window.__ADMIN_GAMES__ = <%- adminGamesJson %>;
   (function () {
+    function t(key, params) {
+      if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+        return window.ShmerlingStrings.t(key, params);
+      }
+      return key;
+    }
     var ADMIN_TAB_CONFIG = [
       {
-        headers: ["#", "Username", "Type", "Email", "Password", "Level", "Elo", "Joined", "Last login", "Active games", "Friends", "Bookmarks"],
-        emptyMsg: "No users yet."
+        headers: [
+          t("site.adminPage.colNum"),
+          t("site.adminPage.colUsername"),
+          t("site.adminPage.colType"),
+          t("site.adminPage.colEmail"),
+          t("site.adminPage.colPassword"),
+          t("site.adminPage.colLevel"),
+          t("site.adminPage.colElo"),
+          t("site.adminPage.colJoined"),
+          t("site.adminPage.colLastLogin"),
+          t("site.adminPage.colActiveGames"),
+          t("site.adminPage.colFriends"),
+          t("site.adminPage.colBookmarks")
+        ],
+        emptyMsg: t("site.adminPage.emptyUsers")
       },
-      { headers: ["#", "Id", "Type", "Status"], emptyMsg: "No data yet." },
-      { headers: ["#", "Name", "Available", "Notes"], emptyMsg: "No data yet." },
-      { headers: ["Note"], emptyMsg: "Use Generate to open the opening-book and state generation page." }
+      {
+        headers: [t("site.adminPage.colNum"), t("site.adminPage.colId"), t("site.adminPage.colType"), t("site.adminPage.colStatus")],
+        emptyMsg: t("site.adminPage.emptyData")
+      },
+      {
+        headers: [t("site.adminPage.colNum"), t("site.adminPage.colName"), t("site.adminPage.colAvailable"), t("site.adminPage.colNotes")],
+        emptyMsg: t("site.adminPage.emptyData")
+      },
+      {
+        headers: [t("site.adminPage.colNote")],
+        emptyMsg: t("site.adminPage.emptyStates")
+      }
     ];
 
     var tabs = document.querySelectorAll(".admin-tab-btn");
@@ -128,7 +156,7 @@
 
       var label = document.createElement("span");
       label.className = "admin-editable-label";
-      label.setAttribute("title", "Click to edit");
+      label.setAttribute("title", t("site.adminPage.clickToEdit"));
       label.setAttribute("tabindex", "0");
 
       function renderLabel() {
@@ -161,9 +189,9 @@
             renderLabel();
           })
           .catch(function (err) {
-            var msg = "Update failed";
+            var msg = t("site.adminPage.updateFailed");
             if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-            showSiteAlert(msg, "Could not save").then(function () {
+            showSiteAlert(msg, t("site.adminPage.couldNotSave")).then(function () {
               renderLabel();
             });
           });
@@ -221,11 +249,11 @@
       td.classList.add("admin-cell-editable");
       var label = document.createElement("span");
       label.className = "admin-editable-label admin-password-label";
-      label.setAttribute("title", "Click to set a new password (4–30 characters)");
+      label.setAttribute("title", t("site.adminPage.setPasswordTitle"));
       label.setAttribute("tabindex", "0");
 
       function setLabelDefault() {
-        label.textContent = "Set password";
+        label.textContent = t("site.adminPage.setPassword");
       }
       setLabelDefault();
 
@@ -242,7 +270,7 @@
           return;
         }
         if (trimmed.length < 4 || trimmed.length > 30) {
-          showSiteAlert("Password must be between 4 and 30 characters.", "Invalid password").then(function () {
+          showSiteAlert(t("site.adminPage.passwordLengthInvalid"), t("site.adminPage.invalidPassword")).then(function () {
             setLabelDefault();
           });
           return;
@@ -250,16 +278,16 @@
         patchUserField(userId, { password: trimmed })
           .then(function (res) {
             if (res.data && res.data.ok) {
-              label.textContent = "Saved";
+              label.textContent = t("site.adminPage.saved");
               setTimeout(setLabelDefault, 2000);
             } else {
               setLabelDefault();
             }
           })
           .catch(function (err) {
-            var msg = "Update failed";
+            var msg = t("site.adminPage.updateFailed");
             if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-            showSiteAlert(msg, "Could not save").then(function () {
+            showSiteAlert(msg, t("site.adminPage.couldNotSave")).then(function () {
               setLabelDefault();
             });
           });
@@ -272,7 +300,7 @@
         inp.className = "admin-editable-input admin-password-input";
         inp.autocomplete = "new-password";
         inp.maxLength = 30;
-        inp.placeholder = "New password";
+        inp.placeholder = t("site.adminPage.newPasswordPlaceholder");
         label.style.display = "none";
         td.appendChild(inp);
         inp.focus();
@@ -315,24 +343,49 @@
       td.appendChild(label);
     }
 
-    var PLAYER_LEVELS = ["Rookie", "Skilled", "Elite", "Grand Master"];
+    var PLAYER_LEVELS = [
+      { value: "Rookie", label: t("site.register.rookie") },
+      { value: "Skilled", label: t("site.register.skilled") },
+      { value: "Elite", label: t("site.register.elite") },
+      { value: "Grand Master", label: t("site.register.grandMaster") },
+    ];
 
-    var USER_TYPES = ["Admin", "Partner", "Member"];
+    var USER_TYPES = [
+      { value: "Admin", label: t("site.adminPage.userTypeAdmin") },
+      { value: "Partner", label: t("site.adminPage.userTypePartner") },
+      { value: "Member", label: t("site.adminPage.userTypeMember") },
+    ];
+
+    function userTypeLabel(value) {
+      for (var i = 0; i < USER_TYPES.length; i++) {
+        if (USER_TYPES[i].value === value) return USER_TYPES[i].label;
+      }
+      return value || t("site.adminPage.userTypeMember");
+    }
+
+    function playerLevelLabel(value) {
+      for (var i = 0; i < PLAYER_LEVELS.length; i++) {
+        if (PLAYER_LEVELS[i].value === value) return PLAYER_LEVELS[i].label;
+      }
+      return value || "";
+    }
 
     function attachRoleDropdown(td, userId, userType) {
+      var known = false;
+      for (var ui = 0; ui < USER_TYPES.length; ui++) {
+        if (USER_TYPES[ui].value === userType) { known = true; break; }
+      }
       var state = {
-        userType: USER_TYPES.indexOf(userType) !== -1
-          ? userType
-          : "Member",
+        userType: known ? userType : "Member",
       };
       td.classList.add("admin-cell-editable");
       var label = document.createElement("span");
       label.className = "admin-editable-label";
-      label.setAttribute("title", "Click to change user type");
+      label.setAttribute("title", t("site.adminPage.clickChangeUserType"));
       label.setAttribute("tabindex", "0");
 
       function renderLabel() {
-        label.textContent = state.userType;
+        label.textContent = userTypeLabel(state.userType);
       }
       renderLabel();
 
@@ -346,12 +399,12 @@
         if (td.querySelector("select.admin-role-select")) return;
         var sel = document.createElement("select");
         sel.className = "admin-editable-select admin-role-select";
-        sel.setAttribute("aria-label", "User type");
-        USER_TYPES.forEach(function (typeName) {
+        sel.setAttribute("aria-label", t("site.adminPage.userTypeAria"));
+        USER_TYPES.forEach(function (typeOpt) {
           var o = document.createElement("option");
-          o.value = typeName;
-          o.textContent = typeName;
-          if (typeName === state.userType) o.selected = true;
+          o.value = typeOpt.value;
+          o.textContent = typeOpt.label;
+          if (typeOpt.value === state.userType) o.selected = true;
           sel.appendChild(o);
         });
         label.style.display = "none";
@@ -364,11 +417,11 @@
           var newType = sel.value;
           if (newType === state.userType) return;
           var msg = newType === "Admin"
-            ? "Grant admin privileges to this user? They will be able to access admin tools and manage accounts."
+            ? t("site.adminPage.grantAdminConfirm")
             : state.userType === "Admin"
-              ? "Change this user from Admin to " + newType + "? They will lose access to the admin area."
-              : "Change this user to " + newType + "?";
-          showSiteConfirm(msg, { title: "Change user type" }).then(function (ok) {
+              ? t("site.adminPage.demoteAdminConfirm", { type: userTypeLabel(newType) })
+              : t("site.adminPage.changeUserTypeConfirm", { type: userTypeLabel(newType) });
+          showSiteConfirm(msg, { title: t("site.adminPage.changeUserTypeTitle") }).then(function (ok) {
             if (!ok) {
               sel.value = state.userType;
               return;
@@ -385,9 +438,9 @@
                 removeSelect(sel);
               })
               .catch(function (err) {
-                var errMsg = "Update failed";
+                var errMsg = t("site.adminPage.updateFailed");
                 if (err.response && err.response.data && err.response.data.message) errMsg = err.response.data.message;
-                showSiteAlert(errMsg, "Could not save").then(function () {
+                showSiteAlert(errMsg, t("site.adminPage.couldNotSave")).then(function () {
                   sel.value = state.userType;
                 });
               })
@@ -431,11 +484,11 @@
       td.classList.add("admin-cell-editable");
       var label = document.createElement("span");
       label.className = "admin-editable-label";
-      label.setAttribute("title", "Click to change level");
+      label.setAttribute("title", t("site.adminPage.clickChangeLevel"));
       label.setAttribute("tabindex", "0");
 
       function renderLabel() {
-        label.textContent = state.level !== "" ? state.level : "\u2014";
+        label.textContent = state.level !== "" ? playerLevelLabel(state.level) : "\u2014";
       }
       renderLabel();
 
@@ -445,19 +498,26 @@
         renderLabel();
       }
 
+      function levelKnown(value) {
+        for (var i = 0; i < PLAYER_LEVELS.length; i++) {
+          if (PLAYER_LEVELS[i].value === value) return true;
+        }
+        return false;
+      }
+
       function startEdit() {
         if (td.querySelector("select.admin-level-select")) return;
         var sel = document.createElement("select");
         sel.className = "admin-editable-select admin-level-select";
-        sel.setAttribute("aria-label", "Player level");
+        sel.setAttribute("aria-label", t("site.adminPage.playerLevelAria"));
         PLAYER_LEVELS.forEach(function (lv) {
           var o = document.createElement("option");
-          o.value = lv;
-          o.textContent = lv;
-          if (lv === state.level) o.selected = true;
+          o.value = lv.value;
+          o.textContent = lv.label;
+          if (lv.value === state.level) o.selected = true;
           sel.appendChild(o);
         });
-        if (state.level && PLAYER_LEVELS.indexOf(state.level) === -1) {
+        if (state.level && !levelKnown(state.level)) {
           var oExtra = document.createElement("option");
           oExtra.value = state.level;
           oExtra.textContent = state.level;
@@ -487,10 +547,10 @@
               removeSelect(sel);
             })
             .catch(function (err) {
-              var msg = "Update failed";
+              var msg = t("site.adminPage.updateFailed");
               if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
-              showSiteAlert(msg, "Could not save").then(function () {
-                sel.value = state.level && PLAYER_LEVELS.indexOf(state.level) !== -1 ? state.level : PLAYER_LEVELS[0];
+              showSiteAlert(msg, t("site.adminPage.couldNotSave")).then(function () {
+                sel.value = state.level && levelKnown(state.level) ? state.level : PLAYER_LEVELS[0].value;
               });
             })
             .finally(function () {
@@ -673,12 +733,12 @@
         var tit = title ? " title=\"" + String(title).replace(/"/g, "&quot;") + "\"" : "";
         parts.push("<a href=\"#\"" + cls + tit + " data-admin-page=\"" + dataPage + "\">" + inner + "</a>");
       }
-      link(1, "First");
+      link(1, t("site.adminPage.first"));
       if (startPage > 1) {
-        link(prev10Page, "<img src=\"/images/prev.png\" alt=\"Previous\">", "pageNavIcon pageNavStep10", "Previous 10 pages");
+        link(prev10Page, "<img src=\"/images/prev.png\" alt=\"" + t("site.adminPage.previous") + "\">", "pageNavIcon pageNavStep10", t("site.adminPage.previous10Pages"));
       }
       if (startPage5 > 1) {
-        link(prev5Page, "<img src=\"/images/prev.png\" alt=\"Previous\">", "pageNavIcon pageNavStep5", "Previous 5 pages");
+        link(prev5Page, "<img src=\"/images/prev.png\" alt=\"" + t("site.adminPage.previous") + "\">", "pageNavIcon pageNavStep5", t("site.adminPage.previous5Pages"));
       }
       var i;
       for (i = startPage5; i <= endPage5; i++) {
@@ -690,12 +750,12 @@
         link(i, String(i), cls10);
       }
       if (endPage5 < totalPages) {
-        link(next5Page, "<img src=\"/images/next.png\" alt=\"Next\">", "pageNavIcon pageNavStep5", "Next 5 pages");
+        link(next5Page, "<img src=\"/images/next.png\" alt=\"" + t("site.adminPage.next") + "\">", "pageNavIcon pageNavStep5", t("site.adminPage.next5Pages"));
       }
       if (endPage < totalPages) {
-        link(next10Page, "<img src=\"/images/next.png\" alt=\"Next\">", "pageNavIcon pageNavStep10", "Next 10 pages");
+        link(next10Page, "<img src=\"/images/next.png\" alt=\"" + t("site.adminPage.next") + "\">", "pageNavIcon pageNavStep10", t("site.adminPage.next10Pages"));
       }
-      link(totalPages, "Last");
+      link(totalPages, t("site.adminPage.last"));
       gamesPagesNav.innerHTML = parts.join("");
       gamesPagesNav.hidden = false;
     }
@@ -773,8 +833,8 @@
       var thNum = document.createElement("th");
       thNum.className = "sortable-th";
       thNum.setAttribute("data-sort-key", "rowIndex");
-      thNum.title = "Sort by row number";
-      thNum.innerHTML = "<span class=\"th-label\">#</span><span class=\"sort-icon\" aria-hidden=\"true\"></span>";
+      thNum.title = t("site.adminPage.sortByRowNumber");
+      thNum.innerHTML = "<span class=\"th-label\">" + t("site.adminPage.colNum") + "</span><span class=\"sort-icon\" aria-hidden=\"true\"></span>";
       headRow.appendChild(thNum);
 
       keys.forEach(function (key) {
@@ -782,7 +842,7 @@
         th.className = "sortable-th";
         var trimKey = key.replace(/^\s+/, "").replace(/\s+$/, "");
         th.setAttribute("data-sort-key", trimKey);
-        th.title = "Sort by " + trimKey;
+        th.title = t("site.adminPage.sortBy", { key: trimKey });
         var spanL = document.createElement("span");
         spanL.className = "th-label";
         spanL.textContent = key;
@@ -795,7 +855,7 @@
       });
 
       var thAct = document.createElement("th");
-      thAct.textContent = "Action";
+      thAct.textContent = t("site.adminPage.colAction");
       headRow.appendChild(thAct);
 
       var total = games.length;
@@ -856,7 +916,7 @@
         form.appendChild(hret);
         var a = document.createElement("a");
         a.href = "#";
-        a.textContent = "Delete";
+        a.textContent = t("site.adminPage.delete");
         a.onclick = function () { form.submit(); return false; };
         form.appendChild(a);
         tdAct.appendChild(form);

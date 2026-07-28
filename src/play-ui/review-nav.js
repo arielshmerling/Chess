@@ -7,6 +7,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     const ICONS = {
         start:
             "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6h2v12H6V6zm3.5 6L18 18V6L9.5 12z\" fill=\"currentColor\"/></svg>",
@@ -58,15 +67,15 @@
         const doc = container.ownerDocument || global.document;
         container.innerHTML = "";
 
-        const startBtn = createButton(doc, "Start", "start", "", h.onStart);
-        const backBtn = createButton(doc, "Back", "back", "", h.onBack);
+        const startBtn = createButton(doc, t("play.reviewNav.start"), "start", "", h.onStart);
+        const backBtn = createButton(doc, t("play.reviewNav.back"), "back", "", h.onBack);
 
         const playPauseBtn = doc.createElement("button");
         playPauseBtn.type = "button";
         playPauseBtn.className =
             "desktop-play-review-nav-btn desktop-play-review-nav-btn--playpause";
-        playPauseBtn.setAttribute("aria-label", "Play");
-        playPauseBtn.title = "Play";
+        playPauseBtn.setAttribute("aria-label", t("play.reviewNav.play"));
+        playPauseBtn.title = t("play.reviewNav.play");
         const playIcon = doc.createElement("span");
         playIcon.className = "desktop-play-review-nav-play-icon";
         playIcon.innerHTML = ICONS.play;
@@ -85,8 +94,8 @@
             }
         });
 
-        const forwardBtn = createButton(doc, "Forward", "forward", "", h.onForward);
-        const endBtn = createButton(doc, "End", "end", "", h.onEnd);
+        const forwardBtn = createButton(doc, t("play.reviewNav.forward"), "forward", "", h.onForward);
+        const endBtn = createButton(doc, t("play.reviewNav.end"), "end", "", h.onEnd);
 
         container.appendChild(startBtn);
         container.appendChild(backBtn);
@@ -141,8 +150,8 @@
         if (els.pauseIcon) {
             els.pauseIcon.hidden = !playing;
         }
-        els.playPause.setAttribute("aria-label", playing ? "Pause" : "Play");
-        els.playPause.title = playing ? "Pause" : "Play";
+        els.playPause.setAttribute("aria-label", playing ? t("play.reviewNav.pause") : t("play.reviewNav.play"));
+        els.playPause.title = playing ? t("play.reviewNav.pause") : t("play.reviewNav.play");
     }
 
     const ReviewNav = {

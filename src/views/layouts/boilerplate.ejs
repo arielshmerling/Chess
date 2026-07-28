@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chessboard</title>
+  <title><%= t('play.appTitle') %></title>
   <link rel="stylesheet" href="/app.css">
   <% if (typeof username !== 'undefined' && username) { %>
   <link rel="stylesheet" href="/app/ui/app.css">
@@ -17,6 +17,11 @@
   <script src="/ChessGame.js"></script>
   <script src="/themes.js"></script>
   <script src="/pieceSets.js"></script>
+  <script src="/strings/en.js"></script>
+  <script src="/strings/en-extra.js"></script>
+  <script src="/strings/index.js"></script>
+  <script src="/strings/t-bridge.js"></script>
+  <script src="/validation/positionValidation.js"></script>
   <script src="/chessboard.js"></script>
   <script src="/lobby.js"></script>
   <script src="/customValidation.js"></script>

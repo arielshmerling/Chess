@@ -9,6 +9,7 @@ const playPrefsApi = require("./playPrefsApi");
 
 const DESKTOP_UI_DIR = path.join(__dirname, "../desktop/ui");
 const PLAY_UI_DIR = path.join(__dirname, "../play-ui");
+const STRINGS_DIR = path.join(__dirname, "../strings");
 const SESSION_DIR = path.join(__dirname, "../session");
 const MOBILE_DIR = path.join(__dirname, "../mobile");
 
@@ -24,6 +25,7 @@ function setPlayPageNoCache(res) {
  */
 function mountWebPlayRoutes(app) {
     app.use("/app/ui", express.static(DESKTOP_UI_DIR));
+    app.use("/app/strings", express.static(STRINGS_DIR));
     app.use("/app/play-ui", express.static(PLAY_UI_DIR));
     app.use("/app/session", express.static(SESSION_DIR));
     app.use("/app/mobile", express.static(MOBILE_DIR));

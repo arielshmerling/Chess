@@ -12,12 +12,12 @@
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="hero-logo">
-        <img src="/images/logo_chess.png" alt="Shmerling Chess Club" class="hero-logo-img">
+        <img src="/images/logo_chess.png" alt="<%= t('play.appTitle') %>" class="hero-logo-img">
       </div>
       <div class="hero-text-section">
-        <h1 class="hero-greeting">Welcome Back</h1>
+        <h1 class="hero-greeting"><%= t('site.welcome.greeting') %></h1>
         <h2 class="hero-username"><%=username %></h2>
-        <p class="hero-tagline">Your move awaits</p>
+        <p class="hero-tagline"><%= t('site.welcome.tagline') %></p>
       </div>
       <div class="hero-right">
         <div class="hero-chess-icon">
@@ -26,7 +26,7 @@
           </div>
         </div>
         <div class="hero-play-now">
-          <button type="button" class="play-now-btn" id="startAIGame" onclick="startPlayFromHome()"><span class="play-now-btn-text">Play Now!</span></button>
+          <button type="button" class="play-now-btn" id="startAIGame" onclick="startPlayFromHome()"><span class="play-now-btn-text"><%= t('site.welcome.playNow') %></span></button>
         </div>
       </div>
     </div>
@@ -35,26 +35,26 @@
   <!-- Games Section -->
   <div class="games-section">
     <div class="welcome-active-games-row">
-    <!-- Active Games (Online + AI) -->
+    <!-- <%= t('site.welcome.activeGames') %> (Online + AI) -->
     <div class="games-panel online-games-panel">
       <div class="panel-header">
         <div class="panel-header-top">
           <div class="panel-title-group">
-            <h3 class="panel-title">Active Games</h3>
-            <span class="panel-badge">Live</span>
+            <h3 class="panel-title"><%= t('site.welcome.activeGames') %></h3>
+            <span class="panel-badge"><%= t('site.welcome.live') %></span>
           </div>
-          <a href="/active-games-list" class="panel-show-all-btn" title="View all active games">Show All</a>
+          <a href="/active-games-list" class="panel-show-all-btn" title="<%= t('site.welcome.viewAllActive') %>"><%= t('site.welcome.showAll') %></a>
         </div>
-        <div class="panel-subtitle">Most recent first</div>
+        <div class="panel-subtitle"><%= t('site.welcome.mostRecent') %></div>
       </div>
       <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
         <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
         <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
           window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
         </script>
-        <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="Active games"></div>
+        <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="<%= t('site.welcome.activeGamesAria') %>"></div>
         <div class="no-games-message" id="online-no-games-msg">
-          <p>No games at the moment</p>
+          <p><%= t('site.welcome.noGamesNow') %></p>
         </div>
       </div>
       <script src="/activeGamesHome.js" defer></script>
@@ -63,16 +63,16 @@
 
     </div>
 
-    <!-- My Games -->
+    <!-- <%= t('site.welcome.myGames') %> -->
     <div class="games-panel my-games-panel">
       <div class="panel-header">
         <div class="panel-header-top">
           <div class="panel-title-group">
-            <h3 class="panel-title">My Games</h3>
+            <h3 class="panel-title"><%= t('site.welcome.myGames') %></h3>
           </div>
-          <a href="/list" class="panel-show-all-btn" title="View All Games">Show All</a>
+          <a href="/list" class="panel-show-all-btn" title="<%= t('site.welcome.viewAllGames') %>"><%= t('site.welcome.showAll') %></a>
         </div>
-        <div class="panel-subtitle">Your recent completed games</div>
+        <div class="panel-subtitle"><%= t('site.welcome.recentCompleted') %></div>
       </div>
       <div class="panel-body">
         <% if(playerGames && playerGames.length > 0) { %>
@@ -164,7 +164,7 @@
         </script>
         <% } else { %>
         <div class="no-games-message">
-          <p>No completed games yet</p>
+          <p><%= t('site.welcome.noCompleted') %></p>
         </div>
         <% } %>
       </div>

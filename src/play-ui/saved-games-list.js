@@ -7,6 +7,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     const ACTION_ICONS = {
         edit:
             "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>",
@@ -88,8 +97,8 @@
             const renameInput = doc.createElement("input");
             renameInput.type = "text";
             renameInput.className = "desktop-play-saved-game-rename-input";
-            renameInput.value = view.name || "Saved game";
-            renameInput.setAttribute("aria-label", "Saved game name");
+            renameInput.value = view.name || t("play.savedGames.defaultName");
+            renameInput.setAttribute("aria-label", t("play.savedGames.nameAriaLabel"));
             renameInput.addEventListener("click", function (ev) {
                 ev.stopPropagation();
             });
@@ -110,7 +119,7 @@
         } else {
             const nameSpan = doc.createElement("span");
             nameSpan.className = "desktop-play-saved-game-name";
-            nameSpan.textContent = view.name || "Saved game";
+            nameSpan.textContent = view.name || t("play.savedGames.defaultName");
             nameSpan.title = view.nameTitle || nameSpan.textContent;
             nameSpan.setAttribute("role", "button");
             nameSpan.setAttribute("tabindex", "0");
@@ -132,7 +141,7 @@
             row.appendChild(nameSpan);
         }
 
-        const expandBtn = createIconButton(doc, "Show details", "expand", h.onExpand);
+        const expandBtn = createIconButton(doc, t("play.savedGames.showDetails"), "expand", h.onExpand);
         expandBtn.classList.add("desktop-play-saved-game-expand");
         expandBtn.setAttribute("aria-expanded", view.expanded ? "true" : "false");
         row.appendChild(expandBtn);
@@ -160,14 +169,14 @@
         actions.className = "desktop-play-saved-game-actions";
         if (view.infoTooltip) {
             const infoBtn = createIconButton(doc, view.infoTooltip, "info", function () {});
-            infoBtn.setAttribute("aria-label", "Saved game details");
+            infoBtn.setAttribute("aria-label", t("play.savedGames.detailsAriaLabel"));
             actions.appendChild(infoBtn);
         }
         if (view.showEdit) {
-            actions.appendChild(createIconButton(doc, "Edit position", "edit", h.onEdit));
+            actions.appendChild(createIconButton(doc, t("play.savedGames.editPosition"), "edit", h.onEdit));
         }
-        actions.appendChild(createIconButton(doc, "Delete saved game", "delete", h.onDelete));
-        actions.appendChild(createIconButton(doc, "Rename saved game", "rename", h.onRename));
+        actions.appendChild(createIconButton(doc, t("play.savedGames.deleteSavedGame"), "delete", h.onDelete));
+        actions.appendChild(createIconButton(doc, t("play.savedGames.renameSavedGame"), "rename", h.onRename));
         details.appendChild(actions);
         div.appendChild(details);
 
@@ -202,8 +211,8 @@
             empty.className = "desktop-play-saved-list-empty";
             empty.textContent =
                 opts.filter === "positions"
-                    ? "No saved positions yet."
-                    : "No saved games yet.";
+                    ? t("play.savedGames.noSavedPositions")
+                    : t("play.savedGames.noSavedGames");
             container.appendChild(empty);
             return;
         }

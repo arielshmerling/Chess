@@ -4,13 +4,13 @@
 
 
   <form method="get" action="search">
-    <h1>Search:</h1>
+    <h1><%= t('site.searchPage.title') %></h1>
     <input type="text" id="search" name="q" />
-    <button id="searchButton" class="button">Search</button>
+    <button id="searchButton" class="button"><%= t('site.searchPage.button') %></button>
     <br><br>
     <div id="searchResults">
       <%if(pgn.length>0) %>
-      <%=pgn.length%> Results found:
+      <%= t('site.searchPage.resultsFound', { count: pgn.length }) %>
     </div>
   </form>
 </section>
@@ -179,12 +179,12 @@
     const searchSortParams = (sortKey && sortOrder) ? ('&sort=' + encodeURIComponent(sortKey) + '&order=' + encodeURIComponent(sortOrder)) : '';
   %>
   <nav class="pagesNav">
-    <a href="search?q=<%=q%>&page=1<%= searchSortParams %>">First</a>
+    <a href="search?q=<%=q%>&page=1<%= searchSortParams %>"><%= t('site.searchPage.first') %></a>
     <% if (startPage > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev10Page%><%= searchSortParams %>" title="Previous 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="Previous"></a>
+    <a href="search?q=<%=q%>&page=<%=prev10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
     <% } %>
     <% if (startPage5 > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev5Page%><%= searchSortParams %>" title="Previous 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="Previous"></a>
+    <a href="search?q=<%=q%>&page=<%=prev5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
     <% } %>
     <% for(let i=startPage5;i<=endPage5;i++) { %>
     <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
@@ -193,12 +193,12 @@
     <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
     <% } %>
     <% if (endPage5 < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next5Page%><%= searchSortParams %>" title="Next 5 pages" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="Next"></a>
+    <a href="search?q=<%=q%>&page=<%=next5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
     <% } %>
     <% if (endPage < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next10Page%><%= searchSortParams %>" title="Next 10 pages" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="Next"></a>
+    <a href="search?q=<%=q%>&page=<%=next10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
     <% } %>
-    <a href="search?q=<%=q%>&page=<%=totalPages%><%= searchSortParams %>">Last</a>
+    <a href="search?q=<%=q%>&page=<%=totalPages%><%= searchSortParams %>"><%= t('site.searchPage.last') %></a>
   </nav>
 
   <%  } %>

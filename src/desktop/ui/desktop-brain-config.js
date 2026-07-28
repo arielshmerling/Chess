@@ -4,24 +4,31 @@
 (function (global) {
     "use strict";
 
+    function t(key, params) {
+        if (global.ShmerlingStrings && typeof global.ShmerlingStrings.t === "function") {
+            return global.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const ENGINE_OPTIONS = [
-        { value: "brain43", label: "Brain 4.3" },
-        { value: "brain42", label: "Brain 4.2" },
-        { value: "brain41", label: "Brain 4.1" },
-        { value: "brain4", label: "Brain 4" },
-        { value: "brain3", label: "Brain 3" },
-        { value: "brain2", label: "Brain 2" },
-        { value: "brain", label: "Brain" },
+        { value: "brain43", label: t("play.newGameDialog.brain43") },
+        { value: "brain42", label: t("play.newGameDialog.brain42") },
+        { value: "brain41", label: t("play.newGameDialog.brain41") },
+        { value: "brain4", label: t("play.newGameDialog.brain4") },
+        { value: "brain3", label: t("site.playNow.brain3") },
+        { value: "brain2", label: t("site.playNow.brain2") },
+        { value: "brain", label: t("desktop.brainConfig.brainLabel") },
     ];
 
     const PAWN_FILE_LETTERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
     const SECTION_TITLES = {
-        pieceScores: "Piece scores",
-        specialEvaluations: "Special evaluations",
-        gamePhase: "Game phase",
-        "pawnFileValues.openingMidGame": "Pawn files (opening / mid)",
-        "pawnFileValues.endGame": "Pawn files (endgame)",
+        pieceScores: t("desktop.brainConfig.pieceScores"),
+        specialEvaluations: t("desktop.brainConfig.specialEvaluations"),
+        gamePhase: t("desktop.brainConfig.gamePhase"),
+        "pawnFileValues.openingMidGame": t("desktop.brainConfig.pawnFilesOpeningMid"),
+        "pawnFileValues.endGame": t("desktop.brainConfig.pawnFilesEndGame"),
     };
 
     let panelRoot = null;
@@ -270,7 +277,7 @@
             engineSelect.value = safe;
         }
         if (statusEl) {
-            statusEl.textContent = "Loading…";
+            statusEl.textContent = t("desktop.brainConfig.loading");
         }
         const Api = global.DesktopApi;
         if (!Api) {
@@ -331,7 +338,7 @@
         engineRow.className = "desktop-play-config-engine";
         const engineLabel = document.createElement("label");
         engineLabel.setAttribute("for", "desktopBrainConfigEngine");
-        engineLabel.textContent = "Brain";
+        engineLabel.textContent = t("desktop.brainConfig.brainLabel");
         engineSelect = document.createElement("select");
         engineSelect.id = "desktopBrainConfigEngine";
         engineSelect.className = "desktop-play-config-engine-select";
@@ -344,7 +351,7 @@
         engineSelect.addEventListener("change", function () {
             if (state.dirty) {
                 const proceed = global.confirm(
-                    "Discard unsaved changes and switch brain version?",
+                    t("desktop.brainConfig.discardSwitchConfirm"),
                 );
                 if (!proceed) {
                     engineSelect.value = state.engine;
@@ -354,7 +361,7 @@
             loadEngine(engineSelect.value).catch(function (err) {
                 console.error("[BrainConfig]", err);
                 if (global.alert) {
-                    global.alert(err.message || "Failed to load brain config.");
+                    global.alert(err.message || t("classic.failedLoadBrainConfig"));
                 }
             });
         });
@@ -378,7 +385,7 @@
         saveBtn = document.createElement("button");
         saveBtn.type = "button";
         saveBtn.className = "desktop-play-config-save";
-        saveBtn.textContent = "Save";
+        saveBtn.textContent = t("desktop.brainConfig.save");
         saveBtn.disabled = true;
         saveBtn.addEventListener("click", function () {
             saveDraft()
@@ -390,14 +397,14 @@
                 .catch(function (err) {
                     console.error("[BrainConfig]", err);
                     if (global.alert) {
-                        global.alert(err.message || "Failed to save brain config.");
+                        global.alert(err.message || t("classic.failedSaveBrainConfig"));
                     }
                 });
         });
         discardBtn = document.createElement("button");
         discardBtn.type = "button";
         discardBtn.className = "desktop-play-config-discard";
-        discardBtn.textContent = "Discard";
+        discardBtn.textContent = t("desktop.brainConfig.discard");
         discardBtn.disabled = true;
         discardBtn.addEventListener("click", discardDraft);
         actions.appendChild(saveBtn);

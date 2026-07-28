@@ -1,3 +1,4 @@
+const { t } = require("../../strings");
 
 const catchAsync = require("../../utils/catchAsync");
 const ExpressError = require("../../utils/ExpressError");
@@ -9,7 +10,7 @@ exports.showLoginPage = (req, res) => {
     const { f } = req.query;
     let errorMessage = "";
     if (f == "error") {
-        errorMessage = "Wrong username or password";
+        errorMessage = t("auth.wrongCredentials");
 
     }
     res.locals.username = "";
@@ -74,7 +75,7 @@ exports.setBookmark = catchAsync(async (req, res) => {
             blackPlayerName,
         );
         if (!bookmark) {
-            res.status(400).json({ ok: false, message: "Could not save bookmark" });
+            res.status(400).json({ ok: false, message: t("auth.couldNotSaveBookmark") });
             return;
         }
         res.json(bookmark);
@@ -173,7 +174,7 @@ exports.login = catchAsync(async (req, res) => {
         return res.redirect(redirectUrl);
     }
     else {
-        req.flash("messages", "Wrong username or password");
+        req.flash("messages", t("auth.wrongCredentials"));
         console.log("login failed");
         res.redirect("/login");
     }
@@ -323,7 +324,7 @@ exports.updateUserAdmin = async (req, res, next) => {
             return res.status(err.statusCode).json({ ok: false, message: err.message });
         }
         if (err.name === "CastError") {
-            return res.status(400).json({ ok: false, message: "Invalid user id" });
+            return res.status(400).json({ ok: false, message: t("auth.invalidUserId") });
         }
         next(err);
     }
@@ -343,7 +344,7 @@ exports.register = catchAsync(async (req, res) => {
         req.session.userType = user.userType || "Member";
     }
     else {
-        req.flash("messages", "User added Successfully");
+        req.flash("messages", t("auth.userAdded"));
     }
 
 

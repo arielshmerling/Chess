@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/strings/en.js"></script>
+  <script src="/strings/en-extra.js"></script>
+  <script src="/strings/index.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Server Log — Shmerling Chess</title>
@@ -188,5 +191,17 @@
       window.serverLog.onAppend(appendEntry);
     })();
   </script>
-</body>
+<script>
+(function () {
+  var t = window.ShmerlingStrings && window.ShmerlingStrings.t;
+  if (!t) return;
+  document.title = t("site.log.title");
+  var clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) clearBtn.textContent = t("site.log.clear");
+  var latestBtn = document.getElementById("latestBtn");
+  if (latestBtn) latestBtn.textContent = t("site.log.latest");
+  var empty = document.getElementById("emptyState");
+  if (empty) empty.textContent = t("site.log.waiting");
+})();
+</script></body>
 </html>

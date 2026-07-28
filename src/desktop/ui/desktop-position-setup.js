@@ -4,6 +4,13 @@
 (function (global) {
     "use strict";
 
+    function t(key, params) {
+        if (global.ShmerlingStrings && typeof global.ShmerlingStrings.t === "function") {
+            return global.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     let WHITE_PIECES = [];
     let BLACK_PIECES = [];
 
@@ -402,7 +409,7 @@
         if (global.DesktopGameRun && global.DesktopGameRun.createSwatchRow) {
             const turnBtns = {};
             const row = global.DesktopGameRun.createSwatchRow(
-                "Turn",
+                t("desktop.positionSetup.turn"),
                 setupTurn === "white",
                 function (isWhite) {
                     const next = isWhite ? "white" : "black";
@@ -429,7 +436,7 @@
 
         const heading = document.createElement("span");
         heading.className = "desktop-play-setup-flags-heading";
-        heading.textContent = "Position flags";
+        heading.textContent = t("desktop.positionSetup.positionFlags");
         section.appendChild(heading);
 
         const grid = document.createElement("div");
@@ -537,7 +544,7 @@
 
         const eraser = createToolButton(
             "desktop-play-setup-eraser",
-            "Eraser",
+            t("desktop.positionSetup.eraser"),
             SVG.eraser,
             function (btn) {
                 setSelection({ mode: "eraser" });
@@ -546,7 +553,7 @@
         );
         const selectBtn = createToolButton(
             "desktop-play-setup-select",
-            "Select and move",
+            t("desktop.positionSetup.selectAndMove"),
             SVG.select,
             function (btn) {
                 setSelection({ mode: "select" });
@@ -555,7 +562,7 @@
         );
         const resetBtn = createToolButton(
             "desktop-play-setup-reset",
-            "Clear board",
+            t("desktop.positionSetup.clearBoard"),
             SVG.reset,
             function (btn) {
                 setSelection({ mode: "eraser" });
@@ -567,7 +574,7 @@
         );
         const defaultBtn = createToolButton(
             "desktop-play-setup-default",
-            "Default starting position",
+            t("desktop.positionSetup.defaultStartingPosition"),
             SVG.defaultPos,
             function () {
                 if (onDefaultBoard) {
@@ -590,14 +597,14 @@
         const saveRow = document.createElement("div");
         saveRow.className = "desktop-play-setup-save-row";
 
-        const saveBtn = createToolButton("desktop-play-setup-save", "Save position", SVG.save, function () {
+        const saveBtn = createToolButton("desktop-play-setup-save", t("desktop.positionSetup.savePosition"), SVG.save, function () {
             if (onSavePosition) {
                 onSavePosition();
             }
         });
         const saveAsBtn = createToolButton(
             "desktop-play-setup-save-as",
-            "Save as new position",
+            t("desktop.positionSetup.saveAsNewPosition"),
             SVG.saveAs,
             function () {
                 if (onSavePositionAs) {
@@ -611,7 +618,7 @@
         actions.appendChild(saveRow);
         const validateBtn = createToolButton(
             "desktop-play-setup-validate",
-            "Validate position",
+            t("desktop.positionSetup.validatePosition"),
             SVG.validate,
             function () {
                 if (onValidatePosition) {

@@ -5,31 +5,28 @@
     <div class="games-panel admin-tabbed-panel">
       <div class="panel-header admin-panel-header">
         <div class="panel-title-group admin-panel-title-row admin-generate-state-title-row">
-          <h2 class="panel-title">Opening book &amp; state generation</h2>
-          <a href="/admin" class="admin-generate-state-link-back">← Back to admin</a>
+          <h2 class="panel-title"><%= t('site.adminPage.generateTitle') %></h2>
+          <a href="/admin" class="admin-generate-state-link-back"><%= t('site.adminPage.backToAdmin') %></a>
         </div>
       </div>
       <div class="panel-body admin-panel-body admin-generate-state-body">
-        <p class="admin-generate-state-intro">
-          Replays all PGN files under the server’s games manager folder into either the <strong>State</strong> Mongo collection
-          or the line-based opening book (<code>data/opening-book-lines.txt</code>). Choose a target, then press <strong>Start generation</strong>—nothing runs until you do.
-        </p>
+        <p class="admin-generate-state-intro"><%= t('site.adminPage.generateIntro') %></p>
         <fieldset class="admin-generate-state-targets">
-          <legend class="admin-generate-state-legend">Target</legend>
+          <legend class="admin-generate-state-legend"><%= t('site.adminPage.target') %></legend>
           <label class="admin-generate-state-radio-label">
             <input type="radio" name="generate-target" value="mongo" checked>
-            <span>MongoDB — append rows to the <code>State</code> collection</span>
+            <span><%= t('site.adminPage.targetMongo') %></span>
           </label>
           <label class="admin-generate-state-radio-label">
             <input type="radio" name="generate-target" value="book">
-            <span>Line file — write opening book (<code>opening-book-lines.txt</code>)</span>
+            <span><%= t('site.adminPage.targetBook') %></span>
           </label>
         </fieldset>
         <div class="admin-generate-state-actions">
-          <button type="button" id="btn-start-generation" class="button admin-generate-state-btn admin-generate-state-btn-start">Start generation</button>
-          <button type="button" id="btn-stop-generation" class="button admin-generate-state-btn admin-generate-state-btn-stop" disabled>Stop</button>
+          <button type="button" id="btn-start-generation" class="button admin-generate-state-btn admin-generate-state-btn-start"><%= t('site.adminPage.startGeneration') %></button>
+          <button type="button" id="btn-stop-generation" class="button admin-generate-state-btn admin-generate-state-btn-stop" disabled><%= t('site.adminPage.stop') %></button>
         </div>
-        <div class="admin-generate-state-status" id="generate-state-status" aria-live="polite">Idle.</div>
+        <div class="admin-generate-state-status" id="generate-state-status" aria-live="polite"><%= t('site.adminPage.idle') %></div>
         <div class="admin-generate-state-progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="generate-state-progress-wrap">
           <div class="admin-generate-state-progress-fill" id="generate-state-progress-fill"></div>
         </div>
@@ -41,6 +38,12 @@
 
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function () {
+  function t(key, params) {
+    if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+      return window.ShmerlingStrings.t(key, params);
+    }
+    return key;
+  }
   var statusEl = document.getElementById("generate-state-status");
   var fillEl = document.getElementById("generate-state-progress-fill");
   var wrapEl = document.getElementById("generate-state-progress-wrap");
@@ -49,6 +52,7 @@
   var btnStop = document.getElementById("btn-stop-generation");
   var targetInputs = document.querySelectorAll('input[name="generate-target"]');
   var es = null;
+  var terminalStatus = false;
 
   function selectedMode() {
     for (var i = 0; i < targetInputs.length; i++) {
@@ -93,7 +97,8 @@
     logEl.innerHTML = "";
     setPct(0);
     setBusy(true);
-    statusEl.textContent = "Starting…";
+    terminalStatus = false;
+    statusEl.textContent = t("site.adminPage.starting");
     var url = "/admin/generate-state/stream?mode=" + encodeURIComponent(mode);
     es = new EventSource(url);
 
@@ -101,67 +106,74 @@
       try {
         var data = JSON.parse(ev.data);
         if (data.type === "start") {
-          statusEl.textContent = "Running (" + data.mode + ")…";
+          statusEl.textContent = t("site.adminPage.running", { mode: data.mode });
           return;
         }
         if (data.type === "phase") {
           statusEl.textContent = data.message || data.phase || "";
           if (data.phase === "reading" && data.fileCount != null) {
-            logLine("Reading " + data.fileCount + " file(s)…");
+            logLine(t("site.adminPage.readingFiles", { count: data.fileCount }));
           }
           if (data.phase === "replay" && data.totalGames != null) {
-            logLine("Replaying " + data.totalGames + " games…");
+            logLine(t("site.adminPage.replayingGames", { count: data.totalGames }));
           }
           return;
         }
         if (data.type === "progress") {
           if (data.phase === "writing") {
             setPct(96);
-            statusEl.textContent = data.message || "Writing opening book…";
+            statusEl.textContent = data.message || t("site.adminPage.writingOpeningBook");
             return;
           }
           if (data.segment === "reading" && data.fileTotal > 0) {
             setPct((data.fileIndex / data.fileTotal) * 12);
-            statusEl.textContent = "Reading PGN " + data.fileIndex + " / " + data.fileTotal + " (" + (data.gamesLoaded || 0) + " games)";
+            statusEl.textContent = t("site.adminPage.readingPgn", { index: data.fileIndex, total: data.fileTotal, games: data.gamesLoaded || 0 });
           } else if (data.segment === "replay" && data.total > 0) {
             setPct(12 + (data.current / data.total) * 83);
-            statusEl.textContent = "Replay game " + data.current + " / " + data.total + " (completed ok: " + data.gamesCompleted + ")";
+            statusEl.textContent = t("site.adminPage.replayGameProgress", { current: data.current, total: data.total, completed: data.gamesCompleted });
           }
           return;
         }
         if (data.type === "done") {
           setPct(100);
           if (data.stopped) {
-            var parts = ["Stopped."];
+            var parts = [t("site.adminPage.stopped")];
             if (data.bookUnchanged) {
-              parts.push("Existing opening book was not modified.");
+              parts.push(t("site.adminPage.bookUnchanged"));
             } else if (data.mode === "book" && data.entryCount != null) {
-              parts.push(data.entryCount + " game line(s) in " + (data.file || "opening book") + ".");
+              parts.push(t("site.adminPage.bookLinesInFile", { count: data.entryCount, file: data.file || t("site.adminPage.openingBookDefault") }));
             }
             if (data.cancelledBeforeRead) {
-              parts.push("Cancelled before reading PGNs.");
+              parts.push(t("site.adminPage.cancelledBeforeRead"));
             }
             if (data.cancelledAfterRead) {
-              parts.push("Cancelled after read; replay was skipped (nothing written).");
+              parts.push(t("site.adminPage.cancelledAfterRead"));
             }
             if (data.mode === "mongo" && data.gamesCompleted != null) {
-              parts.push(data.gamesCompleted + " game(s) had new state rows saved.");
+              parts.push(t("site.adminPage.mongoGamesSaved", { count: data.gamesCompleted }));
             }
             statusEl.textContent = parts.join(" ");
           } else if (data.mode === "book") {
-            statusEl.textContent = "Done. " + (data.entryCount != null ? data.entryCount + " game lines → " : "") + (data.file || "opening book");
+            statusEl.textContent = data.entryCount != null
+              ? t("site.adminPage.doneBook", { count: data.entryCount, file: data.file || t("site.adminPage.openingBookDefault") })
+              : t("site.adminPage.doneBookFileOnly", { file: data.file || t("site.adminPage.openingBookDefault") });
           } else {
-            statusEl.textContent = "Done. MongoDB State collection updated"
-              + (data.gamesCompleted != null ? " (" + data.gamesCompleted + " games replayed ok)" : "") + ".";
+            statusEl.textContent = t("site.adminPage.doneMongo", {
+                detail: data.gamesCompleted != null
+                  ? t("site.adminPage.doneMongoDetail", { count: data.gamesCompleted })
+                  : ""
+              });
           }
           logLine(statusEl.textContent);
+          terminalStatus = true;
           stopStream();
           setBusy(false);
           return;
         }
         if (data.type === "error") {
-          statusEl.textContent = "Error: " + (data.message || "Unknown");
+          statusEl.textContent = t("site.adminPage.errorPrefix", { message: data.message || t("site.adminPage.unknownError") });
           logLine(statusEl.textContent);
+          terminalStatus = true;
           stopStream();
           setBusy(false);
         }
@@ -173,8 +185,8 @@
     es.onerror = function () {
       stopStream();
       setBusy(false);
-      if (statusEl.textContent.indexOf("Done") === -1 && statusEl.textContent.indexOf("Stopped") === -1 && statusEl.textContent.indexOf("Error") === -1) {
-        statusEl.textContent = "Connection closed (check server logs or try again).";
+      if (!terminalStatus) {
+        statusEl.textContent = t("site.adminPage.connectionClosed");
       }
     };
   }

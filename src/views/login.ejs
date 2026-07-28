@@ -8,7 +8,7 @@
       <div class="loginBoxWrapper">
         <div class="loginBox">
           <div class="labelRow">
-            <label for="username">Username:</label>
+            <label for="username"><%= t('site.username') %></label>
           </div>
           <div class="labelRow">
             <input id="username" username="username" name="username" autofocus required autocomplete="off" aria-autocomplete="none" list="autocompleteOff">
@@ -17,7 +17,7 @@
 
 
           <div class="labelRow">
-            <label for="password">Password:</label>
+            <label for="password"><%= t('site.password') %></label>
           </div>
           <div class="labelRow">
             <input id="password" name="password" type="password" required autocomplete="off" list="autocompleteOff" aria-autocomplete="list" aria-invalid="false" spellcheck="false">
@@ -25,7 +25,7 @@
           </div>
 
 
-          <button>Login</button>
+          <button><%= t('site.login') %></button>
 
           <div class="errorMessage">
             <%=errorMessage%>
