@@ -63,10 +63,14 @@ const {
     canAccessPlayPage,
 } = require("./modules/user/roles");
 
-const { t } = require("./strings");
+const { t, getHtmlLang, getHtmlDir, getLocale, DEFAULT_LOCALE } = require("./strings");
 
 // Available to every EJS view (including error pages / includes).
 app.locals.t = t;
+app.locals.htmlLang = getHtmlLang();
+app.locals.htmlDir = getHtmlDir();
+app.locals.locale = getLocale();
+app.locals.defaultLocale = DEFAULT_LOCALE;
 
 app.use((req, res, next) => {
     res.locals.username = req.session.user_name;
@@ -78,6 +82,9 @@ app.use((req, res, next) => {
     res.locals.messages = req.flash("messages");
     res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
     res.locals.t = t;
+    res.locals.htmlLang = getHtmlLang();
+    res.locals.htmlDir = getHtmlDir();
+    res.locals.locale = getLocale();
     next();
 });
 

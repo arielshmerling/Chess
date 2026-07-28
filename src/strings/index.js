@@ -5,10 +5,14 @@
  *   t("play.status.gameOver")
  *   t("play.status.timesUpLost", { loser: "White" })
  *
- * Future locales: add src/strings/es.js and register in LOCALES.
+ * Default locale: Hebrew ("he"). English remains available via setLocale("en")
+ * or t(key, params, "en"). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
+
+    const DEFAULT_LOCALE = "he";
+    const FALLBACK_LOCALE = "en";
 
     function isPlainObject(value) {
         return !!value && typeof value === "object" && !Array.isArray(value);
@@ -30,46 +34,60 @@
         return out;
     }
 
-    function loadEnExtra() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("./en-extra");
-            } catch {
-                return null;
-            }
-        }
-        return global.ShmerlingStringsEnExtra || null;
-    }
-
-    function loadEnCatalog() {
+    function loadCatalogPair(baseGlobalName, extraGlobalName, baseModule, extraModule) {
         let catalog = null;
         if (typeof module === "object" && module && module.exports) {
             try {
-                catalog = require("./en");
+                catalog = require(baseModule);
             } catch {
                 /* fall through */
             }
         } else {
-            catalog = global.ShmerlingStringsEn || null;
+            catalog = global[baseGlobalName] || null;
         }
-        const extra = loadEnExtra();
+        let extra = null;
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                extra = require(extraModule);
+            } catch {
+                extra = null;
+            }
+        } else {
+            extra = global[extraGlobalName] || null;
+        }
         if (catalog && extra) {
             return deepMerge(catalog, extra);
         }
         return catalog || extra;
     }
 
+    function loadEnCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsEn",
+            "ShmerlingStringsEnExtra",
+            "./en",
+            "./en-extra",
+        );
+    }
+
+    function loadHeCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsHe",
+            "ShmerlingStringsHeExtra",
+            "./he",
+            "./he-extra",
+        );
+    }
+
     const LOCALES = {
+        he: loadHeCatalog,
         en: loadEnCatalog,
     };
 
-    let activeLocale = "en";
+    const RTL_LOCALES = { he: true };
 
-    /**
-     * @param {string} path - Dot-separated key path.
-     * @param {object|null|undefined} source
-     * @returns {*}
-     */
+    let activeLocale = DEFAULT_LOCALE;
+
     function lookup(path, source) {
         if (!path || !source) {
             return undefined;
@@ -85,11 +103,6 @@
         return node;
     }
 
-    /**
-     * @param {string} template
-     * @param {object|null|undefined} params
-     * @returns {string}
-     */
     function format(template, params) {
         if (template == null) {
             return "";
@@ -105,54 +118,57 @@
         return text;
     }
 
-    /**
-     * @param {string} [locale]
-     * @returns {object|null}
-     */
     function getCatalog(locale) {
         const code = locale || activeLocale;
-        const loader = LOCALES[code] || LOCALES.en;
+        const loader = LOCALES[code] || LOCALES[FALLBACK_LOCALE];
         return typeof loader === "function" ? loader() : loader;
     }
 
-    /**
-     * @param {string} key
-     * @param {object|null|undefined} [params]
-     * @param {string|null|undefined} [locale]
-     * @returns {string}
-     */
     function t(key, params, locale) {
-        const catalog = getCatalog(locale);
-        const value = lookup(key, catalog);
+        const preferred = locale || activeLocale;
+        let value = lookup(key, getCatalog(preferred));
+        if (typeof value !== "string" && preferred !== FALLBACK_LOCALE) {
+            value = lookup(key, getCatalog(FALLBACK_LOCALE));
+        }
         if (typeof value !== "string") {
             return String(key);
         }
         return format(value, params);
     }
 
-    /**
-     * @param {string} locale
-     */
     function setLocale(locale) {
         if (locale && LOCALES[locale]) {
             activeLocale = locale;
         }
     }
 
-    /**
-     * @param {string|null|undefined} [locale]
-     * @returns {string}
-     */
     function getLocale(locale) {
         return locale || activeLocale;
     }
 
-    /**
-     * @param {string|null|undefined} [locale]
-     * @returns {object|null}
-     */
     function getStrings(locale) {
         return getCatalog(locale);
+    }
+
+    function isRtl(locale) {
+        return !!RTL_LOCALES[locale || activeLocale];
+    }
+
+    function getHtmlLang(locale) {
+        return getLocale(locale);
+    }
+
+    function getHtmlDir(locale) {
+        return isRtl(locale) ? "rtl" : "ltr";
+    }
+
+    function applyDocumentLocale(doc) {
+        const documentRef = doc || (typeof document !== "undefined" ? document : null);
+        if (!documentRef || !documentRef.documentElement) {
+            return;
+        }
+        documentRef.documentElement.lang = getHtmlLang();
+        documentRef.documentElement.dir = getHtmlDir();
     }
 
     const api = {
@@ -161,10 +177,22 @@
         setLocale: setLocale,
         getLocale: getLocale,
         getStrings: getStrings,
+        isRtl: isRtl,
+        getHtmlLang: getHtmlLang,
+        getHtmlDir: getHtmlDir,
+        applyDocumentLocale: applyDocumentLocale,
+        DEFAULT_LOCALE: DEFAULT_LOCALE,
         LOCALES: Object.keys(LOCALES),
     };
 
     global.ShmerlingStrings = api;
+    if (typeof document !== "undefined") {
+        try {
+            applyDocumentLocale(document);
+        } catch {
+            /* ignore */
+        }
+    }
 
     if (typeof module === "object" && module && module.exports) {
         module.exports = api;
