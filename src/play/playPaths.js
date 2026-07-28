@@ -133,12 +133,87 @@ function effectivePreferPlayPage(req) {
     return sessionCanAccessPlayPage(req && req.session);
 }
 
+/**
+ * Phase 10 deprecation: map classic `/game` query → `/play` when safe.
+ * Returns null to keep classic rendering (escape hatch, joinGame, SP reopen by id).
+ *
+ * @param {Record<string, string|undefined>|null|undefined} query
+ * @param {{
+ *   classicEscape?: boolean,
+ *   onlineGameById?: boolean,
+ * }} [opts]
+ * @returns {string|null}
+ */
+function resolveDeprecatedGameToPlayHref(query, opts) {
+    const q = query || {};
+    const options = opts || {};
+    if (options.classicEscape === true || q.classic === "1") {
+        return null;
+    }
+
+    /* Friend join still completes on /game then Prefer-Play redirects to /play?id=. */
+    if (q.joinGame != null && String(q.joinGame).trim() !== "") {
+        return null;
+    }
+
+    if (String(q.gameType) === "3") {
+        return "/play?mode=practice";
+    }
+
+    if (q.id != null && String(q.id).trim() !== "") {
+        if (options.onlineGameById === true) {
+            let url = "/play?id=" + encodeURIComponent(String(q.id).trim());
+            if (q.mode === "watch") {
+                url += "&mode=watch";
+            }
+            return url;
+        }
+        /* Single-player / unknown id reopen stays on classic during the deprecation window. */
+        return null;
+    }
+
+    if (q.newGame === "1" || String(q.gameType) === "1") {
+        const params = new URLSearchParams();
+        params.set("newGame", "1");
+        if (q.color === "white" || q.color === "black") {
+            params.set("color", q.color);
+        }
+        if (typeof q.engine === "string" && q.engine.trim()) {
+            params.set("engine", q.engine.trim());
+        }
+        if (q.difficulty != null && String(q.difficulty).trim() !== "") {
+            params.set("difficulty", String(q.difficulty));
+        }
+        if (q.mouse === "drag" || q.mouse === "double") {
+            params.set("mouse", q.mouse);
+        }
+        if (q.showMoves === "0" || q.showMoves === "1") {
+            params.set("showMoves", q.showMoves);
+        }
+        if (q.timeMinutes != null && String(q.timeMinutes).trim() !== "") {
+            params.set("timeMinutes", String(q.timeMinutes));
+        }
+        if (q.private === "1") {
+            params.set("private", "1");
+        }
+        return "/play?" + params.toString();
+    }
+
+    /* Bare /game → Play shell. */
+    if (q.gameType == null || String(q.gameType).trim() === "") {
+        return "/play";
+    }
+
+    return null;
+}
+
 module.exports = {
     resolvePlayGamePath,
     resolveOnlineParticipantHref,
     resolveOnlineWatchHref,
     resolveReviewHref,
     resolvePracticeHref,
+    resolveDeprecatedGameToPlayHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,

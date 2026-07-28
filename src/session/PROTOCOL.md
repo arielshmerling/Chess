@@ -39,11 +39,15 @@
 
 **Phase 7 (done):** Position Setup + Configuration as session modes; refuse online/watch leak.
 
-**Phase 8 (complete for planned mobile slices):**  
-`/mobile-review` → `ReviewMode`. `/mobile-game` SP → `LocalEngineMode`.  
-`/mobile-game` online participants + mobile `/watch` (mobile-game shell) → `OnlineMode`.
+**Phase 8 (done for planned mobile slices):** review / SP LocalEngine / online + watch OnlineMode.
+Mobile watch **visual** shell polish deferred.
 
-**Phase 9 (in progress):** brain transport via `src/adapters` (`brainHttp` / `brainIpc` / `createEnginePort`); session core stays fetch-free.
+**Phase 9 (done for brain adapters):** `src/adapters` (`brainHttp` / `brainIpc` /
+`createEnginePort`); session core stays fetch-free. Optional prefs leftovers deferred.
+
+**Phase 10 (slice 1):** Prefer-Play desktop soft-redirects `/game` → `/play`
+(via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`. joinGame and SP
+`?id=` reopen stay classic for now. Do not delete `chessboard.js` yet.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

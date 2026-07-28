@@ -1155,6 +1155,36 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 
 ---
 
+## Phase 10 — Deprecate classic `/game` (slice 1: soft redirects)
+
+**Goal:** Prefer-Play desktop users leave classic `/game` play rendering via redirects. Do **not** delete `chessboard.js` yet.
+
+### 10.1 — Prefer-Play `/game` → `/play`
+
+**Steps**
+1. Restart server, hard-refresh (desktop Prefer-Play / logged-in).
+2. Visit `/game` → should land on `/play`.
+3. Visit `/game?gameType=1&newGame=1&color=white&engine=brain43&difficulty=3` → `/play?newGame=1&…`.
+4. Visit `/game?gameType=3` (Admin/Partner) → `/play?mode=practice`.
+5. Escape hatch: `/game?classic=1` starts a default classic SP game (then `/game?id=…&classic=1`).
+   Or use the full URL: `/game?classic=1&gameType=1&newGame=1&color=white&engine=brain43&difficulty=3`.
+
+**Expect**
+- Soft redirects only (302); classic UI still exists behind `?classic=1`.
+- Friend `joinGame` still uses `/game` briefly (avoids /play↔/game loop), then Prefer-Play online → `/play?id=`.
+- Mobile `/game` still → `/mobile-game` (unchanged).
+- SP reopen by `/game?id=` (non-online) still classic during this window.
+
+### Phase 10 remaining
+
+- [x] Soft Prefer-Play redirects `/game` → `/play` (+ `classic=1` escape)
+- [ ] Resolve `/play` joinGame bounce (Prefer-Play accept → `/play?id=` without classic hop)
+- [ ] Redirect or migrate remaining SP `?id=` reopen (needs `/play` server-SP hydrate)
+- [ ] After parity sign-off: remove `/game` play render + retire `chessboard.js` play path
+- [ ] Short public deprecation notice / final cutover
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -1176,4 +1206,5 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 | Phase 8 (mobile OnlineMode) result | Pass / Fail |
 | Phase 8 (mobile watch) result | Pass / Fail |
 | Phase 9 (brain adapters) result | Pass / Fail |
+| Phase 10 (deprecation redirects) result | Pass / Fail |
 | Notes | |

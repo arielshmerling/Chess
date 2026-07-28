@@ -207,6 +207,14 @@ app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
     res.status(404).end();
 });
 
+/* Normalize accidental protocol-relative / double-slash paths (e.g. //game). */
+app.use((req, res, next) => {
+    if (typeof req.url === "string" && req.url.startsWith("//")) {
+        return res.redirect(302, req.url.replace(/^\/+/, "/"));
+    }
+    next();
+});
+
 // Optional source maps and similar assets: 404 without error page or logging
 app.get("*", (req, res, next) => {
     if (req.path.toLowerCase().endsWith(".map")) {

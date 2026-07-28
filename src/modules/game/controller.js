@@ -16,7 +16,7 @@ const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
-const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref } = require("../../play/playPaths");
+const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref, resolveDeprecatedGameToPlayHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
 
 function setGamePageNoCache(res) {
@@ -53,9 +53,11 @@ function playGamePath(req) {
  */
 function renderPlayGame(req, res, locals) {
     setGamePageNoCache(res);
+    /* Phase 10: Prefer-Play normally sends OnlineGame to /play; honor classic escape. */
     if (
         req.playGameView !== PLAY_VIEW_MOBILE &&
         effectivePreferPlayPage(req) &&
+        req.query.classic !== "1" &&
         locals &&
         locals.gameId != null
     ) {
@@ -347,6 +349,47 @@ exports.startGame = catchAsync(async (req, res) => {
         const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
         return res.redirect(302, "/mobile-game" + q);
     }
+    /*
+     * Phase 10 deprecation window: Prefer-Play desktop → /play when safe.
+     * Escape: ?classic=1. joinGame and SP ?id= reopen stay on classic for now.
+     */
+    if (
+        req.path === "/game" &&
+        effectivePreferPlayPage(req) &&
+        req.query.classic !== "1"
+    ) {
+        let onlineGameById = false;
+        if (req.query.id) {
+            const live = gamesManagerService.getGameById(req.query.id);
+            onlineGameById = !!(
+                live &&
+                live.constructor &&
+                live.constructor.name === "OnlineGame"
+            );
+        }
+        const playHref = resolveDeprecatedGameToPlayHref(req.query, {
+            onlineGameById: onlineGameById,
+        });
+        if (playHref) {
+            return res.redirect(302, playHref);
+        }
+    }
+    /*
+     * Bare ?classic=1 (no gameType/id): start a default classic SP game instead of
+     * 400 / bounce-to-home. Full escape URL still works: &gameType=1&newGame=1&…
+     */
+    if (
+        req.path === "/game" &&
+        req.query.classic === "1" &&
+        req.query.id == null &&
+        (req.query.joinGame == null || String(req.query.joinGame).trim() === "") &&
+        (req.query.gameType == null || String(req.query.gameType).trim() === "")
+    ) {
+        return res.redirect(
+            302,
+            "/game?classic=1&gameType=1&newGame=1&color=white&engine=brain43&difficulty=3&mouse=drag&showMoves=1&timeMinutes=90",
+        );
+    }
     req.playGameView = PLAY_VIEW_DESKTOP;
     return executeStartGame(req, res);
 });
@@ -392,6 +435,42 @@ const executeStartGame = catchAsync(async (req, res) => {
         }
         renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
         return;
+    }
+
+    /*
+     * Missing gameType: resume session game if possible, else home.
+     * Prefer-Play bare `/game` redirects to `/play`; `?classic=1` alone used to 400.
+     */
+    if (req.query.gameType == null || String(req.query.gameType).trim() === "") {
+        if (req.session.gameId) {
+            const sessionGame = gamesManagerService.getGameById(req.session.gameId);
+            if (sessionGame && isUserInGame(sessionGame, userId)) {
+                const state = sessionGame.status || sessionGame.lastStatus;
+                if (state === "cancelled" || state === "game over") {
+                    req.session.gameId = null;
+                } else if ([
+                    "new",
+                    "pending",
+                    "establishing",
+                    "in progress",
+                    "on hold",
+                    "reJoining",
+                ].includes(state)) {
+                    if (state === "on hold") {
+                        sessionGame.status = "reJoining";
+                        registerEvents(sessionGame);
+                    }
+                    req.session.gameId = sessionGame.gameId;
+                    renderPlayGame(req, res, {
+                        username,
+                        gameId: sessionGame.gameId,
+                        hideTopbar: true,
+                    });
+                    return;
+                }
+            }
+        }
+        return res.redirect("/home");
     }
 
     validate({ gameType: req.query.gameType }, "gameType");
@@ -572,7 +651,12 @@ const executeStartGame = catchAsync(async (req, res) => {
     /** Canonical URL so refresh hits ?id= and does not treat modal query params as a new-game signal */
     if (gameTypeInt === 1 && game.gameId != null) {
         setGamePageNoCache(res);
-        return res.redirect(302, playGamePath(req) + "?id=" + encodeURIComponent(String(game.gameId)));
+        let dest =
+            playGamePath(req) + "?id=" + encodeURIComponent(String(game.gameId));
+        if (req.query.classic === "1") {
+            dest += "&classic=1";
+        }
+        return res.redirect(302, dest);
     }
     renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
 });

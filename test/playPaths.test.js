@@ -231,6 +231,73 @@ describe("playPaths", function () {
             );
         });
     });
+
+    describe("resolveDeprecatedGameToPlayHref", function () {
+        const { resolveDeprecatedGameToPlayHref } = require("../src/play/playPaths");
+
+        it("maps bare /game to /play", function () {
+            assert.strictEqual(resolveDeprecatedGameToPlayHref({}), "/play");
+        });
+
+        it("maps practice gameType 3 to /play?mode=practice", function () {
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref({ gameType: "3" }),
+                "/play?mode=practice",
+            );
+        });
+
+        it("maps newGame SP query to /play?newGame=1…", function () {
+            const href = resolveDeprecatedGameToPlayHref({
+                gameType: "1",
+                newGame: "1",
+                color: "black",
+                engine: "brain43",
+                difficulty: "3",
+            });
+            assert.ok(href.indexOf("/play?") === 0);
+            assert.ok(href.indexOf("newGame=1") >= 0);
+            assert.ok(href.indexOf("color=black") >= 0);
+            assert.ok(href.indexOf("engine=brain43") >= 0);
+        });
+
+        it("maps online id when onlineGameById is set", function () {
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref(
+                    { id: "abc123" },
+                    { onlineGameById: true },
+                ),
+                "/play?id=abc123",
+            );
+        });
+
+        it("keeps SP id and joinGame on classic (null)", function () {
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref({ id: "abc123" }),
+                null,
+            );
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref({
+                    gameType: "2",
+                    joinGame: "abc123",
+                }),
+                null,
+            );
+        });
+
+        it("honors classic=1 escape", function () {
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref({ newGame: "1", classic: "1" }),
+                null,
+            );
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref(
+                    { newGame: "1" },
+                    { classicEscape: true },
+                ),
+                null,
+            );
+        });
+    });
 });
 
 describe("user roles", function () {

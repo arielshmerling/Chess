@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI (Phase 1–9)</title>
+<title>Manual QA: Shmerling Play UI</title>
 <style>
 @page { size: Letter; margin: 0.7in; }
 body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
 h1 { font-size: 18pt; margin: 0 0 0.4em; border-bottom: 2px solid #222; padding-bottom: 0.2em; }
 h2 { font-size: 13pt; margin: 1.3em 0 0.45em; border-bottom: 1px solid #ccc; padding-bottom: 0.12em; page-break-after: avoid; }
-h3 { font-size: 11.5pt; margin: 1em 0 0.3em; page-break-after: avoid; }
-p, li { margin: 0.3em 0; }
-ul, ol { padding-left: 1.25em; }
-table { border-collapse: collapse; width: 100%; margin: 0.5em 0 0.9em; font-size: 9.5pt; }
+h3 { font-size: 11pt; margin: 1em 0 0.3em; page-break-after: avoid; }
+p, li { margin: 0.28em 0; }
+ul, ol { padding-left: 1.25em; margin: 0.3em 0 0.5em; }
+table { border-collapse: collapse; width: 100%; margin: 0.5em 0 0.8em; font-size: 9.5pt; page-break-inside: avoid; }
 th, td { border: 1px solid #bbb; padding: 0.3em 0.45em; text-align: left; vertical-align: top; }
 th { background: #f0f0f0; }
 code { font-family: SF Mono, Menlo, Consolas, monospace; font-size: 8.5pt; }
-hr { border: none; border-top: 1px solid #ccc; margin: 1.2em 0; }
+hr { border: none; border-top: 1px solid #ccc; margin: 1.1em 0; }
 strong { font-weight: 600; }
 </style>
 </head>
@@ -1305,6 +1305,34 @@ strong { font-weight: 600; }
 <li><input disabled="" type="checkbox"> Optional: remove legacy shell <code>runEngineMove</code> fallback path</li>
 </ul>
 <hr>
+<h2 id="phase-10--deprecate-classic-game-slice-1-soft-redirects">Phase 10 — Deprecate classic <code>/game</code> (slice 1: soft redirects)</h2>
+<p><strong>Goal:</strong> Prefer-Play desktop users leave classic <code>/game</code> play rendering via redirects. Do <strong>not</strong> delete <code>chessboard.js</code> yet.</p>
+<h3 id="101--prefer-play-game-→-play">10.1 — Prefer-Play <code>/game</code> → <code>/play</code></h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Restart server, hard-refresh (desktop Prefer-Play / logged-in).</li>
+<li>Visit <code>/game</code> → should land on <code>/play</code>.</li>
+<li>Visit <code>/game?gameType=1&amp;newGame=1&amp;color=white&amp;engine=brain43&amp;difficulty=3</code> → <code>/play?newGame=1&amp;…</code>.</li>
+<li>Visit <code>/game?gameType=3</code> (Admin/Partner) → <code>/play?mode=practice</code>.</li>
+<li>Escape hatch: <code>/game?classic=1</code> starts a default classic SP game (then <code>/game?id=…&amp;classic=1</code>).
+Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;color=white&amp;engine=brain43&amp;difficulty=3</code>.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Soft redirects only (302); classic UI still exists behind <code>?classic=1</code>.</li>
+<li>Friend <code>joinGame</code> still uses <code>/game</code> briefly (avoids /play↔/game loop), then Prefer-Play online → <code>/play?id=</code>.</li>
+<li>Mobile <code>/game</code> still → <code>/mobile-game</code> (unchanged).</li>
+<li>SP reopen by <code>/game?id=</code> (non-online) still classic during this window.</li>
+</ul>
+<h3 id="phase-10-remaining">Phase 10 remaining</h3>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> Soft Prefer-Play redirects <code>/game</code> → <code>/play</code> (+ <code>classic=1</code> escape)</li>
+<li><input disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Prefer-Play accept → <code>/play?id=</code> without classic hop)</li>
+<li><input disabled="" type="checkbox"> Redirect or migrate remaining SP <code>?id=</code> reopen (needs <code>/play</code> server-SP hydrate)</li>
+<li><input disabled="" type="checkbox"> After parity sign-off: remove <code>/game</code> play render + retire <code>chessboard.js</code> play path</li>
+<li><input disabled="" type="checkbox"> Short public deprecation notice / final cutover</li>
+</ul>
+<hr>
 <h2 id="sign-off">Sign-off</h2>
 <table>
 <thead>
@@ -1379,6 +1407,10 @@ strong { font-weight: 600; }
 </tr>
 <tr>
 <td>Phase 9 (brain adapters) result</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
+<td>Phase 10 (deprecation redirects) result</td>
 <td>Pass / Fail</td>
 </tr>
 <tr>

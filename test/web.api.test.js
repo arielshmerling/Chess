@@ -504,15 +504,36 @@ describe("web HTTP / auth", function () {
         }
     });
 
-    it("authenticated GET /game?newGame vs computer redirects to /game?id=", async function () {
+    it("authenticated GET /game?newGame vs computer redirects to /play (Phase 10)", async function () {
         const agent = await loginAgent();
 
-        // Classic /game create path (do not follow; rendering loads the engine).
         const gameUrl =
             "/game?gameType=1&newGame=1&color=white&engine=brain43&difficulty=1&mouse=drag&showMoves=1&timeMinutes=90";
         const res = await agent.get(gameUrl).redirects(0);
         assert.strictEqual(res.status, 302);
+        assert.match(String(res.headers.location || ""), /\/play\?/);
+        assert.match(String(res.headers.location || ""), /newGame=1/);
+    });
+
+    it("authenticated GET /game?classic=1 without gameType starts classic SP", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/game?classic=1").redirects(0);
+        assert.strictEqual(res.status, 302);
+        assert.match(
+            String(res.headers.location || ""),
+            /\/game\?classic=1&gameType=1&newGame=1/,
+        );
+    });
+
+    it("authenticated GET /game?classic=1&newGame still uses classic create path", async function () {
+        const agent = await loginAgent();
+
+        const gameUrl =
+            "/game?classic=1&gameType=1&newGame=1&color=white&engine=brain43&difficulty=1&mouse=drag&showMoves=1&timeMinutes=90";
+        const res = await agent.get(gameUrl).redirects(0);
+        assert.strictEqual(res.status, 302);
         assert.match(String(res.headers.location || ""), /\/game\?id=/);
+        assert.match(String(res.headers.location || ""), /classic=1/);
     });
 
     it("GET /logout then /home redirects to login again", async function () {
