@@ -1320,14 +1320,28 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <p><strong>Expect</strong></p>
 <ul>
 <li>Soft redirects only (302); classic UI still exists behind <code>?classic=1</code>.</li>
-<li>Friend <code>joinGame</code> still uses <code>/game</code> briefly (avoids /play↔/game loop), then Prefer-Play online → <code>/play?id=</code>.</li>
 <li>Mobile <code>/game</code> still → <code>/mobile-game</code> (unchanged).</li>
 <li>SP reopen by <code>/game?id=</code> (non-online) still classic during this window.</li>
+</ul>
+<h3 id="102--prefer-play-friend-join-without-classic-hop">10.2 — Prefer-Play friend join without classic hop</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Restart server; hard-refresh both Prefer-Play clients.</li>
+<li>As White, invite a friend to a game.</li>
+<li>As Black, accept the invite.</li>
+<li>Observe Black’s navigation URL (and White’s after accept).</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Black lands on <code>/play?id=…</code> (not <code>/game?…&amp;joinGame=</code>).</li>
+<li>White lands on <code>/play?id=…</code>.</li>
+<li>Both can move; OnlineMode works.</li>
+<li>Classic non–Prefer-Play (if tested) still uses <code>/game?joinGame=</code> after accept.</li>
 </ul>
 <h3 id="phase-10-remaining">Phase 10 remaining</h3>
 <ul>
 <li><input checked="" disabled="" type="checkbox"> Soft Prefer-Play redirects <code>/game</code> → <code>/play</code> (+ <code>classic=1</code> escape)</li>
-<li><input disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Prefer-Play accept → <code>/play?id=</code> without classic hop)</li>
+<li><input checked="" disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Prefer-Play accept → <code>/play?id=</code> without classic hop)</li>
 <li><input disabled="" type="checkbox"> Redirect or migrate remaining SP <code>?id=</code> reopen (needs <code>/play</code> server-SP hydrate)</li>
 <li><input disabled="" type="checkbox"> After parity sign-off: remove <code>/game</code> play render + retire <code>chessboard.js</code> play path</li>
 <li><input disabled="" type="checkbox"> Short public deprecation notice / final cutover</li>

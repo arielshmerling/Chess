@@ -135,12 +135,13 @@ function effectivePreferPlayPage(req) {
 
 /**
  * Phase 10 deprecation: map classic `/game` query → `/play` when safe.
- * Returns null to keep classic rendering (escape hatch, joinGame, SP reopen by id).
+ * Returns null to keep classic rendering (escape hatch, SP reopen by id, unjoined join).
  *
  * @param {Record<string, string|undefined>|null|undefined} query
  * @param {{
  *   classicEscape?: boolean,
  *   onlineGameById?: boolean,
+ *   alreadyJoinedJoinGame?: boolean,
  * }} [opts]
  * @returns {string|null}
  */
@@ -151,8 +152,16 @@ function resolveDeprecatedGameToPlayHref(query, opts) {
         return null;
     }
 
-    /* Friend join still completes on /game then Prefer-Play redirects to /play?id=. */
+    /*
+     * Friend join: Prefer-Play accept goes to /play?id= directly.
+     * Deep-link /game?joinGame= still needs classic join unless already a participant.
+     */
     if (q.joinGame != null && String(q.joinGame).trim() !== "") {
+        if (options.alreadyJoinedJoinGame === true) {
+            return (
+                "/play?id=" + encodeURIComponent(String(q.joinGame).trim())
+            );
+        }
         return null;
     }
 

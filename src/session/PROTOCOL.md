@@ -45,9 +45,14 @@ Mobile watch **visual** shell polish deferred.
 **Phase 9 (done for brain adapters):** `src/adapters` (`brainHttp` / `brainIpc` /
 `createEnginePort`); session core stays fetch-free. Optional prefs leftovers deferred.
 
-**Phase 10 (slice 1):** Prefer-Play desktop soft-redirects `/game` → `/play`
-(via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`. joinGame and SP
-`?id=` reopen stay classic for now. Do not delete `chessboard.js` yet.
+**Phase 10 (slice 1 done):** Prefer-Play soft-redirects `/game` → `/play`
+(via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`. SP `?id=` reopen
+stays classic.
+
+**Phase 10 (slice 2):** Prefer-Play friend accept navigates to `/play?id=`
+(no `/game?joinGame=` hop). `/play?joinGame=` opens OnlineMode by id.
+Unjoined deep-link `/game?joinGame=` still uses classic join, then Prefer-Play
+redirects when already joined.
 
 ## WebSocket app channel (`app.ws("/ws")`)
 

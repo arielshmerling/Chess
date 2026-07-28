@@ -270,7 +270,7 @@ describe("playPaths", function () {
             );
         });
 
-        it("keeps SP id and joinGame on classic (null)", function () {
+        it("keeps SP id and unjoined joinGame on classic (null)", function () {
             assert.strictEqual(
                 resolveDeprecatedGameToPlayHref({ id: "abc123" }),
                 null,
@@ -281,6 +281,16 @@ describe("playPaths", function () {
                     joinGame: "abc123",
                 }),
                 null,
+            );
+        });
+
+        it("maps already-joined joinGame to /play?id=", function () {
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref(
+                    { gameType: "2", joinGame: "abc123" },
+                    { alreadyJoinedJoinGame: true },
+                ),
+                "/play?id=abc123",
             );
         });
 

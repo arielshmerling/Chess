@@ -107,9 +107,13 @@
                 postJson("/api/friends/game-invite-accept", { gameId: gid })
                     .then(function () {
                         removeInviteCardImmediate(gid);
+                        /* Accept already joins as Black; Prefer-Play goes straight to /play. */
                         showEstablishingOverlayThenNavigate(
                             "You play as Black",
-                            "/game?gameType=2&joinGame=" + encodeURIComponent(gid)
+                            (window.__SHMERLING_USE_NEW_PLAY_UI__
+                                ? "/play?id="
+                                : "/game?gameType=2&joinGame=") +
+                                encodeURIComponent(gid)
                         );
                     })
                     .catch(function (e) {

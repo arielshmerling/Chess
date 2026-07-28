@@ -1171,14 +1171,27 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 
 **Expect**
 - Soft redirects only (302); classic UI still exists behind `?classic=1`.
-- Friend `joinGame` still uses `/game` briefly (avoids /play↔/game loop), then Prefer-Play online → `/play?id=`.
 - Mobile `/game` still → `/mobile-game` (unchanged).
 - SP reopen by `/game?id=` (non-online) still classic during this window.
+
+### 10.2 — Prefer-Play friend join without classic hop
+
+**Steps**
+1. Restart server; hard-refresh both Prefer-Play clients.
+2. As White, invite a friend to a game.
+3. As Black, accept the invite.
+4. Observe Black’s navigation URL (and White’s after accept).
+
+**Expect**
+- Black lands on `/play?id=…` (not `/game?…&joinGame=`).
+- White lands on `/play?id=…`.
+- Both can move; OnlineMode works.
+- Classic non–Prefer-Play (if tested) still uses `/game?joinGame=` after accept.
 
 ### Phase 10 remaining
 
 - [x] Soft Prefer-Play redirects `/game` → `/play` (+ `classic=1` escape)
-- [ ] Resolve `/play` joinGame bounce (Prefer-Play accept → `/play?id=` without classic hop)
+- [x] Resolve `/play` joinGame bounce (Prefer-Play accept → `/play?id=` without classic hop)
 - [ ] Redirect or migrate remaining SP `?id=` reopen (needs `/play` server-SP hydrate)
 - [ ] After parity sign-off: remove `/game` play render + retire `chessboard.js` play path
 - [ ] Short public deprecation notice / final cutover

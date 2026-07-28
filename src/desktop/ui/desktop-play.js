@@ -5233,8 +5233,13 @@
                 ? LaunchOptions.getJoinGameIdFromSearch(window.location.search || "")
                 : null;
         if (joinId) {
-            window.location.href =
-                "/game?gameType=2&joinGame=" + encodeURIComponent(joinId);
+            /* Prefer-Play: accept already joined; treat joinGame as reopen by id. */
+            const startedJoin = await beginOnlineFromServerId(joinId);
+            if (startedJoin) {
+                clearWebLaunchQueryString({ keepId: true });
+                return;
+            }
+            showStatus("Could not join this game on /play", 0, "error");
             return;
         }
         const launchMode =

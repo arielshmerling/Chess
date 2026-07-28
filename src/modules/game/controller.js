@@ -351,7 +351,7 @@ exports.startGame = catchAsync(async (req, res) => {
     }
     /*
      * Phase 10 deprecation window: Prefer-Play desktop → /play when safe.
-     * Escape: ?classic=1. joinGame and SP ?id= reopen stay on classic for now.
+     * Escape: ?classic=1. Unjoined joinGame and SP ?id= reopen stay classic for now.
      */
     if (
         req.path === "/game" &&
@@ -367,8 +367,31 @@ exports.startGame = catchAsync(async (req, res) => {
                 live.constructor.name === "OnlineGame"
             );
         }
+        let alreadyJoinedJoinGame = false;
+        const joinIdRaw =
+            req.query.joinGame != null && String(req.query.joinGame).trim() !== ""
+                ? String(req.query.joinGame).trim()
+                : "";
+        if (joinIdRaw) {
+            const liveJoin = gamesManagerService.getGameById(joinIdRaw);
+            const openJoinStates = new Set([
+                "establishing",
+                "in progress",
+                "on hold",
+                "reJoining",
+            ]);
+            alreadyJoinedJoinGame = !!(
+                liveJoin &&
+                liveJoin.constructor &&
+                liveJoin.constructor.name === "OnlineGame" &&
+                liveJoin.blackPlayer &&
+                String(liveJoin.blackPlayer.userId) === String(req.session.user_id) &&
+                openJoinStates.has(liveJoin.status)
+            );
+        }
         const playHref = resolveDeprecatedGameToPlayHref(req.query, {
             onlineGameById: onlineGameById,
+            alreadyJoinedJoinGame: alreadyJoinedJoinGame,
         });
         if (playHref) {
             return res.redirect(302, playHref);

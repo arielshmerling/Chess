@@ -147,7 +147,7 @@
     }
 
     /**
-     * Friend-invite join id (server still joins via /game then redirects to /play?id=).
+     * Friend-invite join id (Prefer-Play treats as /play?id= after accept joins).
      * @param {string|URLSearchParams|null|undefined} search
      * @returns {string|null}
      */
