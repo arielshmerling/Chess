@@ -13,6 +13,9 @@
 
     const DEFAULT_LOCALE = "he";
     const FALLBACK_LOCALE = "en";
+    const LOCALE_COOKIE = "shmerling_locale";
+    const LOCALE_STORAGE_KEY = "shmerling.locale";
+    const LOCALE_COOKIE_MAX_AGE_SEC = 365 * 24 * 60 * 60;
 
     function isPlainObject(value) {
         return !!value && typeof value === "object" && !Array.isArray(value);
@@ -136,14 +139,126 @@
         return format(value, params);
     }
 
-    function setLocale(locale) {
+    function normalizeLocale(locale) {
         if (locale && LOCALES[locale]) {
-            activeLocale = locale;
+            return locale;
+        }
+        return null;
+    }
+
+    function setLocale(locale) {
+        const code = normalizeLocale(locale);
+        if (code) {
+            activeLocale = code;
         }
     }
 
     function getLocale(locale) {
         return locale || activeLocale;
+    }
+
+    function parseCookieHeader(cookieHeader, name) {
+        if (!cookieHeader || !name) {
+            return null;
+        }
+        const parts = String(cookieHeader).split(";");
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const eq = part.indexOf("=");
+            if (eq < 0) {
+                continue;
+            }
+            const key = part.slice(0, eq).trim();
+            if (key !== name) {
+                continue;
+            }
+            try {
+                return decodeURIComponent(part.slice(eq + 1).trim());
+            } catch {
+                return part.slice(eq + 1).trim();
+            }
+        }
+        return null;
+    }
+
+    function resolveRequestLocale(req) {
+        const header = req && req.headers ? req.headers.cookie : "";
+        return normalizeLocale(parseCookieHeader(header, LOCALE_COOKIE)) || DEFAULT_LOCALE;
+    }
+
+    function readBrowserStoredLocale() {
+        if (typeof document === "undefined") {
+            return null;
+        }
+        try {
+            if (typeof localStorage !== "undefined") {
+                const fromStorage = normalizeLocale(localStorage.getItem(LOCALE_STORAGE_KEY));
+                if (fromStorage) {
+                    return fromStorage;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return normalizeLocale(parseCookieHeader(document.cookie, LOCALE_COOKIE));
+    }
+
+    function writeBrowserStoredLocale(locale) {
+        const code = normalizeLocale(locale);
+        if (!code || typeof document === "undefined") {
+            return false;
+        }
+        try {
+            if (typeof localStorage !== "undefined") {
+                localStorage.setItem(LOCALE_STORAGE_KEY, code);
+            }
+        } catch {
+            /* ignore */
+        }
+        const secure =
+            typeof location !== "undefined" && location.protocol === "https:" ? ";Secure" : "";
+        document.cookie =
+            LOCALE_COOKIE +
+            "=" +
+            encodeURIComponent(code) +
+            ";Path=/;Max-Age=" +
+            LOCALE_COOKIE_MAX_AGE_SEC +
+            ";SameSite=Lax" +
+            secure;
+        return true;
+    }
+
+    /**
+     * Persist and activate a locale. Optionally reloads so SSR/EJS and one-shot
+     * UI mounts pick up the new language.
+     * @param {string} locale
+     * @param {{ reload?: boolean }} [options]
+     * @returns {boolean}
+     */
+    function changeLocale(locale, options) {
+        const code = normalizeLocale(locale);
+        if (!code) {
+            return false;
+        }
+        setLocale(code);
+        writeBrowserStoredLocale(code);
+        applyDocumentLocale();
+        if (typeof document !== "undefined") {
+            try {
+                document.dispatchEvent(
+                    new CustomEvent("shmerling-locale-changed", {
+                        detail: { locale: code },
+                    }),
+                );
+            } catch {
+                /* ignore */
+            }
+        }
+        const shouldReload = !options || options.reload !== false;
+        if (shouldReload && typeof location !== "undefined" && location.reload) {
+            location.reload();
+        }
+        return true;
     }
 
     function getStrings(locale) {
@@ -171,23 +286,86 @@
         documentRef.documentElement.dir = getHtmlDir();
     }
 
+    /**
+     * Map ChessGame color tokens ("white"/"black"/"White"/"Black") to the active locale.
+     * @param {string|null|undefined} color
+     * @param {string} [locale]
+     * @returns {string}
+     */
+    function localizeColorName(color, locale) {
+        const raw = color == null ? "" : String(color).trim().toLowerCase();
+        if (raw === "white") {
+            return t("common.white", null, locale);
+        }
+        if (raw === "black") {
+            return t("common.black", null, locale);
+        }
+        return color == null ? "" : String(color);
+    }
+
+    /**
+     * Map ChessGame / protocol English draw-reason tokens to the active locale.
+     * @param {string|null|undefined} reason
+     * @param {string} [locale]
+     * @returns {string}
+     */
+    function localizeDrawReason(reason, locale) {
+        const raw = reason == null ? "" : String(reason).trim();
+        if (!raw) {
+            return t("common.draw", null, locale);
+        }
+        const known = {
+            Stalemate: "play.drawReasons.stalemate",
+            "50 Moves": "play.drawReasons.fiftyMoves",
+            "insufficient Materials": "play.drawReasons.insufficientMaterial",
+            "Threefold Repetition": "play.drawReasons.threefoldRepetition",
+        };
+        if (known[raw]) {
+            return t(known[raw], null, locale);
+        }
+        const offerMatch = raw.match(/^(White|Black) player's draw offer accepted$/i);
+        if (offerMatch) {
+            const byKey =
+                offerMatch[1].toLowerCase() === "white" ? "common.white" : "common.black";
+            return t(
+                "play.drawReasons.drawOfferAccepted",
+                { by: t(byKey, null, locale) },
+                locale,
+            );
+        }
+        return raw;
+    }
+
     const api = {
         t: t,
         format: format,
         setLocale: setLocale,
         getLocale: getLocale,
+        normalizeLocale: normalizeLocale,
+        resolveRequestLocale: resolveRequestLocale,
+        readBrowserStoredLocale: readBrowserStoredLocale,
+        writeBrowserStoredLocale: writeBrowserStoredLocale,
+        changeLocale: changeLocale,
+        localizeColorName: localizeColorName,
+        localizeDrawReason: localizeDrawReason,
         getStrings: getStrings,
         isRtl: isRtl,
         getHtmlLang: getHtmlLang,
         getHtmlDir: getHtmlDir,
         applyDocumentLocale: applyDocumentLocale,
         DEFAULT_LOCALE: DEFAULT_LOCALE,
+        LOCALE_COOKIE: LOCALE_COOKIE,
+        LOCALE_STORAGE_KEY: LOCALE_STORAGE_KEY,
         LOCALES: Object.keys(LOCALES),
     };
 
     global.ShmerlingStrings = api;
     if (typeof document !== "undefined") {
         try {
+            const stored = readBrowserStoredLocale();
+            if (stored) {
+                setLocale(stored);
+            }
             applyDocumentLocale(document);
         } catch {
             /* ignore */

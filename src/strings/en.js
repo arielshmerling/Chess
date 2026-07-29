@@ -173,6 +173,13 @@
                 invalidPromotionPiece: "Invalid promotion piece",
                 drawOfferNotAvailable: "Draw offer is not available now",
             },
+            drawReasons: {
+                stalemate: "Stalemate",
+                fiftyMoves: "50 moves",
+                insufficientMaterial: "Insufficient material",
+                threefoldRepetition: "Threefold repetition",
+                drawOfferAccepted: "{{by}} player's draw offer accepted",
+            },
             actions: {
                 newGame: "New game",
                 resign: "Resign",
@@ -227,6 +234,24 @@
             prompts: {
                 positionName: "Position name",
                 savePositionAs: "Save position as",
+            },
+            dialogs: {
+                resignTitle: "Resign this game?",
+                resignBody: "You will lose the game.",
+                leaveTitle: "Leave game?",
+                leaveBody: "Your game will be resigned.",
+                areYouSure: "Are you sure?",
+                discardUnsavedBrainConfig:
+                    "Discard unsaved brain configuration changes?",
+                accept: "Accept",
+                decline: "Decline",
+                saveAs: "Save As",
+                savePosition: "Save position",
+                invalidPosition: "Invalid position",
+                rematchChooseColor: "Choose your color for the rematch:",
+                rematchOfferAgree: "Opponent offered a rematch. Agree?",
+                rematchColorPreference:
+                    "Opponent wants to play as {{offerer}}. You would play as {{you}}. Agree?",
             },
         },
         session: {

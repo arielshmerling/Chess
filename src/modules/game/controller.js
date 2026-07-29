@@ -18,6 +18,27 @@ const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
 const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref, resolveDeprecatedGameToPlayHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
+const { t } = require("../../strings");
+
+function lobbyStartedFields(startedOnMs) {
+    const minutesAgo = Math.max(0, Math.floor((Date.now() - startedOnMs) / 1000 / 60) || 0);
+    let Started;
+    if (minutesAgo < 1) {
+        Started = t("site.activeGames.justStarted");
+    } else if (minutesAgo === 1) {
+        Started = t("site.activeGames.oneMinuteAgo");
+    } else {
+        Started = t("site.activeGames.minutesAgo", { count: minutesAgo });
+    }
+    return { Started, StartedMinutes: minutesAgo, startedAtMs: startedOnMs };
+}
+
+function lobbyStatusFields(state) {
+    if (state === "on hold") {
+        return { Status: t("site.activeGames.onHold"), StatusKey: "onHold", status: state };
+    }
+    return { Status: t("site.activeGames.inProgress"), StatusKey: "inProgress", status: state || "in progress" };
+}
 
 function setGamePageNoCache(res) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -752,16 +773,16 @@ async function joinPendingOnlineGameAsBlackCore(game, username, userId, req) {
     game.joinGame(blackPlayer);
     if (game.constructor.name === "OnlineGame") {
         const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
-        const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
-        const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
+        const whiteName = game.whitePlayer?.userName || "";
+        const blackName = game.blackPlayer?.userName || "";
         broadcastActiveGameToLobby("onlineGameInProgress", game, {
             gameId: String(game.gameId),
-            Game: (game.whitePlayer?.userName || "") + " Vs. " + (game.blackPlayer?.userName || ""),
-            Started: startedText,
+            Game: t("site.activeGames.playersVs", { white: whiteName, black: blackName }),
+            ...lobbyStartedFields(startedOn),
             Moves: Math.ceil((game.moves || []).length / 2),
-            status: "in progress",
-            whitePlayerName: game.whitePlayer?.userName || "",
-            blackPlayerName: game.blackPlayer?.userName || "",
+            ...lobbyStatusFields("in progress"),
+            whitePlayerName: whiteName,
+            blackPlayerName: blackName,
         });
     }
     req.session.gameId = game.gameId;
@@ -986,15 +1007,13 @@ const onGameStateChanged = async (e) => {
         }
         if ((game.constructor.name === "OnlineGame" || game.constructor.name === "SinglePlayerGame") && newState === "in progress") {
             const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
-            const minutesAgo = Math.floor((Date.now() - startedOn) / 1000 / 60);
-            const startedText = minutesAgo >= 1 ? minutesAgo + " minutes ago" : "Just started";
             const blackName = game.blackPlayer?.userName ?? "";
             const whiteName = game.whitePlayer?.userName ?? "";
             broadcastActiveGameToLobby("onlineGameInProgress", game, {
-                Game: whiteName + " Vs. " + blackName,
-                Started: startedText,
+                Game: t("site.activeGames.playersVs", { white: whiteName, black: blackName }),
+                ...lobbyStartedFields(startedOn),
                 Moves: Math.ceil((game.moves || []).length / 2),
-                status: game.status,
+                ...lobbyStatusFields(game.status),
                 whitePlayerName: whiteName,
                 blackPlayerName: blackName,
             });

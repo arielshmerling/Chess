@@ -58,6 +58,7 @@
   <script src="/app/ui/desktop-prefs-gameplay.js"></script>
   <script src="/app/ui/desktop-fullscreen.js"></script>
   <script src="/app/ui/desktop-prefs-display.js"></script>
+  <script src="/app/ui/desktop-prefs-language.js"></script>
   <script src="/app/adapters/brainHttp.js"></script>
   <script src="/app/adapters/brainIpc.js"></script>
   <script src="/app/adapters/createEnginePort.js"></script>
@@ -84,7 +85,7 @@
       <header class="desktop-play-header" id="desktopPlayHeader" data-i18n="play.shell.playersAndClocks" data-i18n-attr="aria-label">
         <p id="desktopPlayMatchTitle" class="desktop-play-header-match" data-i18n="play.sessionMode.play">Play Mode</p>
 
-        <div class="desktop-play-header-center">
+        <div class="desktop-play-header-center" dir="ltr">
           <div
             id="desktopPlayHeaderWhite"
             class="desktop-play-header-clock desktop-play-header-clock--white"
@@ -197,7 +198,7 @@
 
         <main class="desktop-play-main">
           <div class="desktop-play-board-area">
-            <div id="chessboard" class="desktop-play-board"></div>
+            <div id="chessboard" class="desktop-play-board" dir="ltr"></div>
           </div>
         </main>
 

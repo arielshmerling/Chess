@@ -77,18 +77,32 @@
       <div class="panel-body">
         <% if(playerGames && playerGames.length > 0) { %>
         <div class="table-scroll compact">
+          <% function gameColLabel(key) {
+            var map = {
+              Date: t("site.gameList.date"),
+              Time: t("site.gameList.time"),
+              White: t("common.white"),
+              Black: t("common.black"),
+              Result: t("site.gameList.result"),
+              Moves: t("site.activeGames.moves"),
+              Reason: t("site.gameList.reason"),
+              Type: t("site.gameList.type"),
+              Status: t("site.gameList.status"),
+            };
+            return map[key] || key;
+          } %>
           <table class="games-table sortable">
             <thead>
               <tr>
-                <th class="sortable-th" data-sort-key="rowIndex" title="Sort by row number">
+                <th class="sortable-th" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
                   <span class="th-label">#</span>
                   <span class="sort-icon" aria-hidden="true"></span>
                 </th>
                 <% obj = playerGames[0]; %>
                 <% for(const key in obj) { %>
                   <% if(key !== "Id" && !key.startsWith("_")) { %>
-                <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="Sort by <%= key.trim() %>">
-                  <span class="th-label"><%= key %></span>
+                <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key.trim()) }) %>">
+                  <span class="th-label"><%= gameColLabel(key) %></span>
                   <span class="sort-icon" aria-hidden="true"></span>
                 </th>
                   <% } %>

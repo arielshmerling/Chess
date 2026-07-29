@@ -16,6 +16,33 @@
         return key;
     }
 
+    function localizeDrawReason(reason) {
+        if (
+            window.ShmerlingStrings
+            && typeof window.ShmerlingStrings.localizeDrawReason === "function"
+        ) {
+            return window.ShmerlingStrings.localizeDrawReason(reason);
+        }
+        return reason == null || reason === "" ? t("common.draw") : String(reason);
+    }
+
+    function localizeColorName(color) {
+        if (
+            window.ShmerlingStrings
+            && typeof window.ShmerlingStrings.localizeColorName === "function"
+        ) {
+            return window.ShmerlingStrings.localizeColorName(color);
+        }
+        const raw = color == null ? "" : String(color).trim().toLowerCase();
+        if (raw === "white") {
+            return t("common.white");
+        }
+        if (raw === "black") {
+            return t("common.black");
+        }
+        return color == null ? "" : String(color);
+    }
+
     const Api = window.DesktopApi;
     const Board = window.DesktopBoard;
     const Setup = window.DesktopPositionSetup;
@@ -403,7 +430,9 @@
             onlineGameInfo.gameType === "OnlineGame" &&
             playOnlineMode
         );
-        const text = isOnline ? "Rematch" : "New game";
+        const text = isOnline
+            ? t("play.status.rematchTitle")
+            : t("play.actions.newGame");
         btn.title = text;
         const label = btn.querySelector(".desktop-play-action-label");
         if (label) {
@@ -432,7 +461,7 @@
             return;
         }
         const loser = game.Turn;
-        showStatus(t("play.status.timesUpLost", { loser: loser }), 5000, "timeout");
+        showStatus(t("play.status.timesUpLost", { loser: localizeColorName(loser) }), 5000, "timeout");
         game.OutOfTime = loser;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
@@ -815,7 +844,7 @@
             return;
         }
         if (BrainConfig && BrainConfig.hasUnsavedChanges && BrainConfig.hasUnsavedChanges()) {
-            const proceed = window.confirm("Discard unsaved brain configuration changes?");
+            const proceed = window.confirm(t("play.dialogs.discardUnsavedBrainConfig"));
             if (!proceed) {
                 return false;
             }
@@ -1206,12 +1235,12 @@
         }
         const gameState = game.GameState;
         if (gameState.draw) {
-            showStatus(t("play.status.drawWithReason", { reason: gameState.drawReason || t("common.draw") }), 0, "draw");
+            showStatus(t("play.status.drawWithReason", { reason: localizeDrawReason(gameState.drawReason) }), 0, "draw");
             return;
         }
         if (gameState.checkmate) {
             const winner = game.opponent(game.Turn);
-            showStatus(t("play.status.checkmateWins", { winner: game.colorName(winner) }), 0, "checkmate");
+            showStatus(t("play.status.checkmateWins", { winner: localizeColorName(winner) }), 0, "checkmate");
             return;
         }
         if (gameState.check) {
@@ -2528,10 +2557,10 @@
             return;
         }
         Dialog.prompt({
-            title: options.title || "Save position",
+            title: options.title || t("play.dialogs.savePosition"),
             label: t("play.prompts.positionName"),
             defaultValue: formatPositionSetupSaveName(),
-            confirmLabel: options.confirmLabel || "Save",
+            confirmLabel: options.confirmLabel || t("common.save"),
             onSubmit: onSave,
         });
     }
@@ -2668,7 +2697,7 @@
             },
             {
                 title: t("play.prompts.savePositionAs"),
-                confirmLabel: "Save As",
+                confirmLabel: t("play.dialogs.saveAs"),
             },
         );
     }
@@ -3511,22 +3540,23 @@
     function onCheckmate(matedTurn) {
         alertMode = true;
         const winner = game.opponent(matedTurn);
-        showStatus(t("play.status.checkmateWins", { winner: game.colorName(winner) }), 0, "checkmate");
-        Clocks.stop();
-        updateActionButtons();
-        tryLogCompletedGame();
-    }
+            showStatus(t("play.status.checkmateWins", { winner: localizeColorName(winner) }), 0, "checkmate");
+            Clocks.stop();
+            updateActionButtons();
+            tryLogCompletedGame();
+        }
 
-    function onDraw(reason) {
+        function onDraw(reason) {
+        const localized = localizeDrawReason(reason);
         if (positionSetupMode) {
-            showStatus(t("play.status.drawWithReason", { reason: reason }), 0, "draw");
+            showStatus(t("play.status.drawWithReason", { reason: localized }), 0, "draw");
             if (Board.applyDrawHighlight) {
                 Board.applyDrawHighlight();
             }
             return;
         }
         alertMode = true;
-        showStatus(t("play.status.drawWithReason", { reason: reason }), 0, "draw");
+        showStatus(t("play.status.drawWithReason", { reason: localized }), 0, "draw");
         Board.applyDrawHighlight();
         Clocks.stop();
         updateActionButtons();
@@ -3987,8 +4017,8 @@
                 Dialog.confirm({
                     title: t("play.status.drawOfferTitle"),
                     message: t("play.status.drawOfferMessage"),
-                    confirmLabel: "Accept",
-                    cancelLabel: "Decline",
+                    confirmLabel: t("play.dialogs.accept"),
+                    cancelLabel: t("play.dialogs.decline"),
                     onConfirm: function () {
                         if (playOnlineMode && playOnlineMode.acceptDrawOffer) {
                             playOnlineMode.acceptDrawOffer();
@@ -4011,22 +4041,18 @@
                         payload.offererWantsColor === "black")
                         ? payload.offererWantsColor
                         : null;
-                let message = "Opponent offered a rematch. Agree?";
+                let message = t("play.dialogs.rematchOfferAgree");
                 if (wants) {
-                    const offererLabel = wants === "white" ? "White" : "Black";
-                    const youLabel = wants === "white" ? "Black" : "White";
-                    message =
-                        "Opponent wants to play as " +
-                        offererLabel +
-                        ". You would play as " +
-                        youLabel +
-                        ". Agree?";
+                    message = t("play.dialogs.rematchColorPreference", {
+                        offerer: wants === "white" ? t("common.white") : t("common.black"),
+                        you: wants === "white" ? t("common.black") : t("common.white"),
+                    });
                 }
                 Dialog.confirm({
                     title: t("play.status.rematchTitle"),
                     message: message,
-                    confirmLabel: "Accept",
-                    cancelLabel: "Decline",
+                    confirmLabel: t("play.dialogs.accept"),
+                    cancelLabel: t("play.dialogs.decline"),
                     onConfirm: function () {
                         if (playOnlineMode && playOnlineMode.acceptRematchOffer) {
                             playOnlineMode.acceptRematchOffer(wants || undefined);
@@ -4155,12 +4181,12 @@
             if (isWatch) {
                 const loserName =
                     loser === "White"
-                        ? (onlineGameInfo.whitePlayerName || "White")
-                        : (onlineGameInfo.blackPlayerName || "Black");
+                        ? (onlineGameInfo.whitePlayerName || localizeColorName("White"))
+                        : (onlineGameInfo.blackPlayerName || localizeColorName("Black"));
                 const winnerName =
                     winner === "White"
-                        ? (onlineGameInfo.whitePlayerName || "White")
-                        : (onlineGameInfo.blackPlayerName || "Black");
+                        ? (onlineGameInfo.whitePlayerName || localizeColorName("White"))
+                        : (onlineGameInfo.blackPlayerName || localizeColorName("Black"));
                 showStatus(
                     t("play.status.playerFailedToReconnectWins", {
                         loser: loserName,
@@ -4494,10 +4520,7 @@
                     (game && payload.mated && typeof game.opponent === "function"
                         ? game.opponent(payload.mated)
                         : null);
-                const winnerName =
-                    winner && game && typeof game.colorName === "function"
-                        ? game.colorName(winner)
-                        : winner || "Winner";
+                const winnerName = winner ? localizeColorName(winner) : t("common.winner");
                 showStatus(t("play.status.checkmateWins", { winner: winnerName }), 0, "checkmate");
                 Clocks.stop();
                 if (Board.applyCheckedHighlight) {
@@ -4510,7 +4533,7 @@
             if (payload.kind === "draw") {
                 lastCheckNotifySide = null;
                 alertMode = true;
-                showStatus(t("play.status.drawWithReason", { reason: payload.reason || t("common.draw") }), 0, "draw");
+                showStatus(t("play.status.drawWithReason", { reason: localizeDrawReason(payload.reason) }), 0, "draw");
                 if (Board.applyDrawHighlight) {
                     Board.applyDrawHighlight();
                 }
@@ -4523,7 +4546,7 @@
                 lastCheckNotifySide = null;
                 alertMode = true;
                 const loser = payload.loser || (game && game.Turn) || "white";
-                showStatus(t("play.status.timesUpLost", { loser: loser }), 5000, "timeout");
+                showStatus(t("play.status.timesUpLost", { loser: localizeColorName(loser) }), 5000, "timeout");
                 Clocks.stop();
                 updateActionButtons();
                 tryLogCompletedGame();
@@ -5836,7 +5859,7 @@
         }
         const raw = String(text);
         const idx = raw.indexOf("\n\n");
-        let title = "Invalid position";
+        let title = t("play.dialogs.invalidPosition");
         let body = raw;
         if (idx !== -1) {
             title = raw.slice(0, idx).trim().replace(/:\s*$/, "");
@@ -5901,7 +5924,7 @@
         if (typeof message === "function") {
             onYes = message;
             message = title;
-            title = "Confirm";
+            title = t("common.confirm");
         }
         Dialog.confirm({
             title: title,
@@ -5915,14 +5938,18 @@
             return;
         }
         if (practiceMode) {
-            confirmDialog("Are you sure?", function () {
+            confirmDialog(t("play.dialogs.areYouSure"), function () {
                 completeUserResign();
             });
             return;
         }
-        confirmDialog("Resign this game?", "You will lose the game.", function () {
-            completeUserResign();
-        });
+        confirmDialog(
+            t("play.dialogs.resignTitle"),
+            t("play.dialogs.resignBody"),
+            function () {
+                completeUserResign();
+            },
+        );
     }
 
     function engineResignFromLostPosition() {
@@ -6061,18 +6088,18 @@
             let rematchColorHandle;
             rematchColorHandle = Dialog.open({
                 title: t("play.status.rematchTitle"),
-                body: "Choose your color for the rematch:",
+                body: t("play.dialogs.rematchChooseColor"),
                 panelClass: "desktop-play-dialog--confirm",
                 buttons: [
                     {
-                        label: "Cancel",
+                        label: t("common.cancel"),
                         className: "desktop-btn",
                         onClick: function () {
                             rematchColorHandle.close();
                         },
                     },
                     {
-                        label: "White",
+                        label: t("common.white"),
                         className: "desktop-btn desktop-btn-gold",
                         onClick: function () {
                             rematchColorHandle.close();
@@ -6081,7 +6108,7 @@
                         },
                     },
                     {
-                        label: "Black",
+                        label: t("common.black"),
                         className: "desktop-btn desktop-btn-gold",
                         onClick: function () {
                             rematchColorHandle.close();
@@ -6129,7 +6156,10 @@
                     });
                 return;
             }
-            confirmDialog("Leave game?", "Your game will be resigned.", function () {
+            confirmDialog(
+                t("play.dialogs.leaveTitle"),
+                t("play.dialogs.leaveBody"),
+                function () {
                 abortEngineSearch();
                 Promise.resolve(playOnlineMode.requestResign())
                     .catch(function (err) {
@@ -6147,7 +6177,7 @@
                 leavePlayShell();
                 return;
             }
-            confirmDialog("Are you sure?", function () {
+            confirmDialog(t("play.dialogs.areYouSure"), function () {
                 const player =
                     game && game.Turn === "black" ? "Black" : "White";
                 abortEngineSearch();
@@ -6169,7 +6199,10 @@
             leavePlayShell();
             return;
         }
-        confirmDialog("Leave game?", "Your game will be resigned.", function () {
+        confirmDialog(
+            t("play.dialogs.leaveTitle"),
+            t("play.dialogs.leaveBody"),
+            function () {
             const player = currentPlayerIsWhite ? "White" : "Black";
             abortEngineSearch();
             const gs = ensurePlayGameSession();
@@ -6271,8 +6304,8 @@
         if (!isWebPlayPage()) {
             showStatus(
                 canPlayAdvancedTools
-                    ? "Choose New game or Position setup from the sidebar"
-                    : "Choose New game from the sidebar",
+                    ? t("play.status.chooseNewGameOrSetup")
+                    : t("play.status.chooseNewGame"),
                 0,
                 "info",
             );

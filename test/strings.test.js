@@ -84,4 +84,33 @@ describe("strings catalog", function () {
         assert.ok(catalog);
         assert.strictEqual(strings.t("play.status.gameOver", null, "he"), "המשחק הסתיים");
     });
+
+    it("normalizes and resolves request locale from cookie", function () {
+        assert.strictEqual(strings.normalizeLocale("en"), "en");
+        assert.strictEqual(strings.normalizeLocale("xx"), null);
+        assert.strictEqual(
+            strings.resolveRequestLocale({ headers: { cookie: "shmerling_locale=en; other=1" } }),
+            "en",
+        );
+        assert.strictEqual(
+            strings.resolveRequestLocale({ headers: { cookie: "shmerling_locale=nope" } }),
+            strings.DEFAULT_LOCALE,
+        );
+        assert.strictEqual(strings.resolveRequestLocale({ headers: {} }), strings.DEFAULT_LOCALE);
+    });
+
+    it("changeLocale updates active locale without reload when asked", function () {
+        assert.strictEqual(strings.changeLocale("en", { reload: false }), true);
+        assert.strictEqual(strings.getLocale(), "en");
+        assert.strictEqual(strings.t("common.white"), "White");
+        assert.strictEqual(strings.changeLocale("he", { reload: false }), true);
+        assert.strictEqual(strings.getLocale(), "he");
+    });
+
+    it("localizes White/Black color tokens", function () {
+        assert.strictEqual(strings.localizeColorName("White", "he"), "לבן");
+        assert.strictEqual(strings.localizeColorName("black", "he"), "שחור");
+        assert.strictEqual(strings.localizeColorName("white", "en"), "White");
+        assert.strictEqual(strings.localizeColorName("Black", "en"), "Black");
+    });
 });

@@ -158,7 +158,28 @@
             "viewAllGames": "צפה בכל המשחקים",
             "recentCompleted": "המשחקים האחרונים שהסתיימו שלך",
             "noCompleted": "אין עדיין משחקים שהסתיימו",
-            "activeGamesAria": "משחקים פעילים"
+            "activeGamesAria": "משחקים פעילים",
+            "inviteOnlineFriend": "הזמן חבר מחובר למשחק",
+            "friendsPageTitle": "עמוד חברים",
+            "manageFriends": "ניהול",
+            "colFriend": "חבר",
+            "colStatus": "סטטוס",
+            "findPlayers": "מצא שחקנים",
+            "waitingForResponse": "ממתין לתגובה",
+            "inviteSentSuffix": "(הזמנה נשלחה)",
+            "sortByRowNumber": "מיין לפי מספר שורה",
+            "sortBy": "מיין לפי {{key}}"
+        },
+        "gameList": {
+            "date": "תאריך",
+            "time": "שעה",
+            "result": "תוצאה",
+            "reason": "סיבה",
+            "type": "סוג",
+            "status": "סטטוס",
+            "event": "אירוע",
+            "site": "אתר",
+            "round": "סיבוב"
         },
         "loginPage": {
             "title": "התחברות"
@@ -178,8 +199,15 @@
             "moves": "מהלכים",
             "turn": "תור",
             "status": "מצב",
-            "inProgress": "בעיצומו",
-            "vs": " נגד "
+            "inProgress": "בתהליך",
+            "onHold": "בהמתנה",
+            "vs": " נגד ",
+            "minutesAgo": "לפני {{count}} דקות",
+            "oneMinuteAgo": "לפני דקה",
+            "justStarted": "רק התחיל",
+            "notStarted": "לא התחיל",
+            "startedTooltip": "התחלה: {{when}}",
+            "playersVs": "{{white}} נגד {{black}}"
         },
         "friendsPage": {
             "title": "חברים",
@@ -217,6 +245,16 @@
             "couldNotSendInvite": "לא ניתן לשלוח הזמנה",
             "couldNotSendGameInvite": "לא ניתן לשלוח הזמנת משחק",
             "gameInvite": "הזמנת משחק",
+            "gameInvitationsAria": "הזמנות למשחק",
+            "gameInvitationAria": "הזמנה למשחק",
+            "chessInviteTitle": "הזמנה לשחמט",
+            "wantsToPlayAsBlack": "{{name}} רוצה לשחק. אתה משחק בשחור.",
+            "aFriend": "חבר",
+            "youPlayAsWhite": "אתה משחק בלבן",
+            "youPlayAsBlack": "אתה משחק בשחור",
+            "establishingGame": "יוצרים משחק…",
+            "yourOpponent": "היריב שלך",
+            "declinedYourInvite": "{{name}} דחה/תה את הזמנת המשחק שלך.",
             "cancelInvite": "בטל הזמנה",
             "accept": "קבל",
             "decline": "דחה",
@@ -410,11 +448,28 @@
             "pieceSetsAria": "ערכות כלים",
             "homeAria": "בית שחמט שמרלינג"
         },
+        "prefs": {
+            "language": "שפה",
+            "languageHebrew": "עברית",
+            "languageEnglish": "English",
+            "mouseControl": "שליטת עכבר",
+            "thinkingTime": "זמן חשיבה",
+            "thinkingTimeAria": "זמן חשיבה בשניות",
+            "immediateResign": "כניעה מיידית",
+            "secondsOption": "{{count}} שנ׳",
+            "enterFullScreen": "מסך מלא",
+            "exitFullScreen": "יציאה ממסך מלא",
+            "fullScreenUnavailable": "מסך מלא אינו זמין בדפדפן זה."
+        },
         "gameRun": {
             "yourColor": "הצבע שלך",
             "engine": "מנוע",
             "thinkTime": "זמן חשיבה (שניות)",
-            "play": "שחק"
+            "thinkTimeAria": "זמן חשיבת המנוע בשניות",
+            "play": "שחק",
+            "nextMove": "המהלך הבא",
+            "computer": "מחשב",
+            "computerColorHint": "באיזה צבע משחק המחשב — אתה משחק בצד השני"
         },
         "brainConfig": {
             "title": "הגדרות מוח",
@@ -458,7 +513,16 @@
             "saveAsNewPosition": "שמור כעמדה חדשה",
             "validatePosition": "אמת עמדה",
             "positionFlags": "דגלי עמדה",
-            "turn": "תור"
+            "turn": "תור",
+            "flagCheck": "שח",
+            "flagCheckmate": "מט",
+            "flagDraw": "תיקו",
+            "flagWhiteKingMoved": "המלך הלבן זז",
+            "flagBlackKingMoved": "המלך השחור זז",
+            "flagWhiteKingsideRookMoved": "צריח צד־המלך הלבן זז",
+            "flagWhiteQueensideRookMoved": "צריח צד־המלכה הלבן זז",
+            "flagBlackKingsideRookMoved": "צריח צד־המלך השחור זז",
+            "flagBlackQueensideRookMoved": "צריח צד־המלכה השחור זז"
         }
     },
     "mobile": {

@@ -232,7 +232,7 @@
 
         const select = document.createElement("select");
         select.className = "desktop-play-game-run-select desktop-play-game-run-thinking-time";
-        select.setAttribute("aria-label", "Engine thinking time in seconds");
+        select.setAttribute("aria-label", t("desktop.gameRun.thinkTimeAria"));
         thinkingTimeOptionsList().forEach(function (seconds) {
             const opt = document.createElement("option");
             opt.value = String(seconds);
@@ -300,7 +300,7 @@
         const turnBtns = {};
         controls.appendChild(
             createSwatchToggle(
-                "Next Move",
+                t("desktop.gameRun.nextMove"),
                 runTurn === "white",
                 function (isWhite) {
                     const next = isWhite ? "white" : "black";
@@ -317,7 +317,7 @@
 
         const computerBtns = {};
         const computerRow = createSwatchToggle(
-            "Computer",
+            t("desktop.gameRun.computer"),
             runComputerIsWhite,
             function (isWhite) {
                 setComputerColorSelection(isWhite);
@@ -329,7 +329,7 @@
         );
         computerRow.setAttribute(
             "title",
-            "Which color the computer plays — you play the other side",
+            t("desktop.gameRun.computerColorHint"),
         );
         controls.appendChild(computerRow);
         computerSwatchWhite = computerBtns.white;

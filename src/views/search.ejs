@@ -18,19 +18,46 @@
 
 <main id="PGNGameList">
   <%if(pgn.length>0) { %>
+  <% function gameColLabel(key) {
+    var k = String(key || "").trim();
+    var map = {
+      Date: t("site.gameList.date"),
+      date: t("site.gameList.date"),
+      Time: t("site.gameList.time"),
+      time: t("site.gameList.time"),
+      White: t("common.white"),
+      white: t("common.white"),
+      Black: t("common.black"),
+      black: t("common.black"),
+      Result: t("site.gameList.result"),
+      result: t("site.gameList.result"),
+      Moves: t("site.activeGames.moves"),
+      moves: t("site.activeGames.moves"),
+      Reason: t("site.gameList.reason"),
+      Type: t("site.gameList.type"),
+      Status: t("site.gameList.status"),
+      Event: t("site.gameList.event"),
+      event: t("site.gameList.event"),
+      Site: t("site.gameList.site"),
+      site: t("site.gameList.site"),
+      Round: t("site.gameList.round"),
+      round: t("site.gameList.round"),
+    };
+    return map[k] || k;
+  } %>
   <div class="gamesTableContainer">
     <table class="gamesTable sortable">
       <thead>
         <tr>
-          <th class="sortable-th col-num" data-sort-key="rowIndex" title="Sort by row number">
+          <th class="sortable-th col-num" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
             <span class="th-label">#</span>
             <span class="sort-icon" aria-hidden="true"></span>
           </th>
           <% obj=pgn[0]; %>
           <% for(const key in obj) { %>
-            <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" ) { %>
-          <th class="sortable-th col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="Sort by <%= key.trim() %>">
-            <span class="th-label"><%= key %></span>
+            <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" && key!="moves") { %>
+          <th class="sortable-th col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key) }) %>">
+            <span class="th-label"><%= gameColLabel(key) %></span>
             <span class="sort-icon" aria-hidden="true"></span>
           </th>
             <% } %>
@@ -47,7 +74,7 @@
           </a>
         </td>
         <% for(const key in obj) { %>
-        <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` ) { %>
+        <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` && key!="moves") { %>
         <% sortVal = (key === 'date' || key === 'Date') ? (obj[key] || '') : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : ''); %>
         <td class="sortable-td col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>">
           <%= obj[key] %>

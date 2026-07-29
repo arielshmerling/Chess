@@ -8,13 +8,20 @@
     var cardsByGameId = {};
     var establishingEl = null;
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     function getOrCreateDock() {
         var dock = document.getElementById("friend-game-invite-dock");
         if (!dock) {
             dock = document.createElement("div");
             dock.id = "friend-game-invite-dock";
             dock.className = "friend-game-invite-dock";
-            dock.setAttribute("aria-label", "Game invitations");
+            dock.setAttribute("aria-label", t("site.friendsPage.gameInvitationsAria"));
             document.body.appendChild(dock);
         }
         return dock;
@@ -37,7 +44,7 @@
         }).then(function (r) {
             return r.json().then(function (data) {
                 if (!r.ok) {
-                    throw new Error((data && data.message) || r.statusText || "Request failed");
+                    throw new Error((data && data.message) || r.statusText || t("site.friendsPage.requestFailed"));
                 }
                 return data;
             });
@@ -83,17 +90,23 @@
         card.className = "friend-game-invite-banner";
         card.setAttribute("data-game-id", gid);
         card.setAttribute("role", "alertdialog");
-        card.setAttribute("aria-label", "Game invitation");
-        var who = fromUsername ? esc(fromUsername) : "A friend";
+        card.setAttribute("aria-label", t("site.friendsPage.gameInvitationAria"));
+        var whoName = fromUsername || t("site.friendsPage.aFriend");
+        var who = esc(whoName);
+        var inviteLine = esc(
+            t("site.friendsPage.wantsToPlayAsBlack", { name: "{{NAME}}" }),
+        ).replace("{{NAME}}", "<strong>" + who + "</strong>");
         card.innerHTML =
             "<div class=\"friend-game-invite-card\">" +
-            "<div class=\"friend-game-invite-title\">Chess invite</div>" +
-            "<p class=\"friend-game-invite-line\"><strong>" +
-            who +
-            "</strong> wants to play. You play as <strong>Black</strong>.</p>" +
+            "<div class=\"friend-game-invite-title\">" + esc(t("site.friendsPage.chessInviteTitle")) + "</div>" +
+            "<p class=\"friend-game-invite-line\">" + inviteLine + "</p>" +
             "<div class=\"friend-game-invite-actions\">" +
-            "<button type=\"button\" class=\"friend-game-invite-btn friend-game-invite-accept\">Accept</button>" +
-            "<button type=\"button\" class=\"friend-game-invite-btn friend-game-invite-decline\">Decline</button>" +
+            "<button type=\"button\" class=\"friend-game-invite-btn friend-game-invite-accept\">" +
+            esc(t("site.friendsPage.accept")) +
+            "</button>" +
+            "<button type=\"button\" class=\"friend-game-invite-btn friend-game-invite-decline\">" +
+            esc(t("site.friendsPage.decline")) +
+            "</button>" +
             "</div></div>";
 
         var acceptBtn = card.querySelector(".friend-game-invite-accept");
@@ -109,7 +122,7 @@
                         removeInviteCardImmediate(gid);
                         /* Accept already joins as Black; Prefer-Play goes straight to /play. */
                         showEstablishingOverlayThenNavigate(
-                            "You play as Black",
+                            t("site.friendsPage.youPlayAsBlack"),
                             (window.__SHMERLING_USE_NEW_PLAY_UI__
                                 ? "/play?id="
                                 : "/game?gameType=2&joinGame=") +
@@ -118,9 +131,9 @@
                     })
                     .catch(function (e) {
                         acceptBtn.disabled = false;
-                        var msg = (e && e.message) ? e.message : "Could not accept invite";
+                        var msg = (e && e.message) ? e.message : t("site.friendsPage.couldNotAccept");
                         if (typeof window.showSiteAlert === "function") {
-                            window.showSiteAlert(msg, "Game invite");
+                            window.showSiteAlert(msg, t("site.friendsPage.gameInvite"));
                         } else {
                             window.alert(msg);
                         }
@@ -176,7 +189,9 @@
         establishingEl.innerHTML =
             "<div class=\"friend-game-establishing-card\">" +
             "<div class=\"friend-game-establishing-spinner\" aria-hidden=\"true\"></div>" +
-            "<p class=\"friend-game-establishing-text\">Establishing game…</p>" +
+            "<p class=\"friend-game-establishing-text\">" +
+            esc(t("site.friendsPage.establishingGame")) +
+            "</p>" +
             "<p class=\"friend-game-establishing-hint\">" +
             hint +
             "</p>" +
@@ -189,14 +204,20 @@
     }
 
     function showInviterDeclinedToast(declinedByUsername) {
-        var name = declinedByUsername ? esc(declinedByUsername) : "Your opponent";
+        var name = declinedByUsername
+            ? esc(declinedByUsername)
+            : esc(t("site.friendsPage.yourOpponent"));
         var el = document.createElement("div");
         el.className = "friend-game-invite-toast friend-game-invite-toast--declined";
         el.setAttribute("role", "status");
         el.innerHTML =
             "<p class=\"friend-game-invite-toast-text\">" +
-            name +
-            " declined your game invite.</p>";
+            esc(
+                t("site.friendsPage.declinedYourInvite", {
+                    name: "{{NAME}}",
+                }),
+            ).replace("{{NAME}}", name) +
+            "</p>";
         document.body.appendChild(el);
         setTimeout(function () {
             el.classList.add("friend-game-invite-toast--fade");
@@ -231,7 +252,7 @@
         if (msg.type === "friendGameInviteAccepted" && msg.data && msg.data.gameId) {
             var gidAcc = String(msg.data.gameId);
             showEstablishingOverlayThenNavigate(
-                "You play as White",
+                t("site.friendsPage.youPlayAsWhite"),
                 (window.__SHMERLING_USE_NEW_PLAY_UI__
                     ? "/play?id="
                     : "/game?id=") + encodeURIComponent(gidAcc)

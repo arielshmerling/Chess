@@ -1290,3 +1290,34 @@ main {
         padding: 10px 6px;
     }
 }
+
+/* RTL: panel titles, table headers, active-game cards */
+html[dir="rtl"] .panel-title,
+html[dir="rtl"] .panel-subtitle {
+    text-align: right;
+}
+
+html[dir="rtl"] .games-table th {
+    text-align: right;
+}
+
+html[dir="rtl"] .games-table th:first-child {
+    text-align: center;
+}
+
+html[dir="rtl"] .games-table td.align-left {
+    text-align: right;
+}
+
+html[dir="rtl"] .active-game-highlight {
+    text-align: right;
+}
+
+html[dir="rtl"] .active-games-list-page .active-games-list-hero .hero-content {
+    justify-content: flex-end;
+}
+
+html[dir="rtl"] .active-games-list-page .hero-greeting,
+html[dir="rtl"] .active-games-list-page .hero-tagline {
+    text-align: right;
+}

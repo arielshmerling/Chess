@@ -112,8 +112,10 @@
         var isParticipant =
             g.IsParticipant === true ||
             (username && (w === username || b === username));
-        var status = g.Status || "In progress";
-        if (isParticipant && (status === "In progress" || status === "On hold")) {
+        var statusKey = g.StatusKey || (
+            g.Status === "On hold" || g.Status === t("site.activeGames.onHold") ? "onHold" : "inProgress"
+        );
+        if (isParticipant && (statusKey === "inProgress" || statusKey === "onHold")) {
             return playBase() + "?id=" + encodeURIComponent(g.Id);
         }
         if (playBase() === "/play") {
@@ -154,7 +156,9 @@
         namesEl.innerHTML =
             "<span class=\"active-highlight-white\">" +
             esc(first.whitePlayerName || t("common.white")) +
-            "</span><span class=\"active-highlight-vs\"> vs </span><span class=\"active-highlight-black\">" +
+            "</span><span class=\"active-highlight-vs\">" +
+            esc(t("site.activeGames.vs")) +
+            "</span><span class=\"active-highlight-black\">" +
             esc(first.blackPlayerName || t("common.black")) +
             "</span>";
 

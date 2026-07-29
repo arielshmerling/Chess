@@ -172,6 +172,13 @@
                 invalidPromotionPiece: "כלי הכתרה לא תקין",
                 drawOfferNotAvailable: "הצעת תיקו אינה זמינה כרגע",
             },
+            drawReasons: {
+                stalemate: "פט",
+                fiftyMoves: "50 מהלכים",
+                insufficientMaterial: "חוסר חומר",
+                threefoldRepetition: "חזרה משולשת",
+                drawOfferAccepted: "הצעת התיקו של {{by}} התקבלה",
+            },
             actions: {
                 newGame: "משחק חדש",
                 resign: "כניעה",
@@ -226,6 +233,24 @@
             prompts: {
                 positionName: "שם העמדה",
                 savePositionAs: "שמור עמדה בשם",
+            },
+            dialogs: {
+                resignTitle: "להיכנע במשחק זה?",
+                resignBody: "תפסיד את המשחק.",
+                leaveTitle: "לעזוב את המשחק?",
+                leaveBody: "המשחק יוכרז ככניעה.",
+                areYouSure: "האם אתה בטוח?",
+                discardUnsavedBrainConfig:
+                    "לבטל שינויים שלא נשמרו בהגדרות המוח?",
+                accept: "קבל",
+                decline: "דחה",
+                saveAs: "שמור בשם",
+                savePosition: "שמור עמדה",
+                invalidPosition: "עמדה לא חוקית",
+                rematchChooseColor: "בחר את הצבע שלך למשחק החוזר:",
+                rematchOfferAgree: "היריב הציע משחק חוזר. להסכים?",
+                rematchColorPreference:
+                    "היריב רוצה לשחק ב{{offerer}}. אתה תשחק ב{{you}}. להסכים?",
             },
         },
         session: {

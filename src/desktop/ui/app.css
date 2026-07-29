@@ -119,6 +119,12 @@ body.desktop-has-topbar {
   z-index: 1001;
 }
 
+/* In RTL the prefs control sits on the left; open the panel into the viewport. */
+html[dir="rtl"] .desktop-prefs-panel {
+  right: auto;
+  left: 0;
+}
+
 .desktop-prefs-panel[hidden] {
   display: none;
 }
@@ -158,6 +164,14 @@ body.desktop-has-topbar {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.desktop-prefs-section--language {
+  margin-bottom: 0.25rem;
+}
+
+.desktop-prefs-language-host .desktop-prefs-language {
+  width: 100%;
 }
 
 .desktop-prefs-display {

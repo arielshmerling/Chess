@@ -37,7 +37,7 @@
               <% if(allGames && allGames.length > 0) { %>
               <% var rowNum = 1; for(var idx = 0; idx < allGames.length; idx++) { var obj = allGames[idx]; %>
               <% var playBase = (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play' : '/game'; %>
-              <% var gameUrl = (obj.IsParticipant && (obj.Status === 'In progress' || obj.Status === 'On hold'))
+              <% var gameUrl = (obj.IsParticipant && (obj.StatusKey === 'inProgress' || obj.StatusKey === 'onHold' || obj.Status === 'In progress' || obj.Status === 'On hold'))
                 ? playBase + '?id=' + obj.Id
                 : ((typeof canUsePlayPage !== 'undefined' && canUsePlayPage)
                     ? '/play?id=' + obj.Id + '&mode=watch'
@@ -47,7 +47,7 @@
                 <td class="Game"><%= obj.Game %></td>
                 <td class="Started" title="<%= obj.StartedTooltip || '' %>"><%= obj.Started %></td>
                 <td class="Moves"><%= obj.Moves %></td>
-                <td class="Status"><%= obj.Status || 'In progress' %></td>
+                <td class="Status" data-status-key="<%= obj.StatusKey || '' %>"><%= obj.Status || t('site.activeGames.inProgress') %></td>
               </tr>
               <% } %>
               <% } %>
@@ -64,6 +64,12 @@
 
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
+  function t(key, params) {
+    if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+      return window.ShmerlingStrings.t(key, params);
+    }
+    return key;
+  }
   window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
   var container = document.getElementById("active-list-container");
   var tbody = document.getElementById("active-list-tbody");
@@ -85,9 +91,11 @@
   }
   function getGameRowUrl(id, data) {
     var isParticipant = data.isParticipant === true || (window.__WELCOME_USERNAME__ && data.whitePlayerName !== undefined && (data.whitePlayerName === window.__WELCOME_USERNAME__ || data.blackPlayerName === window.__WELCOME_USERNAME__));
-    var status = data.Status || data.status || "";
-    var stLower = String(status).toLowerCase();
-    if (isParticipant && (stLower === "in progress" || stLower === "on hold")) {
+    var statusKey = data.StatusKey || "";
+    var stLower = String(data.status || data.Status || "").toLowerCase();
+    var joinable = statusKey === "inProgress" || statusKey === "onHold" ||
+      stLower === "in progress" || stLower === "on hold";
+    if (isParticipant && joinable) {
       return (window.__SHMERLING_USE_NEW_PLAY_UI__ ? "/play?id=" : "/game?id=") + encodeURIComponent(id);
     }
     if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
@@ -101,12 +109,33 @@
     var url = getGameRowUrl(id, data);
     var tr = tbody.querySelector("tr[data-game-id=\"" + id + "\"]");
     function normStatus(d) {
-      var s = d.Status || d.status;
-      if (s === "in progress" || s === "In progress") return "In progress";
-      if (s === "on hold" || s === "On hold") return "On hold";
-      if (!s) return "In progress";
-      return s;
+      if (d.StatusKey === "onHold" || d.status === "on hold" || d.Status === "On hold") {
+        return { key: "onHold", label: t("site.activeGames.onHold") };
+      }
+      if (d.StatusKey === "inProgress" || d.status === "in progress" || d.Status === "In progress" || !d.Status) {
+        return { key: "inProgress", label: t("site.activeGames.inProgress") };
+      }
+      if (d.Status) {
+        return { key: d.StatusKey || "", label: d.Status };
+      }
+      return { key: "inProgress", label: t("site.activeGames.inProgress") };
     }
+    function formatStarted(d) {
+      if (d.Started) return d.Started;
+      if (d.StartedMinutes == null && !d.startedAtMs) return t("site.activeGames.notStarted");
+      var minutes = d.StartedMinutes;
+      if (minutes == null && d.startedAtMs) {
+        minutes = Math.max(0, parseInt((Date.now() - d.startedAtMs) / 1000 / 60, 10) || 0);
+      }
+      if (minutes < 1) return t("site.activeGames.justStarted");
+      if (minutes === 1) return t("site.activeGames.oneMinuteAgo");
+      return t("site.activeGames.minutesAgo", { count: minutes });
+    }
+    function escHtml(s) {
+      return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    var statusInfo = normStatus(data);
+    var startedLabel = formatStarted(data);
     if (tr) {
       var gCell = tr.querySelector("td.Game");
       var sCell = tr.querySelector("td.Started");
@@ -114,20 +143,22 @@
       var statusCell = tr.querySelector("td.Status");
       if (gCell) gCell.textContent = data.Game || "";
       if (sCell) {
-        sCell.textContent = data.Started || "";
+        sCell.textContent = startedLabel;
         if (data.StartedTooltip) sCell.title = data.StartedTooltip;
       }
       if (mCell) mCell.textContent = data.Moves != null ? data.Moves : "0";
-      if (statusCell) statusCell.textContent = normStatus(data);
+      if (statusCell) {
+        statusCell.textContent = statusInfo.label;
+        if (statusInfo.key) statusCell.setAttribute("data-status-key", statusInfo.key);
+      }
       tr.onclick = function() { window.location = url; };
       return;
     }
     tr = document.createElement("tr");
     tr.setAttribute("data-game-id", id);
     tr.onclick = function() { window.location = url; };
-    var statusText = normStatus(data).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     var tt = (data.StartedTooltip || "").replace(/"/g, "&quot;");
-    tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + (data.Game || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Started\" title=\"" + tt + "\">" + (data.Started || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\">" + statusText + "</td>";
+    tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + escHtml(data.Game) + "</td><td class=\"Started\" title=\"" + tt + "\">" + escHtml(startedLabel) + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\" data-status-key=\"" + escHtml(statusInfo.key) + "\">" + escHtml(statusInfo.label) + "</td>";
     tbody.appendChild(tr);
     renumberRows();
     setVisibility();
@@ -160,8 +191,11 @@
             Game: g.Game,
             Started: g.Started,
             StartedTooltip: g.StartedTooltip,
+            StartedMinutes: g.StartedMinutes,
+            startedAtMs: g.startedAtMs,
             Moves: g.Moves,
             Status: g.Status,
+            StatusKey: g.StatusKey,
             isParticipant: g.IsParticipant,
             whitePlayerName: g.whitePlayerName,
             blackPlayerName: g.blackPlayerName

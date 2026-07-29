@@ -101,15 +101,15 @@
     const STATUS_FLAG_KEYS = ["check", "checkmate", "draw"];
 
     const SETUP_FLAG_DEFS = [
-        { key: "check", label: "Check", status: true },
-        { key: "checkmate", label: "Checkmate", status: true },
-        { key: "draw", label: "Draw", status: true },
-        { key: "whiteKingMoved", label: "White king moved", castling: true },
-        { key: "blackKingMoved", label: "Black king moved", castling: true },
-        { key: "kingsideWhiteRookMoved", label: "White kingside rook moved", castling: true },
-        { key: "queensideWhiteRookMoved", label: "White queenside rook moved", castling: true },
-        { key: "kingsideBlackRookMoved", label: "Black kingside rook moved", castling: true },
-        { key: "queensideBlackRookMoved", label: "Black queenside rook moved", castling: true },
+        { key: "check", labelKey: "desktop.positionSetup.flagCheck", status: true },
+        { key: "checkmate", labelKey: "desktop.positionSetup.flagCheckmate", status: true },
+        { key: "draw", labelKey: "desktop.positionSetup.flagDraw", status: true },
+        { key: "whiteKingMoved", labelKey: "desktop.positionSetup.flagWhiteKingMoved", castling: true },
+        { key: "blackKingMoved", labelKey: "desktop.positionSetup.flagBlackKingMoved", castling: true },
+        { key: "kingsideWhiteRookMoved", labelKey: "desktop.positionSetup.flagWhiteKingsideRookMoved", castling: true },
+        { key: "queensideWhiteRookMoved", labelKey: "desktop.positionSetup.flagWhiteQueensideRookMoved", castling: true },
+        { key: "kingsideBlackRookMoved", labelKey: "desktop.positionSetup.flagBlackKingsideRookMoved", castling: true },
+        { key: "queensideBlackRookMoved", labelKey: "desktop.positionSetup.flagBlackQueensideRookMoved", castling: true },
     ];
 
     function getCastlingHomeSlots(state, game) {
@@ -464,7 +464,7 @@
 
             const text = document.createElement("span");
             text.className = "desktop-play-setup-flag-text";
-            text.textContent = def.label;
+            text.textContent = t(def.labelKey);
 
             label.appendChild(input);
             label.appendChild(box);

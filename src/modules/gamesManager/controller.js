@@ -1,6 +1,44 @@
 const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
 const { User } = require("../user/model");
+const { t, resolveRequestLocale } = require("../../strings");
+
+/**
+ * @param {number|null|undefined} startedMs
+ * @param {string} [locale]
+ * @returns {{ label: string, tooltip: string, minutes: number|null }}
+ */
+function formatStartedLabel(startedMs, locale) {
+    if (!startedMs) {
+        return { label: t("site.activeGames.notStarted", null, locale), tooltip: "", minutes: null };
+    }
+    const minutesAgo = Math.max(0, parseInt((Date.now() - startedMs) / 1000 / 60, 10) || 0);
+    let label;
+    if (minutesAgo < 1) {
+        label = t("site.activeGames.justStarted", null, locale);
+    } else if (minutesAgo === 1) {
+        label = t("site.activeGames.oneMinuteAgo", null, locale);
+    } else {
+        label = t("site.activeGames.minutesAgo", { count: minutesAgo }, locale);
+    }
+    let tooltip = "";
+    try {
+        tooltip = t("site.activeGames.startedTooltip", {
+            when: new Date(startedMs).toLocaleString(),
+        }, locale);
+    } catch {
+        tooltip = "";
+    }
+    return { label, tooltip, minutes: minutesAgo };
+}
+
+function statusDisplay(state, locale) {
+    if (state === "on hold") {
+        return { key: "onHold", label: t("site.activeGames.onHold", null, locale) };
+    }
+    return { key: "inProgress", label: t("site.activeGames.inProgress", null, locale) };
+}
+
 /**
  * @param {object} g - row from getOnGoingOnlineGames
  * @param {string} username
@@ -16,6 +54,7 @@ function userAgentLooksMobile(req) {
  */
 async function loadHomePageData(req) {
     const username = req.session.user_name;
+    const locale = resolveRequestLocale(req);
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(3);
     const allGames = onGoing.map((g) => {
         const snap = gamesManagerService.getActiveGameBoardSnapshot(g.gameId, g.moves || []);
@@ -23,7 +62,7 @@ async function loadHomePageData(req) {
             board: snap ? snap.board : null,
             turn: snap ? snap.turn : "white",
             isHighlight: true,
-        });
+        }, locale);
     });
 
     let playerGames = await gamesManagerService.getRecentFinishedGamesByUsername(username, 10);
@@ -56,31 +95,25 @@ async function loadHomePageData(req) {
     return { username, allGames, playerGames, lastGameOptions };
 }
 
-function mapOngoingGameForClient(g, username, extras = {}) {
+function mapOngoingGameForClient(g, username, extras = {}, locale) {
     const whiteName = g.whitePlayer?.userName || "";
     const blackName = g.blackPlayer?.userName || "";
     const isParticipant = whiteName === username || blackName === username;
     const startedMs = g.startedOn;
     const moveCount = g.moves ? g.moves.length : 0;
     const halfMoves = Math.ceil(moveCount / 2);
-    let startedLabel = "Not started";
-    let startedTooltip = "";
-    if (startedMs) {
-        startedLabel = `${parseInt((Date.now() - startedMs) / 1000 / 60, 10)} minutes ago`;
-        try {
-            startedTooltip = `Started: ${new Date(startedMs).toLocaleString()}`;
-        } catch {
-            startedTooltip = "";
-        }
-    }
+    const started = formatStartedLabel(startedMs, locale);
+    const status = statusDisplay(g.state, locale);
     const row = {
         Id: g.gameId,
-        Game: whiteName + " Vs. " + blackName,
-        Started: startedLabel,
+        Game: t("site.activeGames.playersVs", { white: whiteName, black: blackName }, locale),
+        Started: started.label,
         startedAtMs: startedMs,
-        StartedTooltip: startedTooltip,
+        StartedMinutes: started.minutes,
+        StartedTooltip: started.tooltip,
         Moves: halfMoves,
-        Status: g.state === "on hold" ? "On hold" : "In progress",
+        Status: status.label,
+        StatusKey: status.key,
         IsParticipant: isParticipant,
         whitePlayerName: whiteName,
         blackPlayerName: blackName,
@@ -124,6 +157,7 @@ exports.showHomePageMobile = async (req, res) => {
 
 exports.getActiveGamesJson = async (req, res) => {
     const username = req.session.user_name;
+    const locale = resolveRequestLocale(req);
     const limitRaw = req.query.limit;
     const limit = Math.min(Math.max(parseInt(String(limitRaw || "10"), 10) || 10, 1), 200);
     const includeBoard = req.query.includeBoard === "1" || req.query.includeBoard === "true";
@@ -136,18 +170,19 @@ exports.getActiveGamesJson = async (req, res) => {
                 board: snap ? snap.board : null,
                 turn: snap ? snap.turn : "white",
                 isHighlight: true,
-            });
+            }, locale);
         });
     } else {
-        allGames = onGoing.map((g) => mapOngoingGameForClient(g, username));
+        allGames = onGoing.map((g) => mapOngoingGameForClient(g, username, {}, locale));
     }
     res.json(allGames);
 };
 
 exports.showActiveGamesListPage = async (req, res) => {
     const username = req.session.user_name;
+    const locale = resolveRequestLocale(req);
     const onGoing = await gamesManagerService.getOnGoingOnlineGames(100);
-    const allGames = onGoing.map((g) => mapOngoingGameForClient(g, username));
+    const allGames = onGoing.map((g) => mapOngoingGameForClient(g, username, {}, locale));
     res.locals.username = username;
     res.render("active-games-list", { allGames });
 };

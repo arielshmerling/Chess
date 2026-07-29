@@ -1,9 +1,38 @@
-/*global axios, ChessGame, ShmerlingT*/
+/*global axios, ChessGame, ShmerlingT, ShmerlingStrings*/
 function t(key, params) {
     if (typeof ShmerlingT === "function") {
         return ShmerlingT(key, params);
     }
     return key;
+}
+
+function localizeDrawReason(reason) {
+    if (
+        typeof ShmerlingStrings !== "undefined"
+        && ShmerlingStrings
+        && typeof ShmerlingStrings.localizeDrawReason === "function"
+    ) {
+        return ShmerlingStrings.localizeDrawReason(reason);
+    }
+    return reason == null || reason === "" ? t("common.draw") : String(reason);
+}
+
+function localizeColorName(color) {
+    if (
+        typeof ShmerlingStrings !== "undefined"
+        && ShmerlingStrings
+        && typeof ShmerlingStrings.localizeColorName === "function"
+    ) {
+        return ShmerlingStrings.localizeColorName(color);
+    }
+    const raw = color == null ? "" : String(color).trim().toLowerCase();
+    if (raw === "white") {
+        return t("common.white");
+    }
+    if (raw === "black") {
+        return t("common.black");
+    }
+    return color == null ? "" : String(color);
 }
 //const { ChessGame } = require("./ChessGame");
 // Globals
@@ -1868,8 +1897,10 @@ function createGUIBoard() {
     const div = document.getElementById("chessboard");
     if (!div) { return; }
     div.innerHTML = "";
+    div.setAttribute("dir", "ltr");
     const chessboard_horizontal_stack = document.createElement("div");
     chessboard_horizontal_stack.setAttribute("class", "chessboard_horizontal_stack");
+    chessboard_horizontal_stack.setAttribute("dir", "ltr");
 
     chessboard_horizontal_stack.appendChild(createSide());
     chessboard_horizontal_stack.appendChild(createBoard());
@@ -2834,8 +2865,9 @@ function checkEventHandler(turn) {
 
 async function checkmateEventHandler(turn) {
     alertMode = true;
-    displayMessage(t("classic.checkmateWins", { winner: game.colorName(turn) }), 5000);
-    const playerName = game.colorName(turn) === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
+    const winner = typeof game.opponent === "function" ? game.opponent(turn) : turn;
+    displayMessage(t("classic.checkmateWins", { winner: localizeColorName(winner) }), 5000);
+    const playerName = game.colorName(winner) === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
     log(playerName, "Checkmate!");
     const frame = document.getElementsByClassName("frame");
     for (const el of frame) {
@@ -2855,7 +2887,7 @@ async function drawEventHandler(reason) {
     clearInterval(whiteHandle);
     clearInterval(blackHandle);
     alertMode = true;
-    displayMessage(t("classic.drawReason", { reason: reason }), 5000);
+    displayMessage(t("classic.drawReason", { reason: localizeDrawReason(reason) }), 5000);
     log("System", "Draw");
     log("System", reason);
     const frame = document.getElementsByClassName("frame");
@@ -3504,7 +3536,7 @@ function startWebSockets(username, isWhite, isWatcher) {
             if (info == "Opponent resigned") {
                 const resignedPlayer = (message.isWhite === true) ? "White" : "Black";
                 const winner = resignedPlayer === "White" ? "Black" : "White";
-                displayMessage(t("classic.opponentResignedWins", { winner: winner }));
+                displayMessage(t("classic.opponentResignedWins", { winner: localizeColorName(winner) }));
                 const playerName = resignedPlayer === "White" ? gameInfo.whitePlayerName : gameInfo.blackPlayerName;
                 log(playerName, "I resign!");
                 hideMessageBox();
@@ -4427,7 +4459,7 @@ function switchClocks() {
 
 function outOfTime() {
     const loser = game.Turn;
-    displayMessage(t("play.status.timesUpLost", { loser: loser }));
+    displayMessage(t("play.status.timesUpLost", { loser: localizeColorName(loser) }));
     log("System", `Time's up — ${loser} ran out of time.`);
     game.OutOfTime = loser;
     sendOutOfTime(loser);
@@ -4811,7 +4843,9 @@ async function backToHome() {
         return;
     }
     const confirmText =
-        gameInfo.gameType === "PracticeGame" ? t("classic.areYouSure") : t("classic.resignConfirm");
+        gameInfo.gameType === "PracticeGame"
+            ? t("play.dialogs.areYouSure")
+            : t("play.dialogs.leaveTitle") + "\n" + t("play.dialogs.leaveBody");
     messageBox(confirmText, goBackHome, () => { });
 };
 

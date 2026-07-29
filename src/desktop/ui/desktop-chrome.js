@@ -33,6 +33,10 @@
         '  <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
         '    aria-labelledby="desktopPrefsTitle" hidden>',
         '    <h2 class="desktop-prefs-title" id="desktopPrefsTitle">' + t("desktop.chrome.preferences") + "</h2>",
+        '    <section class="desktop-prefs-section desktop-prefs-section--language">',
+        '      <h3 class="desktop-prefs-section-title">' + t("desktop.prefs.language") + "</h3>",
+        '      <div id="desktopPrefsLanguage" class="desktop-prefs-language-host"></div>',
+        "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--theme">',
         '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.boardTheme") + "</h3>",
         '      <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="' + t("desktop.chrome.builtInThemesAria") + '">',
@@ -245,7 +249,16 @@
         refreshPieceSetButtons();
         mountGameplayPrefs();
         mountDisplayPrefs();
+        mountLanguagePrefs();
         resolveCustomizeThemeAccess();
+    }
+
+    function mountLanguagePrefs() {
+        var container = document.getElementById("desktopPrefsLanguage");
+        if (!container || !window.DesktopPrefsLanguage) {
+            return;
+        }
+        window.DesktopPrefsLanguage.mount(container);
     }
 
     function canCustomizeThemeUi() {

@@ -158,7 +158,28 @@
             "viewAllGames": "View All Games",
             "recentCompleted": "Your recent completed games",
             "noCompleted": "No completed games yet",
-            "activeGamesAria": "Active games"
+            "activeGamesAria": "Active games",
+            "inviteOnlineFriend": "Invite an online friend to play",
+            "friendsPageTitle": "Friends page",
+            "manageFriends": "Manage",
+            "colFriend": "Friend",
+            "colStatus": "Status",
+            "findPlayers": "Find players",
+            "waitingForResponse": "Waiting for response",
+            "inviteSentSuffix": "(invite sent)",
+            "sortByRowNumber": "Sort by row number",
+            "sortBy": "Sort by {{key}}"
+        },
+        "gameList": {
+            "date": "Date",
+            "time": "Time",
+            "result": "Result",
+            "reason": "Reason",
+            "type": "Type",
+            "status": "Status",
+            "event": "Event",
+            "site": "Site",
+            "round": "Round"
         },
         "loginPage": {
             "title": "Login"
@@ -179,7 +200,14 @@
             "turn": "Turn",
             "status": "Status",
             "inProgress": "In progress",
-            "vs": " vs "
+            "onHold": "On hold",
+            "vs": " vs ",
+            "minutesAgo": "{{count}} minutes ago",
+            "oneMinuteAgo": "1 minute ago",
+            "justStarted": "Just started",
+            "notStarted": "Not started",
+            "startedTooltip": "Started: {{when}}",
+            "playersVs": "{{white}} Vs. {{black}}"
         },
         "friendsPage": {
             "title": "Friends",
@@ -217,6 +245,16 @@
             "couldNotSendInvite": "Could not send invite",
             "couldNotSendGameInvite": "Could not send game invite",
             "gameInvite": "Game invite",
+            "gameInvitationsAria": "Game invitations",
+            "gameInvitationAria": "Game invitation",
+            "chessInviteTitle": "Chess invite",
+            "wantsToPlayAsBlack": "{{name}} wants to play. You play as Black.",
+            "aFriend": "A friend",
+            "youPlayAsWhite": "You play as White",
+            "youPlayAsBlack": "You play as Black",
+            "establishingGame": "Establishing game…",
+            "yourOpponent": "Your opponent",
+            "declinedYourInvite": "{{name}} declined your game invite.",
             "cancelInvite": "Cancel invite",
             "accept": "Accept",
             "decline": "Decline",
@@ -410,11 +448,28 @@
             "pieceSetsAria": "Piece sets",
             "homeAria": "Shmerling Chess home"
         },
+        "prefs": {
+            "language": "Language",
+            "languageHebrew": "עברית",
+            "languageEnglish": "English",
+            "mouseControl": "Mouse control",
+            "thinkingTime": "Thinking time",
+            "thinkingTimeAria": "Thinking time in seconds",
+            "immediateResign": "Immediate resign",
+            "secondsOption": "{{count}}s",
+            "enterFullScreen": "Enter full screen",
+            "exitFullScreen": "Exit full screen",
+            "fullScreenUnavailable": "Full screen is not available in this browser."
+        },
         "gameRun": {
             "yourColor": "Your color",
             "engine": "Engine",
             "thinkTime": "Think time (seconds)",
-            "play": "Play"
+            "thinkTimeAria": "Engine thinking time in seconds",
+            "play": "Play",
+            "nextMove": "Next move",
+            "computer": "Computer",
+            "computerColorHint": "Which color the computer plays — you play the other side"
         },
         "brainConfig": {
             "title": "Brain configuration",
@@ -458,7 +513,16 @@
             "saveAsNewPosition": "Save as new position",
             "validatePosition": "Validate position",
             "positionFlags": "Position flags",
-            "turn": "Turn"
+            "turn": "Turn",
+            "flagCheck": "Check",
+            "flagCheckmate": "Checkmate",
+            "flagDraw": "Draw",
+            "flagWhiteKingMoved": "White king moved",
+            "flagBlackKingMoved": "Black king moved",
+            "flagWhiteKingsideRookMoved": "White kingside rook moved",
+            "flagWhiteQueensideRookMoved": "White queenside rook moved",
+            "flagBlackKingsideRookMoved": "Black kingside rook moved",
+            "flagBlackQueensideRookMoved": "Black queenside rook moved"
         }
     },
     "mobile": {

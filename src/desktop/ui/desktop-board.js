@@ -234,8 +234,10 @@
             return;
         }
         root.innerHTML = "";
+        root.setAttribute("dir", "ltr");
         const stack = document.createElement("div");
         stack.className = "chessboard_horizontal_stack";
+        stack.setAttribute("dir", "ltr");
 
         stack.appendChild(createSide(false));
         stack.appendChild(createBoard());

@@ -7,23 +7,23 @@
           <div class="panel-title-group">
             <h3 class="panel-title"><%= t('site.friends') %></h3>
           </div>
-          <a href="/friends" class="panel-show-all-btn" title="Friends page">Show All</a>
+          <a href="/friends" class="panel-show-all-btn" title="<%= t('site.welcome.friendsPageTitle') %>"><%= t('site.welcome.showAll') %></a>
         </div>
-        <div class="panel-subtitle">Invite an online friend to play</div>
+        <div class="panel-subtitle"><%= t('site.welcome.inviteOnlineFriend') %></div>
       </div>
       <% } else { %>
       <div class="home-friends-compact-toolbar">
-        <a href="/friends" class="panel-show-all-btn" title="Friends page">Manage</a>
+        <a href="/friends" class="panel-show-all-btn" title="<%= t('site.welcome.friendsPageTitle') %>"><%= t('site.welcome.manageFriends') %></a>
       </div>
       <% } %>
       <div class="panel-body home-friends-body" id="home-friends-body">
         <div class="table-scroll" id="home-friends-table-wrap">
-          <table class="games-table home-friends-table" aria-label="Friends">
+          <table class="games-table home-friends-table" aria-label="<%= t('site.friends') %>">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Friend</th>
-                <th>Status</th>
+                <th><%= t('site.adminPage.colNum') %></th>
+                <th><%= t('site.welcome.colFriend') %></th>
+                <th><%= t('site.welcome.colStatus') %></th>
                 <th></th>
               </tr>
             </thead>
@@ -31,12 +31,18 @@
           </table>
         </div>
         <div class="no-games-message home-friends-empty" id="home-friends-empty">
-          <p>No friends yet</p>
-          <p class="home-friends-empty-hint"><a href="/friends" class="footer-link home-friends-empty-link">Find players</a></p>
+          <p><%= t('site.friendsPage.noFriendsYet') %></p>
+          <p class="home-friends-empty-hint"><a href="/friends" class="footer-link home-friends-empty-link"><%= t('site.welcome.findPlayers') %></a></p>
         </div>
       </div>
       <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function () {
+  function t(key, params) {
+    if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+      return window.ShmerlingStrings.t(key, params);
+    }
+    return key;
+  }
   var panel = document.getElementById("homeFriendsPanel");
   var bodyEl = document.getElementById("home-friends-body");
   var tbody = document.getElementById("home-friends-tbody");
@@ -80,22 +86,22 @@
       body: JSON.stringify(body || {}),
     }).then(function (r) {
       return r.json().then(function (data) {
-        if (!r.ok) throw new Error((data && data.message) || r.statusText || "Request failed");
+        if (!r.ok) throw new Error((data && data.message) || r.statusText || t("site.friendsPage.requestFailed"));
         return data;
       });
     });
   }
 
   function statusTitle(st) {
-    if (st === "playing") return "Playing";
-    if (st === "online") return "Online";
-    return "Offline";
+    if (st === "playing") return t("site.friendsPage.playing");
+    if (st === "online") return t("site.friendsPage.online");
+    return t("site.friendsPage.offline");
   }
 
   function statusLabel(st) {
-    if (st === "playing") return "Playing";
-    if (st === "online") return "Online";
-    return "Offline";
+    if (st === "playing") return t("site.friendsPage.playing");
+    if (st === "online") return t("site.friendsPage.online");
+    return t("site.friendsPage.offline");
   }
 
   function computeEffectiveStatus(f) {
@@ -141,9 +147,9 @@
       gid === pendingInviterJoiningGameId &&
       Date.now() < pendingInviterJoiningUntil
     ) {
-      return "Joining";
+      return t("site.friendsPage.joining");
     }
-    return "Rejoin";
+    return t("site.friendsPage.rejoin");
   }
 
   function setEmptyVisible(hasRows) {
@@ -186,7 +192,7 @@
       primary.classList.add("friends-btn-rejoin");
       return;
     }
-    primary.textContent = "Invite";
+    primary.textContent = t("site.friendsPage.invite");
     primary.removeAttribute("data-action");
     primary.removeAttribute("data-game-id");
     if (fid) primary.setAttribute("data-friend-id", fid);
@@ -231,15 +237,25 @@
         tr.setAttribute("data-friend-game-invite-pending", "true");
         tr.innerHTML =
           '<td class="row-number home-friends-row-num">0</td>' +
-          '<td class="home-friends-name-cell"><span class="friends-status-dot friends-status-online" title="Waiting for response" aria-label="Waiting for response"></span> ' +
+          '<td class="home-friends-name-cell"><span class="friends-status-dot friends-status-online" title="' +
+          esc(t("site.welcome.waitingForResponse")) +
+          '" aria-label="' +
+          esc(t("site.welcome.waitingForResponse")) +
+          '"></span> ' +
           '<span class="friends-username">' +
           esc(f.username) +
-          '</span> <span class="friends-game-invite-pending-suffix">(invite sent)</span></td>' +
-          '<td class="home-friends-status-cell">Pending</td>' +
+          '</span> <span class="friends-game-invite-pending-suffix">' +
+          esc(t("site.welcome.inviteSentSuffix")) +
+          "</span></td>" +
+          '<td class="home-friends-status-cell">' +
+          esc(t("site.friendsPage.pending")) +
+          "</td>" +
           '<td class="home-friends-actions-cell"><div class="friends-row-actions">' +
           '<button type="button" class="friends-btn friends-btn-muted" data-action="withdraw-game-invite" data-game-id="' +
           esc(pendingGameInvite.gameId) +
-          '">Cancel invite</button></div></td>';
+          '">' +
+          esc(t("site.friendsPage.cancelInvite")) +
+          "</button></div></td>";
         tbody.appendChild(tr);
         return;
       }
@@ -265,7 +281,9 @@
           esc(f.id) +
           '" data-username="' +
           esc(f.username) +
-          '">Invite</button>';
+          '">' +
+          esc(t("site.friendsPage.invite")) +
+          "</button>";
       }
       tr.innerHTML =
         '<td class="row-number home-friends-row-num">0</td>' +
@@ -317,7 +335,7 @@
       postJson("/api/friends/game-invite-withdraw", { gameId: gid })
         .then(refreshData)
         .catch(function (e) {
-          if (typeof showSiteAlert === "function") showSiteAlert(e.message || "Could not cancel invite", "Game invite");
+          if (typeof showSiteAlert === "function") showSiteAlert(e.message || t("site.friendsPage.couldNotCancelInvite"), t("site.friendsPage.gameInvite"));
         });
       return;
     }
@@ -343,7 +361,7 @@
       postJson("/api/friends/game-invite", { targetUserId: fid })
         .then(refreshData)
         .catch(function (e) {
-          if (typeof showSiteAlert === "function") showSiteAlert(e.message || "Could not send game invite", "Game invite");
+          if (typeof showSiteAlert === "function") showSiteAlert(e.message || t("site.friendsPage.couldNotSendGameInvite"), t("site.friendsPage.gameInvite"));
         });
     }
   });

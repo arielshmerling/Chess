@@ -9,6 +9,13 @@
     var wired = false;
     var unsubscribeFullscreen = null;
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     function isSupported() {
         if (!Fullscreen || typeof Fullscreen.toggleFullscreen !== "function") {
             return false;
@@ -28,7 +35,9 @@
             return;
         }
         var active = Fullscreen.isFullscreen();
-        btn.textContent = active ? "Exit full screen" : "Enter full screen";
+        btn.textContent = active
+            ? t("desktop.prefs.exitFullScreen")
+            : t("desktop.prefs.enterFullScreen");
         btn.setAttribute("aria-pressed", active ? "true" : "false");
     }
 
@@ -42,12 +51,16 @@
     function buildMarkup() {
         if (!isSupported()) {
             return (
-                '<p class="desktop-prefs-display-note">Full screen is not available in this browser.</p>'
+                '<p class="desktop-prefs-display-note">' +
+                t("desktop.prefs.fullScreenUnavailable") +
+                "</p>"
             );
         }
         return (
             '<button type="button" class="desktop-btn desktop-prefs-fullscreen-btn" ' +
-            'id="desktopPrefsFullscreenBtn" aria-pressed="false">Enter full screen</button>'
+            'id="desktopPrefsFullscreenBtn" aria-pressed="false">' +
+            t("desktop.prefs.enterFullScreen") +
+            "</button>"
         );
     }
 
