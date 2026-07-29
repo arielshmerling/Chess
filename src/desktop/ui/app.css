@@ -170,7 +170,11 @@ html[dir="rtl"] .desktop-prefs-panel {
   margin-bottom: 0.25rem;
 }
 
-.desktop-prefs-language-host .desktop-prefs-language {
+.desktop-prefs-language-host .desktop-prefs-language-field {
+  margin-bottom: 0;
+}
+
+.desktop-prefs-language-host .desktop-prefs-language-select {
   width: 100%;
 }
 

@@ -1,11 +1,18 @@
 /**
- * Language preference in the Preferences panel (Hebrew / English).
+ * Language preference in the Preferences panel (combo box).
  */
 (function () {
     "use strict";
 
     var mounted = false;
     var wired = false;
+    var hostEl = null;
+
+    var LANGUAGE_OPTIONS = [
+        { value: "he", labelKey: "desktop.prefs.languageHebrew" },
+        { value: "en", labelKey: "desktop.prefs.languageEnglish" },
+        { value: "ja", labelKey: "desktop.prefs.languageJapanese" },
+    ];
 
     function t(key, params) {
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -21,57 +28,76 @@
         return "he";
     }
 
+    function getSelect() {
+        if (hostEl) {
+            return hostEl.querySelector("#desktopPrefsLanguageSelect");
+        }
+        return document.getElementById("desktopPrefsLanguageSelect");
+    }
+
+    function optionsHtml(selected) {
+        return LANGUAGE_OPTIONS.map(function (opt) {
+            var sel = opt.value === selected ? " selected" : "";
+            return (
+                '<option value="' +
+                opt.value +
+                '"' +
+                sel +
+                ">" +
+                t(opt.labelKey) +
+                "</option>"
+            );
+        }).join("");
+    }
+
     function buildMarkup() {
         var locale = currentLocale();
         return [
-            '<div class="desktop-prefs-gameplay-row">',
-            '  <span class="desktop-prefs-gameplay-label" id="desktopPrefsLanguageLabel">' +
+            '<div class="desktop-field desktop-prefs-language-field">',
+            '  <select id="desktopPrefsLanguageSelect" class="desktop-prefs-language-select"',
+            '    aria-label="' +
                 t("desktop.prefs.language") +
-                "</span>",
-            '  <div class="desktop-option-group desktop-option-group--equal desktop-prefs-language"',
-            '    role="radiogroup" aria-labelledby="desktopPrefsLanguageLabel">',
-            '    <label class="desktop-option-pill">',
-            '      <input type="radio" name="desktopPrefsLanguage" value="he"' +
-                (locale === "he" ? " checked" : "") +
-                ">",
-            "      <span>" + t("desktop.prefs.languageHebrew") + "</span>",
-            "    </label>",
-            '    <label class="desktop-option-pill">',
-            '      <input type="radio" name="desktopPrefsLanguage" value="en"' +
-                (locale === "en" ? " checked" : "") +
-                ">",
-            "      <span>" + t("desktop.prefs.languageEnglish") + "</span>",
-            "    </label>",
-            "  </div>",
+                '">',
+            optionsHtml(locale),
+            "  </select>",
             "</div>",
         ].join("");
     }
 
     function syncUi() {
+        var select = getSelect();
+        if (!select) {
+            return;
+        }
         var locale = currentLocale();
-        document.querySelectorAll('input[name="desktopPrefsLanguage"]').forEach(function (input) {
-            input.checked = input.value === locale;
-        });
+        if (select.value !== locale) {
+            select.value = locale;
+        }
+    }
+
+    function applyLocaleChoice(next) {
+        if (!next || next === currentLocale()) {
+            return;
+        }
+        if (
+            window.ShmerlingStrings
+            && typeof window.ShmerlingStrings.changeLocale === "function"
+        ) {
+            window.ShmerlingStrings.changeLocale(next);
+        }
     }
 
     function wireEvents() {
         if (wired) {
             return;
         }
+        var select = getSelect();
+        if (!select) {
+            return;
+        }
         wired = true;
-
-        document.querySelectorAll('input[name="desktopPrefsLanguage"]').forEach(function (input) {
-            input.addEventListener("change", function () {
-                if (!input.checked) {
-                    return;
-                }
-                if (
-                    window.ShmerlingStrings
-                    && typeof window.ShmerlingStrings.changeLocale === "function"
-                ) {
-                    window.ShmerlingStrings.changeLocale(input.value);
-                }
-            });
+        select.addEventListener("change", function () {
+            applyLocaleChoice(select.value);
         });
     }
 
@@ -79,6 +105,7 @@
         if (!container) {
             return;
         }
+        hostEl = container;
         if (!mounted) {
             container.innerHTML = buildMarkup();
             wireEvents();
@@ -90,6 +117,12 @@
     function refresh() {
         if (!mounted) {
             return;
+        }
+        var select = getSelect();
+        if (select) {
+            var locale = currentLocale();
+            select.innerHTML = optionsHtml(locale);
+            select.value = locale;
         }
         syncUi();
     }

@@ -5,8 +5,8 @@
  *   t("play.status.gameOver")
  *   t("play.status.timesUpLost", { loser: "White" })
  *
- * Default locale: Hebrew ("he"). English remains available via setLocale("en")
- * or t(key, params, "en"). Missing keys fall back to English.
+ * Default locale: Hebrew ("he"). English and Japanese remain available via
+ * setLocale("en"|"ja") or t(key, params, locale). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
@@ -82,9 +82,19 @@
         );
     }
 
+    function loadJaCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsJa",
+            "ShmerlingStringsJaExtra",
+            "./ja",
+            "./ja-extra",
+        );
+    }
+
     const LOCALES = {
         he: loadHeCatalog,
         en: loadEnCatalog,
+        ja: loadJaCatalog,
     };
 
     const RTL_LOCALES = { he: true };

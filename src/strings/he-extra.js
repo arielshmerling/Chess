@@ -452,6 +452,7 @@
             "language": "שפה",
             "languageHebrew": "עברית",
             "languageEnglish": "English",
+            "languageJapanese": "日本語",
             "mouseControl": "שליטת עכבר",
             "thinkingTime": "זמן חשיבה",
             "thinkingTimeAria": "זמן חשיבה בשניות",

@@ -113,4 +113,15 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.localizeColorName("white", "en"), "White");
         assert.strictEqual(strings.localizeColorName("Black", "en"), "Black");
     });
+
+    it("supports Japanese catalog and LTR html dir", function () {
+        assert.ok(strings.LOCALES.includes("ja"));
+        assert.strictEqual(strings.t("common.white", null, "ja"), "白");
+        assert.strictEqual(strings.t("common.black", null, "ja"), "黒");
+        assert.strictEqual(strings.isRtl("ja"), false);
+        assert.strictEqual(strings.getHtmlDir("ja"), "ltr");
+        assert.strictEqual(strings.getHtmlLang("ja"), "ja");
+        assert.strictEqual(strings.normalizeLocale("ja"), "ja");
+        assert.strictEqual(strings.t("desktop.prefs.languageJapanese", null, "en"), "日本語");
+    });
 });
