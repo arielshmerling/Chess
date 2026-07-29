@@ -5,8 +5,8 @@
  *   t("play.status.gameOver")
  *   t("play.status.timesUpLost", { loser: "White" })
  *
- * Default locale: Hebrew ("he"). Other locales (en, ja, fr, de, zh, ar, hi, es)
- * via setLocale / t(key, params, locale). Missing keys fall back to English.
+ * Default locale: Hebrew ("he"). Other locales (en, ja, fr, de, zh, ar, hi, es,
+ * ru, uk, no) via setLocale / t(key, params, locale). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
@@ -145,6 +145,33 @@
         );
     }
 
+    function loadRuCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsRu",
+            "ShmerlingStringsRuExtra",
+            "./ru",
+            "./ru-extra",
+        );
+    }
+
+    function loadUkCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsUk",
+            "ShmerlingStringsUkExtra",
+            "./uk",
+            "./uk-extra",
+        );
+    }
+
+    function loadNoCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsNo",
+            "ShmerlingStringsNoExtra",
+            "./no",
+            "./no-extra",
+        );
+    }
+
     const LOCALES = {
         he: loadHeCatalog,
         en: loadEnCatalog,
@@ -155,6 +182,9 @@
         ar: loadArCatalog,
         hi: loadHiCatalog,
         es: loadEsCatalog,
+        ru: loadRuCatalog,
+        uk: loadUkCatalog,
+        no: loadNoCatalog,
     };
 
     const RTL_LOCALES = { he: true, ar: true };

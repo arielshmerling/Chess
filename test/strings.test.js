@@ -142,4 +142,20 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.t("desktop.prefs.languageHindi", null, "en"), "हिन्दी");
         assert.strictEqual(strings.t("desktop.prefs.languageSpanish", null, "en"), "Español");
     });
+
+    it("registers Russian, Ukrainian, and Norwegian", function () {
+        ["ru", "uk", "no"].forEach(function (code) {
+            assert.ok(strings.LOCALES.includes(code), "missing locale " + code);
+            assert.strictEqual(strings.normalizeLocale(code), code);
+            assert.strictEqual(strings.isRtl(code), false);
+            assert.strictEqual(strings.getHtmlDir(code), "ltr");
+            assert.notStrictEqual(strings.t("common.white", null, code), "common.white");
+        });
+        assert.strictEqual(strings.t("common.white", null, "ru"), "Белые");
+        assert.strictEqual(strings.t("common.white", null, "uk"), "Білі");
+        assert.strictEqual(strings.t("common.white", null, "no"), "Hvit");
+        assert.strictEqual(strings.t("desktop.prefs.languageRussian", null, "en"), "Русский");
+        assert.strictEqual(strings.t("desktop.prefs.languageUkrainian", null, "en"), "Українська");
+        assert.strictEqual(strings.t("desktop.prefs.languageNorwegian", null, "en"), "Norsk");
+    });
 });

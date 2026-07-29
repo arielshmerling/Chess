@@ -18,6 +18,9 @@
         { value: "ar", labelKey: "desktop.prefs.languageArabic", titleEn: "Arabic" },
         { value: "hi", labelKey: "desktop.prefs.languageHindi", titleEn: "Hindi" },
         { value: "es", labelKey: "desktop.prefs.languageSpanish", titleEn: "Spanish" },
+        { value: "ru", labelKey: "desktop.prefs.languageRussian", titleEn: "Russian" },
+        { value: "uk", labelKey: "desktop.prefs.languageUkrainian", titleEn: "Ukrainian" },
+        { value: "no", labelKey: "desktop.prefs.languageNorwegian", titleEn: "Norwegian" },
     ];
 
     function escapeAttr(value) {
