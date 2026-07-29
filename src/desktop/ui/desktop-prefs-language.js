@@ -9,10 +9,32 @@
     var hostEl = null;
 
     var LANGUAGE_OPTIONS = [
-        { value: "he", labelKey: "desktop.prefs.languageHebrew" },
-        { value: "en", labelKey: "desktop.prefs.languageEnglish" },
-        { value: "ja", labelKey: "desktop.prefs.languageJapanese" },
+        { value: "he", labelKey: "desktop.prefs.languageHebrew", titleEn: "Hebrew" },
+        { value: "en", labelKey: "desktop.prefs.languageEnglish", titleEn: "English" },
+        { value: "ja", labelKey: "desktop.prefs.languageJapanese", titleEn: "Japanese" },
+        { value: "fr", labelKey: "desktop.prefs.languageFrench", titleEn: "French" },
+        { value: "de", labelKey: "desktop.prefs.languageGerman", titleEn: "German" },
+        { value: "zh", labelKey: "desktop.prefs.languageChinese", titleEn: "Simplified Chinese" },
+        { value: "ar", labelKey: "desktop.prefs.languageArabic", titleEn: "Arabic" },
+        { value: "hi", labelKey: "desktop.prefs.languageHindi", titleEn: "Hindi" },
+        { value: "es", labelKey: "desktop.prefs.languageSpanish", titleEn: "Spanish" },
     ];
+
+    function escapeAttr(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;");
+    }
+
+    function englishTitleFor(locale) {
+        for (var i = 0; i < LANGUAGE_OPTIONS.length; i++) {
+            if (LANGUAGE_OPTIONS[i].value === locale) {
+                return LANGUAGE_OPTIONS[i].titleEn;
+            }
+        }
+        return "";
+    }
 
     function t(key, params) {
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -43,7 +65,9 @@
                 opt.value +
                 '"' +
                 sel +
-                ">" +
+                ' title="' +
+                escapeAttr(opt.titleEn) +
+                '">' +
                 t(opt.labelKey) +
                 "</option>"
             );
@@ -52,12 +76,15 @@
 
     function buildMarkup() {
         var locale = currentLocale();
+        var titleEn = englishTitleFor(locale);
         return [
             '<div class="desktop-field desktop-prefs-language-field">',
             '  <select id="desktopPrefsLanguageSelect" class="desktop-prefs-language-select"',
             '    aria-label="' +
-                t("desktop.prefs.language") +
-                '">',
+                escapeAttr(t("desktop.prefs.language")) +
+                '"' +
+                (titleEn ? ' title="' + escapeAttr(titleEn) + '"' : "") +
+                ">",
             optionsHtml(locale),
             "  </select>",
             "</div>",
@@ -72,6 +99,10 @@
         var locale = currentLocale();
         if (select.value !== locale) {
             select.value = locale;
+        }
+        var titleEn = englishTitleFor(select.value || locale);
+        if (titleEn) {
+            select.title = titleEn;
         }
     }
 
@@ -97,7 +128,17 @@
         }
         wired = true;
         select.addEventListener("change", function () {
+            var titleEn = englishTitleFor(select.value);
+            if (titleEn) {
+                select.title = titleEn;
+            }
             applyLocaleChoice(select.value);
+        });
+        select.addEventListener("mouseover", function () {
+            var titleEn = englishTitleFor(select.value);
+            if (titleEn) {
+                select.title = titleEn;
+            }
         });
     }
 

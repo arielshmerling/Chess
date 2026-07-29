@@ -5,8 +5,8 @@
  *   t("play.status.gameOver")
  *   t("play.status.timesUpLost", { loser: "White" })
  *
- * Default locale: Hebrew ("he"). English and Japanese remain available via
- * setLocale("en"|"ja") or t(key, params, locale). Missing keys fall back to English.
+ * Default locale: Hebrew ("he"). Other locales (en, ja, fr, de, zh, ar, hi, es)
+ * via setLocale / t(key, params, locale). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
@@ -91,13 +91,73 @@
         );
     }
 
+    function loadFrCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsFr",
+            "ShmerlingStringsFrExtra",
+            "./fr",
+            "./fr-extra",
+        );
+    }
+
+    function loadDeCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsDe",
+            "ShmerlingStringsDeExtra",
+            "./de",
+            "./de-extra",
+        );
+    }
+
+    function loadZhCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsZh",
+            "ShmerlingStringsZhExtra",
+            "./zh",
+            "./zh-extra",
+        );
+    }
+
+    function loadArCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsAr",
+            "ShmerlingStringsArExtra",
+            "./ar",
+            "./ar-extra",
+        );
+    }
+
+    function loadHiCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsHi",
+            "ShmerlingStringsHiExtra",
+            "./hi",
+            "./hi-extra",
+        );
+    }
+
+    function loadEsCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsEs",
+            "ShmerlingStringsEsExtra",
+            "./es",
+            "./es-extra",
+        );
+    }
+
     const LOCALES = {
         he: loadHeCatalog,
         en: loadEnCatalog,
         ja: loadJaCatalog,
+        fr: loadFrCatalog,
+        de: loadDeCatalog,
+        zh: loadZhCatalog,
+        ar: loadArCatalog,
+        hi: loadHiCatalog,
+        es: loadEsCatalog,
     };
 
-    const RTL_LOCALES = { he: true };
+    const RTL_LOCALES = { he: true, ar: true };
 
     let activeLocale = DEFAULT_LOCALE;
 

@@ -124,4 +124,22 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.normalizeLocale("ja"), "ja");
         assert.strictEqual(strings.t("desktop.prefs.languageJapanese", null, "en"), "日本語");
     });
+
+    it("registers fr/de/zh/ar/hi/es with Arabic RTL", function () {
+        ["fr", "de", "zh", "ar", "hi", "es"].forEach(function (code) {
+            assert.ok(strings.LOCALES.includes(code), "missing locale " + code);
+            assert.strictEqual(strings.normalizeLocale(code), code);
+            assert.notStrictEqual(strings.t("common.white", null, code), "common.white");
+            assert.notStrictEqual(strings.t("play.status.gameOver", null, code), "play.status.gameOver");
+        });
+        assert.strictEqual(strings.isRtl("ar"), true);
+        assert.strictEqual(strings.getHtmlDir("ar"), "rtl");
+        assert.strictEqual(strings.isRtl("fr"), false);
+        assert.strictEqual(strings.getHtmlDir("zh"), "ltr");
+        assert.strictEqual(strings.t("common.white", null, "fr"), "Blanc");
+        assert.strictEqual(strings.t("common.white", null, "de"), "Weiß");
+        assert.strictEqual(strings.t("common.white", null, "zh"), "白");
+        assert.strictEqual(strings.t("desktop.prefs.languageHindi", null, "en"), "हिन्दी");
+        assert.strictEqual(strings.t("desktop.prefs.languageSpanish", null, "en"), "Español");
+    });
 });
