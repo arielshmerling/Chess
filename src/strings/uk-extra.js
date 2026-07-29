@@ -138,6 +138,9 @@
         "password": "Пароль:",
         "login": "Увійти",
         "register": {
+            "submit": "Реєстрація",
+            "confirmPassword": "Підтвердіть пароль:",
+            "playerLevel": "Рівень гравця:",
             "rookie": "Новачок",
             "skilled": "Досвідчений",
             "elite": "Еліта",

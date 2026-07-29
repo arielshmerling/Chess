@@ -138,6 +138,9 @@
         "password": "密码：",
         "login": "登录",
         "register": {
+            "submit": "注册",
+            "confirmPassword": "确认密码：",
+            "playerLevel": "棋手等级：",
             "rookie": "新手",
             "skilled": "熟练",
             "elite": "精英",

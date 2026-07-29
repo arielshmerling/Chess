@@ -138,10 +138,13 @@
         "password": "סיסמה:",
         "login": "התחברות",
         "register": {
+            "submit": "הרשמה",
+            "confirmPassword": "אימות סיסמה:",
+            "playerLevel": "רמת שחקן:",
             "rookie": "מתחיל",
-            "skilled": "מיומן",
-            "elite": "עלית",
-            "grandMaster": "גראנד מאסטר"
+            "skilled": "מתקדם",
+            "elite": "אומן",
+            "grandMaster": "רב אומן"
         },
         "email": "אימייל:",
         "welcome": {

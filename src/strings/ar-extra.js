@@ -138,6 +138,9 @@
         "password": "كلمة المرور:",
         "login": "تسجيل الدخول",
         "register": {
+            "submit": "تسجيل",
+            "confirmPassword": "تأكيد كلمة المرور:",
+            "playerLevel": "مستوى اللاعب:",
             "rookie": "مبتدئ",
             "skilled": "ماهر",
             "elite": "نخبة",

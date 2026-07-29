@@ -138,6 +138,9 @@
         "password": "パスワード:",
         "login": "ログイン",
         "register": {
+            "submit": "登録",
+            "confirmPassword": "パスワード確認:",
+            "playerLevel": "プレイヤーレベル:",
             "rookie": "ルーキー",
             "skilled": "スキルド",
             "elite": "エリート",

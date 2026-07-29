@@ -138,6 +138,9 @@
         "password": "Password:",
         "login": "Login",
         "register": {
+            "submit": "Register",
+            "confirmPassword": "Confirm password:",
+            "playerLevel": "Player level:",
             "rookie": "Rookie",
             "skilled": "Skilled",
             "elite": "Elite",

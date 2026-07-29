@@ -138,6 +138,9 @@
         "password": "Пароль:",
         "login": "Вход",
         "register": {
+            "submit": "Регистрация",
+            "confirmPassword": "Подтвердите пароль:",
+            "playerLevel": "Уровень игрока:",
             "rookie": "Новичок",
             "skilled": "Опытный",
             "elite": "Элита",

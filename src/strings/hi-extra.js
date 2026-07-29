@@ -138,6 +138,9 @@
         "password": "पासवर्ड:",
         "login": "लॉग इन",
         "register": {
+            "submit": "पंजीकरण",
+            "confirmPassword": "पासवर्ड की पुष्टि करें:",
+            "playerLevel": "खिलाड़ी स्तर:",
             "rookie": "नौसिखिया",
             "skilled": "कुशल",
             "elite": "उत्कृष्ट",

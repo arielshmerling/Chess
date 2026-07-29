@@ -138,6 +138,9 @@
         "password": "Mot de passe :",
         "login": "Connexion",
         "register": {
+            "submit": "Inscription",
+            "confirmPassword": "Confirmer le mot de passe :",
+            "playerLevel": "Niveau du joueur :",
             "rookie": "Débutant",
             "skilled": "Confirmé",
             "elite": "Élite",

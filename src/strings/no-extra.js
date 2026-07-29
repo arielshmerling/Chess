@@ -138,6 +138,9 @@
         "password": "Passord:",
         "login": "Logg inn",
         "register": {
+            "submit": "Registrer",
+            "confirmPassword": "Bekreft passord:",
+            "playerLevel": "Spillernivå:",
             "rookie": "Nybegynner",
             "skilled": "Dyktig",
             "elite": "Elite",
