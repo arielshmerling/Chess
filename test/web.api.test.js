@@ -275,6 +275,36 @@ describe("web HTTP / auth", function () {
         );
     });
 
+    it("friend invite can be withdrawn by sender", async function () {
+        const { User } = require("../src/modules/user/model");
+        await User.updateOne(
+            { _id: primary.id },
+            { $set: { friends: [], friendInvitesSent: [], friendInvitesReceived: [] } }
+        );
+        await User.updateOne(
+            { _id: other.id },
+            { $set: { friends: [], friendInvitesSent: [], friendInvitesReceived: [] } }
+        );
+
+        const a = await loginAgent(primary);
+        await a.post("/api/friends/invite").send({ targetUserId: other.id }).expect(200);
+
+        const pending = await a.get("/api/friends/data").expect(200);
+        assert.ok(
+            (pending.body.friends || []).some(
+                (f) => f && f.id === other.id && f.rowType === "pendingOut"
+            ),
+            "expected pending outgoing invite"
+        );
+
+        await a.post("/api/friends/withdraw").send({ targetUserId: other.id }).expect(200);
+        const after = await a.get("/api/friends/data").expect(200);
+        assert.ok(
+            !(after.body.friends || []).some((f) => f && f.id === other.id),
+            "expected pending invite withdrawn"
+        );
+    });
+
     it("protected JSON/API endpoints without session redirect to login", async function () {
         const paths = [
             "/api/friends/data",

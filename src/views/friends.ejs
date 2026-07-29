@@ -442,10 +442,13 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
   }
 
   document.addEventListener("click", function (ev) {
-    var t = ev.target;
-    if (!t || !t.getAttribute) return;
-    var action = t.getAttribute("data-action");
-    var id = t.getAttribute("data-id");
+    var raw = ev.target;
+    if (!raw || !raw.closest) return;
+    var el = raw.nodeType === 1 ? raw : raw.parentElement;
+    if (!el || !el.closest) return;
+    var actionEl = el.closest("[data-action]");
+    var action = actionEl ? actionEl.getAttribute("data-action") : null;
+    var id = actionEl ? actionEl.getAttribute("data-id") : null;
     if (action === "accept" && id) {
       postJson("/api/friends/accept", { fromUserId: id }).then(refreshData).catch(function (e) {
         showSiteAlert(e.message || t("site.friendsPage.couldNotAccept"), t("site.friendsPage.couldNotAccept"));
@@ -469,7 +472,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
       });
     }
     if (action === "withdraw-game-invite") {
-      var gid = t.getAttribute("data-game-id");
+      var gid = actionEl.getAttribute("data-game-id");
       if (!gid) return;
       postJson("/api/friends/game-invite-withdraw", { gameId: gid })
         .then(refreshData)
@@ -503,7 +506,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         });
     }
     if (action === "rejoin-game") {
-      var gid = t.getAttribute("data-game-id");
+      var gid = actionEl.getAttribute("data-game-id");
       if (!gid) return;
       if (pendingInviterJoiningGameId && String(gid) === String(pendingInviterJoiningGameId)) {
         if (joiningLabelRevertTimer) {
@@ -518,8 +521,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         encodeURIComponent(gid);
       return;
     }
-    if (t.classList && t.classList.contains("friends-btn-invite") && !t.disabled) {
-      var fid = t.getAttribute("data-friend-id");
+    var inviteBtn = el.closest(".friends-btn-invite");
+    if (inviteBtn && !inviteBtn.disabled) {
+      var fid = inviteBtn.getAttribute("data-friend-id");
       if (!fid) return;
       postJson("/api/friends/game-invite", { targetUserId: fid })
         .then(function () {

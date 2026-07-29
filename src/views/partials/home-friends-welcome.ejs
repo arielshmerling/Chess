@@ -326,9 +326,9 @@
   document.addEventListener("click", function (ev) {
     var raw = ev.target;
     if (!raw || !raw.closest || !raw.closest("#homeFriendsPanel")) return;
-    var t = raw.nodeType === 1 ? raw : raw.parentElement;
-    if (!t || !t.closest) return;
-    var withdrawBtn = t.closest("[data-action=\"withdraw-game-invite\"]");
+    var el = raw.nodeType === 1 ? raw : raw.parentElement;
+    if (!el || !el.closest) return;
+    var withdrawBtn = el.closest("[data-action=\"withdraw-game-invite\"]");
     if (withdrawBtn) {
       var gid = withdrawBtn.getAttribute("data-game-id");
       if (!gid) return;
@@ -339,7 +339,7 @@
         });
       return;
     }
-    var rejoinBtn = t.closest("[data-action=\"rejoin-game\"]");
+    var rejoinBtn = el.closest("[data-action=\"rejoin-game\"]");
     if (rejoinBtn) {
       var gid2 = rejoinBtn.getAttribute("data-game-id");
       if (!gid2) return;
@@ -354,7 +354,7 @@
       window.location.href = (typeof getPlayGameBasePath === "function" ? getPlayGameBasePath({ forOnlineSession: true }) : "/game") + "?id=" + encodeURIComponent(gid2);
       return;
     }
-    var inviteBtn = t.closest(".friends-btn-invite");
+    var inviteBtn = el.closest(".friends-btn-invite");
     if (inviteBtn && !inviteBtn.disabled) {
       var fid = inviteBtn.getAttribute("data-friend-id");
       if (!fid) return;
