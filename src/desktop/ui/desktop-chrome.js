@@ -165,6 +165,42 @@
         return localStorage.getItem("theme") || "blue";
     }
 
+    function positionPreferencesPanel(trigger, panel) {
+        var margin = 12;
+        var gap = 8;
+        var viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+        var viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+        var triggerRect = trigger.getBoundingClientRect();
+        var initialPanelRect = panel.getBoundingClientRect();
+        var triggerIsVisible = triggerRect.width > 0 && triggerRect.height > 0;
+
+        panel.style.position = "fixed";
+        panel.style.right = "auto";
+        panel.style.left = margin + "px";
+        panel.style.top = margin + "px";
+        panel.style.maxWidth = Math.max(0, viewportWidth - (margin * 2)) + "px";
+        panel.style.maxHeight = Math.max(0, viewportHeight - (margin * 2)) + "px";
+
+        var panelRect = panel.getBoundingClientRect();
+        var isRtl = document.documentElement.getAttribute("dir") === "rtl";
+        var preferredLeft = triggerIsVisible
+            ? (isRtl ? triggerRect.left : triggerRect.right - panelRect.width)
+            : initialPanelRect.left;
+        var maxLeft = Math.max(margin, viewportWidth - panelRect.width - margin);
+        var left = Math.min(Math.max(preferredLeft, margin), maxLeft);
+        var spaceBelow = viewportHeight - triggerRect.bottom - margin;
+        var preferredTop = triggerIsVisible
+            ? (spaceBelow >= panelRect.height
+                ? triggerRect.bottom + gap
+                : triggerRect.top - panelRect.height - gap)
+            : initialPanelRect.top;
+        var maxTop = Math.max(margin, viewportHeight - panelRect.height - margin);
+        var top = Math.min(Math.max(preferredTop, margin), maxTop);
+
+        panel.style.left = left + "px";
+        panel.style.top = top + "px";
+    }
+
     function initPreferencesMenu() {
         var trigger = document.getElementById("desktopPrefsTrigger");
         var panel = document.getElementById("desktopPrefsPanel");
@@ -185,6 +221,13 @@
                 refreshPieceSetButtons();
                 refreshGameplayPrefs();
                 refreshDisplayPrefs();
+                positionPreferencesPanel(trigger, panel);
+            }
+        }
+
+        function repositionOpenPanel() {
+            if (!panel.hidden) {
+                positionPreferencesPanel(trigger, panel);
             }
         }
 
@@ -216,6 +259,12 @@
                 trigger.focus();
             }
         });
+
+        window.addEventListener("resize", repositionOpenPanel);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", repositionOpenPanel);
+            window.visualViewport.addEventListener("scroll", repositionOpenPanel);
+        }
 
         panel.querySelectorAll(".desktop-prefs-theme--builtin [data-theme]").forEach(function (btn) {
             btn.addEventListener("click", function () {

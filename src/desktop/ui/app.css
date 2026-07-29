@@ -105,7 +105,7 @@ body.desktop-has-topbar {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 280px;
+  min-width: min(280px, calc(100vw - 1.5rem));
   max-width: min(320px, calc(100vw - 1.5rem));
   max-height: calc(100vh - var(--desktop-topbar-height, 51px) - 12px);
   overflow-y: auto;
