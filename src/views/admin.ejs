@@ -786,6 +786,25 @@
       return keys;
     }
 
+    function gameColLabel(key) {
+      var k = String(key || "").trim();
+      var map = {
+        Date: t("site.gameList.date"),
+        Time: t("site.gameList.time"),
+        White: t("common.white"),
+        Black: t("common.black"),
+        Result: t("site.gameList.result"),
+        Moves: t("site.activeGames.moves"),
+        Reason: t("site.gameList.reason"),
+        Type: t("site.gameList.type"),
+        Status: t("site.gameList.status"),
+        Event: t("site.gameList.event"),
+        Site: t("site.gameList.site"),
+        Round: t("site.gameList.round")
+      };
+      return map[k] || k;
+    }
+
     function gameIdStr(obj) {
       var id = obj.Id;
       if (id == null) return "";
@@ -841,11 +860,12 @@
         var th = document.createElement("th");
         th.className = "sortable-th";
         var trimKey = key.replace(/^\s+/, "").replace(/\s+$/, "");
+        var label = gameColLabel(trimKey);
         th.setAttribute("data-sort-key", trimKey);
-        th.title = t("site.adminPage.sortBy", { key: trimKey });
+        th.title = t("site.adminPage.sortBy", { key: label });
         var spanL = document.createElement("span");
         spanL.className = "th-label";
-        spanL.textContent = key;
+        spanL.textContent = label;
         var spanI = document.createElement("span");
         spanI.className = "sort-icon";
         spanI.setAttribute("aria-hidden", "true");
