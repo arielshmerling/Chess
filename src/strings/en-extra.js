@@ -32,7 +32,7 @@
     },
     "auth": {
         "whoAreYou": "Who are you?",
-        "enterPassword": "Enter your password",
+        "enterPassword": "Password pleases",
         "sorry": "Sorry",
         "continue": "Continue",
         "usernameField": "Username",
