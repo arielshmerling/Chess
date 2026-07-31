@@ -1,5 +1,7 @@
 const { t } = require("../../strings");
+const { version: appVersion } = require("../../../desktop/package.json");
 
+const { normalizeReturnTo } = require("../../utils");
 const catchAsync = require("../../utils/catchAsync");
 const ExpressError = require("../../utils/ExpressError");
 const userService = require("./service");
@@ -19,7 +21,7 @@ exports.showLoginPage = (req, res) => {
     // const username = req.session.user_name || "Guest";
     const game = { username: "" };
 
-    res.render("login", { errorMessage, game });
+    res.render("login", { appVersion, errorMessage, game });
 };
 
 exports.logout = async (req, res) => {
@@ -177,7 +179,7 @@ async function startUserSession(req, foundUser) {
 }
 
 function takeRedirectUrl(req, res) {
-    const redirectUrl = res.locals.returnTo || "/Home";
+    const redirectUrl = normalizeReturnTo(res.locals.returnTo);
     delete req.session.returnTo;
     res.locals.returnTo = null;
     return redirectUrl;

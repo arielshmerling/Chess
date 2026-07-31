@@ -32,7 +32,7 @@
     },
     "auth": {
         "whoAreYou": "Who are you?",
-        "enterPassword": "Password pleases",
+        "enterPassword": "Password please",
         "sorry": "Sorry",
         "continue": "Continue",
         "usernameField": "Username",
@@ -547,6 +547,14 @@
             "flagBlackKingsideRookMoved": "Black kingside rook moved",
             "flagBlackQueensideRookMoved": "Black queenside rook moved"
         }
+    },
+    "errorPage": {
+        "code": "Error {{code}}",
+        "notFoundTitle": "Page not found",
+        "notFoundMessage": "The page you are looking for does not exist.",
+        "genericTitle": "Something went wrong",
+        "genericMessage": "An unexpected error occurred. Please try again.",
+        "backHome": "Back to home"
     },
     "mobile": {
         "drawOfferTitle": "Draw offer",

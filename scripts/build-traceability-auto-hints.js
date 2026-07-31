@@ -1251,6 +1251,12 @@ const COVERAGE = {
         ],
         auto_coverage: "partial",
     },
+    "NFR-USE-005": {
+        auto_tests: [
+            "test/web.api.test.js — unknown HTML routes render the minimal 404 page",
+        ],
+        auto_coverage: "full",
+    },
 
     "NFR-PORT-001": {
         auto_tests: [
@@ -1411,7 +1417,7 @@ function main() {
 
     const out = {
         generated: new Date().toISOString().slice(0, 10),
-        srs_version: "1.8",
+        srs_version: "1.9",
         srs_path: "docs/srs-shmerling-chess.md",
         test_scripts: {
             default: "npm test (chess rules core)",

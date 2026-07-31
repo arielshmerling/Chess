@@ -11,6 +11,7 @@ const assert = require("assert");
 const request = require("supertest");
 const { ensureWebE2EUsers } = require("./helpers/webE2EUser");
 const { loadWebApp } = require("./helpers/webApp");
+const { normalizeReturnTo } = require("../src/utils");
 
 describe("web HTTP / auth", function () {
     this.timeout(30000);
@@ -42,6 +43,20 @@ describe("web HTTP / auth", function () {
             assert.match(res.text, /id="password"/);
             assert.match(res.text, /action="\/login"/);
         }
+    });
+
+    it("unknown HTML routes render the minimal 404 page", async function () {
+        const res = await request(app).get("/definitely-not-a-real-page").expect(404);
+        const css = await request(app).get("/error.css").expect(200);
+
+        assert.match(res.text, /class="error-page"/);
+        assert.match(res.text, /Page not found/);
+        assert.match(res.text, /Error 404/);
+        assert.match(res.text, /href="\/home"/);
+        assert.match(res.text, /href="\/error\.css"/);
+        assert.doesNotMatch(res.text, /Page not found: \/definitely-not-a-real-page/);
+        assert.match(String(css.headers["content-type"] || ""), /text\/css/);
+        assert.match(css.text, /\.error-page/);
     });
 
     it("GET /home without session redirects to login", async function () {
@@ -92,6 +107,50 @@ describe("web HTTP / auth", function () {
 
         const home = await agent.get("/home").expect(200);
         assert.match(home.text, /startAIGame/);
+    });
+
+    it("unauthenticated API requests return 401 and do not replace the login destination", async function () {
+        const agent = request.agent(app);
+
+        const apiRes = await agent.get("/api/friends/data").redirects(0).expect(401);
+        assert.strictEqual(apiRes.body.ok, false);
+        assert.strictEqual(apiRes.headers.location, undefined);
+
+        const loginRes = await agent
+            .post("/api/login")
+            .send({ username: primary.username, password: primary.password })
+            .expect(200);
+
+        assert.strictEqual(loginRes.body.redirectUrl, "/Home");
+    });
+
+    it("unauthenticated /active-games poll returns 401 and does not become the login destination", async function () {
+        const agent = request.agent(app);
+
+        await agent.get("/home").redirects(0).expect(302);
+
+        const poll = await agent
+            .get("/active-games?limit=3&includeBoard=1")
+            .set("Sec-Fetch-Dest", "empty")
+            .redirects(0)
+            .expect(401);
+        assert.strictEqual(poll.body.ok, false);
+        assert.strictEqual(poll.headers.location, undefined);
+
+        const loginRes = await agent
+            .post("/api/login")
+            .send({ username: primary.username, password: primary.password })
+            .expect(200);
+
+        assert.strictEqual(loginRes.body.redirectUrl, "/home");
+    });
+
+    it("rejects stale API and cross-origin login destinations", function () {
+        assert.strictEqual(normalizeReturnTo("/api/friends/data"), "/Home");
+        assert.strictEqual(normalizeReturnTo("/app/api/custom-themes?x=1"), "/Home");
+        assert.strictEqual(normalizeReturnTo("/active-games?limit=3&includeBoard=1"), "/Home");
+        assert.strictEqual(normalizeReturnTo("//example.com/path"), "/Home");
+        assert.strictEqual(normalizeReturnTo("/friends?tab=pending"), "/friends?tab=pending");
     });
 
     it("POST /api/login with wrong password returns 401 without a session", async function () {
@@ -342,21 +401,22 @@ describe("web HTTP / auth", function () {
         );
     });
 
-    it("protected JSON/API endpoints without session redirect to login", async function () {
+    it("protected JSON/API endpoints without session return 401 JSON", async function () {
         const paths = [
             "/api/friends/data",
             "/api/friends/playing-usernames",
             "/api/play/launch-context",
             "/app/api/ui-settings",
             "/app/api/custom-themes",
+            "/active-games?limit=3&includeBoard=1",
+            "/gameInfo",
+            "/gameMoves",
         ];
         for (const path of paths) {
             const res = await request(app).get(path).redirects(0);
-            assert.strictEqual(res.status, 302, path);
-            assert.ok(
-                String(res.headers.location || "").includes("/login"),
-                `${path} expected redirect to login, got ${res.headers.location}`
-            );
+            assert.strictEqual(res.status, 401, path);
+            assert.strictEqual(res.body.ok, false, path);
+            assert.strictEqual(res.headers.location, undefined, path);
         }
     });
 

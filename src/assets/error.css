@@ -1,0 +1,127 @@
+/* Minimal standalone HTML error page. */
+
+:root {
+    color-scheme: dark;
+}
+
+html,
+body {
+    min-height: 100%;
+    margin: 0;
+    background: #0e0f11;
+}
+
+body {
+    color: #e9e9ea;
+    font-family: "Roboto", Arial, sans-serif;
+}
+
+.error-page {
+    display: grid;
+    min-height: 100vh;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    place-items: center;
+}
+
+.error-content {
+    display: flex;
+    width: min(420px, 100%);
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+    animation: error-enter 0.35s ease-out both;
+}
+
+.error-code {
+    margin: 0;
+    color: #6a6d73;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+}
+
+.error-title {
+    margin: 0;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: 0.01em;
+}
+
+.error-message {
+    max-width: 34rem;
+    margin: 0;
+    color: #8c8f95;
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.error-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.75rem;
+    color: #a9abb0;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.error-home-icon {
+    display: inline-flex;
+    width: 2.6rem;
+    height: 2.6rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #2c2f34;
+    border-radius: 50%;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.error-home svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.error-home:hover,
+.error-home:focus-visible {
+    color: #e9e9ea;
+    outline: none;
+}
+
+.error-home:hover .error-home-icon,
+.error-home:focus-visible .error-home-icon {
+    border-color: #d8d8da;
+}
+
+.error-home:active .error-home-icon {
+    transform: scale(0.94);
+}
+
+html[dir="rtl"] .error-home svg {
+    transform: scaleX(-1);
+}
+
+@keyframes error-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .error-content {
+        animation: none;
+    }
+
+    .error-home,
+    .error-home-icon {
+        transition: none;
+    }
+}
