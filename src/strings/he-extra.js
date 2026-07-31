@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "מי אתה?",
+        "enterPassword": "הזן את הסיסמה שלך",
+        "sorry": "מצטערים",
+        "continue": "המשך",
+        "usernameField": "שם משתמש",
+        "passwordField": "סיסמה",
         "wrongCredentials": "שם משתמש או סיסמה שגויים",
         "userAdded": "המשתמש נוסף בהצלחה",
         "couldNotSaveBookmark": "לא ניתן לשמור את הסימנייה",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "חיפוש:",
+            "tagline": "מצא משחקים בארכיון ה-PGN",
+            "results": "תוצאות",
+            "resultsCount": "{{count}} תוצאות",
+            "noResults": "אין משחקים התואמים לחיפוש",
             "button": "חיפוש",
             "resultsFound": "נמצאו {{count}} תוצאות:",
             "first": "ראשון",

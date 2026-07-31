@@ -73,19 +73,6 @@ main {
     box-sizing: border-box;
 }
 
-.hero-logo {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-}
-
-.hero-logo-img {
-    display: block;
-    max-height: 210px;
-    width: auto;
-    object-fit: contain;
-}
-
 .hero-text-section {
     flex: 1;
     min-width: 0;
@@ -1195,6 +1182,91 @@ main {
     font-size: 26px;
 }
 
+/* Search page (PGN archive) */
+.search-page .search-hero {
+    margin-bottom: 24px;
+}
+
+.search-results-panel .panel-title {
+    font-size: 26px;
+}
+
+.search-hero-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.search-hero-input {
+    width: 320px;
+    max-width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: var(--light);
+    background: rgba(0, 0, 0, 0.35);
+    border: 2px solid rgba(152, 193, 217, 0.35);
+    border-radius: 12px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.search-hero-input:focus {
+    outline: none;
+    border-color: var(--button-foreground);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.search-hero-btn {
+    padding: 12px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--button-foreground);
+    background:var(--button-background);
+    border: 2px solid rgba(152, 193, 217, 0.45);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.search-hero-btn:hover {
+    background:var(--button-highlight);
+    border-color: var(--button-foreground);
+}
+
+.search-hero-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(152, 193, 217, 0.4);
+}
+
+/* Wide result tables scroll sideways instead of squeezing columns */
+.table-scroll--wide {
+    overflow-x: auto;
+    max-height: 620px;
+}
+
+.search-page .games-table th,
+.search-page .games-table td {
+    white-space: nowrap;
+}
+
+.search-page .pagesNav {
+    width: 100%;
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+
+    /* Keep the widest optional columns out of the way on phones */
+    .search-page .games-table .col-event,
+    .search-page .games-table .col-round {
+        display: none;
+    }
+}
+
 /* No Games Message */
 .no-games-message {
     padding: 60px 30px;
@@ -1221,10 +1293,6 @@ main {
         flex-direction: column;
         gap: 22px;
         text-align: center;
-    }
-
-    .hero-logo-img {
-        max-height: 120px;
     }
 
     .hero-greeting {

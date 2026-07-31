@@ -15,12 +15,12 @@ describe("strings catalog", function () {
         strings.setLocale("en");
     });
 
-    it("defaults to Hebrew", function () {
-        assert.strictEqual(strings.DEFAULT_LOCALE, "he");
-        assert.strictEqual(strings.getLocale(), "he");
-        assert.strictEqual(strings.t("play.status.gameOver"), "המשחק הסתיים");
-        assert.strictEqual(strings.t("common.white"), "לבן");
-        assert.strictEqual(strings.t("site.friends"), "חברים");
+    it("defaults to English", function () {
+        assert.strictEqual(strings.DEFAULT_LOCALE, "en");
+        assert.strictEqual(strings.getLocale(), "en");
+        assert.strictEqual(strings.t("play.status.gameOver"), "Game over");
+        assert.strictEqual(strings.t("common.white"), "White");
+        assert.strictEqual(strings.t("site.friends"), "Friends");
     });
 
     it("resolves nested keys from the English catalog when locale is en", function () {
@@ -30,10 +30,10 @@ describe("strings catalog", function () {
 
     it("interpolates {{param}} placeholders in Hebrew", function () {
         assert.strictEqual(
-            strings.t("play.status.timesUpLost", { loser: "לבן" }),
             strings.t("play.status.timesUpLost", { loser: "לבן" }, "he"),
+            "הזמן נגמר! לבן הפסיד/ה",
         );
-        assert.ok(strings.t("play.status.timesUpLost", { loser: "לבן" }).includes("לבן"));
+        assert.ok(strings.t("play.status.timesUpLost", { loser: "לבן" }, "he").includes("לבן"));
         assert.strictEqual(
             strings.t("play.savedGames.playersVs", { white: "Alice", black: "Bob" }, "en"),
             "Alice vs. Bob",

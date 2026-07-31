@@ -79,6 +79,43 @@ describe("web HTTP / auth", function () {
         );
     });
 
+    it("POST /api/login returns the redirect target and starts a session", async function () {
+        const agent = request.agent(app);
+
+        const res = await agent
+            .post("/api/login")
+            .send({ username: primary.username, password: primary.password })
+            .expect(200);
+
+        assert.strictEqual(res.body.ok, true);
+        assert.match(String(res.body.redirectUrl || ""), /^\/[^/]/);
+
+        const home = await agent.get("/home").expect(200);
+        assert.match(home.text, /startAIGame/);
+    });
+
+    it("POST /api/login with wrong password returns 401 without a session", async function () {
+        const agent = request.agent(app);
+
+        const res = await agent
+            .post("/api/login")
+            .send({ username: primary.username, password: "not-the-password" })
+            .expect(401);
+        assert.strictEqual(res.body.ok, false);
+
+        const home = await agent.get("/home").redirects(0);
+        assert.strictEqual(home.status, 302);
+        assert.ok(String(home.headers.location || "").includes("/login"));
+    });
+
+    it("POST /api/login rejects non-string credentials", async function () {
+        const res = await request(app)
+            .post("/api/login")
+            .send({ username: { $ne: null }, password: { $ne: null } })
+            .expect(401);
+        assert.strictEqual(res.body.ok, false);
+    });
+
     it("POST /login then GET /home reaches welcome (Play Now)", async function () {
         const agent = request.agent(app);
 

@@ -57,7 +57,7 @@
         },
         {
             label: "Buttons",
-            keys: ["--button-background", "--button-forecolor"],
+            keys: ["--button-background", "--button-forecolor", "--button-highlight"],
         },
         {
             label: "Text fields",

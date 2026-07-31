@@ -687,14 +687,15 @@ const COVERAGE = {
 
     "FR-THM-001": {
         auto_tests: [
-            "test/web.api.test.js — UI settings round-trip (/app/api/ui-settings)",
+            "test/themeSchema.test.js — represents Blue and Dark as ordinary catalog entries",
         ],
-        auto_coverage: "partial",
+        auto_coverage: "full",
     },
     "FR-THM-002": {
         auto_tests: [
             "test/webCustomThemes.api.test.js — member can change activeTheme but cannot create themes",
             "test/webCustomThemes.api.test.js — partner persists a newly created theme",
+            "test/webCustomThemes.api.test.js — partner keeps a deleted seeded theme deleted",
         ],
         auto_coverage: "full",
     },
@@ -758,6 +759,16 @@ const COVERAGE = {
             "test/mobile.sessionReview.test.js — sessionApisReady helper",
         ],
         auto_coverage: "partial",
+    },
+    "FR-THM-007": {
+        auto_tests: [
+            "test/themeSchema.test.js — keeps deleted seed and bundled themes hidden",
+            "test/themeSchema.test.js — allows deleting every catalog theme",
+            "test/themeSchema.test.js — selects another catalog entry after deleting the active theme",
+            "test/customThemeStore.test.js — keeps a deleted seeded theme deleted after reloading",
+            "test/webCustomThemes.api.test.js — partner can delete every theme and restore the catalog",
+        ],
+        auto_coverage: "full",
     },
     "FR-MOB-006": {
         auto_tests: [
@@ -932,7 +943,7 @@ const COVERAGE = {
     },
     "FR-I18N-003": {
         auto_tests: [
-            "test/strings.test.js — defaults to Hebrew",
+            "test/strings.test.js — defaults to English",
         ],
         auto_coverage: "full",
     },
@@ -957,6 +968,11 @@ const COVERAGE = {
         ],
         auto_coverage: "partial",
         notes: "Locale switch helpers tested; Preferences UI combo not e2e'd.",
+    },
+    "FR-I18N-007": {
+        auto_tests: [],
+        auto_coverage: "none",
+        notes: "Process requirement: English is authoring source; other locales may lag until bulk translation.",
     },
 
     "FR-DATA-001": {
@@ -1395,7 +1411,7 @@ function main() {
 
     const out = {
         generated: new Date().toISOString().slice(0, 10),
-        srs_version: "1.4",
+        srs_version: "1.8",
         srs_path: "docs/srs-shmerling-chess.md",
         test_scripts: {
             default: "npm test (chess rules core)",

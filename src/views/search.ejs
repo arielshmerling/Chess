@@ -1,93 +1,150 @@
 <% layout("../views/layouts/boilerplate") %>
 
-<section id="Search Game">
+<link rel="stylesheet" href="/welcome.css">
 
-
-  <form method="get" action="search">
-    <h1><%= t('site.searchPage.title') %></h1>
-    <input type="text" id="search" name="q" />
-    <button id="searchButton" class="button"><%= t('site.searchPage.button') %></button>
-    <br><br>
-    <div id="searchResults">
-      <%if(pgn.length>0) %>
-      <%= t('site.searchPage.resultsFound', { count: pgn.length }) %>
+<div class="welcome-container search-page">
+  <div class="hero-banner search-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-greeting"><%= t('site.search') %></h1>
+        <p class="hero-tagline"><%= t('site.searchPage.tagline') %></p>
+      </div>
+      <div class="hero-right">
+        <form class="search-hero-form" method="get" action="search">
+          <input type="text" id="search" name="q" class="search-hero-input" value="<%= q || '' %>"
+            autocomplete="off" aria-label="<%= t('site.searchPage.title').replace(':', '').replace('：', '').trim() %>">
+          <button id="searchButton" type="submit" class="search-hero-btn"><%= t('site.searchPage.button') %></button>
+        </form>
+      </div>
     </div>
-  </form>
-</section>
-
-
-<main id="PGNGameList">
-  <%if(pgn.length>0) { %>
-  <% function gameColLabel(key) {
-    var k = String(key || "").trim();
-    var map = {
-      Date: t("site.gameList.date"),
-      date: t("site.gameList.date"),
-      Time: t("site.gameList.time"),
-      time: t("site.gameList.time"),
-      White: t("common.white"),
-      white: t("common.white"),
-      Black: t("common.black"),
-      black: t("common.black"),
-      Result: t("site.gameList.result"),
-      result: t("site.gameList.result"),
-      Moves: t("site.activeGames.moves"),
-      moves: t("site.activeGames.moves"),
-      Reason: t("site.gameList.reason"),
-      Type: t("site.gameList.type"),
-      Status: t("site.gameList.status"),
-      Event: t("site.gameList.event"),
-      event: t("site.gameList.event"),
-      Site: t("site.gameList.site"),
-      site: t("site.gameList.site"),
-      Round: t("site.gameList.round"),
-      round: t("site.gameList.round"),
-    };
-    return map[k] || k;
-  } %>
-  <div class="gamesTableContainer">
-    <table class="gamesTable sortable">
-      <thead>
-        <tr>
-          <th class="sortable-th col-num" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
-            <span class="th-label">#</span>
-            <span class="sort-icon" aria-hidden="true"></span>
-          </th>
-          <% obj=pgn[0]; %>
-          <% for(const key in obj) { %>
-            <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" && key!="moves") { %>
-          <th class="sortable-th col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key) }) %>">
-            <span class="th-label"><%= gameColLabel(key) %></span>
-            <span class="sort-icon" aria-hidden="true"></span>
-          </th>
-            <% } %>
-          <% } %>
-        </tr>
-      </thead>
-      <tbody>
-      <% for(let i=((page-1)*recordsPerPage);i<=(page)*recordsPerPage; i++){ obj=pgn[i];  %>
-      <% if(obj) { %>
-      <tr onclick=<%-`"window.location='/review?type=pgn&id=${obj.Id}'"`%>>
-        <td class="sortable-td col-num" data-sort-key="rowIndex" data-sort-value="<%= i + 1 %>">
-          <a href=<%=`/review?&type=pgn&id=${obj.Id} %`%>>
-            <%= i + 1 %>
-          </a>
-        </td>
-        <% for(const key in obj) { %>
-        <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` && key!="moves") { %>
-        <% sortVal = (key === 'date' || key === 'Date') ? (obj[key] || '') : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : ''); %>
-        <td class="sortable-td col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>">
-          <%= obj[key] %>
-        </td>
-        <% } %>
-        <% } %>
-      </tr>
-      <% } %>
-      <% } %>
-      </tbody>
-    </table>
   </div>
-  <script>
+
+  <div class="games-section">
+    <div class="games-panel search-results-panel" id="PGNGameList">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2 class="panel-title"><%= t('site.searchPage.results') %></h2>
+        </div>
+        <div class="panel-subtitle"><%= t('site.searchPage.resultsCount', { count: pgn.length }) %></div>
+      </div>
+      <div class="panel-body">
+        <% if (pgn.length > 0) { %>
+        <% function gameColLabel(key) {
+          var k = String(key || "").trim();
+          var map = {
+            Date: t("site.gameList.date"),
+            date: t("site.gameList.date"),
+            Time: t("site.gameList.time"),
+            time: t("site.gameList.time"),
+            White: t("common.white"),
+            white: t("common.white"),
+            Black: t("common.black"),
+            black: t("common.black"),
+            Result: t("site.gameList.result"),
+            result: t("site.gameList.result"),
+            Moves: t("site.activeGames.moves"),
+            moves: t("site.activeGames.moves"),
+            Reason: t("site.gameList.reason"),
+            Type: t("site.gameList.type"),
+            Status: t("site.gameList.status"),
+            Event: t("site.gameList.event"),
+            event: t("site.gameList.event"),
+            Site: t("site.gameList.site"),
+            site: t("site.gameList.site"),
+            Round: t("site.gameList.round"),
+            round: t("site.gameList.round"),
+          };
+          return map[k] || k;
+        } %>
+        <div class="table-scroll table-scroll--wide">
+          <table class="games-table sortable">
+            <thead>
+              <tr>
+                <th class="sortable-th col-num" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
+                  <span class="th-label">#</span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                <% obj=pgn[0]; %>
+                <% for(const key in obj) { %>
+                  <% if(key !='Id' && key!="whiteelo" && key!="blackelo" && key!="eco" && key!="moves") { %>
+                <th class="sortable-th col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key) }) %>">
+                  <span class="th-label"><%= gameColLabel(key) %></span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                  <% } %>
+                <% } %>
+              </tr>
+            </thead>
+            <tbody>
+            <% for(let i=((page-1)*recordsPerPage);i<=(page)*recordsPerPage; i++){ obj=pgn[i];  %>
+            <% if(obj) { %>
+            <tr onclick=<%-`"window.location='/review?type=pgn&id=${obj.Id}'"`%>>
+              <td class="row-number sortable-td col-num" data-sort-key="rowIndex" data-sort-value="<%= i + 1 %>"><%= i + 1 %></td>
+              <% for(const key in obj) { %>
+              <% if(key !=`Id` && key!=`whiteelo` && key!=`blackelo` && key!=`eco` && key!="moves") { %>
+              <% sortVal = (key === 'date' || key === 'Date') ? (obj[key] || '') : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : ''); %>
+              <td class="sortable-td col-<%= key.toLowerCase().replace(/\s+/g, '-') %>" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>">
+                <%= obj[key] %>
+              </td>
+              <% } %>
+              <% } %>
+            </tr>
+            <% } %>
+            <% } %>
+            </tbody>
+          </table>
+        </div>
+        <% } else { %>
+        <div class="no-games-message">
+          <p><%= t('site.searchPage.noResults') %></p>
+        </div>
+        <% } %>
+
+        <% if(pgn.length>0) { %>
+        <%
+          const windowSize = 10;
+          const startPage = Math.floor((page - 1) / windowSize) * windowSize + 1;
+          const endPage = Math.min(startPage + windowSize - 1, totalPages);
+          const prev10Page = Math.max(1, startPage - windowSize);
+          const next10Page = Math.min(totalPages, startPage + windowSize);
+          const smallWindowSize = 5;
+          const startPage5 = Math.floor((page - 1) / smallWindowSize) * smallWindowSize + 1;
+          const endPage5 = Math.min(startPage5 + smallWindowSize - 1, totalPages);
+          const prev5Page = Math.max(1, startPage5 - smallWindowSize);
+          const next5Page = Math.min(totalPages, startPage5 + smallWindowSize);
+          const searchSortParams = (sortKey && sortOrder) ? ('&sort=' + encodeURIComponent(sortKey) + '&order=' + encodeURIComponent(sortOrder)) : '';
+        %>
+        <nav class="pagesNav">
+          <a href="search?q=<%=q%>&page=1<%= searchSortParams %>"><%= t('site.searchPage.first') %></a>
+          <% if (startPage > 1) { %>
+          <a href="search?q=<%=q%>&page=<%=prev10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
+          <% } %>
+          <% if (startPage5 > 1) { %>
+          <a href="search?q=<%=q%>&page=<%=prev5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
+          <% } %>
+          <% for(let i=startPage5;i<=endPage5;i++) { %>
+          <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
+          <% } %>
+          <% for(let i=startPage;i<=endPage;i++) { %>
+          <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
+          <% } %>
+          <% if (endPage5 < totalPages) { %>
+          <a href="search?q=<%=q%>&page=<%=next5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
+          <% } %>
+          <% if (endPage < totalPages) { %>
+          <a href="search?q=<%=q%>&page=<%=next10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
+          <% } %>
+          <a href="search?q=<%=q%>&page=<%=totalPages%><%= searchSortParams %>"><%= t('site.searchPage.last') %></a>
+        </nav>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if (pgn.length > 0) { %>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
     var table = document.querySelector('#PGNGameList table.sortable');
     if (!table) return;
@@ -158,9 +215,8 @@
         rows.forEach(function(r, i) {
             var numCell = r.querySelector('td[data-sort-key="rowIndex"]');
             if (numCell) {
-                var link = numCell.querySelector('a');
                 numCell.setAttribute('data-sort-value', i + 1);
-                if (link) link.textContent = i + 1;
+                numCell.textContent = i + 1;
             }
         });
         thead.querySelectorAll('.sort-icon').forEach(function(icon) { icon.textContent = ''; icon.classList.remove('asc', 'desc'); });
@@ -188,50 +244,5 @@
         applySort(key);
     });
 })();
-  </script>
-  <%} %>
-
-  <%if(pgn.length>0) { %>
-  <%
-    const windowSize = 10;
-    const startPage = Math.floor((page - 1) / windowSize) * windowSize + 1;
-    const endPage = Math.min(startPage + windowSize - 1, totalPages);
-    const prev10Page = Math.max(1, startPage - windowSize);
-    const next10Page = Math.min(totalPages, startPage + windowSize);
-    const smallWindowSize = 5;
-    const startPage5 = Math.floor((page - 1) / smallWindowSize) * smallWindowSize + 1;
-    const endPage5 = Math.min(startPage5 + smallWindowSize - 1, totalPages);
-    const prev5Page = Math.max(1, startPage5 - smallWindowSize);
-    const next5Page = Math.min(totalPages, startPage5 + smallWindowSize);
-    const searchSortParams = (sortKey && sortOrder) ? ('&sort=' + encodeURIComponent(sortKey) + '&order=' + encodeURIComponent(sortOrder)) : '';
-  %>
-  <nav class="pagesNav">
-    <a href="search?q=<%=q%>&page=1<%= searchSortParams %>"><%= t('site.searchPage.first') %></a>
-    <% if (startPage > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
-    <% } %>
-    <% if (startPage5 > 1) { %>
-    <a href="search?q=<%=q%>&page=<%=prev5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.previous5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/prev.png" alt="<%= t('site.searchPage.previous') %>"></a>
-    <% } %>
-    <% for(let i=startPage5;i<=endPage5;i++) { %>
-    <a class="pageNavItem pageNavWindow5 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
-    <% } %>
-    <% for(let i=startPage;i<=endPage;i++) { %>
-    <a class="pageNavItem pageNavWindow10 <%= i==page ? 'selectedPage' : '' %>" href="search?q=<%=q%>&page=<%=i%><%= searchSortParams %>"><%=i %></a>
-    <% } %>
-    <% if (endPage5 < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next5Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next5Pages') %>" class="pageNavIcon pageNavStep5"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
-    <% } %>
-    <% if (endPage < totalPages) { %>
-    <a href="search?q=<%=q%>&page=<%=next10Page%><%= searchSortParams %>" title="<%= t('site.searchPage.next10Pages') %>" class="pageNavIcon pageNavStep10"><img src="/images/next.png" alt="<%= t('site.searchPage.next') %>"></a>
-    <% } %>
-    <a href="search?q=<%=q%>&page=<%=totalPages%><%= searchSortParams %>"><%= t('site.searchPage.last') %></a>
-  </nav>
-
-  <%  } %>
-</main>
-
-
-<br>
-<br>
-<br>
+</script>
+<% } %>

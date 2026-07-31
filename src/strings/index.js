@@ -5,13 +5,13 @@
  *   t("play.status.gameOver")
  *   t("play.status.timesUpLost", { loser: "White" })
  *
- * Default locale: Hebrew ("he"). Other locales (en, ja, fr, de, zh, ar, hi, es,
+ * Default locale: English ("en"). Other locales (he, ja, fr, de, zh, ar, hi, es,
  * ru, uk, no) via setLocale / t(key, params, locale). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
 
-    const DEFAULT_LOCALE = "he";
+    const DEFAULT_LOCALE = "en";
     const FALLBACK_LOCALE = "en";
     const LOCALE_COOKIE = "shmerling_locale";
     const LOCALE_STORAGE_KEY = "shmerling.locale";

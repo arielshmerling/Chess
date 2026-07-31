@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Who are you?",
+        "enterPassword": "Enter your password",
+        "sorry": "Sorry",
+        "continue": "Continue",
+        "usernameField": "Username",
+        "passwordField": "Password",
         "wrongCredentials": "Wrong username or password",
         "userAdded": "User added Successfully",
         "couldNotSaveBookmark": "Could not save bookmark",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Search:",
+            "tagline": "Find games in the PGN archive",
+            "results": "Results",
+            "resultsCount": "{{count}} results",
+            "noResults": "No games match your search",
             "button": "Search",
             "resultsFound": "{{count}} Results found:",
             "first": "First",
@@ -445,7 +455,7 @@
             "boardTheme": "Board theme",
             "themeBlue": "Blue",
             "themeDark": "Dark",
-            "customizeTheme": "Customize theme…",
+            "customizeTheme": "Manage themes…",
             "builtInThemesAria": "Built-in themes",
             "savedCustomThemesAria": "Saved custom themes",
             "pieceSetsAria": "Piece sets",
@@ -502,18 +512,18 @@
             "pawnFilesEndGame": "Pawn files (endgame)"
         },
         "customTheme": {
-            "title": "Custom theme",
+            "title": "Theme",
             "name": "Theme name",
             "save": "Save",
             "delete": "Delete",
-            "saved": "Saved",
+            "saved": "Themes",
             "searchProperties": "Search properties",
             "filterPlaceholder": "Filter by property name…",
             "namePlaceholder": "My theme",
-            "resetPreset": "Reset to current preset",
+            "resetPreset": "Reset changes",
             "couldNotSave": "Could not save theme. Try again.",
             "untitled": "Untitled",
-            "defaultName": "Custom theme"
+            "defaultName": "New theme"
         },
         "positionSetup": {
             "clearBoard": "Clear board",

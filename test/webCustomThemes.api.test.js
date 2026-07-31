@@ -45,7 +45,11 @@ describe("web custom themes API", function () {
     it("member can change activeTheme but cannot create themes", async function () {
         const agent = await loginAgent(primary);
         const before = (await agent.get(THEMES_URL).expect(200)).body;
-        const nextActive = before.activeTheme === "dark" ? "blue" : "dark";
+        const nextTheme = before.themes.find(function (theme) {
+            return "custom:" + theme.id !== before.activeTheme;
+        });
+        assert.ok(nextTheme, "at least two themes should be available");
+        const nextActive = "custom:" + nextTheme.id;
         const id = "custom-member-denied-" + Date.now().toString(36);
 
         const res = await agent
@@ -97,13 +101,11 @@ describe("web custom themes API", function () {
         }
     });
 
-    it("partner keeps a deleted bundled theme deleted", async function () {
+    it("partner keeps a deleted seeded theme deleted", async function () {
         const agent = await loginAgent(partner);
         const before = (await agent.get(THEMES_URL).expect(200)).body;
-        const bundled = (before.themes || [])[0];
-        if (!bundled) {
-            this.skip();
-        }
+        const seeded = findTheme(before, "blue");
+        assert.ok(seeded, "Blue should be an ordinary seeded catalog theme");
 
         try {
             await agent
@@ -111,13 +113,13 @@ describe("web custom themes API", function () {
                 .send({
                     activeTheme: before.activeTheme,
                     themes: before.themes.filter(function (t) {
-                        return t.id !== bundled.id;
+                        return t.id !== seeded.id;
                     }),
                 })
                 .expect(200);
 
             const after = (await agent.get(THEMES_URL).expect(200)).body;
-            assert.ok(!findTheme(after, bundled.id), "deleted theme should stay deleted");
+            assert.ok(!findTheme(after, seeded.id), "deleted seeded theme should stay deleted");
             assert.strictEqual(
                 after.themes.length,
                 before.themes.length - 1,
@@ -129,7 +131,25 @@ describe("web custom themes API", function () {
         }
 
         const restored = (await agent.get(THEMES_URL).expect(200)).body;
-        assert.ok(findTheme(restored, bundled.id), "restoring the full list brings it back");
+        assert.ok(findTheme(restored, seeded.id), "restoring the full list brings it back");
+    });
+
+    it("partner can delete every theme and restore the catalog", async function () {
+        const agent = await loginAgent(partner);
+        const before = (await agent.get(THEMES_URL).expect(200)).body;
+
+        try {
+            const deleted = await agent
+                .post(THEMES_URL)
+                .send({ activeTheme: before.activeTheme, themes: [] })
+                .expect(200);
+
+            assert.deepStrictEqual(deleted.body.themes, []);
+            const after = (await agent.get(THEMES_URL).expect(200)).body;
+            assert.deepStrictEqual(after.themes, []);
+        } finally {
+            await agent.post(THEMES_URL).send(before);
+        }
     });
 
     it("partner persists edits to a bundled theme", async function () {

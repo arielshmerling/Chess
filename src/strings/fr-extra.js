@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Qui êtes-vous ?",
+        "enterPassword": "Saisissez votre mot de passe",
+        "sorry": "Désolé",
+        "continue": "Continuer",
+        "usernameField": "Nom d'utilisateur",
+        "passwordField": "Mot de passe",
         "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect",
         "userAdded": "Utilisateur ajouté avec succès",
         "couldNotSaveBookmark": "Impossible d'enregistrer le signet",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Recherche :",
+            "tagline": "Trouvez des parties dans l'archive PGN",
+            "results": "Résultats",
+            "resultsCount": "{{count}} résultats",
+            "noResults": "Aucune partie ne correspond à votre recherche",
             "button": "Rechercher",
             "resultsFound": "{{count}} résultat(s) trouvé(s) :",
             "first": "Premier",

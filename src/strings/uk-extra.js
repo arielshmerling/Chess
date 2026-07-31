@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Хто ви?",
+        "enterPassword": "Введіть пароль",
+        "sorry": "Вибачте",
+        "continue": "Продовжити",
+        "usernameField": "Ім'я користувача",
+        "passwordField": "Пароль",
         "wrongCredentials": "Невірне ім'я користувача або пароль",
         "userAdded": "Користувача успішно додано",
         "couldNotSaveBookmark": "Не вдалося зберегти закладку",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Пошук:",
+            "tagline": "Знайдіть партії в архіві PGN",
+            "results": "Результати",
+            "resultsCount": "Результатів: {{count}}",
+            "noResults": "Немає партій, що відповідають запиту",
             "button": "Шукати",
             "resultsFound": "Знайдено результатів: {{count}}",
             "first": "Перша",

@@ -256,11 +256,7 @@ html[dir="rtl"] .desktop-prefs-panel {
   font-size: 0.68rem;
 }
 
-/* Compact prefs panel: horizontal theme chips + 2-column grids */
-.desktop-prefs-panel .desktop-prefs-theme--builtin {
-  gap: 0.35rem;
-}
-
+/* Compact prefs panel: theme and piece-set grids */
 .desktop-prefs-panel .desktop-theme-choice {
   flex-direction: row;
   align-items: center;
@@ -290,14 +286,13 @@ html[dir="rtl"] .desktop-prefs-panel {
   text-overflow: ellipsis;
 }
 
-.desktop-prefs-panel .desktop-prefs-theme--custom {
+.desktop-prefs-panel .desktop-prefs-theme--all {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.35rem;
-  margin-top: 0.35rem;
 }
 
-.desktop-prefs-panel .desktop-prefs-theme--custom .desktop-theme-choice {
+.desktop-prefs-panel .desktop-prefs-theme--all .desktop-theme-choice {
   flex: none;
   width: 100%;
 }
@@ -370,11 +365,7 @@ html[dir="rtl"] .desktop-prefs-panel {
   flex-wrap: wrap;
 }
 
-.desktop-prefs-theme--custom {
-  margin-top: 0.35rem;
-}
-
-.desktop-prefs-theme--custom:empty {
+.desktop-prefs-theme--all:empty {
   display: none;
 }
 
@@ -709,29 +700,6 @@ html[dir="rtl"] .desktop-prefs-panel {
   overflow: hidden;
   border: 2px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
-}
-
-.desktop-theme-swatch--blue {
-  background: linear-gradient(
-    90deg,
-    #293241 0%,
-    #3d5a80 25%,
-    #668ea5 50%,
-    #98c1d9 75%,
-    #e0fbfc 100%
-  );
-  border-color: #293241;
-}
-
-.desktop-theme-swatch--dark {
-  background: linear-gradient(
-    90deg,
-    #1a1a1a 0%,
-    #2d2d2d 35%,
-    #555555 65%,
-    #888888 100%
-  );
-  border-color: #545454;
 }
 
 .desktop-theme-name {

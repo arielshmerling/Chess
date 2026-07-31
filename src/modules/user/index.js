@@ -9,6 +9,8 @@ router.route("/login")
     .get(userController.showLoginPage)
     .post(storeReturnTo, userController.login);
 
+router.post("/api/login", storeReturnTo, userController.loginJson);
+
 router.get("/logout", userController.logout);
 router.get("/validateUsername", userController.validateUsername);
 

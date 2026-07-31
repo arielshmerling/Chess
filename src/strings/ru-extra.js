@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Кто вы?",
+        "enterPassword": "Введите пароль",
+        "sorry": "Извините",
+        "continue": "Продолжить",
+        "usernameField": "Имя пользователя",
+        "passwordField": "Пароль",
         "wrongCredentials": "Неверное имя пользователя или пароль",
         "userAdded": "Пользователь успешно добавлен",
         "couldNotSaveBookmark": "Не удалось сохранить закладку",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Поиск:",
+            "tagline": "Найдите партии в архиве PGN",
+            "results": "Результаты",
+            "resultsCount": "Результатов: {{count}}",
+            "noResults": "Нет партий, соответствующих запросу",
             "button": "Искать",
             "resultsFound": "Найдено результатов: {{count}}",
             "first": "Первая",

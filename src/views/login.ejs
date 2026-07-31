@@ -1,43 +1,46 @@
 <% layout("../views/layouts/boilerplate") %>
 
-<section id="main">
-  version 1.3.29.1022
-  <div class="flexRow">
-    <img src="/images/logo.png" width="200px" alt="chess king logo">
-    <form method="post" action="/login" class="validated-form" novalidate>
-      <div class="loginBoxWrapper">
-        <div class="loginBox">
-          <div class="labelRow">
-            <label for="username"><%= t('site.username') %></label>
-          </div>
-          <div class="labelRow">
-            <input id="username" username="username" name="username" autofocus required autocomplete="off" aria-autocomplete="none" list="autocompleteOff">
-            <span></span>
-          </div>
+<link rel="stylesheet" href="/login.css">
 
+<section class="login-screen" id="loginScreen" data-step="username">
+  <form method="post" action="/login" class="login-form" id="loginForm" novalidate>
+    <p class="login-prompt" id="loginPrompt" role="status" aria-live="polite"><%= t('auth.whoAreYou') %></p>
 
-          <div class="labelRow">
-            <label for="password"><%= t('site.password') %></label>
-          </div>
-          <div class="labelRow">
-            <input id="password" name="password" type="password" required autocomplete="off" list="autocompleteOff" aria-autocomplete="list" aria-invalid="false" spellcheck="false">
-            <span></span>
-          </div>
+    <div class="login-row" id="loginRow">
+      <input
+        id="username"
+        name="username"
+        class="login-input login-input--username"
+        type="text"
+        autocomplete="username"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        maxlength="30"
+        autofocus
+        required
+        aria-label="<%= t('auth.usernameField') %>">
+      <input
+        id="password"
+        name="password"
+        class="login-input login-input--password"
+        type="password"
+        autocomplete="current-password"
+        spellcheck="false"
+        required
+        aria-label="<%= t('auth.passwordField') %>">
+      <button type="submit" class="login-next" id="loginNext" aria-label="<%= t('auth.continue') %>">
+        <svg class="login-next-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M5 12h13M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
 
+    <p class="login-error" id="loginError" role="alert"><%= errorMessage %></p>
+  </form>
 
-          <button><%= t('site.login') %></button>
-
-          <div class="errorMessage">
-            <%=errorMessage%>
-          </div>
-        </div>
-      </div>
-    </form>
-  </div>
+  <p class="login-version">1.3.29.1022</p>
 </section>
 
-<script>
-  window.onload = (e) => {
-    overrideFormValidity();
-  }
-</script>
+<script src="/loginFlow.js"></script>

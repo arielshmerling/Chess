@@ -9,8 +9,8 @@
     var hostEl = null;
 
     var LANGUAGE_OPTIONS = [
-        { value: "he", labelKey: "desktop.prefs.languageHebrew", titleEn: "Hebrew" },
         { value: "en", labelKey: "desktop.prefs.languageEnglish", titleEn: "English" },
+        { value: "he", labelKey: "desktop.prefs.languageHebrew", titleEn: "Hebrew" },
         { value: "ja", labelKey: "desktop.prefs.languageJapanese", titleEn: "Japanese" },
         { value: "fr", labelKey: "desktop.prefs.languageFrench", titleEn: "French" },
         { value: "de", labelKey: "desktop.prefs.languageGerman", titleEn: "German" },
@@ -50,7 +50,7 @@
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.getLocale === "function") {
             return window.ShmerlingStrings.getLocale();
         }
-        return "he";
+        return "en";
     }
 
     function getSelect() {

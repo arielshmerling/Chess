@@ -1,138 +1,188 @@
-/*Body {
-    background-color: #242424;
-    background-image: none;
-    color: var(--textbox-forecolor);
+/* Minimal dark two-step login screen (Who are you? → password). */
 
-}
+.login-screen {
+    --login-bg: #0e0f11;
+    --login-text: #e9e9ea;
+    --login-muted: #6a6d73;
+    --login-line: #2c2f34;
+    --login-accent: #d8d8da;
 
-/* 
-.loginBoxWrapper {
-    width: 500px;
-    background-color: var(--panel-background);
-    display: flex;
-    justify-content: center;
-    border-radius: 5px;
-    border: 0px solid white;
-
-    margin-left: 50px;
-} */
-
-/* .loginBox {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    padding-top: 50px;
-} */
-
-/* .loginBox input {
-    border-bottom: 4px solid var(--textbox-forecolor);
-    background-color: var(--textbox-background);
-    color: var(--textbox-forecolor);
-} */
-
-input:-webkit-autofill,
-input:-webkit-autofill::first-line,
-input:-webkit-autofill:active,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-    background-color: var(--textbox-background);
-    -webkit-box-shadow: 0 0 0px 1000px var(--textbox-background) inset;
-    -webkit-text-fill-color: var(--textbox-forecolor);
-
-
+    gap: 2.75rem;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    background-color: var(--login-bg);
+    color: var(--login-text);
 }
 
-
-.loginBox input[type="checkbox"] {
-    width: 20px;
-    margin: 0px;
-    margin-top: 20px;
-    margin-right: -15px;
-    height: 20px;
-    background-color: var(--textbox-background);
-    outline: 0px solid transparent;
-}
-
-
-
-
-.loginBox label {
-    margin-bottom: -15px;
-    margin-left: 20px;
-}
-
-.loginBox button {
-    margin-left: 20px;
-    align-self: center;
-    border-radius: 5px;
-    border: 0px solid var(--light);
-    background-color: var(--textbox-background);
-    background-image: linear-gradient(to bottom, rgba(255, 255, 255, .08) 0%, rgba(0, 0, 0, .08) 100%);
-    color: var(--textbox-forecolor);
-    margin-bottom: 50px;
-    width: 140px;
-    height: 3em;
-    filter: drop-shadow(rgb(28, 28, 28) 1px 3px 2px);
-    font-size: 18px;
-}
-
-.loginBox button:hover {
-    color: var(--textbox-highlight);
-
-}
-
-.loginBox button:active {
-    color: white;
-    background-image: linear-gradient(to top, rgba(255, 255, 255, .08) 0%, rgba(0, 0, 0, .08) 100%);
-    filter: none;
-}
-
-.loginBox button:disabled {
-    color: var(--textbox-disabled);
-    background-color: var(--textbox-forecolor);
-    background-image: none;
-    filter: none;
-}
-
-
-
-
-
-.loginBox .labelRow {
-
-    margin-bottom: -15px;
-}
-
-.loginBox .optionsRow {
+.login-form {
     display: flex;
-    flex-direction: row;
-    margin-left: 20px;
-    margin-right: 20px;
-    justify-content: space-between;
-    height: 20px;
-    width: -webkit-fill-available;
-    font-size: 14px;
-    align-items: baseline;
-    align-content: center;
-
-
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: min(420px, 100%);
 }
 
-.loginBox A {
-    font-size: 16px;
-    color: var(--textbox-forecolor);
+.login-prompt {
+    margin: 0;
+    font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    text-align: center;
+    transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-.loginBox A:hover {
-    font-size: 16px;
-    color: var(--textbox-highlight);
+.login-prompt.is-swapping {
+    opacity: 0;
+    transform: translateY(-10px);
 }
 
-
-.rememberMe {
-    font-size: 16px;
+.login-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: 100%;
 }
 
-*/
+.login-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.2rem;
+    border: 0;
+    border-bottom: 1px solid var(--login-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--login-text);
+    font-family: inherit;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    transition: border-color 0.2s ease, opacity 0.22s ease;
+}
+
+.login-input:focus {
+    outline: none;
+    border-bottom-color: var(--login-accent);
+}
+
+.login-input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px var(--login-bg) inset;
+    -webkit-text-fill-color: var(--login-text);
+    caret-color: var(--login-text);
+}
+
+.login-next {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: 0;
+    border: 1px solid var(--login-line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--login-muted);
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.login-next:hover,
+.login-next:focus-visible {
+    color: var(--login-text);
+    border-color: var(--login-accent);
+    outline: none;
+}
+
+.login-next:active {
+    transform: scale(0.94);
+}
+
+.login-next:disabled {
+    opacity: 0.45;
+    cursor: default;
+    transform: none;
+}
+
+.login-next-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+html[dir="rtl"] .login-next-icon {
+    transform: scaleX(-1);
+}
+
+.login-error {
+    margin: 0;
+    min-height: 1.2em;
+    font-size: 0.95rem;
+    color: #c96a6a;
+    text-align: center;
+}
+
+.login-error:empty {
+    display: none;
+}
+
+.login-version {
+    position: absolute;
+    bottom: 1rem;
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--login-muted);
+    opacity: 0.5;
+}
+
+/* Progressive enhancement: without JS both fields stay visible and usable. */
+.login-screen--js .login-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.login-screen--js[data-step="username"] .login-input--username,
+.login-screen--js[data-step="password"] .login-input--password {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.login-screen--js[data-step="sorry"] .login-row {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+}
+
+.login-screen--js .login-row {
+    transition: opacity 0.22s ease;
+}
+
+.login-row.is-invalid {
+    animation: login-shake 0.3s ease;
+}
+
+@keyframes login-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-prompt,
+    .login-input,
+    .login-row,
+    .login-next {
+        transition: none;
+    }
+
+    .login-row.is-invalid {
+        animation: none;
+    }
+}

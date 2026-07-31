@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "من أنت؟",
+        "enterPassword": "أدخل كلمة المرور",
+        "sorry": "عذراً",
+        "continue": "متابعة",
+        "usernameField": "اسم المستخدم",
+        "passwordField": "كلمة المرور",
         "wrongCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة",
         "userAdded": "تمت إضافة المستخدم بنجاح",
         "couldNotSaveBookmark": "تعذّر حفظ العلامة",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "بحث:",
+            "tagline": "ابحث عن مباريات في أرشيف PGN",
+            "results": "النتائج",
+            "resultsCount": "{{count}} نتيجة",
+            "noResults": "لا توجد مباريات تطابق بحثك",
             "button": "بحث",
             "resultsFound": "وُجد {{count}} نتيجة:",
             "first": "الأول",

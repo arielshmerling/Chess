@@ -25,7 +25,7 @@
     var snapshotThemeId = null;
     var editingSavedId = null;
     var dragState = null;
-    var cachedStore = { activeTheme: "blue", themes: [] };
+    var cachedStore = { activeTheme: "custom:blue", themes: [] };
     var storeLoaded = false;
     var readyResolve = null;
     var whenReadyPromise = new Promise(function (resolve) {
@@ -125,7 +125,7 @@
     }
 
     function getActiveTheme() {
-        return cachedStore.activeTheme || localStorage.getItem("theme") || "blue";
+        return cachedStore.activeTheme || localStorage.getItem("theme") || "custom:blue";
     }
 
     function migrateFromLocalStorage(data) {
@@ -144,7 +144,7 @@
                     data.themes = parsed.themes.map(function (t) {
                         return {
                             id: t.id,
-                            name: t.name || "Custom theme",
+                            name: t.name || "New theme",
                             vars: completeThemeVarsClient(t.vars, "blue"),
                             updatedAt: t.updatedAt || Date.now(),
                         };
@@ -152,12 +152,10 @@
                     changed = true;
                 }
             }
-            if (
-                localActive &&
-                (localActive === "blue" ||
-                    localActive === "dark" ||
-                    localActive.indexOf("custom:") === 0)
-            ) {
+            if (localActive === "blue" || localActive === "dark") {
+                data.activeTheme = "custom:" + localActive;
+                changed = true;
+            } else if (localActive && localActive.indexOf("custom:") === 0) {
                 data.activeTheme = localActive;
                 changed = true;
             }
@@ -181,7 +179,7 @@
             })
             .then(function (data) {
                 var store = {
-                    activeTheme: data && data.activeTheme ? data.activeTheme : "blue",
+                    activeTheme: data && data.activeTheme ? data.activeTheme : "custom:blue",
                     themes: data && Array.isArray(data.themes) ? data.themes : [],
                 };
                 store.themes = store.themes.map(function (t) {
@@ -204,7 +202,7 @@
                 return store;
             })
             .catch(function () {
-                var fallback = { activeTheme: "blue", themes: [] };
+                var fallback = { activeTheme: "custom:blue", themes: [] };
                 migrateFromLocalStorage(fallback);
                 cachedStore = fallback;
                 syncLocalStorageCache();
@@ -270,9 +268,6 @@
             if (custom && custom.vars) {
                 return mergeThemeVars(custom.vars, "blue");
             }
-        }
-        if (themeId === "dark") {
-            return getBuiltinThemeVars("dark");
         }
         return getBuiltinThemeVars("blue");
     }
@@ -514,20 +509,31 @@
                 return;
             }
             var store = readStore();
+            var deletedThemeId = "custom:" + editingSavedId;
+            var wasActive = getCurrentThemeId() === deletedThemeId;
             store.themes = store.themes.filter(function (t) {
                 return t.id !== editingSavedId;
             });
-            writeStore(store);
-            if (getCurrentThemeId() === "custom:" + editingSavedId) {
-                if (typeof window.applyDesktopTheme === "function") {
-                    window.applyDesktopTheme("blue");
-                }
+            if (wasActive) {
+                store.activeTheme = store.themes.length
+                    ? "custom:" + store.themes[0].id
+                    : "custom:blue";
             }
-            editingSavedId = null;
-            populateLoadSelect();
-            deleteBtn.hidden = true;
-            document.getElementById("desktopCustomThemeName").value = "";
-            refreshSavedThemesInPrefs();
+            writeStore(store).then(function () {
+                if (wasActive) {
+                    if (typeof window.applyDesktopTheme === "function") {
+                        window.applyDesktopTheme(store.activeTheme);
+                    }
+                }
+                editingSavedId = null;
+                populateLoadSelect();
+                deleteBtn.hidden = true;
+                document.getElementById("desktopCustomThemeName").value = "";
+                refreshSavedThemesInPrefs();
+            }).catch(function (err) {
+                console.error(err);
+                window.alert(t("desktop.customTheme.couldNotSave"));
+            });
         });
 
         loadSel.addEventListener("change", function () {
@@ -650,7 +656,7 @@
             return;
         }
         var store = readStore();
-        sel.innerHTML = '<option value="">— Load saved —</option>';
+        sel.innerHTML = '<option value="">— ' + t("desktop.customTheme.saved") + " —</option>";
         store.themes.forEach(function (t) {
             var opt = document.createElement("option");
             opt.value = t.id;
@@ -835,13 +841,14 @@
 
         var currentCustom =
             snapshotThemeId.indexOf("custom:") === 0 ? snapshotThemeId.slice(7) : null;
-        editingSavedId = currentCustom;
         var nameInput = document.getElementById("desktopCustomThemeName");
         if (currentCustom) {
             var saved = getThemeById(currentCustom);
+            editingSavedId = saved ? currentCustom : null;
             nameInput.value = saved ? saved.name : "";
-            document.getElementById("desktopCustomThemeDelete").hidden = false;
+            document.getElementById("desktopCustomThemeDelete").hidden = !saved;
         } else {
+            editingSavedId = null;
             nameInput.value = "";
             document.getElementById("desktopCustomThemeDelete").hidden = true;
         }
@@ -885,7 +892,7 @@
 
     function saveTheme() {
         var nameInput = document.getElementById("desktopCustomThemeName");
-        var name = (nameInput.value || "").trim() || "Custom theme";
+        var name = (nameInput.value || "").trim() || t("desktop.customTheme.defaultName");
         var store = readStore();
         var id = editingSavedId || "custom-" + Date.now().toString(36);
         var entry = {
@@ -949,7 +956,7 @@
         store.themes.forEach(function (t) {
             var btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "desktop-theme-choice desktop-theme-choice--custom";
+            btn.className = "desktop-theme-choice";
             btn.setAttribute("data-theme", "custom:" + t.id);
             var active = current === "custom:" + t.id;
             btn.setAttribute("aria-pressed", active ? "true" : "false");
@@ -965,7 +972,7 @@
             }
             var label = document.createElement("span");
             label.className = "desktop-theme-name";
-            label.textContent = t.name || "Custom";
+            label.textContent = t.name || "Untitled";
             btn.appendChild(swatch);
             btn.appendChild(label);
             btn.addEventListener("click", function () {

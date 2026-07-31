@@ -39,17 +39,7 @@
         "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--theme">',
         '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.boardTheme") + "</h3>",
-        '      <div class="desktop-prefs-theme desktop-prefs-theme--builtin desktop-prefs-theme--compact" role="group" aria-label="' + t("desktop.chrome.builtInThemesAria") + '">',
-        '        <button type="button" class="desktop-theme-choice" data-theme="blue" aria-pressed="false">',
-        '          <span class="desktop-theme-swatch desktop-theme-swatch--blue" aria-hidden="true"></span>',
-        '          <span class="desktop-theme-name">' + t("desktop.chrome.themeBlue") + '</span>',
-        "        </button>",
-        '        <button type="button" class="desktop-theme-choice" data-theme="dark" aria-pressed="false">',
-        '          <span class="desktop-theme-swatch desktop-theme-swatch--dark" aria-hidden="true"></span>',
-        '          <span class="desktop-theme-name">' + t("desktop.chrome.themeDark") + '</span>',
-        "        </button>",
-        "      </div>",
-        '      <div id="desktopPrefsCustomThemes" class="desktop-prefs-theme desktop-prefs-theme--custom" role="group" aria-label="' + t("desktop.chrome.savedCustomThemesAria") + '"></div>',
+        '      <div id="desktopPrefsThemes" class="desktop-prefs-theme desktop-prefs-theme--all" role="group" aria-label="' + t("desktop.chrome.boardTheme") + '"></div>',
         '      <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">' + t("desktop.chrome.customizeTheme") + "</button>",
         "    </section>",
         '    <section class="desktop-prefs-section desktop-prefs-section--pieces">',
@@ -162,7 +152,8 @@
     }
 
     function getCurrentThemeId() {
-        return localStorage.getItem("theme") || "blue";
+        var current = localStorage.getItem("theme") || "custom:blue";
+        return current === "blue" || current === "dark" ? "custom:" + current : current;
     }
 
     function positionPreferencesPanel(trigger, panel) {
@@ -265,16 +256,6 @@
             window.visualViewport.addEventListener("resize", repositionOpenPanel);
             window.visualViewport.addEventListener("scroll", repositionOpenPanel);
         }
-
-        panel.querySelectorAll(".desktop-prefs-theme--builtin [data-theme]").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var id = btn.getAttribute("data-theme");
-                if (typeof window.applyDesktopTheme === "function") {
-                    window.applyDesktopTheme(id === "dark" ? "dark" : "blue");
-                }
-                syncThemeButtons();
-            });
-        });
 
         var customizeBtn = document.getElementById("desktopCustomizeThemeBtn");
         if (customizeBtn) {
@@ -408,7 +389,7 @@
     }
 
     function refreshCustomThemeList() {
-        var container = document.getElementById("desktopPrefsCustomThemes");
+        var container = document.getElementById("desktopPrefsThemes");
         if (!container || !window.DesktopCustomTheme) {
             return;
         }
@@ -417,13 +398,7 @@
 
     function syncThemeButtons() {
         var current = getCurrentThemeId();
-        document.querySelectorAll(".desktop-prefs-theme--builtin [data-theme]").forEach(function (btn) {
-            var theme = btn.getAttribute("data-theme");
-            var active = current === theme;
-            btn.setAttribute("aria-pressed", active ? "true" : "false");
-            btn.classList.toggle("is-active", active);
-        });
-        document.querySelectorAll(".desktop-prefs-theme--custom [data-theme]").forEach(function (btn) {
+        document.querySelectorAll(".desktop-prefs-theme--all [data-theme]").forEach(function (btn) {
             var theme = btn.getAttribute("data-theme");
             var active = current === theme;
             btn.setAttribute("aria-pressed", active ? "true" : "false");

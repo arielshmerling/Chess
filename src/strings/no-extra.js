@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Hvem er du?",
+        "enterPassword": "Skriv inn passordet ditt",
+        "sorry": "Beklager",
+        "continue": "Fortsett",
+        "usernameField": "Brukernavn",
+        "passwordField": "Passord",
         "wrongCredentials": "Feil brukernavn eller passord",
         "userAdded": "Bruker lagt til",
         "couldNotSaveBookmark": "Kunne ikke lagre bokmerke",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Søk:",
+            "tagline": "Finn partier i PGN-arkivet",
+            "results": "Treff",
+            "resultsCount": "{{count}} treff",
+            "noResults": "Ingen partier samsvarer med søket",
             "button": "Søk",
             "resultsFound": "{{count}} treff:",
             "first": "Første",

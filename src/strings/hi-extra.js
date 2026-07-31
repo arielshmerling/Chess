@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "आप कौन हैं?",
+        "enterPassword": "अपना पासवर्ड दर्ज करें",
+        "sorry": "क्षमा करें",
+        "continue": "जारी रखें",
+        "usernameField": "उपयोगकर्ता नाम",
+        "passwordField": "पासवर्ड",
         "wrongCredentials": "गलत उपयोगकर्ता नाम या पासवर्ड",
         "userAdded": "उपयोगकर्ता सफलतापूर्वक जोड़ा गया",
         "couldNotSaveBookmark": "बुकमार्क सहेज नहीं सका",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "खोज:",
+            "tagline": "PGN संग्रह में खेल खोजें",
+            "results": "परिणाम",
+            "resultsCount": "{{count}} परिणाम",
+            "noResults": "आपकी खोज से कोई खेल मेल नहीं खाता",
             "button": "खोज",
             "resultsFound": "{{count}} परिणाम मिले:",
             "first": "पहला",

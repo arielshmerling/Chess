@@ -39,56 +39,35 @@
         return true;
     }
 
+    function applyEmergencyTheme() {
+        if (typeof setDefaultTheme === "function" && typeof themes !== "undefined") {
+            setDefaultTheme(themes.blueTheme);
+        }
+        dispatchThemeChanged(null);
+    }
+
     function applyThemeById(themeId) {
         if (typeof setDefaultTheme !== "function" || typeof themes === "undefined") {
             return;
         }
+        if (themeId === "blue" || themeId === "dark") {
+            themeId = "custom:" + themeId;
+        }
         if (themeId && themeId.indexOf("custom:") === 0) {
-            applyCustomThemeById(themeId.slice(7));
+            if (!applyCustomThemeById(themeId.slice(7))) {
+                applyEmergencyTheme();
+            }
             return;
         }
-        if (themeId === "blue") {
-            setDefaultTheme(themes.blueTheme);
-            rememberActiveTheme("blue");
-        } else {
-            setDefaultTheme(themes.darkTheme);
-            rememberActiveTheme("dark");
-        }
-        dispatchThemeChanged(themeId === "blue" ? "blue" : "dark");
+        applyEmergencyTheme();
     }
 
     function bootTheme() {
         var theme =
             window.DesktopCustomTheme && window.DesktopCustomTheme.getActiveTheme
                 ? window.DesktopCustomTheme.getActiveTheme()
-                : localStorage.getItem("theme") || "blue";
-
-        if (theme && theme.indexOf("custom:") === 0) {
-            if (!applyCustomThemeById(theme.slice(7))) {
-                rememberActiveTheme("blue");
-                setDefaultTheme(themes.blueTheme);
-                dispatchThemeChanged("blue");
-            }
-            return;
-        }
-
-        if (theme === "blue") {
-            setDefaultTheme(themes.blueTheme);
-            rememberActiveTheme("blue");
-            dispatchThemeChanged("blue");
-            return;
-        }
-
-        if (theme === "dark") {
-            setDefaultTheme(themes.darkTheme);
-            rememberActiveTheme("dark");
-            dispatchThemeChanged("dark");
-            return;
-        }
-
-        rememberActiveTheme("blue");
-        setDefaultTheme(themes.blueTheme);
-        dispatchThemeChanged("blue");
+                : localStorage.getItem("theme") || "custom:blue";
+        applyThemeById(theme);
     }
 
     window.applyDesktopTheme = applyThemeById;

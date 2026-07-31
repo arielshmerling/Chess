@@ -2019,11 +2019,6 @@ table.gamesTable td {
         height: auto;
         min-height: 20px;
     }
-    /* Search page: hide event and round columns */
-    #PGNGameList .gamesTable .col-event,
-    #PGNGameList .gamesTable .col-round {
-        display: none;
-    }
     /* Pages nav: show 5-window numbers and step-5 << >> (override default) */
     .pagesNav A.pageNavWindow5 {
         display: inline-flex !important;

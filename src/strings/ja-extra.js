@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "あなたは誰ですか？",
+        "enterPassword": "パスワードを入力してください",
+        "sorry": "申し訳ありません",
+        "continue": "続行",
+        "usernameField": "ユーザー名",
+        "passwordField": "パスワード",
         "wrongCredentials": "ユーザー名またはパスワードが正しくありません",
         "userAdded": "ユーザーを追加しました",
         "couldNotSaveBookmark": "ブックマークを保存できませんでした",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "検索:",
+            "tagline": "PGN アーカイブから対局を探す",
+            "results": "検索結果",
+            "resultsCount": "{{count}} 件",
+            "noResults": "検索条件に一致する対局はありません",
             "button": "検索",
             "resultsFound": "{{count}} 件見つかりました:",
             "first": "最初",

@@ -8,7 +8,9 @@ const gamesManagerService = require("../gamesManager/service");
 exports.showLoginPage = (req, res) => {
 
     const { f } = req.query;
-    let errorMessage = "";
+    /* The login screen owns its own error line; the flash bar sits behind it. */
+    const flashed = Array.isArray(res.locals.messages) ? res.locals.messages.join(" ") : "";
+    let errorMessage = flashed;
     if (f == "error") {
         errorMessage = t("auth.wrongCredentials");
 
@@ -153,31 +155,58 @@ exports.deleteBookmark = catchAsync(async (req, res) => {
     }
 });
 
+/** Credentials reach Mongo as a regex; only plain strings may pass through. */
+function readCredentials(body) {
+    const username = body && typeof body.username === "string" ? body.username : "";
+    const password = body && typeof body.password === "string" ? body.password : "";
+    return { username, password };
+}
+
+async function startUserSession(req, foundUser) {
+    req.session.user_id = foundUser.id;
+    req.session.user_name = foundUser.username;
+    req.session.admin = foundUser.admin;
+    if (foundUser.admin) {
+        foundUser.userType = "Admin";
+    } else if (!foundUser.userType) {
+        foundUser.userType = "Member";
+    }
+    req.session.userType = foundUser.userType;
+    foundUser.lastLogin = Date.now();
+    await foundUser.save();
+}
+
+function takeRedirectUrl(req, res) {
+    const redirectUrl = res.locals.returnTo || "/Home";
+    delete req.session.returnTo;
+    res.locals.returnTo = null;
+    return redirectUrl;
+}
+
 exports.login = catchAsync(async (req, res) => {
-    const { username, password } = req.body;
-    const foundUser = await userService.findUser(username, password);
+    const { username, password } = readCredentials(req.body);
+    const foundUser = username && password
+        ? await userService.findUser(username, password)
+        : null;
     if (foundUser) {
-        req.session.user_id = foundUser.id;
-        req.session.user_name = foundUser.username;
-        req.session.admin = foundUser.admin;
-        if (foundUser.admin) {
-            foundUser.userType = "Admin";
-        } else if (!foundUser.userType) {
-            foundUser.userType = "Member";
-        }
-        req.session.userType = foundUser.userType;
-        foundUser.lastLogin = Date.now();
-        await foundUser.save();
-        const redirectUrl = res.locals.returnTo || "/Home";
-        delete req.session.returnTo;
-        res.locals.returnTo = null;
-        return res.redirect(redirectUrl);
+        await startUserSession(req, foundUser);
+        return res.redirect(takeRedirectUrl(req, res));
     }
-    else {
-        req.flash("messages", t("auth.wrongCredentials"));
-        console.log("login failed");
-        res.redirect("/login");
+    req.flash("messages", t("auth.wrongCredentials"));
+    return res.redirect("/login");
+});
+
+/** Same authentication as the form post, for the two-step login screen. */
+exports.loginJson = catchAsync(async (req, res) => {
+    const { username, password } = readCredentials(req.body);
+    const foundUser = username && password
+        ? await userService.findUser(username, password)
+        : null;
+    if (!foundUser) {
+        return res.status(401).json({ ok: false });
     }
+    await startUserSession(req, foundUser);
+    return res.json({ ok: true, redirectUrl: takeRedirectUrl(req, res) });
 });
 
 exports.showAdminPage = catchAsync(async (req, res) => {

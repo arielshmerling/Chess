@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "¿Quién eres?",
+        "enterPassword": "Introduce tu contraseña",
+        "sorry": "Lo sentimos",
+        "continue": "Continuar",
+        "usernameField": "Nombre de usuario",
+        "passwordField": "Contraseña",
         "wrongCredentials": "Nombre de usuario o contraseña incorrectos",
         "userAdded": "Usuario añadido correctamente",
         "couldNotSaveBookmark": "No se pudo guardar el marcador",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Buscar:",
+            "tagline": "Encuentra partidas en el archivo PGN",
+            "results": "Resultados",
+            "resultsCount": "{{count}} resultados",
+            "noResults": "Ninguna partida coincide con tu búsqueda",
             "button": "Buscar",
             "resultsFound": "{{count}} resultados encontrados:",
             "first": "Primero",

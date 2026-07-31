@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "Wer bist du?",
+        "enterPassword": "Gib dein Passwort ein",
+        "sorry": "Tut uns leid",
+        "continue": "Weiter",
+        "usernameField": "Benutzername",
+        "passwordField": "Passwort",
         "wrongCredentials": "Falscher Benutzername oder falsches Passwort",
         "userAdded": "Benutzer erfolgreich hinzugefügt",
         "couldNotSaveBookmark": "Lesezeichen konnte nicht gespeichert werden",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "Suche:",
+            "tagline": "Partien im PGN-Archiv finden",
+            "results": "Ergebnisse",
+            "resultsCount": "{{count}} Ergebnisse",
+            "noResults": "Keine Partien passen zur Suche",
             "button": "Suchen",
             "resultsFound": "{{count}} Ergebnisse gefunden:",
             "first": "Erste",

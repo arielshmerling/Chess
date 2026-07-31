@@ -4,11 +4,17 @@ const { test, expect } = require("@playwright/test");
 const username = process.env.E2E_USERNAME || "e2e_web_member";
 const password = process.env.E2E_PASSWORD || "E2eTestPass!123";
 
+async function submitCredentials(page, pass) {
+    await page.locator("#username").fill(username);
+    await page.locator("#loginNext").click();
+    await expect(page.locator("#password")).toBeVisible();
+    await page.locator("#password").fill(pass);
+    await page.locator("#loginNext").click();
+}
+
 async function login(page) {
     await page.goto("/login");
-    await page.locator("#username").fill(username);
-    await page.locator("#password").fill(password);
-    await page.locator('form[action="/login"] button').click();
+    await submitCredentials(page, password);
     await expect(page).toHaveURL(/\/home/i);
 }
 
@@ -48,14 +54,16 @@ test.describe("web smoke", () => {
         await expect(page.locator("#username")).toBeVisible();
     });
 
-    test("wrong password remains on login", async ({ page }) => {
+    test("wrong password shows Sorry then returns to Who are you", async ({ page }) => {
         await page.goto("/login");
-        await page.locator("#username").fill(username);
-        await page.locator("#password").fill("wrong-password");
-        await page.locator('form[action="/login"] button').click();
+        await submitCredentials(page, "wrong-password");
 
+        await expect(page.locator("#loginPrompt")).toHaveText(/Sorry/i, { timeout: 10_000 });
         await expect(page).toHaveURL(/\/login/);
+
+        await expect(page.locator("#loginPrompt")).toHaveText(/Who are you/i, { timeout: 10_000 });
         await expect(page.locator("#username")).toBeVisible();
+        await expect(page.locator("#username")).toHaveValue("");
     });
 
     test("logout clears the authenticated session", async ({ page }) => {
@@ -71,9 +79,7 @@ test.describe("web smoke", () => {
         await page.goto("/friends");
         await expect(page).toHaveURL(/\/login/);
 
-        await page.locator("#username").fill(username);
-        await page.locator("#password").fill(password);
-        await page.locator('form[action="/login"] button').click();
+        await submitCredentials(page, password);
 
         await expect(page).toHaveURL(/\/friends/);
         await expect(page.locator("#friendSearchInput")).toBeVisible();

@@ -31,6 +31,12 @@
         }
     },
     "auth": {
+        "whoAreYou": "你是谁？",
+        "enterPassword": "请输入密码",
+        "sorry": "抱歉",
+        "continue": "继续",
+        "usernameField": "用户名",
+        "passwordField": "密码",
         "wrongCredentials": "用户名或密码错误",
         "userAdded": "用户添加成功",
         "couldNotSaveBookmark": "无法保存书签",
@@ -398,6 +404,10 @@
         },
         "searchPage": {
             "title": "搜索：",
+            "tagline": "在 PGN 存档中查找对局",
+            "results": "结果",
+            "resultsCount": "{{count}} 条结果",
+            "noResults": "没有符合搜索条件的对局",
             "button": "搜索",
             "resultsFound": "找到 {{count}} 条结果：",
             "first": "首页",

@@ -5,7 +5,7 @@ function populatePaletteSelctor() {
 
         const palletes = [
             { id: "blue", theme: themes.blueTheme },
-            { id: "dark", theme: themes.pinkTheme },
+            { id: "dark", theme: themes.darkTheme },
         ];
 
         for (const config of palletes) {
