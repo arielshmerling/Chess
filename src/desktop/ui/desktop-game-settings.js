@@ -26,6 +26,7 @@
         mouse: "drag",
         showAvailableMoves: true,
         allowUndo: true,
+        isPrivate: false,
         immediateResign: false,
         timeMinutes: 90,
     };
@@ -218,6 +219,7 @@
             color: opts.color,
             engine: opts.engine,
             allowUndo: opts.allowUndo,
+            isPrivate: opts.isPrivate === true,
             timeMinutes: opts.timeMinutes,
             mouse: opts.mouse,
             thinkingTimeSeconds: opts.thinkingTimeSeconds,
@@ -290,6 +292,7 @@
             mousePreference: opts.mouse || DEFAULTS.mouse,
             showAvailableMoves: opts.showAvailableMoves !== false,
             allowUndo: opts.allowUndo !== false,
+            isPrivate: opts.isPrivate === true,
             gameType: "SinglePlayerGame",
         };
     }

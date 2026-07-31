@@ -64,6 +64,9 @@
         if (source.showAvailableMoves === true || source.showAvailableMoves === false) {
             target.showAvailableMoves = source.showAvailableMoves;
         }
+        if (source.isPrivate === true || source.isPrivate === false) {
+            target.isPrivate = source.isPrivate === true;
+        }
         return target;
     }
 
@@ -102,6 +105,11 @@
                 target.showAvailableMoves = true;
             } else if (params.get("showMoves") === "0") {
                 target.showAvailableMoves = false;
+            }
+            if (params.get("private") === "1") {
+                target.isPrivate = true;
+            } else if (params.get("private") === "0") {
+                target.isPrivate = false;
             }
         } catch {
             /* ignore malformed query string */

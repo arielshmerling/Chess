@@ -157,6 +157,27 @@ const extra = {
         cancel: "Cancel",
         notice: "Notice",
         ok: "OK",
+        footer: {
+            logoAlt: "Shmerling Chess",
+            navAria: "Footer",
+            privacy: "Privacy Policy",
+            terms: "Terms of Use",
+            contact: "Contact",
+            copyright: "© {{year}} Shmerling Chess. All rights reserved.",
+            lastUpdated: "Last updated: {{date}}",
+            privacyTitle: "Privacy Policy",
+            privacyLead: "How Shmerling Chess handles account and gameplay information.",
+            privacyBody:
+                "We use your account details to operate the service, keep games and preferences, and improve the product. We do not sell personal information. Full policy text will be published here.",
+            termsTitle: "Terms of Use",
+            termsLead: "The rules for using Shmerling Chess.",
+            termsBody:
+                "By using Shmerling Chess you agree to play fairly, respect other players, and use the service only for personal chess play. Full terms will be published here.",
+            contactTitle: "Contact",
+            contactLead: "Get in touch with the Shmerling Chess team.",
+            contactBody:
+                "Contact details for support and privacy questions will be published here.",
+        },
         username: "Username:",
         password: "Password:",
         login: "Login",
@@ -180,7 +201,7 @@ const extra = {
             viewAllActive: "View all active games",
             mostRecent: "Most recent first",
             noGamesNow: "No games at the moment",
-            myGames: "My Games",
+            myGames: "My Last Games",
             viewAllGames: "View All Games",
             recentCompleted: "Your recent completed games",
             noCompleted: "No completed games yet",
@@ -404,6 +425,8 @@ const extra = {
             doubleClick: "Double click",
             showAvailableMoves: "Show available moves",
             private: "Private",
+            privateHint:
+                "Private games are not shown on other members' Active Games lists.",
             playComputer: "Play computer",
             browseAll: "Browse all",
             yourHistory: "Your history",
@@ -471,6 +494,7 @@ const extra = {
         },
         chrome: {
             preferences: "Preferences",
+            closePreferences: "Close preferences",
             display: "Display",
             gameplay: "Gameplay",
             pieceSet: "Piece set",

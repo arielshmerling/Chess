@@ -13,6 +13,9 @@ router.post("/api/login", storeReturnTo, userController.loginJson);
 
 router.get("/logout", userController.logout);
 router.get("/validateUsername", userController.validateUsername);
+router.get("/privacy", userController.showPrivacyPage);
+router.get("/terms", userController.showTermsPage);
+router.get("/contact", userController.showContactPage);
 
 
 router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGenerateState);

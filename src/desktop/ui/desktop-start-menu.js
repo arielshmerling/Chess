@@ -78,6 +78,13 @@
             (last.allowUndo !== false ? " checked" : "") +
             '><span class="desktop-check-box" aria-hidden="true"></span><span>' +
             t("play.newGameDialog.allowUndo") +
+            "</span></label>" +
+            '<label class="desktop-check" title="' +
+            t("play.newGameDialog.privateHint").replace(/"/g, "&quot;") +
+            '"><input type="checkbox" name="private" value="1"' +
+            (last.isPrivate === true ? " checked" : "") +
+            '><span class="desktop-check-box" aria-hidden="true"></span><span>' +
+            t("play.newGameDialog.private") +
             "</span></label>";
         form.appendChild(checks);
 
@@ -108,6 +115,7 @@
                 color: fd.get("color") || "white",
                 engine: fd.get("engine") || "brain43",
                 allowUndo: fd.get("allowUndo") === "1",
+                isPrivate: fd.get("private") === "1",
                 timeMinutes: parseInt(fd.get("timeMinutes"), 10) || 90,
                 mouse: gamePrefs.mouse,
                 thinkingTimeSeconds: gamePrefs.thinkingTimeSeconds,

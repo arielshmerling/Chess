@@ -230,6 +230,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Time per side (minutes)",
                 allowUndo: "Allow undo",
+                private: "Private",
+                privateHint:
+                    "Private games are not shown on other members' Active Games lists.",
             },
             prompts: {
                 positionName: "Position name",

@@ -32,7 +32,11 @@
         "  </button>",
         '  <div class="desktop-prefs-panel" id="desktopPrefsPanel" role="dialog"',
         '    aria-labelledby="desktopPrefsTitle" hidden>',
-        '    <h2 class="desktop-prefs-title" id="desktopPrefsTitle">' + t("desktop.chrome.preferences") + "</h2>",
+        '    <div class="desktop-prefs-header">',
+        '      <h2 class="desktop-prefs-title" id="desktopPrefsTitle">' + t("desktop.chrome.preferences") + "</h2>",
+        '      <button type="button" class="desktop-prefs-close" id="desktopPrefsClose"',
+        '        aria-label="' + t("desktop.chrome.closePreferences") + '">×</button>',
+        "    </div>",
         '    <section class="desktop-prefs-section desktop-prefs-section--language">',
         '      <h3 class="desktop-prefs-section-title">' + t("desktop.prefs.language") + "</h3>",
         '      <div id="desktopPrefsLanguage" class="desktop-prefs-language-host"></div>',
@@ -227,18 +231,14 @@
             setOpen(panel.hidden);
         });
 
-        document.addEventListener("click", function (e) {
-            if (panel.hidden) {
-                return;
-            }
-            var customPanel = document.getElementById("desktopCustomThemePanel");
-            if (customPanel && !customPanel.hidden && customPanel.contains(e.target)) {
-                return;
-            }
-            if (!panel.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)) {
+        var closeBtn = document.getElementById("desktopPrefsClose");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
                 setOpen(false);
-            }
-        });
+                trigger.focus();
+            });
+        }
 
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape" && !panel.hidden) {

@@ -213,6 +213,16 @@ describe("play-ui launch options", function () {
         assert.strictEqual(opts.showAvailableMoves, false);
     });
 
+    it("merges private launch option from stored prefs and URL", function () {
+        const opts = { isPrivate: false };
+        LaunchOptions.mergeStored(opts, { isPrivate: true }, engineOpts);
+        assert.strictEqual(opts.isPrivate, true);
+        LaunchOptions.applyUrlSearch(opts, "?private=0", engineOpts);
+        assert.strictEqual(opts.isPrivate, false);
+        LaunchOptions.applyUrlSearch(opts, "?private=1", engineOpts);
+        assert.strictEqual(opts.isPrivate, true);
+    });
+
     it("detects newGame=1", function () {
         assert.ok(LaunchOptions.wantsNewGameDialog("?newGame=1"));
         assert.ok(!LaunchOptions.wantsNewGameDialog(""));

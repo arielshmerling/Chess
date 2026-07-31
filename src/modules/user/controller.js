@@ -24,6 +24,39 @@ exports.showLoginPage = (req, res) => {
     res.render("login", { appVersion, errorMessage, game });
 };
 
+function renderLegalPage(res, keys) {
+    res.render("legal", {
+        pageTitle: t(keys.title),
+        pageLead: t(keys.lead),
+        pageBody: t(keys.body),
+        lastUpdated: "July 30, 2026",
+    });
+}
+
+exports.showPrivacyPage = (req, res) => {
+    renderLegalPage(res, {
+        title: "site.footer.privacyTitle",
+        lead: "site.footer.privacyLead",
+        body: "site.footer.privacyBody",
+    });
+};
+
+exports.showTermsPage = (req, res) => {
+    renderLegalPage(res, {
+        title: "site.footer.termsTitle",
+        lead: "site.footer.termsLead",
+        body: "site.footer.termsBody",
+    });
+};
+
+exports.showContactPage = (req, res) => {
+    renderLegalPage(res, {
+        title: "site.footer.contactTitle",
+        lead: "site.footer.contactLead",
+        body: "site.footer.contactBody",
+    });
+};
+
 exports.logout = async (req, res) => {
     req.session.user_id = null;
     req.session = null;

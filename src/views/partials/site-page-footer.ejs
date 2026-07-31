@@ -1,0 +1,21 @@
+<footer class="site-page-footer" role="contentinfo">
+  <div class="site-page-footer-inner">
+    <div class="site-page-footer-brand">
+      <img
+        class="site-page-footer-logo"
+        src="/images/shmerling.png"
+        alt="<%= t('site.footer.logoAlt') %>"
+        width="160"
+        height="48">
+      <p class="site-page-footer-tagline"><%= t('play.appTitle') %></p>
+    </div>
+    <nav class="site-page-footer-nav" aria-label="<%= t('site.footer.navAria') %>">
+      <a href="/privacy"><%= t('site.footer.privacy') %></a>
+      <a href="/terms"><%= t('site.footer.terms') %></a>
+      <a href="/contact"><%= t('site.footer.contact') %></a>
+    </nav>
+    <p class="site-page-footer-copy">
+      <%= t('site.footer.copyright', { year: new Date().getFullYear() }) %>
+    </p>
+  </div>
+</footer>

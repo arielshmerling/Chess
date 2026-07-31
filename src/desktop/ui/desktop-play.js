@@ -5688,6 +5688,7 @@
                 color: launchOpts.color === "black" ? "black" : "white",
                 engine: launchOpts.engine || "brain43",
                 allowUndo: launchOpts.allowUndo !== false,
+                isPrivate: launchOpts.isPrivate === true,
                 timeMinutes: launchOpts.timeMinutes,
                 mouse: launchOpts.mouse,
                 thinkingTimeSeconds: launchOpts.thinkingTimeSeconds != null

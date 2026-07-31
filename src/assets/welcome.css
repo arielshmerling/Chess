@@ -6,11 +6,21 @@ body {
     overflow-x: hidden !important;
     height: auto !important;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Theme palette sits after <main> in the layout and must not leave space under the footer. */
+#paletteSelctor.palettes {
+    display: none;
 }
 
 main {
     width: 100%;
     overflow: visible;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .welcome-container {
@@ -18,7 +28,10 @@ main {
     width: 100%;
     margin: 0 auto;
     padding: 0;
-    min-height: 100vh;
+    flex: 1 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Hero Banner - colors from theme (--hero-* set in themes.js) */
@@ -30,7 +43,7 @@ main {
     margin-right: calc(50% - 50vw);
     background: linear-gradient(135deg, var(--hero-bg-start) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-end) 100%);
     padding: 30px 60px;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     overflow: hidden;
     border-bottom: 3px solid var(--hero-border);
     box-sizing: border-box;
@@ -91,7 +104,7 @@ main {
     font-size: 48px;
     font-weight: 300;
     color: var(--lighter);
-    margin: 0 0 12px 0;
+    margin: 0;
     background: linear-gradient(135deg, var(--lighter) 0%, var(--semiLight) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -102,7 +115,7 @@ main {
 .hero-tagline {
     font-size: 18px;
     color: var(--semiLight);
-    margin: 0;
+    margin: 12px 0 0 0;
     font-weight: 300;
     letter-spacing: 1px;
     font-style: italic;
@@ -663,17 +676,20 @@ main {
 .games-section {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 40px 60px;
+    padding: 0 40px 32px;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 16px;
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Welcome: Active games + Friends side by side */
 .welcome-active-games-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 30px;
+    gap: 16px;
     align-items: stretch;
 }
 
@@ -722,7 +738,7 @@ main {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2.75rem;
+    gap: 1rem;
 }
 
 .home-friends-empty-hint {
@@ -737,11 +753,11 @@ main {
 }
 
 .games-panel {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(33, 51, 79, 0.5) 100%);
-    border: 2px solid rgba(152, 193, 217, 0.25);
-    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(152, 193, 217, 0.2);
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -749,9 +765,9 @@ main {
 
 
 .panel-header {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(45, 49, 52, 0.7) 100%);
-    padding: 25px 30px;
-    border-bottom: 2px solid rgba(152, 193, 217, 0.2);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(152, 193, 217, 0.15);
 }
 
 .panel-header-top {
@@ -760,7 +776,7 @@ main {
     align-items: center;
     justify-content: space-between;
     gap: 12px 16px;
-    margin-bottom: 8px;
+    margin-bottom: 0;
 }
 
 .panel-header-top .panel-title-group {
@@ -774,22 +790,22 @@ main {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-decoration: none;
     color: var(--light);
-    background: rgba(152, 193, 217, 0.12);
-    border: 1px solid rgba(152, 193, 217, 0.35);
-    border-radius: 10px;
+    background: rgba(152, 193, 217, 0.1);
+    border: 1px solid rgba(152, 193, 217, 0.3);
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .panel-show-all-btn:hover {
-    background: rgba(152, 193, 217, 0.22);
-    border-color: rgba(152, 193, 217, 0.5);
+    background: rgba(152, 193, 217, 0.2);
+    border-color: rgba(152, 193, 217, 0.45);
     color: var(--lighter);
     text-decoration: none;
 }
@@ -802,52 +818,37 @@ main {
 .panel-title-group {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 0;
 }
 
 .panel-title {
-    font-size: 28px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--light);
     margin: 0;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .panel-badge {
-    background: linear-gradient(135deg, rgba(152, 193, 217, 0.4) 0%, rgba(102, 142, 165, 0.5) 100%);
+    background: rgba(152, 193, 217, 0.2);
     color: var(--light);
-    padding: 6px 14px;
-    border-radius: 15px;
-    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    box-shadow: 0 0 20px rgba(152, 193, 217, 0.5);
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-
-    0%,
-    100% {
-        box-shadow: 0 0 20px rgba(152, 193, 217, 0.5);
-    }
-
-    50% {
-        box-shadow: 0 0 30px rgba(152, 193, 217, 0.8);
-    }
+    box-shadow: none;
+    animation: none;
 }
 
 .panel-subtitle {
-    font-size: 14px;
-    color: var(--semiLight);
-    opacity: 0.8;
-    font-weight: 300;
+    display: none;
 }
 
 .panel-body {
-    padding: 25px 30px;
+    padding: 14px 18px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -857,14 +858,19 @@ main {
     flex: 1;
     overflow-y: auto;
     max-height: 500px;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
     padding: 0;
     border: none;
 }
 
 .table-scroll.compact {
     max-height: 400px;
+}
+
+.my-games-panel .table-scroll.compact {
+    max-height: none;
+    overflow: visible;
 }
 
 .table-scroll::-webkit-scrollbar {
@@ -902,13 +908,13 @@ main {
 .games-table th {
     background: var(--panel-background);
     color: var(--light);
-    padding: 16px 12px;
+    padding: 10px 12px;
     text-align: left;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 1px solid var(--semiLight);
+    letter-spacing: 0.5px;
+    border-bottom: none;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -955,22 +961,18 @@ main {
 }
 
 .games-table tbody tr {
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: none;
-    transition: all 0.3s ease;
+    background: transparent;
+    border-bottom: 1px solid rgba(152, 193, 217, 0.08);
+    transition: background 0.15s ease;
     cursor: pointer;
 }
 
-.games-table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.03);
-}
-
 .games-table tbody tr:hover {
-    background: linear-gradient(90deg, rgba(152, 193, 217, 0.25) 0%, rgba(152, 193, 217, 0.15) 100%);
+    background: rgba(152, 193, 217, 0.12);
 }
 
 .games-table td {
-    padding: 14px 12px;
+    padding: 10px 12px;
     color: var(--light);
     font-size: 14px;
 }
@@ -988,40 +990,154 @@ main {
 }
 
 .panel-footer {
-    padding: 20px 30px;
+    padding: 12px 18px;
     margin-top: auto;
 }
 
 .footer-link {
     color: var(--semiLight);
     text-decoration: none;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 20px;
-    border-radius: 10px;
-    background: rgba(152, 193, 217, 0.1);
-    border: 1px solid rgba(152, 193, 217, 0.2);
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    background: rgba(152, 193, 217, 0.08);
+    border: 1px solid rgba(152, 193, 217, 0.18);
 }
 
 .footer-link svg {
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
 }
 
 .footer-link:hover {
     color: var(--lighter);
-    background: rgba(152, 193, 217, 0.25);
-    border-color: rgba(152, 193, 217, 0.4);
+    background: rgba(152, 193, 217, 0.16);
+    border-color: rgba(152, 193, 217, 0.35);
     text-decoration: none;
-    box-shadow: 0 4px 15px rgba(152, 193, 217, 0.3);
+    box-shadow: none;
 }
 
 .footer-link:hover svg {
-    transform: translateX(5px);
+    transform: translateX(3px);
+}
+
+/* Page footer — matches #header topbar background; flush to viewport bottom */
+.site-page-footer {
+    margin-top: auto;
+    margin-bottom: 0;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    min-height: 250px;
+    background-color: rgba(10, 10, 10, 0.5);
+    border-top: 1px solid rgba(152, 193, 217, 0.12);
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+}
+
+.site-page-footer-inner {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 36px 40px;
+    color: var(--semiLight);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+    box-sizing: border-box;
+}
+
+.site-page-footer-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.site-page-footer-logo {
+    display: block;
+    height: 48px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+}
+
+.site-page-footer-tagline {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+}
+
+.site-page-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+}
+
+.site-page-footer-nav a {
+    color: var(--light);
+    font-size: 14px;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    opacity: 0.9;
+}
+
+.site-page-footer-nav a:hover,
+.site-page-footer-nav a:focus-visible {
+    color: var(--lighter);
+    text-decoration: underline;
+    outline: none;
+}
+
+.site-page-footer-copy {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+
+.legal-page-content {
+    max-width: 760px;
+    width: 100%;
+    margin: 80px auto 40px;
+    padding: 0 40px;
+    box-sizing: border-box;
+    flex: 1 0 auto;
+}
+
+.legal-page-title {
+    margin: 0 0 12px;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--lighter);
+}
+
+.legal-page-lead {
+    margin: 0 0 18px;
+    font-size: 17px;
+    color: var(--semiLight);
+}
+
+.legal-page-body {
+    margin: 0 0 24px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--light);
+}
+
+.legal-page-updated {
+    margin: 0;
+    font-size: 13px;
+    color: var(--semiLight);
+    opacity: 0.75;
 }
 
 /* Active games — full list page: table visibility */
@@ -1045,7 +1161,7 @@ main {
 #online-games-cards-root {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
 }
 
@@ -1062,19 +1178,21 @@ main {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: stretch;
-    gap: 20px;
-    padding: 20px 22px;
-    border-radius: 16px;
-    background: linear-gradient(145deg, rgba(152, 193, 217, 0.18) 0%, rgba(33, 51, 79, 0.55) 100%);
-    border: 2px solid rgba(152, 193, 217, 0.45);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(152, 193, 217, 0.25);
+    box-shadow: none;
     cursor: pointer;
     text-align: left;
-    transition: box-shadow 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .active-game-highlight:hover {
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    background: rgba(152, 193, 217, 0.1);
+    border-color: rgba(152, 193, 217, 0.4);
+    box-shadow: none;
 }
 
 .active-highlight-board-wrap {
@@ -1269,18 +1387,18 @@ main {
 
 /* No Games Message */
 .no-games-message {
-    padding: 60px 30px;
+    padding: 28px 18px;
     text-align: center;
     color: var(--semiLight);
     opacity: 0.8;
 }
 
 .no-games-message p {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 300;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     margin: 0;
-    font-style: italic;
+    font-style: normal;
 }
 
 /* Responsive Design */

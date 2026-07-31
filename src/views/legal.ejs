@@ -1,0 +1,14 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+
+<div class="welcome-container legal-page">
+  <div class="legal-page-content">
+    <h1 class="legal-page-title"><%= pageTitle %></h1>
+    <p class="legal-page-lead"><%= pageLead %></p>
+    <p class="legal-page-body"><%= pageBody %></p>
+    <p class="legal-page-updated"><%= t('site.footer.lastUpdated', { date: lastUpdated }) %></p>
+  </div>
+
+  <%- include('partials/site-page-footer') %>
+</div>
