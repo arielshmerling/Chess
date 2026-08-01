@@ -59,10 +59,49 @@ body.desktop-has-topbar {
   flex: 1;
 }
 
+.desktop-topbar-game-actions {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.desktop-topbar-game-actions[hidden] {
+  display: none !important;
+}
+
+.desktop-topbar-lobby-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(152, 193, 217, 0.45);
+  background: rgba(90, 143, 184, 0.35);
+  color: #f2f7fb;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.desktop-topbar-lobby-btn:hover {
+  background: rgba(90, 143, 184, 0.55);
+  border-color: rgba(152, 193, 217, 0.7);
+}
+
 .desktop-topbar-actions {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .desktop-prefs {

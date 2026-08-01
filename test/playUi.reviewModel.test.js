@@ -181,4 +181,37 @@ describe("play-ui review model", function () {
             assert.strictEqual(state.playPause, true);
         });
     });
+
+    describe("review clock helpers", function () {
+        it("infers initial seconds from the first dual timer snapshot", function () {
+            const moves = [
+                { moveStr: "e4", whiteTimer: 880, blackTimer: 900 },
+                { moveStr: "e5", whiteTimer: 870, blackTimer: 890 },
+            ];
+            assert.strictEqual(ReviewModel.inferInitialClockSecondsFromMoves(moves), 900);
+            assert.strictEqual(ReviewModel.resolveReviewTimeMinutes(90, moves), 15);
+            assert.strictEqual(ReviewModel.resolveReviewTimeMinutes(15, moves), 15);
+        });
+
+        it("falls back to info minutes when moves have no timers", function () {
+            assert.strictEqual(ReviewModel.resolveReviewTimeMinutes(30, [{ moveStr: "e4" }]), 30);
+            assert.strictEqual(ReviewModel.resolveReviewTimeMinutes(null, []), 90);
+        });
+
+        it("prefers result-move dual timers when syncing clocks", function () {
+            const moves = [
+                { moveStr: "e4", whiteTimer: 800, blackTimer: 900 },
+                { moveStr: "0-1", whiteTimer: 0, blackTimer: 840 },
+            ];
+            const isResult = (m) => m.moveStr === "0-1";
+            const atEnd = ReviewModel.findClockSourceMove(moves, 2, isResult);
+            assert.ok(atEnd);
+            assert.strictEqual(atEnd.move.whiteTimer, 0);
+            assert.strictEqual(atEnd.move.blackTimer, 840);
+
+            const mid = ReviewModel.findClockSourceMove(moves, 1, isResult);
+            assert.ok(mid);
+            assert.strictEqual(mid.move.moveStr, "e4");
+        });
+    });
 });

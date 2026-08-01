@@ -351,6 +351,10 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   text-align: right;
 }
 
+.desktop-play-header-time--flagged {
+  color: #e53935;
+}
+
 .desktop-play-header-clock--disconnected .desktop-play-header-time {
   visibility: hidden;
 }
@@ -412,7 +416,8 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
 }
 
 .desktop-play-status-bar--timeout {
-  color: #e8a060;
+  color: #e53935;
+  font-weight: 600;
 }
 
 .desktop-play-status-bar--error {
@@ -1080,7 +1085,7 @@ html[dir="rtl"] .desktop-play-workspace {
   font-size: 0.78em;
   line-height: 1.35;
   color: var(--panel-forecolor, #ddd);
-  background: var(--textbox-background, rgba(0, 0, 0, 0.2));
+  background: var(--moves-panel-bg, #354c69);
   border-radius: 4px;
 }
 
@@ -1108,7 +1113,7 @@ html[dir="rtl"] .desktop-play-workspace {
   min-width: 0;
   border: 1px solid var(--panel-border, #444);
   border-radius: 4px;
-  background: var(--textbox-background, #1a1a1a);
+  background: var(--moves-panel-bg, #354c69);
   color: var(--panel-forecolor, #fff);
   padding: 6px 8px;
   font: inherit;

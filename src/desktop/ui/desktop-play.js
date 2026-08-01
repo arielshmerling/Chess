@@ -414,6 +414,9 @@
         if (session && typeof session.gameTimeMinutes === "number" && session.gameTimeMinutes >= 1) {
             return Math.round(session.gameTimeMinutes * 60);
         }
+        if (session && typeof session.timeMinutes === "number" && session.timeMinutes >= 1) {
+            return Math.round(session.timeMinutes * 60);
+        }
         return 90 * 60;
     }
 
@@ -425,11 +428,52 @@
             session.blackTimer > 0
                 ? session.blackTimer
                 : white;
+        clearFlaggedClockChrome();
         Clocks.reset({ white: white, black: black });
     }
 
     function setClocksToInitialTime() {
+        clearFlaggedClockChrome();
         Clocks.set({ white: initialClockSeconds(), black: initialClockSeconds() });
+    }
+
+    function clearFlaggedClockChrome() {
+        ["whiteClockTimeText", "blackClockTimeText"].forEach(function (id) {
+            const el = $(id);
+            if (el) {
+                el.classList.remove("desktop-play-header-time--flagged");
+            }
+        });
+    }
+
+    /**
+     * @param {"white"|"black"|string|null|undefined} loserColor
+     */
+    function markFlaggedClock(loserColor) {
+        clearFlaggedClockChrome();
+        const side = String(loserColor || "").toLowerCase();
+        if (side !== "white" && side !== "black") {
+            return;
+        }
+        const el = $(side === "black" ? "blackClockTimeText" : "whiteClockTimeText");
+        if (el) {
+            el.classList.add("desktop-play-header-time--flagged");
+        }
+    }
+
+    /**
+     * @param {"white"|"black"|string|null|undefined} loserColor
+     */
+    function showTimeoutStatus(loserColor) {
+        const side = String(loserColor || "").toLowerCase();
+        const loser = localizeColorName(side === "black" ? "black" : "white");
+        showStatus(t("play.status.timesUpLost", { loser: loser }), 0, "timeout");
+        const clocks = Clocks.get();
+        Clocks.set({
+            white: side === "white" ? 0 : clocks.white,
+            black: side === "black" ? 0 : clocks.black,
+        });
+        markFlaggedClock(side);
     }
 
     function updateHeaderClockHighlight() {
@@ -593,7 +637,7 @@
             return;
         }
         const loser = game.Turn;
-        showStatus(t("play.status.timesUpLost", { loser: localizeColorName(loser) }), 5000, "timeout");
+        showTimeoutStatus(loser);
         game.OutOfTime = loser;
         updateMovesTable(tableMovesFromGame());
         updateActionButtons();
@@ -1729,12 +1773,13 @@
     }
 
     /**
-     * Capture result / resign from a finished review position + move list.
+     * Capture result / resign / timeout from a finished review position + move list.
      * @param {string} finalStateStr
      * @param {object[]} moves
+     * @param {string} [reasonHint] Persisted game reason (e.g. "Out Of Time. white lost")
      * @returns {{ resultStr: string|null, resignedColor: string|null, endKind: string|null }}
      */
-    function captureReviewOutcome(finalStateStr, moves) {
+    function captureReviewOutcome(finalStateStr, moves, reasonHint) {
         let resultStr = null;
         let resignedColor = resignedColorFromStateStr(finalStateStr);
         let endKind = null;
@@ -1770,13 +1815,60 @@
                 break;
             }
         }
+        /* DB / server reason — needed when replaying moves does not restore outOfTime/resign flags. */
+        if (!endKind && reasonHint) {
+            const reason = String(reasonHint).toLowerCase();
+            if (/out\s*of\s*time|timeout|flag|time'?s?\s*up/.test(reason)) {
+                endKind = "timeout";
+                const whiteLost = /\bwhite\b/.test(reason) && /lost/.test(reason);
+                const blackLost = /\bblack\b/.test(reason) && /lost/.test(reason);
+                if (!resultStr) {
+                    if (whiteLost) {
+                        resultStr = "0-1";
+                    } else if (blackLost) {
+                        resultStr = "1-0";
+                    }
+                }
+            } else if (/resign/.test(reason)) {
+                endKind = "resign";
+                if (!resignedColor) {
+                    if (/\bwhite\b/.test(reason)) {
+                        resignedColor = "white";
+                    } else if (/\bblack\b/.test(reason)) {
+                        resignedColor = "black";
+                    }
+                }
+                if (!resultStr && resignedColor) {
+                    resultStr = resignedColor === "black" ? "1-0" : "0-1";
+                }
+            } else if (/checkmate/.test(reason)) {
+                endKind = "checkmate";
+            } else if (/draw|stalemate|repetition|material|agreement|50/.test(reason)) {
+                endKind = "draw";
+                if (!resultStr) {
+                    resultStr = "1/2-1/2";
+                }
+            }
+        }
+        /* Last real ply marked checkmate (PGN # / engine flag). */
+        if (!endKind) {
+            for (let i = list.length - 1; i >= 0; i--) {
+                const m = list[i];
+                if (!m || isTableResultMove(m)) {
+                    continue;
+                }
+                if (m.checkmate === true) {
+                    endKind = "checkmate";
+                }
+                break;
+            }
+        }
         if (!endKind && resultStr === "1/2-1/2") {
             endKind = "draw";
         } else if (!endKind && resignedColor) {
             endKind = "resign";
-        } else if (!endKind && (resultStr === "1-0" || resultStr === "0-1")) {
-            endKind = "checkmate";
         }
+        /* Do not assume checkmate for bare 1-0 / 0-1 — timeout/resign look the same in the score. */
         return {
             resultStr: resultStr,
             resignedColor: resignedColor,
@@ -1837,6 +1929,15 @@
 
     function showReviewOutcomeStatus() {
         showStatus(formatReviewOutcomeStatus(), 0, reviewOutcomeStatusKind());
+        if (reviewEndKind === "timeout") {
+            if (reviewResultMoveStr === "1-0") {
+                markFlaggedClock("black");
+            } else if (reviewResultMoveStr === "0-1") {
+                markFlaggedClock("white");
+            }
+        } else if (!reviewMode) {
+            clearFlaggedClockChrome();
+        }
     }
 
     /**
@@ -1853,12 +1954,22 @@
             typeof move.blackTimer === "number" &&
             Number.isFinite(move.blackTimer)
         ) {
+            const whiteSec = Math.max(0, Math.round(move.whiteTimer));
+            const blackSec = Math.max(0, Math.round(move.blackTimer));
             Clocks.set({
-                white: Math.max(0, Math.round(move.whiteTimer)),
-                black: Math.max(0, Math.round(move.blackTimer)),
+                white: whiteSec,
+                black: blackSec,
             });
+            if (reviewEndKind === "timeout" && whiteSec <= 0) {
+                markFlaggedClock("white");
+            } else if (reviewEndKind === "timeout" && blackSec <= 0) {
+                markFlaggedClock("black");
+            } else {
+                clearFlaggedClockChrome();
+            }
             return;
         }
+        clearFlaggedClockChrome();
         if (!move || !Number.isFinite(move.moveTime)) {
             return;
         }
@@ -1884,12 +1995,16 @@
             resetClocks();
             return;
         }
-        for (let i = reviewPlyIndex - 1; i >= 0; i--) {
-            const m = reviewFullMoves[i];
-            if (!m || isTableResultMove(m)) {
-                continue;
-            }
-            applyReviewClockDisplays(m, i);
+        const source =
+            ReviewModel && typeof ReviewModel.findClockSourceMove === "function"
+                ? ReviewModel.findClockSourceMove(
+                      reviewFullMoves,
+                      reviewPlyIndex,
+                      isTableResultMove,
+                  )
+                : null;
+        if (source && source.move) {
+            applyReviewClockDisplays(source.move, source.index);
             return;
         }
         resetClocks();
@@ -2652,6 +2767,44 @@
             setButtonDisabled,
         );
         syncRightSidebarMode();
+        syncBackToLobbyButton();
+    }
+
+    function shouldShowBackToLobby() {
+        return !!(
+            onlineGameInfo &&
+            onlineGameInfo.gameType === "OnlineGame" &&
+            game &&
+            game.GameOver &&
+            !reviewMode &&
+            !positionSetupMode &&
+            !configurationMode
+        );
+    }
+
+    function syncBackToLobbyButton() {
+        const host = document.getElementById("desktopTopbarGameActions");
+        if (!host) {
+            return;
+        }
+        if (!shouldShowBackToLobby()) {
+            host.hidden = true;
+            host.innerHTML = "";
+            return;
+        }
+        let btn = document.getElementById("desktopBackToLobbyBtn");
+        if (!btn) {
+            btn = document.createElement("button");
+            btn.type = "button";
+            btn.id = "desktopBackToLobbyBtn";
+            btn.className = "desktop-topbar-lobby-btn";
+            btn.addEventListener("click", function () {
+                onHome();
+            });
+            host.appendChild(btn);
+        }
+        btn.textContent = t("play.actions.backToLobby");
+        host.hidden = false;
     }
 
     function sessionPlayerNames(source) {
@@ -3486,7 +3639,11 @@
             }
             initReviewNavigation(stateStr, parsedMoves, entry.originState);
             syncReviewResultMoveFromGame();
-            const outcome = captureReviewOutcome(stateStr, parsedMoves);
+            const bookmarkReason =
+                (entry && entry.reason != null && String(entry.reason)) ||
+                (entry && entry.termination != null && String(entry.termination)) ||
+                "";
+            const outcome = captureReviewOutcome(stateStr, parsedMoves, bookmarkReason);
             if (outcome.resignedColor) {
                 reviewResignedColor = outcome.resignedColor;
             }
@@ -4931,7 +5088,7 @@
                 lastCheckNotifySide = null;
                 alertMode = true;
                 const loser = payload.loser || (game && game.Turn) || "white";
-                showStatus(t("play.status.timesUpLost", { loser: localizeColorName(loser) }), 5000, "timeout");
+                showTimeoutStatus(loser);
                 Clocks.stop();
                 updateActionButtons();
                 tryLogCompletedGame();
@@ -5820,6 +5977,21 @@
                 ? true
                 : !(username && username === blackName && username !== whiteName);
 
+        const rawMoves = (movesObj && movesObj.moves) || [];
+        const parsedMoves =
+            reviewType === "pgn"
+                ? expandPgnMovesForReview(rawMoves)
+                : cloneHistoryMovesForReview(rawMoves);
+        const reviewTimeMinutes =
+            ReviewModel && typeof ReviewModel.resolveReviewTimeMinutes === "function"
+                ? ReviewModel.resolveReviewTimeMinutes(
+                      info.gameTimeMinutes,
+                      reviewType === "pgn" ? [] : parsedMoves,
+                  )
+                : info.gameTimeMinutes != null
+                  ? info.gameTimeMinutes
+                  : 90;
+
         session = {
             engine: null,
             thinkingTimeSeconds: null,
@@ -5829,8 +6001,8 @@
             username: username,
             mouse: info.mousePreference || "drag",
             showAvailableMoves: info.showAvailableMoves !== false,
-            timeMinutes:
-                info.gameTimeMinutes != null ? info.gameTimeMinutes : 90,
+            timeMinutes: reviewTimeMinutes,
+            gameTimeMinutes: reviewTimeMinutes,
         };
         allowUndo = false;
         setCurrentGameId(info.id != null ? info.id : gameId);
@@ -5839,12 +6011,6 @@
         clearLoadedBookmarkDisplayMoves();
         pauseClocksForSetup();
         resetClocks();
-
-        const rawMoves = (movesObj && movesObj.moves) || [];
-        const parsedMoves =
-            reviewType === "pgn"
-                ? expandPgnMovesForReview(rawMoves)
-                : cloneHistoryMovesForReview(rawMoves);
 
         const originTrial = new ChessGame(true);
         originTrial.startNewGame(currentPlayerIsWhite);
@@ -5857,7 +6023,11 @@
             game.loadMoves([]);
         }
         const finalStateStr = JSON.stringify(game.GameState);
-        const outcome = captureReviewOutcome(finalStateStr, parsedMoves);
+        const reasonHint =
+            (info && info.reason != null && String(info.reason).trim()) ||
+            (info && info._resultReason != null && String(info._resultReason).trim()) ||
+            "";
+        const outcome = captureReviewOutcome(finalStateStr, parsedMoves, reasonHint);
         if (game.GameOver && game.ResultMove && game.ResultMove.moveStr) {
             outcome.resultStr = game.ResultMove.moveStr;
         }
@@ -5950,6 +6120,7 @@
         playOnlineMode = null;
         setOpponentConnectionLost(false);
         currentPlayerIsWhite = resolveOnlineHumanIsWhite(info);
+        const spTimeMinutes = info.gameTimeMinutes != null ? info.gameTimeMinutes : 90;
         session = {
             engine: info.engine || "brain43",
             thinkingTimeSeconds: info.difficulty != null ? info.difficulty : 3,
@@ -5959,7 +6130,8 @@
             username: info.username,
             mouse: info.mousePreference || "drag",
             showAvailableMoves: info.showAvailableMoves !== false,
-            timeMinutes: info.gameTimeMinutes != null ? info.gameTimeMinutes : 90,
+            timeMinutes: spTimeMinutes,
+            gameTimeMinutes: spTimeMinutes,
         };
         allowUndo = false;
         setCurrentGameId(info.id);
@@ -6108,6 +6280,8 @@
             info.blackPlayerName && String(info.blackPlayerName).trim()
                 ? info.blackPlayerName
                 : "looking for opponent…";
+        const onlineTimeMinutes =
+            info.gameTimeMinutes != null ? info.gameTimeMinutes : 90;
         session = {
             engine: null,
             thinkingTimeSeconds: null,
@@ -6117,8 +6291,8 @@
             username: info.username,
             mouse: info.mousePreference || "drag",
             showAvailableMoves: info.showAvailableMoves !== false,
-            timeMinutes:
-                info.gameTimeMinutes != null ? info.gameTimeMinutes : 90,
+            timeMinutes: onlineTimeMinutes,
+            gameTimeMinutes: onlineTimeMinutes,
         };
         allowUndo = false;
         setCurrentGameId(info.id);

@@ -347,13 +347,15 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
               "</button>";
           } else {
             primaryBtn =
-              '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
-              (inviteDisabled ? " disabled" : "") +
-              ' data-friend-id="' +
-              esc(f.id) +
-              '" data-username="' +
-              esc(f.username) +
-              '">' + t("site.friendsPage.invite") + '</button>';
+              (window.FriendInviteOptions
+                ? window.FriendInviteOptions.splitInviteButtonHtml(f.id, f.username, inviteDisabled)
+                : '<button type="button" class="friends-btn friends-btn-primary friends-btn-invite"' +
+                  (inviteDisabled ? " disabled" : "") +
+                  ' data-friend-id="' +
+                  esc(f.id) +
+                  '" data-username="' +
+                  esc(f.username) +
+                  '">' + t("site.friendsPage.invite") + '</button>');
           }
           li.innerHTML =
             '<span class="' +
@@ -531,13 +533,33 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     if (inviteBtn && !inviteBtn.disabled) {
       var fid = inviteBtn.getAttribute("data-friend-id");
       if (!fid) return;
-      postJson("/api/friends/game-invite", { targetUserId: fid })
+      var body =
+        window.FriendInviteOptions && typeof window.FriendInviteOptions.buildInviteBody === "function"
+          ? window.FriendInviteOptions.buildInviteBody(fid)
+          : { targetUserId: fid };
+      postJson("/api/friends/game-invite", body)
         .then(function () {
           return refreshData();
         })
         .catch(function (e) {
           showSiteAlert(e.message || t("site.friendsPage.couldNotSendGameInvite"), t("site.friendsPage.gameInvite"));
         });
+      return;
+    }
+    var gearBtn = el.closest(".friends-btn-invite-gear");
+    if (gearBtn && !gearBtn.disabled && window.FriendInviteOptions) {
+      window.FriendInviteOptions.openSettingsPopover(gearBtn, {
+        onInvite: function (friendId, opts) {
+          var payload = window.FriendInviteOptions.buildInviteBody(friendId, opts);
+          postJson("/api/friends/game-invite", payload)
+            .then(function () {
+              return refreshData();
+            })
+            .catch(function (e) {
+              showSiteAlert(e.message || t("site.friendsPage.couldNotSendGameInvite"), t("site.friendsPage.gameInvite"));
+            });
+        },
+      });
     }
   });
 

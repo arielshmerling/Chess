@@ -174,6 +174,118 @@
         };
     }
 
+    /**
+     * Infer initial clock length (seconds) from stored move timer snapshots.
+     * Prefer the first move with both whiteTimer and blackTimer — the larger
+     * value is typically still near the time control.
+     * @param {Array<object>|null|undefined} moves
+     * @returns {number|null}
+     */
+    function inferInitialClockSecondsFromMoves(moves) {
+        const list = moves || [];
+        for (let i = 0; i < list.length; i++) {
+            const m = list[i];
+            if (!m) {
+                continue;
+            }
+            const w = m.whiteTimer;
+            const b = m.blackTimer;
+            if (
+                typeof w === "number" &&
+                Number.isFinite(w) &&
+                typeof b === "number" &&
+                Number.isFinite(b)
+            ) {
+                return Math.max(0, Math.round(Math.max(w, b)));
+            }
+        }
+        let maxSeen = 0;
+        for (let i = 0; i < list.length; i++) {
+            const m = list[i];
+            if (!m) {
+                continue;
+            }
+            if (typeof m.whiteTimer === "number" && Number.isFinite(m.whiteTimer)) {
+                maxSeen = Math.max(maxSeen, m.whiteTimer);
+            }
+            if (typeof m.blackTimer === "number" && Number.isFinite(m.blackTimer)) {
+                maxSeen = Math.max(maxSeen, m.blackTimer);
+            }
+        }
+        return maxSeen > 0 ? Math.round(maxSeen) : null;
+    }
+
+    /**
+     * Resolve review time control in minutes. Prefer timers on moves when the
+     * reported length is missing or the historical review default (90), since
+     * DB reviews often lacked a stored GameTimeLength.
+     * @param {number|null|undefined} infoMinutes
+     * @param {Array<object>|null|undefined} moves
+     * @returns {number}
+     */
+    function resolveReviewTimeMinutes(infoMinutes, moves) {
+        const inferredSec = inferInitialClockSecondsFromMoves(moves);
+        const inferredMins =
+            inferredSec != null && inferredSec >= 30
+                ? Math.max(1, Math.min(180, Math.round(inferredSec / 60)))
+                : null;
+        const fromInfo =
+            typeof infoMinutes === "number" && Number.isFinite(infoMinutes) && infoMinutes >= 1
+                ? Math.max(1, Math.min(180, Math.round(infoMinutes)))
+                : null;
+        if (inferredMins != null && (fromInfo == null || fromInfo === 90)) {
+            return inferredMins;
+        }
+        if (fromInfo != null) {
+            return fromInfo;
+        }
+        if (inferredMins != null) {
+            return inferredMins;
+        }
+        return 90;
+    }
+
+    /**
+     * Pick the move whose clock snapshot should display after `plyIndex` plies.
+     * Prefer dual whiteTimer/blackTimer (including result moves); else last
+     * non-result move with moveTime.
+     * @param {Array<object>|null|undefined} moves
+     * @param {number} plyIndex
+     * @param {(move: object) => boolean} [isResultMove]
+     * @returns {{ move: object, index: number }|null}
+     */
+    function findClockSourceMove(moves, plyIndex, isResultMove) {
+        const list = moves || [];
+        const end = Math.min(Math.max(0, Number(plyIndex) || 0), list.length);
+        for (let i = end - 1; i >= 0; i--) {
+            const m = list[i];
+            if (!m) {
+                continue;
+            }
+            if (
+                typeof m.whiteTimer === "number" &&
+                Number.isFinite(m.whiteTimer) &&
+                typeof m.blackTimer === "number" &&
+                Number.isFinite(m.blackTimer)
+            ) {
+                return { move: m, index: i };
+            }
+        }
+        for (let i = end - 1; i >= 0; i--) {
+            const m = list[i];
+            if (!m) {
+                continue;
+            }
+            if (typeof isResultMove === "function" && isResultMove(m)) {
+                continue;
+            }
+            if (Number.isFinite(m.moveTime)) {
+                return { move: m, index: i };
+            }
+        }
+        return null;
+    }
+
     const ReviewModel = {
         cloneMove: cloneMove,
         cloneMoves: cloneMoves,
@@ -184,6 +296,9 @@
         chessMoveCount: chessMoveCount,
         selectedPly: selectedPly,
         navButtonState: navButtonState,
+        inferInitialClockSecondsFromMoves: inferInitialClockSecondsFromMoves,
+        resolveReviewTimeMinutes: resolveReviewTimeMinutes,
+        findClockSourceMove: findClockSourceMove,
     };
 
     global.PlayReviewModel = ReviewModel;

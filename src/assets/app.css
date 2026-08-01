@@ -2490,6 +2490,13 @@ li {
     color: #e8f4ff;
 }
 
+.friend-game-invite-meta {
+    margin: -6px 0 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(152, 193, 217, 0.95);
+}
+
 .friend-game-invite-actions {
     display: flex;
     gap: 10px;

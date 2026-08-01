@@ -4,6 +4,7 @@ const pgnReader = require("./pgnReader");
 const { ChessGame } = require("../../ChessGame");
 const { Game, State } = require("../game/model");
 const catchAsync = require("../../utils/catchAsync");
+const ReviewModel = require("../../play-ui/review-model");
 const {
     OPENING_BOOK_LINES_BASENAME,
     DEFAULT_MAX_LINE_PLIES,
@@ -55,6 +56,12 @@ exports.GameTypes = {
  * @returns {Promise<Object>} - DB gameDoc. A promise resolving to the saved game document in the database, which includes properties such as `id`, `createdAt`, `updatedAt`.
  */
 exports.storeGameInDB = catchAsync(async (game) => {
+    let timeMinutes;
+    if (game.options && typeof game.options.timeMinutes === "number" && game.options.timeMinutes >= 1) {
+        timeMinutes = Math.max(1, Math.min(180, Math.round(game.options.timeMinutes)));
+    } else if (game.chessGame && typeof game.chessGame.GameTimeLength === "number" && game.chessGame.GameTimeLength > 0) {
+        timeMinutes = Math.max(1, Math.min(180, Math.round(game.chessGame.GameTimeLength / 60)));
+    }
 
     const gameDoc = new Game({
         createBy: game.createdBy.userName,
@@ -64,6 +71,7 @@ exports.storeGameInDB = catchAsync(async (game) => {
         whitePlayer: game.whitePlayer ? game.whitePlayer.userName : "",
         blackPlayer: game.blackPlayer ? game.blackPlayer.userName : "",
         isPrivate: game.isPrivate === true,
+        ...(timeMinutes != null ? { timeMinutes } : {}),
     });
 
     await gameDoc.save();
@@ -426,14 +434,25 @@ exports.findSharedOnlineGameIdByUsernames = catchAsync(async (usernameA, usernam
 exports.findReviewGame = catchAsync(async (id, userName) => {
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
         const gameDoc = await Game.findOne({ _id: id });
+        const moves = gameDoc.moves.map(g => JSON.parse(g));
+        let timeMinutes =
+            typeof gameDoc.timeMinutes === "number" && gameDoc.timeMinutes >= 1
+                ? Math.max(1, Math.min(180, Math.round(gameDoc.timeMinutes)))
+                : null;
+        if (timeMinutes == null && ReviewModel && typeof ReviewModel.resolveReviewTimeMinutes === "function") {
+            timeMinutes = ReviewModel.resolveReviewTimeMinutes(null, moves);
+        }
         const gameInfo = {
             id,
             whitePlayer: gameDoc.whitePlayer,
             blackPlayer: gameDoc.blackPlayer,
             gameType: gameDoc.gameType,
             reviewType: "history",
-            moves: gameDoc.moves.map(g => JSON.parse(g)),
+            moves,
             whitePlayerView: (userName == gameDoc.whitePlayer),
+            reason: gameDoc.reason != null ? String(gameDoc.reason) : "",
+            result: gameDoc.result != null ? String(gameDoc.result) : "",
+            ...(timeMinutes != null ? { timeMinutes } : {}),
         };
         return gameInfo;
     }

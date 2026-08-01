@@ -120,12 +120,23 @@ exports.getFriendsPagePayload = async (currentUserId) => {
     }
 
     const incomingGames = gamesManagerService.findPendingIncomingFriendGameInvites(currentUserId);
-    const incomingGameInvites = incomingGames.map((g) => ({
-        gameId: String(g.gameId),
-        fromUserId: g.createdBy && g.createdBy.userId ? String(g.createdBy.userId) : "",
-        fromUsername:
-            g.whitePlayer && g.whitePlayer.userName != null ? String(g.whitePlayer.userName) : "",
-    }));
+    const incomingGameInvites = incomingGames.map((g) => {
+        const fromId = g.createdBy && g.createdBy.userId ? String(g.createdBy.userId) : "";
+        let fromUsername = "";
+        if (g.createdBy && g.createdBy.userName) {
+            fromUsername = String(g.createdBy.userName);
+        } else if (g.whitePlayer && g.whitePlayer.userId && String(g.whitePlayer.userId) === fromId) {
+            fromUsername = String(g.whitePlayer.userName || "");
+        } else if (g.blackPlayer && g.blackPlayer.userId && String(g.blackPlayer.userId) === fromId) {
+            fromUsername = String(g.blackPlayer.userName || "");
+        }
+        return {
+            gameId: String(g.gameId),
+            fromUserId: fromId,
+            fromUsername: fromUsername,
+            offer: g.inviteOffer || null,
+        };
+    });
 
     return { friends, offersIn, pendingGameInvite, incomingGameInvites };
 };

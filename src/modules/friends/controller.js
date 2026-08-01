@@ -84,12 +84,13 @@ exports.sendGameInvite = catchAsync(async (req, res) => {
     if (targetUserId == null || String(targetUserId).trim() === "") {
         throw new ExpressError("targetUserId is required", 400);
     }
-    const { gameId } = await gameController.createFriendInviteGameForUser(
+    const { gameId, offer } = await gameController.createFriendInviteGameForUser(
         String(req.session.user_id),
         String(req.session.user_name || ""),
-        String(targetUserId).trim()
+        String(targetUserId).trim(),
+        req.body || {}
     );
-    res.json({ ok: true, gameId });
+    res.json({ ok: true, gameId, offer: offer || null });
 });
 
 exports.declineGameInvite = catchAsync(async (req, res) => {

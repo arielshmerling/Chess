@@ -22,6 +22,8 @@ exports.newGame = (gameType, username, userId, options = {}) => {
             timeMinutes: typeof options.timeMinutes === "number" && options.timeMinutes >= 1 && options.timeMinutes <= 180
                 ? options.timeMinutes
                 : 90,
+            allowUndo: options.allowUndo !== false,
+            friendly: options.friendly !== false,
             /* Phase 8: mobile SP runs LocalEngineMode + /api/brain; server skips makeBrainMove. */
             clientEngine: options.clientEngine === true,
         }
@@ -39,6 +41,29 @@ exports.createReviewGame = (userId, username, gameInfo, mode) => {
     const game = GameFactory.createGame(gameInfo, player, mode);
     const blackPlayer = new Player(userId, gameInfo.blackPlayer, false);
     game.joinGame(blackPlayer);
+    if (gameInfo.reason != null && String(gameInfo.reason).trim() !== "") {
+        game.reviewReason = String(gameInfo.reason);
+    }
+    if (gameInfo.result != null && String(gameInfo.result).trim() !== "") {
+        game.reviewResult = String(gameInfo.result);
+    }
+    let timeMinutes =
+        typeof gameInfo.timeMinutes === "number" && gameInfo.timeMinutes >= 1
+            ? Math.max(1, Math.min(180, Math.round(gameInfo.timeMinutes)))
+            : null;
+    if (timeMinutes == null && gameInfo.moves && gameInfo.moves.length) {
+        try {
+            const ReviewModel = require("../../play-ui/review-model");
+            if (ReviewModel && typeof ReviewModel.resolveReviewTimeMinutes === "function") {
+                timeMinutes = ReviewModel.resolveReviewTimeMinutes(null, gameInfo.moves);
+            }
+        } catch {
+            /* optional */
+        }
+    }
+    if (timeMinutes != null && game.chessGame) {
+        game.chessGame.GameTimeLength = timeMinutes * 60;
+    }
     return game;
 };
 

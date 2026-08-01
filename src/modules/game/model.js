@@ -49,6 +49,13 @@ const gameSchema = new mongoose.Schema({
         default: false,
     },
 
+    /** Time control in minutes (optional; older docs may omit — inferred from move timers on review). */
+    timeMinutes: {
+        type: Number,
+        min: 1,
+        max: 180,
+    },
+
     moves: [{
         type: String,
     }]

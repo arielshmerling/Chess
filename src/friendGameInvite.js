@@ -77,7 +77,29 @@
         }, 380);
     }
 
-    function showInviteCard(fromUsername, gameId) {
+    function formatOfferMeta(offer) {
+        if (!offer || typeof offer !== "object") {
+            return "";
+        }
+        var parts = [];
+        if (typeof offer.timeMinutes === "number") {
+            parts.push(t("site.friendsPage.inviteOfferTime", { minutes: offer.timeMinutes }));
+        }
+        if (offer.friendly === true) {
+            parts.push(t("site.friendsPage.inviteOfferFriendly"));
+        } else if (offer.friendly === false) {
+            parts.push(t("site.friendsPage.inviteOfferRated"));
+        }
+        if (offer.isPrivate === true) {
+            parts.push(t("site.friendsPage.inviteOfferPrivate"));
+        }
+        if (!parts.length) {
+            return "";
+        }
+        return '<p class="friend-game-invite-meta">' + esc(parts.join(" · ")) + "</p>";
+    }
+
+    function showInviteCard(fromUsername, gameId, offer) {
         if (!gameId) {
             return;
         }
@@ -93,13 +115,20 @@
         card.setAttribute("aria-label", t("site.friendsPage.gameInvitationAria"));
         var whoName = fromUsername || t("site.friendsPage.aFriend");
         var who = esc(whoName);
-        var inviteLine = esc(
-            t("site.friendsPage.wantsToPlayAsBlack", { name: "{{NAME}}" }),
-        ).replace("{{NAME}}", "<strong>" + who + "</strong>");
+        var youPlayAs = offer && offer.youPlayAs === "white" ? "white" : "black";
+        var lineKey =
+            youPlayAs === "white"
+                ? "site.friendsPage.wantsToPlayYouWhite"
+                : "site.friendsPage.wantsToPlayAsBlack";
+        var inviteLine = esc(t(lineKey, { name: "{{NAME}}" })).replace(
+            "{{NAME}}",
+            "<strong>" + who + "</strong>",
+        );
         card.innerHTML =
             "<div class=\"friend-game-invite-card\">" +
             "<div class=\"friend-game-invite-title\">" + esc(t("site.friendsPage.chessInviteTitle")) + "</div>" +
             "<p class=\"friend-game-invite-line\">" + inviteLine + "</p>" +
+            formatOfferMeta(offer) +
             "<div class=\"friend-game-invite-actions\">" +
             "<button type=\"button\" class=\"friend-game-invite-btn friend-game-invite-accept\">" +
             esc(t("site.friendsPage.accept")) +
@@ -118,11 +147,15 @@
                 }
                 acceptBtn.disabled = true;
                 postJson("/api/friends/game-invite-accept", { gameId: gid })
-                    .then(function () {
+                    .then(function (data) {
                         removeInviteCardImmediate(gid);
-                        /* Accept already joins as Black; Prefer-Play goes straight to /play. */
+                        var side = data && data.youPlayAs === "white" ? "white" : "black";
+                        var roleHint =
+                            side === "white"
+                                ? t("site.friendsPage.youPlayAsWhite")
+                                : t("site.friendsPage.youPlayAsBlack");
                         showEstablishingOverlayThenNavigate(
-                            t("site.friendsPage.youPlayAsBlack"),
+                            roleHint,
                             (window.__SHMERLING_USE_NEW_PLAY_UI__
                                 ? "/play?id="
                                 : "/game?gameType=2&joinGame=") +
@@ -246,13 +279,16 @@
         }
         if (msg.type === "friendGameInvite" && msg.data) {
             var d = msg.data;
-            showInviteCard(d.fromUsername, d.gameId);
+            showInviteCard(d.fromUsername, d.gameId, d.offer || null);
             return;
         }
         if (msg.type === "friendGameInviteAccepted" && msg.data && msg.data.gameId) {
             var gidAcc = String(msg.data.gameId);
+            var inviterSide = msg.data.youPlayAs === "black" ? "black" : "white";
             showEstablishingOverlayThenNavigate(
-                t("site.friendsPage.youPlayAsWhite"),
+                inviterSide === "black"
+                    ? t("site.friendsPage.youPlayAsBlack")
+                    : t("site.friendsPage.youPlayAsWhite"),
                 (window.__SHMERLING_USE_NEW_PLAY_UI__
                     ? "/play?id="
                     : "/game?id=") + encodeURIComponent(gidAcc)
@@ -282,7 +318,7 @@
                 }
                 data.incomingGameInvites.forEach(function (inv) {
                     if (inv && inv.gameId) {
-                        showInviteCard(inv.fromUsername, inv.gameId);
+                        showInviteCard(inv.fromUsername, inv.gameId, inv.offer || null);
                     }
                 });
             })

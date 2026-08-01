@@ -73,7 +73,7 @@
         '  <a href="' + getHomeHref() + '" class="desktop-topbar-logo" aria-label="' + t("desktop.chrome.homeAria") + '">',
         '    <img src="/images/shmerling.png" alt="">',
         "  </a>",
-        '  <div class="desktop-topbar-spacer"></div>',
+        '  <div id="desktopTopbarGameActions" class="desktop-topbar-game-actions" hidden></div>',
         '  <div class="desktop-topbar-actions">',
         buildPrefsHtml(),
         "  </div>",
