@@ -2,7 +2,13 @@
  * Game info payload for desktop clients (no MongoDB).
  */
 
+const gameClocks = require("../modules/game/gameClocks");
+
 function calculateTimer(game, isWhite) {
+    if (typeof game.clockWhiteSec === "number" || typeof game.clockBlackSec === "number"
+        || game._clockRunningFor != null) {
+        return gameClocks.snapshotSeconds(game, isWhite);
+    }
     if (game.startedOn) {
         if (isWhite) {
             if (game.chessGame.Turn === "white") {

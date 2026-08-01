@@ -183,11 +183,28 @@ app.ws("/ws", async (ws, req) => {
             }
 
             if (msg.type == "connection") {
-                const gameId = msg.data.gameId;
-
+                const sessionUserId = req.session && req.session.user_id;
+                if (!sessionUserId) {
+                    try {
+                        ws.close();
+                    } catch (err) {
+                        /* ignore */
+                    }
+                    return;
+                }
+                const claimedId = msg.data && msg.data.userId;
+                if (claimedId != null && String(claimedId) !== String(sessionUserId)) {
+                    try {
+                        ws.close();
+                    } catch (err) {
+                        /* ignore */
+                    }
+                    return;
+                }
+                const gameId = msg.data && msg.data.gameId;
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
-                    game.init(ws, msg.data.userId);
+                    game.init(ws, sessionUserId);
                 }
                 return;
             }

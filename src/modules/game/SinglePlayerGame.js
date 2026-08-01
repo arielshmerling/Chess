@@ -79,21 +79,27 @@ class SinglePlayerGame extends GameBase {
             this.status === "in progress" ||
             this.status === "on hold";
         if (isRejoin) {
-            super.init(ws, userId);
+            if (super.init(ws, userId) === false) {
+                return false;
+            }
             this.clearRejoinWaitIfAny();
             this.status = "in progress";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-            return;
+            return true;
         }
-        super.init(ws, userId);
+        if (super.init(ws, userId) === false) {
+            return false;
+        }
         //this.brain = new Brain();
         this.chessGame.startNewGame(true); // for now, online game are always white view. might be changed in the future
         this.status = "in progress";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        this.startServerClocks("white");
         // When human plays black, engine plays white and must make the first move
         if (!this.chessGame.GameOver && this.chessGame.Turn === "white" && this.whitePlayer.userId === null) {
             void this.scheduleInitialBrainMoveIfNeeded();
         }
+        return true;
     }
 
     setHumanPlaysWhite(humanIsWhite) {

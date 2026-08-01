@@ -30,7 +30,9 @@ class OnlineGame extends GameBase {
 
     init(ws, userId) {
 
-        super.init(ws, userId);
+        if (super.init(ws, userId) === false) {
+            return false;
+        }
 
         const uid = userId != null ? String(userId) : "";
         const isWhitePlayer = String(this.whitePlayer.userId) === uid;
@@ -53,7 +55,7 @@ class OnlineGame extends GameBase {
         if (isCreator && !this.blackPlayer) {
             this.status = "pending";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-            return;
+            return true;
         }
 
         if (!isCreator && this.blackPlayer && String(this.blackPlayer.userId) === uid) {
@@ -62,7 +64,10 @@ class OnlineGame extends GameBase {
             const message = { type: "info", info: "opponent joined", gameId: this.gameId, data: this.blackPlayer.userName };
             this.sendMessageToOpponent(message, isWhitePlayer);
             this.sendInfoToWatchers(message);
-            return;
+            if (this.moves.length === 0) {
+                this.startServerClocks("white");
+            }
+            return true;
         }
 
         if (isCreator && this.blackPlayer) {
@@ -70,7 +75,11 @@ class OnlineGame extends GameBase {
                 this.status = "in progress";
             }
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-            return;
+            if (this.status === "in progress" && this.moves.length === 0
+                && this._clockRunningFor == null) {
+                this.startServerClocks("white");
+            }
+            return true;
         }
 
         this.status = "in progress";
@@ -78,6 +87,10 @@ class OnlineGame extends GameBase {
         const message = { type: "info", info: "opponent joined", gameId: this.gameId, data: this.blackPlayer ? this.blackPlayer.userName : "" };
         this.sendMessageToOpponent(message, isWhitePlayer);
         this.sendInfoToWatchers(message);
+        if (this.moves.length === 0 && this._clockRunningFor == null) {
+            this.startServerClocks("white");
+        }
+        return true;
     }
 
     /**

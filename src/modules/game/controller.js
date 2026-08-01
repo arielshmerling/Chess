@@ -19,6 +19,7 @@ const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
 const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref, resolveDeprecatedGameToPlayHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
 const { t } = require("../../strings");
+const gameClocks = require("./gameClocks");
 
 function lobbyStartedFields(startedOnMs) {
     const minutesAgo = Math.max(0, Math.floor((Date.now() - startedOnMs) / 1000 / 60) || 0);
@@ -284,6 +285,10 @@ function createGameInfo(game, userName, userId) {
 }
 
 function calculateTimer(game, isWhite) {
+    if (typeof game.clockWhiteSec === "number" || typeof game.clockBlackSec === "number"
+        || game._clockRunningFor != null) {
+        return gameClocks.snapshotSeconds(game, isWhite);
+    }
     if (game.startedOn) {
 
         if (isWhite) {

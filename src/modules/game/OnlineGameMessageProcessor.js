@@ -1,6 +1,7 @@
 
 const { MessageProcessor } = require("./MessageProcessor");
 const { normalizeOffererWantsColor } = require("./rematchColors");
+const gameClocks = require("./gameClocks");
 
 class OnlineGameMessageProcessor extends MessageProcessor {
 
@@ -132,11 +133,11 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     }
 
     async reportOutOfTime(game, msg) {
-        await game.outOfTime(msg.loser);
-        const go = { type: "info", info: "game over", gameId: game.gameId };
-        game.sendMessage(go, true);
-        game.sendMessage(go, false);
-        game.sendInfoToWatchers(go);
+        const loser = msg.loser === "white" || msg.loser === "black" ? msg.loser : null;
+        if (!loser) {
+            return;
+        }
+        await gameClocks.tryClientFlagHint(game, loser);
     }
 
     onInfoReceived(game, msg) {

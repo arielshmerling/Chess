@@ -1,5 +1,6 @@
 
 const { MessageProcessor } = require("./MessageProcessor");
+const gameClocks = require("./gameClocks");
 
 class SinglePlayerMessageProcessor extends MessageProcessor {
     async onInfoReceived(game, msg) {
@@ -72,12 +73,10 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
             case "rematch declined":
                 break;
             case "outOfTime": {
-                const loser = msg.loser === "white" || msg.loser === "black" ? msg.loser : "white";
-                await game.outOfTime(loser);
-                const go = { type: "info", info: "game over", gameId: game.gameId };
-                game.sendMessage(go, true);
-                game.sendMessage(go, false);
-                game.sendInfoToWatchers(go);
+                const loser = msg.loser === "white" || msg.loser === "black" ? msg.loser : null;
+                if (loser) {
+                    await gameClocks.tryClientFlagHint(game, loser);
+                }
                 break;
             }
             default:

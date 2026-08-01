@@ -3,6 +3,12 @@ const { validateWebSocketMessage } = require("../../serverValidations");
 const { ChessGame } = require("../../ChessGame");
 const { Player } = require("./Player");
 const { v4: uuidv4 } = require("uuid");
+const {
+    resolvePlayerSeat,
+    seatForChannel,
+    applySocketMessageIdentity,
+} = require("./gameSeat");
+const gameClocks = require("./gameClocks");
 
 /** Copy clock snapshot from an inbound move onto a stored move object (seconds). */
 function copyClocksFromTo(source, target) {
@@ -65,15 +71,38 @@ class GameBase {
     }
 
     init(ws, userId) {
-        const isWhitePlayer = this.whitePlayer.userId == userId;
-        if (isWhitePlayer) {
-            this.updateChannel(this.whitePlayer, ws);
+        const seat = resolvePlayerSeat(this, userId);
+        if (!seat) {
+            try {
+                if (ws && typeof ws.close === "function") {
+                    ws.close();
+                }
+            } catch (err) {
+                console.error("reject unauthorized game seat:", err && err.message ? err.message : err);
+            }
+            return false;
         }
-        else {
+        if (seat === "white") {
+            this.updateChannel(this.whitePlayer, ws);
+        } else {
+            if (!this.blackPlayer) {
+                try {
+                    if (ws && typeof ws.close === "function") {
+                        ws.close();
+                    }
+                } catch (err) {
+                    console.error("reject connect with no black seat:", err && err.message ? err.message : err);
+                }
+                return false;
+            }
             this.updateChannel(this.blackPlayer, ws);
         }
-        ws.gameId = this.gameId; // is it necessary?
-        ws.on("message", this.onMessageReceived);
+        ws.gameId = this.gameId;
+        const onMsg = (data) => {
+            void this.onMessageReceived(data, ws);
+        };
+        ws._gameMessageHandler = onMsg;
+        ws.on("message", onMsg);
         ws.on("close", this.onConnectionClosed);
         /* Prefer-Play SP sync waits for this before mirroring moves (avoids race where
            client sends plies before this listener is attached). */
@@ -84,6 +113,7 @@ class GameBase {
         } catch (err) {
             console.error("connected ack failed:", err && err.message ? err.message : err);
         }
+        return true;
     }
 
     joinGame(player) {
@@ -111,6 +141,9 @@ class GameBase {
      * @param {{ reasonOverride?: string, resignClockSnapshot?: { moveTime?: number, whiteTimer: number, blackTimer: number } }} [options] If reasonOverride is set, OnGameOver receives it instead of chessGame.GameOverReason (e.g. PracticeGame uses "in progress"). resignClockSnapshot stores clocks from the client at resign time.
      */
     async resign(resignedPlayer, options = {}) {
+
+        gameClocks.clearFlagTimer(this);
+        gameClocks.pauseClocks(this);
 
         if (this.moves.length === 0) {
             this.status = "cancelled";
@@ -173,6 +206,7 @@ class GameBase {
                     this.turn = this.chessGame.Turn;
                 }
                 pending.valid = true;
+                gameClocks.afterValidatedMove(this, !!isWhite, pending);
                 return pending;
             }
             moveObj.valid = false;
@@ -207,6 +241,7 @@ class GameBase {
                     else {
                         this.turn = this.chessGame.Turn;
                     }
+                    gameClocks.afterValidatedMove(this, !!isWhite, actual);
                     return actual;
                 }
             }
@@ -343,6 +378,9 @@ class GameBase {
     async draw(offeredBy, callback) {
 
 
+        gameClocks.clearFlagTimer(this);
+        gameClocks.pauseClocks(this);
+
         this.status = "game over";
         this.chessGame.drawOfferAccepted(offeredBy);
 
@@ -364,6 +402,8 @@ class GameBase {
     }
 
     async outOfTime(loser) {
+        gameClocks.clearFlagTimer(this);
+        gameClocks.pauseClocks(this);
         this.chessGame.OutOfTime = loser;
         this.status = "game over";
         await this.raiseEvent(this.OnGameOver, {
@@ -381,12 +421,24 @@ class GameBase {
             else {
                 resultMove.moveTime = this.chessGame.GameTimeLength;
             }
+            if (typeof this.clockWhiteSec === "number") {
+                resultMove.whiteTimer = Math.round(this.clockWhiteSec);
+            }
+            if (typeof this.clockBlackSec === "number") {
+                resultMove.blackTimer = Math.round(this.clockBlackSec);
+            }
             this.moves.push(resultMove);
             await this.raiseEvent(this.OnMove, { game: this, move: resultMove });
         }
     }
 
-    onMessageReceived = async (recivedData) => {
+    /** Start White's clock when both players are ready (online) or SP game begins. */
+    startServerClocks(side = "white") {
+        gameClocks.ensureClocks(this);
+        gameClocks.startTurnClock(this, side === "black" ? "black" : "white");
+    }
+
+    onMessageReceived = async (recivedData, ws) => {
         let msg;
         try {
             msg = JSON.parse(recivedData);
@@ -399,13 +451,22 @@ class GameBase {
             return;
         }
 
+        const seat = seatForChannel(this, ws);
+        if (!seat) {
+            return;
+        }
+
         const validation = validateWebSocketMessage(msg);
         if (!validation.ok) {
             console.error("WebSocket message validation failed:", validation.error);
             return;
         }
+        const value = validation.value;
+        if (!applySocketMessageIdentity(this, value, seat)) {
+            return;
+        }
         try {
-            await this.messageProcessor.process(this, validation.value);
+            await this.messageProcessor.process(this, value, ws);
         } catch (e) {
             console.error("WebSocket message processing error:", e && e.message ? e.message : e);
         }
@@ -414,11 +475,26 @@ class GameBase {
     onConnectionClosed = () => { };
 
     closeGame = () => {
+        gameClocks.clearFlagTimer(this);
         if (this.whitePlayer) {
-            if (this.whitePlayer.channel) { this.whitePlayer.channel.off("message", this.onMessageReceived); }
+            if (this.whitePlayer.channel) {
+                const ch = this.whitePlayer.channel;
+                if (ch._gameMessageHandler) {
+                    ch.off("message", ch._gameMessageHandler);
+                } else {
+                    ch.off("message", this.onMessageReceived);
+                }
+            }
         }
         if (this.blackPlayer) {
-            if (this.blackPlayer.channel) { this.blackPlayer.channel.off("message", this.onMessageReceived); }
+            if (this.blackPlayer.channel) {
+                const ch = this.blackPlayer.channel;
+                if (ch._gameMessageHandler) {
+                    ch.off("message", ch._gameMessageHandler);
+                } else {
+                    ch.off("message", this.onMessageReceived);
+                }
+            }
         }
     };
 

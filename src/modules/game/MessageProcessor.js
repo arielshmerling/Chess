@@ -4,13 +4,13 @@ class MessageProcessor {
         "info": this.onInfoReceived,
         "cmd": this.onCommandReceived
     };
-    async process(game, message) {
+    async process(game, message, ws) {
         const func = this.handlers[message.type];
         if (typeof func !== "function") {
             return;
         }
         /* Must call with processor as `this` (handlers are unbound method refs). */
-        const result = func.call(this, game, message);
+        const result = func.call(this, game, message, ws);
         if (result && typeof result.then === "function") {
             await result;
         }

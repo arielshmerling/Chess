@@ -12,9 +12,17 @@ class PracticeGame extends GameBase {
     }
 
     init(ws, userId) {
-        super.init(ws, userId);
+        if (super.init(ws, userId) === false) {
+            return false;
+        }
         this.status = "in progress";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        return true;
+    }
+
+    /** One human plays both colors — client may set isWhite per ply. */
+    allowsClientChosenSide() {
+        return true;
     }
 
     onConnectionClosed = () => {
