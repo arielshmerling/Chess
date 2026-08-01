@@ -528,6 +528,15 @@ html[dir="rtl"] .desktop-play-workspace {
   display: inline-flex;
 }
 
+.desktop-play-sidebar--expand-locked .desktop-play-sidebar-tab--expand {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.desktop-play-sidebar--expand-locked .desktop-play-sidebar-tab--expand:disabled {
+  pointer-events: none;
+}
+
 .desktop-play-dock {
   display: flex;
   flex-direction: column;

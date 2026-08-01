@@ -45,25 +45,35 @@
 
         const fields = document.createElement("section");
         fields.className = "desktop-new-game-fields";
+        const engineOptions =
+            Settings && Array.isArray(Settings.ENGINE_OPTIONS) && Settings.ENGINE_OPTIONS.length
+                ? Settings.ENGINE_OPTIONS
+                : [
+                      { value: "brain43", label: t("play.newGameDialog.brain43") },
+                      { value: "brain42", label: t("play.newGameDialog.brain42") },
+                      { value: "brain41", label: t("play.newGameDialog.brain41") },
+                  ];
+        const selectedEngine = Settings.normalizeEngine
+            ? Settings.normalizeEngine(last.engine)
+            : last.engine || "brain43";
+        let engineOptionsHtml = "";
+        for (let i = 0; i < engineOptions.length; i += 1) {
+            const opt = engineOptions[i];
+            engineOptionsHtml +=
+                '<option value="' +
+                opt.value +
+                '"' +
+                (selectedEngine === opt.value ? " selected" : "") +
+                ">" +
+                (opt.label || opt.value) +
+                "</option>";
+        }
         fields.innerHTML =
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgEngine">' +
             t("play.newGameDialog.engine") +
             '</label><select name="engine" id="dlgEngine">' +
-            '<option value="brain43"' +
-            (last.engine === "brain43" ? " selected" : "") +
-            ">" +
-            t("play.newGameDialog.brain43") +
-            "</option>" +
-            '<option value="brain42"' +
-            (last.engine === "brain42" ? " selected" : "") +
-            ">" +
-            t("play.newGameDialog.brain42") +
-            "</option>" +
-            '<option value="brain41"' +
-            (last.engine === "brain41" ? " selected" : "") +
-            ">" +
-            t("play.newGameDialog.brain41") +
-            "</option></select></div>" +
+            engineOptionsHtml +
+            "</select></div>" +
             '<div class="desktop-field"><label class="desktop-form-section-title" for="dlgTime">' +
             t("play.newGameDialog.timePerSideMinutes") +
             '</label><input type="number" name="timeMinutes" id="dlgTime" min="1" max="180" value="' +

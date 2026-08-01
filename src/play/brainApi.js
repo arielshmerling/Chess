@@ -1,21 +1,21 @@
 /**
- * HTTP brain endpoints for the web Play page (in-process engine on the server).
+ * HTTP brain/engine endpoints for the web Play page.
  */
 
 const catchAsync = require("../utils/catchAsync");
-const desktopBrainService = require("../desktop/desktopBrainService");
+const engineService = require("../engines/engineService");
 
 exports.computeMove = catchAsync(async (req, res) => {
-    const move = await desktopBrainService.computeMove(req.body || {});
+    const move = await engineService.computeMove(req.body || {});
     res.json({ ok: true, move });
 });
 
 exports.evaluatePosition = catchAsync(async (req, res) => {
-    const result = await desktopBrainService.evaluatePosition(req.body || {});
+    const result = await engineService.evaluatePosition(req.body || {});
     res.json({ ok: true, result });
 });
 
 exports.abortSearch = catchAsync(async (_req, res) => {
-    desktopBrainService.abortSearch();
+    engineService.abortSearch();
     res.json({ ok: true });
 });

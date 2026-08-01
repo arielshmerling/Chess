@@ -9,6 +9,8 @@ const {
     canUsePlayAdvancedTools,
     canAccessDebug,
 } = require("../modules/user/roles");
+const { preferPlayEngineIds } = require("../engines/registry");
+const engineService = require("../engines/engineService");
 
 exports.getLaunchContext = catchAsync(async (req, res) => {
     const user = await User.findById(req.session.user_id)
@@ -21,6 +23,14 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
     ) {
         lastGameOptions.engine = "brain43";
     }
+    const engines = await engineService.listPreferPlayEnginesForClient();
+    if (
+        lastGameOptions
+        && lastGameOptions.engine
+        && !engines.some((e) => e.id === lastGameOptions.engine && e.available)
+    ) {
+        lastGameOptions.engine = "brain43";
+    }
     const userType = resolveSessionUserType(req.session);
     res.json({
         ok: true,
@@ -30,10 +40,13 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
         canCustomizeThemes: canUsePlayAdvancedTools(req.session),
         canDebug: canAccessDebug(req.session),
         lastGameOptions,
+        engines,
     });
 });
 
-const ALLOWED_ENGINES = ["brain2", "brain3", "brain4", "brain41", "brain42", "brain43"];
+const ALLOWED_ENGINES = Array.from(
+    new Set(["brain2", "brain3", "brain4", ...preferPlayEngineIds()]),
+);
 
 function normalizeLastGameOptions(body) {
     const input = body && typeof body === "object" ? body : {};

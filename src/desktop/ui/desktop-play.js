@@ -2976,10 +2976,34 @@
     }
 
     /**
-     * Right dock: Games/Positions when idle or after a finished non-online game (Admin/Partner);
-     * Chat during online/watch; hidden for Members when idle and during in-progress non-online games.
+     * Right dock: Games/Positions for Admin/Partner (minimized+locked while a
+     * non-online game is in progress); Chat during online play; hidden for Members
+     * and watchers when not showing chat.
      */
     let rightDockMode = null;
+    let rightDockExpandLocked = false;
+
+    function setGamesSidebarExpandLocked(locked) {
+        const sidebar = $("desktopPlaySidebarGames");
+        if (!sidebar) {
+            return;
+        }
+        const expandTab = sidebar.querySelector(".desktop-play-sidebar-tab--expand");
+        sidebar.classList.toggle("desktop-play-sidebar--expand-locked", !!locked);
+        if (!expandTab) {
+            return;
+        }
+        expandTab.disabled = !!locked;
+        expandTab.setAttribute("aria-disabled", locked ? "true" : "false");
+        if (locked) {
+            expandTab.title = t("play.shell.expandGamesLocked");
+            expandTab.setAttribute("aria-label", t("play.shell.expandGamesLocked"));
+        } else {
+            expandTab.title = t("play.shell.expandGames");
+            expandTab.setAttribute("aria-label", t("play.shell.expandGamesPanel"));
+        }
+    }
+
     function syncRightSidebarMode() {
         const decided =
             RightDockMode && typeof RightDockMode.resolve === "function"
@@ -3000,9 +3024,17 @@
                                 ? "chat"
                                 : "hidden",
                       readOnly: !!(onlineGameInfo && onlineGameInfo.watcher),
+                      expandLocked:
+                          !!(
+                              canPlayAdvancedTools
+                              && !isOnlinePlaySession()
+                              && gameActive
+                              && !(game && game.GameOver)
+                          ),
                   };
         const mode = decided.mode;
         const readOnly = !!decided.readOnly;
+        const expandLocked = !!decided.expandLocked;
         if (!PlayChatPanel || typeof PlayChatPanel.setRightDockMode !== "function") {
             DockModeChrome.applyAdvancedToolsVisibility(
                 {
@@ -3017,7 +3049,9 @@
         }
         const enteredChat = mode === "chat" && rightDockMode !== "chat";
         const enteredGames = mode === "games" && rightDockMode !== "games";
+        const unlockingExpand = rightDockExpandLocked && !expandLocked && mode === "games";
         rightDockMode = mode;
+        rightDockExpandLocked = expandLocked;
         PlayChatPanel.setRightDockMode(chatPanelElements(), mode, { readOnly: readOnly });
         const sendBtn = document.querySelector("#desktopPlayChatForm .desktop-play-chat-send");
         if (sendBtn) {
@@ -3037,8 +3071,37 @@
                 mode === "chat" ? t("play.shell.chat") : t("play.shell.games"),
             );
         }
-        if (enteredChat || (enteredGames && game && game.GameOver)) {
+        if (mode === "games" && expandLocked) {
+            if (
+                window.DesktopDockPanels
+                && typeof DesktopDockPanels.setSidebarCollapsed === "function"
+                && sidebar
+            ) {
+                DesktopDockPanels.setSidebarCollapsed(sidebar, true, { persist: false });
+            } else if (sidebar) {
+                sidebar.classList.add("desktop-play-sidebar--collapsed");
+                const expandTab = sidebar.querySelector(".desktop-play-sidebar-tab--expand");
+                if (expandTab) {
+                    expandTab.hidden = false;
+                }
+                sidebar.querySelectorAll(".desktop-play-dock-toggle--collapse").forEach(function (btn) {
+                    btn.hidden = true;
+                });
+            }
+            setGamesSidebarExpandLocked(true);
+        } else if (mode === "games") {
+            setGamesSidebarExpandLocked(false);
+        } else {
+            setGamesSidebarExpandLocked(false);
+        }
+        if (enteredChat) {
             expandGamesSidebar();
+        } else if (enteredGames && !expandLocked) {
+            /* Returning from chat / member→partner idle: restore usable panel. */
+            expandGamesSidebar();
+        } else if (unlockingExpand) {
+            /* Game ended: keep minimized (no layout jump); only re-enable +. */
+            setGamesSidebarExpandLocked(false);
         }
     }
 
@@ -5262,6 +5325,14 @@
                 canDebug = !!(ctx && ctx.canDebug);
                 if (ctx && ctx.username) {
                     webLaunchUsername = ctx.username;
+                }
+                if (
+                    ctx
+                    && Array.isArray(ctx.engines)
+                    && Settings
+                    && typeof Settings.applyLaunchEngines === "function"
+                ) {
+                    Settings.applyLaunchEngines(ctx.engines, t);
                 }
                 return ctx || { ok: false, canPlayAdvanced: false, canDebug: false };
             } catch (err) {

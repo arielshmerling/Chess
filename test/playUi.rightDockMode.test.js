@@ -12,7 +12,7 @@ describe("PlayRightDockMode", function () {
                 canPlayAdvancedTools: true,
                 gameActive: true,
             }),
-            { mode: "chat", readOnly: false },
+            { mode: "chat", readOnly: false, expandLocked: false },
         );
         assert.deepStrictEqual(
             RightDockMode.resolve({
@@ -21,7 +21,7 @@ describe("PlayRightDockMode", function () {
                 canPlayAdvancedTools: false,
                 gameActive: true,
             }),
-            { mode: "hidden", readOnly: false },
+            { mode: "hidden", readOnly: false, expandLocked: false },
         );
         assert.deepStrictEqual(
             RightDockMode.resolve({
@@ -31,7 +31,7 @@ describe("PlayRightDockMode", function () {
                 gameActive: true,
                 gameOver: false,
             }),
-            { mode: "hidden", readOnly: false },
+            { mode: "hidden", readOnly: false, expandLocked: false },
         );
     });
 
@@ -43,11 +43,11 @@ describe("PlayRightDockMode", function () {
                 gameActive: false,
                 gameOver: false,
             }),
-            { mode: "games", readOnly: false },
+            { mode: "games", readOnly: false, expandLocked: false },
         );
     });
 
-    it("hides games during in-progress SP and restores after GameOver", function () {
+    it("keeps games minimized (expand locked) during in-progress SP and unlocks after GameOver", function () {
         assert.deepStrictEqual(
             RightDockMode.resolve({
                 onlineSession: false,
@@ -55,7 +55,7 @@ describe("PlayRightDockMode", function () {
                 gameActive: true,
                 gameOver: false,
             }),
-            { mode: "hidden", readOnly: false },
+            { mode: "games", readOnly: false, expandLocked: true },
         );
         assert.deepStrictEqual(
             RightDockMode.resolve({
@@ -64,7 +64,7 @@ describe("PlayRightDockMode", function () {
                 gameActive: true,
                 gameOver: true,
             }),
-            { mode: "games", readOnly: false },
+            { mode: "games", readOnly: false, expandLocked: false },
         );
     });
 
@@ -75,7 +75,7 @@ describe("PlayRightDockMode", function () {
                 canPlayAdvancedTools: false,
                 gameActive: false,
             }),
-            { mode: "hidden", readOnly: false },
+            { mode: "hidden", readOnly: false, expandLocked: false },
         );
         assert.deepStrictEqual(
             RightDockMode.resolve({
@@ -84,7 +84,7 @@ describe("PlayRightDockMode", function () {
                 gameActive: true,
                 gameOver: true,
             }),
-            { mode: "hidden", readOnly: false },
+            { mode: "hidden", readOnly: false, expandLocked: false },
         );
     });
 });

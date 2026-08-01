@@ -154,6 +154,9 @@
                 });
             });
             expandTab.addEventListener("click", function () {
+                if (expandTab.disabled || sidebar.classList.contains("desktop-play-sidebar--expand-locked")) {
+                    return;
+                }
                 setSidebarCollapsed(sidebar, false);
             });
         });

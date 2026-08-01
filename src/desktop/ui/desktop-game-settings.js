@@ -11,13 +11,18 @@
         brain43: "Brain 4.3",
         brain42: "Brain 4.2",
         brain41: "Brain 4.1",
+        stockfish: "Stockfish",
     };
 
-    const ENGINE_OPTIONS = [
+    const DEFAULT_ENGINE_OPTIONS = [
         { value: "brain43", label: ENGINE_LABELS.brain43 },
         { value: "brain42", label: ENGINE_LABELS.brain42 },
         { value: "brain41", label: ENGINE_LABELS.brain41 },
+        { value: "stockfish", label: ENGINE_LABELS.stockfish },
     ];
+
+    /** Mutable Prefer-Play list; may be filtered by launch-context availability. */
+    let ENGINE_OPTIONS = DEFAULT_ENGINE_OPTIONS.slice();
 
     const DEFAULTS = {
         color: "white",
@@ -268,7 +273,48 @@
     }
 
     function brainLabel(engine) {
+        const fromList = ENGINE_OPTIONS.find(function (o) {
+            return o.value === engine;
+        });
+        if (fromList && fromList.label) {
+            return fromList.label;
+        }
         return ENGINE_LABELS[engine] || "Engine";
+    }
+
+    /**
+     * Apply Prefer-Play engine list from /api/play/launch-context.
+     * Unavailable UCI engines are omitted (brains always included when listed).
+     * @param {Array<{ id: string, fallbackLabel?: string, labelKey?: string, available?: boolean }>} engines
+     * @param {(key: string) => string} [tFn]
+     */
+    function applyLaunchEngines(engines, tFn) {
+        if (!Array.isArray(engines) || engines.length === 0) {
+            return ENGINE_OPTIONS.slice();
+        }
+        const t = typeof tFn === "function" ? tFn : null;
+        const next = [];
+        for (let i = 0; i < engines.length; i += 1) {
+            const e = engines[i];
+            if (!e || !e.id) {
+                continue;
+            }
+            if (e.available === false) {
+                continue;
+            }
+            let label = ENGINE_LABELS[e.id] || e.fallbackLabel || e.id;
+            if (t && e.labelKey) {
+                const translated = t(e.labelKey);
+                if (translated && translated !== e.labelKey) {
+                    label = translated;
+                }
+            }
+            next.push({ value: e.id, label: label });
+        }
+        if (next.length > 0) {
+            ENGINE_OPTIONS = next;
+        }
+        return ENGINE_OPTIONS.slice();
     }
 
     /** Session metadata for headers / bookmarks (replaces server gameInfo). */
@@ -315,7 +361,9 @@
 
     window.DesktopGameSettings = {
         DEFAULTS,
-        ENGINE_OPTIONS,
+        get ENGINE_OPTIONS() {
+            return ENGINE_OPTIONS;
+        },
         THINKING_TIME_OPTIONS,
         loadLastOptions,
         saveLastOptions,
@@ -327,5 +375,6 @@
         brainLabel,
         normalizeEngine,
         normalizeThinkingTimeSeconds,
+        applyLaunchEngines,
     };
 })();

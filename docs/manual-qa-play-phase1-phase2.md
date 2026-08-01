@@ -2,7 +2,7 @@
 
 **Product surface:** Web `/play` and Desktop Electron Play shell (shared UI).  
 **Scope:** Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on `/play`. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic `/game` remains as fallback.  
-**Last updated:** 2026-07-26 (Phase 4 draw / rematch / reconnect on `/play`)
+**Last updated:** 2026-08-01 (Prefer-Play UCI / Stockfish via external process)
 
 Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.
 
@@ -1212,6 +1212,43 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 - [x] **Won’t do:** migrate SP `/game?id=` reopen to `/play` (rare; Prefer-Play SP is client LocalEngineMode; classic reopen stays on `/game`)
 - [ ] After parity sign-off: remove `/game` play render + retire `chessboard.js` play path
 - [ ] Short public deprecation notice / final cutover
+
+---
+
+## Prefer-Play UCI (Stockfish) — web only
+
+**Ops prerequisite:** install Stockfish on the server host and set `STOCKFISH_PATH` to the binary (or ensure `stockfish` is on `PATH`). Restart `npm start` after changing the env. Do **not** expect Stockfish on classic `/game` or Electron for this slice.
+
+### UCI.1 — Stockfish appears when available
+
+**Steps**
+1. With Stockfish configured, restart the server and hard-refresh `/play`.
+2. Open **New game** / Play Now engine dropdown.
+
+**Expect**
+- **Stockfish** is listed with Brain 4.x options.
+- Starting a game as White vs Stockfish: after your move, Stockfish replies within the configured thinking time.
+- Moves are legal and animate like Brain games.
+
+### UCI.2 — Unavailable when binary missing
+
+**Steps**
+1. Unset `STOCKFISH_PATH` / remove `stockfish` from PATH (or point at a bad path).
+2. Restart server; hard-refresh `/play`.
+3. Open New game engine dropdown.
+
+**Expect**
+- Stockfish is **not** listed (or is unavailable).
+- Brains still work; Play shell does not crash.
+
+### UCI.3 — Think time only
+
+**Steps**
+1. Preferences → thinking time 2s; play vs Stockfish.
+2. Increase thinking time; play again.
+
+**Expect**
+- Search duration roughly tracks think time (no Elo/Skill UI required).
 
 ---
 
