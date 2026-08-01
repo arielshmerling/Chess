@@ -80,6 +80,7 @@ class SinglePlayerGame extends GameBase {
             this.status === "on hold";
         if (isRejoin) {
             super.init(ws, userId);
+            this.clearRejoinWaitIfAny();
             this.status = "in progress";
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             return;
@@ -271,6 +272,10 @@ class SinglePlayerGame extends GameBase {
         return this.moves.length >= 2;
     };
 
+    humanSeatIsWhite() {
+        return !!(this.whitePlayer && this.whitePlayer.userId != null);
+    }
+
     onConnectionClosed = () => {
         if (this.status === "game over") { return; }
         if (this.status === "cancelled") { return; }
@@ -291,9 +296,86 @@ class SinglePlayerGame extends GameBase {
             this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
             return;
         }
+        const disconnectedWasWhite = this.humanSeatIsWhite();
+        const message = {
+            type: "info",
+            info: "Opponent disconnected",
+            gameId: this.gameId,
+            disconnectedWasWhite,
+        };
+        this.sendInfoToWatchers(message);
         this.lastStatus = this.status;
         this.status = "on hold";
         this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        this.waitForRejoin(disconnectedWasWhite);
+    };
+
+    /**
+     * Clears the pending reconnect deadline timer (set in waitForRejoin).
+     */
+    clearRejoinWaitIfAny() {
+        if (this._rejoinWaitHandle != null) {
+            clearTimeout(this._rejoinWaitHandle);
+            this._rejoinWaitHandle = null;
+        }
+    }
+
+    /**
+     * Same reconnect window as OnlineGame (~1s grace + 60s countdown on clients).
+     * @param {boolean} isWhite - human seat that disconnected
+     * @param {number} [deadlineMs]
+     */
+    waitForRejoin(isWhite, deadlineMs) {
+        this.clearRejoinWaitIfAny();
+        const RECONNECT_DEADLINE_MS = deadlineMs != null ? deadlineMs : 61000;
+        this._rejoinWaitHandle = setTimeout(async () => {
+            this._rejoinWaitHandle = null;
+            try {
+                if (
+                    this.status === "in progress" ||
+                    this.status === "game over" ||
+                    this.status === "cancelled" ||
+                    this.status === "pending"
+                ) {
+                    return;
+                }
+                if (this.status !== "on hold") {
+                    return;
+                }
+                await this.resign(isWhite ? "white" : "black");
+                const message = {
+                    type: "info",
+                    info: "Opponent failed to reconnect",
+                    gameId: this.gameId,
+                    disconnectedWasWhite: isWhite,
+                };
+                this.sendInfoToWatchers(message);
+                this.closeGame();
+            } catch (err) {
+                console.error("[SinglePlayerGame] waitForRejoin timeout handler:", err);
+            }
+        }, RECONNECT_DEADLINE_MS);
+    }
+
+    updateChannel = (player, channel) => {
+        if (player) {
+            if (player.channel) {
+                if (player.channel.readyState != player.channel.OPEN) {
+                    this.clearRejoinWaitIfAny();
+                    this.status = this.lastStatus || "in progress";
+                    this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+                    const isWhite = this.whitePlayer && this.whitePlayer.userId == player.userId;
+                    const message = {
+                        type: "info",
+                        info: "opponent rejoined",
+                        gameId: this.gameId,
+                        rejoinedWasWhite: Boolean(isWhite),
+                    };
+                    this.sendInfoToWatchers(message);
+                }
+            }
+            super.updateChannel(player, channel);
+        }
     };
 
     updateLastMoveTime = (gameTime, whiteT, blackT) => {
