@@ -953,38 +953,83 @@
             return;
         }
         container.innerHTML = "";
+        container.classList.add("desktop-prefs-gallery");
+
         var store = readStore();
         var current = getCurrentThemeId();
-        store.themes.forEach(function (t) {
+        var selectedName = "";
+
+        var status = document.createElement("div");
+        status.className = "desktop-prefs-gallery-status";
+        status.id = "desktopPrefsThemeStatus";
+
+        var grid = document.createElement("div");
+        grid.className = "desktop-prefs-gallery-grid desktop-prefs-gallery-grid--themes";
+        grid.setAttribute("role", "group");
+
+        store.themes.forEach(function (theme) {
+            var themeKey = "custom:" + theme.id;
             var btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "desktop-theme-choice";
-            btn.setAttribute("data-theme", "custom:" + t.id);
-            var active = current === "custom:" + t.id;
+            btn.className = "desktop-theme-choice desktop-theme-choice--tile";
+            btn.setAttribute("data-theme", themeKey);
+            btn.setAttribute("aria-label", theme.name || "Untitled");
+            btn.title = theme.name || "Untitled";
+            var active = current === themeKey;
             btn.setAttribute("aria-pressed", active ? "true" : "false");
             if (active) {
                 btn.classList.add("is-active");
+                selectedName = theme.name || "Untitled";
             }
+
+            var vars = theme.vars || {};
+            var light = vars["--lightSquare"] || vars["--light"] || "#e8e0d0";
+            var dark = vars["--darkSquare"] || vars["--dark"] || "#6b8cae";
+            var frame = vars["--frame"] || vars["--darker"] || "#293241";
+            var ambience = vars["--body-background"] || vars["--darker"] || "#1a1a1a";
+
             var swatch = document.createElement("span");
-            swatch.className = "desktop-theme-swatch";
-            swatch.style.background =
-                t.vars["--body-background"] || t.vars["--dark"] || "#333";
-            if (t.vars["--frame"]) {
-                swatch.style.borderColor = t.vars["--frame"];
+            swatch.className = "desktop-theme-swatch desktop-theme-swatch--board";
+            swatch.setAttribute("aria-hidden", "true");
+            swatch.style.setProperty("--theme-preview-light", light);
+            swatch.style.setProperty("--theme-preview-dark", dark);
+            swatch.style.setProperty("--theme-preview-frame", frame);
+            swatch.style.setProperty("--theme-preview-ambience", ambience);
+
+            var board = document.createElement("span");
+            board.className = "desktop-theme-swatch-board";
+            for (var i = 0; i < 16; i++) {
+                var cell = document.createElement("span");
+                var row = Math.floor(i / 4);
+                var col = i % 4;
+                cell.className =
+                    "desktop-theme-swatch-cell" +
+                    ((row + col) % 2 === 0
+                        ? " desktop-theme-swatch-cell--light"
+                        : " desktop-theme-swatch-cell--dark");
+                board.appendChild(cell);
             }
-            var label = document.createElement("span");
-            label.className = "desktop-theme-name";
-            label.textContent = t.name || "Untitled";
+            swatch.appendChild(board);
             btn.appendChild(swatch);
-            btn.appendChild(label);
+
             btn.addEventListener("click", function () {
                 if (typeof window.applyDesktopTheme === "function") {
-                    window.applyDesktopTheme("custom:" + t.id);
+                    window.applyDesktopTheme(themeKey);
                 }
                 renderSavedThemeButtons(container);
             });
-            container.appendChild(btn);
+            grid.appendChild(btn);
         });
+
+        status.textContent = selectedName
+            ? (typeof window.ShmerlingStrings !== "undefined" &&
+              typeof window.ShmerlingStrings.t === "function"
+                ? window.ShmerlingStrings.t("desktop.prefs.selectedTheme", { name: selectedName })
+                : "Selected: " + selectedName)
+            : "";
+
+        container.appendChild(status);
+        container.appendChild(grid);
     }
 
     window.DesktopCustomTheme = {

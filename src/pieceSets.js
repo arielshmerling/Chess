@@ -151,52 +151,88 @@
             return;
         }
         container.innerHTML = "";
+        container.classList.add("desktop-prefs-gallery");
+
         const active = getActiveSetId();
+        let selectedName = "";
+
+        const status = document.createElement("div");
+        status.className = "desktop-prefs-gallery-status";
+
+        const grid = document.createElement("div");
+        grid.className = "desktop-prefs-gallery-grid desktop-prefs-gallery-grid--pieces";
+        grid.setAttribute("role", "group");
+
         SETS.forEach(function (set) {
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "desktop-piece-set-choice";
+            btn.className = "desktop-piece-set-choice desktop-piece-set-choice--tile";
             btn.setAttribute("data-piece-set", set.id);
-            btn.setAttribute("aria-pressed", set.id === active ? "true" : "false");
-            if (set.id === active) {
+            btn.setAttribute("aria-label", set.name);
+            btn.title = set.name;
+            const isActive = set.id === active;
+            btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+            if (isActive) {
                 btn.classList.add("is-active");
+                selectedName = set.name;
             }
 
             const preview = document.createElement("span");
-            preview.className = "desktop-piece-set-preview";
+            preview.className = "desktop-piece-set-preview desktop-piece-set-preview--board";
             preview.setAttribute("aria-hidden", "true");
 
-            const whitePawn = document.createElement("img");
-            whitePawn.src = piecePath(set.id, "white", 0);
-            whitePawn.alt = "";
-            whitePawn.width = 22;
-            whitePawn.height = 22;
+            const board = document.createElement("span");
+            board.className = "desktop-piece-set-preview-board";
+            for (let i = 0; i < 4; i++) {
+                const cell = document.createElement("span");
+                const row = Math.floor(i / 2);
+                const col = i % 2;
+                cell.className =
+                    "desktop-piece-set-preview-cell" +
+                    ((row + col) % 2 === 0
+                        ? " desktop-piece-set-preview-cell--light"
+                        : " desktop-piece-set-preview-cell--dark");
+                board.appendChild(cell);
+            }
 
-            const blackKnight = document.createElement("img");
-            blackKnight.src = piecePath(set.id, "black", 2);
-            blackKnight.alt = "";
-            blackKnight.width = 22;
-            blackKnight.height = 22;
+            const whiteKing = document.createElement("img");
+            whiteKing.src = piecePath(set.id, "white", 1);
+            whiteKing.alt = "";
+            whiteKing.className = "desktop-piece-set-preview-piece desktop-piece-set-preview-piece--a";
 
-            preview.appendChild(whitePawn);
-            preview.appendChild(blackKnight);
+            const blackQueen = document.createElement("img");
+            blackQueen.src = piecePath(set.id, "black", 5);
+            blackQueen.alt = "";
+            blackQueen.className = "desktop-piece-set-preview-piece desktop-piece-set-preview-piece--b";
 
-            const name = document.createElement("span");
-            name.className = "desktop-piece-set-name";
-            name.textContent = set.name;
-
+            preview.appendChild(board);
+            preview.appendChild(whiteKing);
+            preview.appendChild(blackQueen);
             btn.appendChild(preview);
-            btn.appendChild(name);
+
             btn.addEventListener("click", function () {
                 setActiveSetId(set.id);
-                syncPieceSetButtons(container);
+                renderPieceSetButtons(container);
             });
-            container.appendChild(btn);
+            grid.appendChild(btn);
         });
+
+        status.textContent = selectedName
+            ? (global.ShmerlingStrings && typeof global.ShmerlingStrings.t === "function"
+                ? global.ShmerlingStrings.t("desktop.prefs.selectedPieceSet", { name: selectedName })
+                : "Selected: " + selectedName)
+            : "";
+
+        container.appendChild(status);
+        container.appendChild(grid);
     }
 
     function syncPieceSetButtons(container) {
         if (!container) {
+            return;
+        }
+        if (container.classList.contains("desktop-prefs-gallery")) {
+            renderPieceSetButtons(container);
             return;
         }
         const active = getActiveSetId();

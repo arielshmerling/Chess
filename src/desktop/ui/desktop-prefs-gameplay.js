@@ -15,58 +15,96 @@
         return key;
     }
 
-    function thinkingTimeOptionsHtml(selected) {
-        return Settings.THINKING_TIME_OPTIONS.map(function (seconds) {
-            var sel =
-                seconds === Settings.normalizeThinkingTimeSeconds(selected) ? " selected" : "";
-            return (
-                '<option value="' +
-                seconds +
-                '"' +
-                sel +
-                ">" +
-                t("desktop.prefs.secondsOption", { count: seconds }) +
-                "</option>"
-            );
-        }).join("");
+    function thinkingOptions() {
+        return Settings && Array.isArray(Settings.THINKING_TIME_OPTIONS)
+            ? Settings.THINKING_TIME_OPTIONS
+            : [2, 5, 10, 15, 20, 30, 60, 120];
+    }
+
+    function indexForSeconds(seconds) {
+        var options = thinkingOptions();
+        var normalized = Settings.normalizeThinkingTimeSeconds(seconds);
+        var idx = options.indexOf(normalized);
+        return idx >= 0 ? idx : options.indexOf(10);
+    }
+
+    function secondsForIndex(index) {
+        var options = thinkingOptions();
+        var i = parseInt(index, 10);
+        if (!Number.isFinite(i) || i < 0) {
+            return options[0];
+        }
+        if (i >= options.length) {
+            return options[options.length - 1];
+        }
+        return options[i];
+    }
+
+    function formatSeconds(seconds) {
+        return t("desktop.prefs.secondsOption", { count: seconds });
     }
 
     function buildMarkup() {
+        var options = thinkingOptions();
+        var maxIndex = Math.max(0, options.length - 1);
         return [
-            '<div class="desktop-prefs-gameplay-row">',
+            '<div class="desktop-prefs-gameplay-row desktop-prefs-gameplay-row--mouse">',
             '  <span class="desktop-prefs-gameplay-label" id="desktopPrefsMouseLabel">' +
                 t("desktop.prefs.mouseControl") +
                 "</span>",
-            '  <div class="desktop-option-group desktop-option-group--equal desktop-prefs-gameplay-mouse"',
-            '    role="radiogroup" aria-labelledby="desktopPrefsMouseLabel">',
-            '    <label class="desktop-option-pill">',
+            '  <div class="desktop-prefs-mouse-seg" role="radiogroup"',
+            '    aria-labelledby="desktopPrefsMouseLabel">',
+            '    <label class="desktop-prefs-mouse-seg__opt">',
             '      <input type="radio" name="desktopPrefsMouse" value="drag">',
-            "      <span>" + t("site.playNow.drag") + "</span>",
+            '      <span class="desktop-prefs-mouse-seg__face">',
+            '        <span class="desktop-prefs-mouse-seg__text">' +
+                t("desktop.prefs.mouseDrag") +
+                "</span>",
+            "      </span>",
             "    </label>",
-            '    <label class="desktop-option-pill">',
+            '    <label class="desktop-prefs-mouse-seg__opt">',
             '      <input type="radio" name="desktopPrefsMouse" value="double">',
-            "      <span>" + t("site.playNow.doubleClick") + "</span>",
+            '      <span class="desktop-prefs-mouse-seg__face">',
+            '        <span class="desktop-prefs-mouse-seg__text">' +
+                t("desktop.prefs.mouseClick") +
+                "</span>",
+            "      </span>",
             "    </label>",
             "  </div>",
             "</div>",
-            '<div class="desktop-field desktop-prefs-gameplay-field">',
-            '  <label class="desktop-prefs-gameplay-label" for="desktopPrefsThinkingTime">' +
+            '<div class="desktop-prefs-gameplay-row desktop-prefs-gameplay-row--think">',
+            '  <div class="desktop-prefs-think-head">',
+            '    <label class="desktop-prefs-gameplay-label" for="desktopPrefsThinkingTime">' +
                 t("desktop.prefs.thinkingTime") +
                 "</label>",
-            '  <select id="desktopPrefsThinkingTime" aria-label="' +
+            '    <span class="desktop-prefs-think-value" id="desktopPrefsThinkingTimeValue" aria-hidden="true"></span>',
+            "  </div>",
+            '  <input type="range" class="desktop-prefs-think-slider" id="desktopPrefsThinkingTime"',
+            '    min="0" max="' +
+                maxIndex +
+                '" step="1" aria-valuemin="0" aria-valuemax="' +
+                maxIndex +
+                '"',
+            '    aria-label="' +
                 t("desktop.prefs.thinkingTimeAria") +
-                '"></select>',
+                '">',
+            '  <div class="desktop-prefs-think-ends" aria-hidden="true">',
+            "    <span>" + formatSeconds(options[0]) + "</span>",
+            "    <span>" + formatSeconds(options[options.length - 1]) + "</span>",
+            "  </div>",
             "</div>",
-            '<label class="desktop-check desktop-prefs-gameplay-check">',
-            '  <input type="checkbox" id="desktopPrefsShowMoves" value="1">',
-            '  <span class="desktop-check-box" aria-hidden="true"></span>',
-            "  <span>" + t("site.playNow.showAvailableMoves") + "</span>",
-            "</label>",
-            '<label class="desktop-check desktop-prefs-gameplay-check">',
-            '  <input type="checkbox" id="desktopPrefsImmediateResign" value="1">',
-            '  <span class="desktop-check-box" aria-hidden="true"></span>',
-            "  <span>" + t("desktop.prefs.immediateResign") + "</span>",
-            "</label>",
+            '<div class="desktop-prefs-gameplay-checks">',
+            '  <label class="desktop-check desktop-prefs-gameplay-check">',
+            '    <input type="checkbox" id="desktopPrefsShowMoves" value="1">',
+            '    <span class="desktop-check-box" aria-hidden="true"></span>',
+            "    <span>" + t("site.playNow.showAvailableMoves") + "</span>",
+            "  </label>",
+            '  <label class="desktop-check desktop-prefs-gameplay-check">',
+            '    <input type="checkbox" id="desktopPrefsImmediateResign" value="1">',
+            '    <span class="desktop-check-box" aria-hidden="true"></span>',
+            "    <span>" + t("desktop.prefs.immediateResign") + "</span>",
+            "  </label>",
+            "</div>",
         ].join("");
     }
 
@@ -76,11 +114,17 @@
             input.checked = input.value === mouse;
         });
 
-        var thinkingSelect = document.getElementById("desktopPrefsThinkingTime");
-        if (thinkingSelect) {
-            var normalized = Settings.normalizeThinkingTimeSeconds(prefs.thinkingTimeSeconds);
-            thinkingSelect.innerHTML = thinkingTimeOptionsHtml(normalized);
-            thinkingSelect.value = String(normalized);
+        var slider = document.getElementById("desktopPrefsThinkingTime");
+        var valueEl = document.getElementById("desktopPrefsThinkingTimeValue");
+        if (slider) {
+            var idx = indexForSeconds(prefs.thinkingTimeSeconds);
+            var seconds = secondsForIndex(idx);
+            slider.value = String(idx);
+            slider.setAttribute("aria-valuenow", String(idx));
+            slider.setAttribute("aria-valuetext", formatSeconds(seconds));
+            if (valueEl) {
+                valueEl.textContent = formatSeconds(seconds);
+            }
         }
 
         var showMoves = document.getElementById("desktopPrefsShowMoves");
@@ -92,6 +136,20 @@
         if (immediateResign) {
             immediateResign.checked = prefs.immediateResign === true;
         }
+    }
+
+    function applyThinkingFromSlider(slider) {
+        if (!slider || !Settings) {
+            return;
+        }
+        var seconds = secondsForIndex(slider.value);
+        var valueEl = document.getElementById("desktopPrefsThinkingTimeValue");
+        if (valueEl) {
+            valueEl.textContent = formatSeconds(seconds);
+        }
+        slider.setAttribute("aria-valuenow", String(slider.value));
+        slider.setAttribute("aria-valuetext", formatSeconds(seconds));
+        Settings.saveGamePreferences({ thinkingTimeSeconds: seconds });
     }
 
     function wireEvents() {
@@ -109,12 +167,19 @@
             });
         });
 
-        var thinkingSelect = document.getElementById("desktopPrefsThinkingTime");
-        if (thinkingSelect) {
-            thinkingSelect.addEventListener("change", function () {
-                Settings.saveGamePreferences({
-                    thinkingTimeSeconds: parseInt(thinkingSelect.value, 10),
-                });
+        var slider = document.getElementById("desktopPrefsThinkingTime");
+        if (slider) {
+            slider.addEventListener("input", function () {
+                var seconds = secondsForIndex(slider.value);
+                var valueEl = document.getElementById("desktopPrefsThinkingTimeValue");
+                if (valueEl) {
+                    valueEl.textContent = formatSeconds(seconds);
+                }
+                slider.setAttribute("aria-valuenow", String(slider.value));
+                slider.setAttribute("aria-valuetext", formatSeconds(seconds));
+            });
+            slider.addEventListener("change", function () {
+                applyThinkingFromSlider(slider);
             });
         }
 

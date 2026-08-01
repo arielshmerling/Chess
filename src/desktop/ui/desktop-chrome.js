@@ -37,26 +37,30 @@
         '      <button type="button" class="desktop-prefs-close" id="desktopPrefsClose"',
         '        aria-label="' + t("desktop.chrome.closePreferences") + '">×</button>',
         "    </div>",
-        '    <section class="desktop-prefs-section desktop-prefs-section--language">',
-        '      <h3 class="desktop-prefs-section-title">' + t("desktop.prefs.language") + "</h3>",
-        '      <div id="desktopPrefsLanguage" class="desktop-prefs-language-host"></div>',
-        "    </section>",
-        '    <section class="desktop-prefs-section desktop-prefs-section--theme">',
-        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.boardTheme") + "</h3>",
-        '      <div id="desktopPrefsThemes" class="desktop-prefs-theme desktop-prefs-theme--all" role="group" aria-label="' + t("desktop.chrome.boardTheme") + '"></div>',
-        '      <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">' + t("desktop.chrome.customizeTheme") + "</button>",
-        "    </section>",
-        '    <section class="desktop-prefs-section desktop-prefs-section--pieces">',
-        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.pieceSet") + "</h3>",
-        '      <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="' + t("desktop.chrome.pieceSetsAria") + '"></div>',
-        "    </section>",
+        '    <div class="desktop-prefs-row desktop-prefs-row--meta">',
+        '      <section class="desktop-prefs-section desktop-prefs-section--language">',
+        '        <h3 class="desktop-prefs-section-title">' + t("desktop.prefs.language") + "</h3>",
+        '        <div id="desktopPrefsLanguage" class="desktop-prefs-language-host"></div>',
+        "      </section>",
+        '      <section class="desktop-prefs-section desktop-prefs-section--display">',
+        '        <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.display") + "</h3>",
+        '        <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
+        "      </section>",
+        "    </div>",
+        '    <div class="desktop-prefs-row desktop-prefs-row--boards">',
+        '      <section class="desktop-prefs-section desktop-prefs-section--theme">',
+        '        <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.boardTheme") + "</h3>",
+        '        <div id="desktopPrefsThemes" class="desktop-prefs-theme desktop-prefs-theme--all" role="group" aria-label="' + t("desktop.chrome.boardTheme") + '"></div>',
+        '        <button type="button" class="desktop-btn desktop-customize-theme-btn desktop-customize-theme-btn--compact" id="desktopCustomizeThemeBtn">' + t("desktop.chrome.customizeTheme") + "</button>",
+        "      </section>",
+        '      <section class="desktop-prefs-section desktop-prefs-section--pieces">',
+        '        <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.pieceSet") + "</h3>",
+        '        <div id="desktopPrefsPieceSets" class="desktop-prefs-piece-sets" role="group" aria-label="' + t("desktop.chrome.pieceSetsAria") + '"></div>',
+        "      </section>",
+        "    </div>",
         '    <section class="desktop-prefs-section desktop-prefs-section--gameplay">',
         '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.gameplay") + "</h3>",
         '      <div id="desktopPrefsGameplay" class="desktop-prefs-gameplay"></div>',
-        "    </section>",
-        '    <section class="desktop-prefs-section desktop-prefs-section--display">',
-        '      <h3 class="desktop-prefs-section-title">' + t("desktop.chrome.display") + "</h3>",
-        '      <div id="desktopPrefsDisplay" class="desktop-prefs-display"></div>',
         "    </section>",
         "  </div>",
         "</div>",
@@ -381,11 +385,7 @@
         if (!container || !window.ShmerlingPieceSets) {
             return;
         }
-        if (!container.childElementCount) {
-            window.ShmerlingPieceSets.renderPieceSetButtons(container);
-        } else {
-            window.ShmerlingPieceSets.syncPieceSetButtons(container);
-        }
+        window.ShmerlingPieceSets.renderPieceSetButtons(container);
     }
 
     function refreshCustomThemeList() {
