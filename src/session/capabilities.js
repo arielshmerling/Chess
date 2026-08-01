@@ -117,7 +117,7 @@
             reviewNav: false,
             positionSetup: false,
             watchers: true,
-            chat: true,
+            chat: false,
         }),
         [MODE_IDS.POSITION_SETUP]: caps({
             undo: false,

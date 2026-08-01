@@ -44,11 +44,11 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.watchers, false);
     });
 
-    it("watch capabilities allow network, watchers, and read chat", function () {
+    it("watch capabilities allow network and watchers but not chat", function () {
         const caps = getModeCapabilities(MODE_IDS.WATCH);
         assert.strictEqual(caps.network, true);
         assert.strictEqual(caps.watchers, true);
-        assert.strictEqual(caps.chat, true);
+        assert.strictEqual(caps.chat, false);
         assert.strictEqual(caps.resign, false);
         assert.strictEqual(caps.draw, false);
         assert.strictEqual(caps.rematch, false);
@@ -187,7 +187,7 @@ describe("OnlineGameMessageProcessor.drawOfferForward characterization", functio
 describe("OnlineGameMessageProcessor.chatHandler", function () {
     const processor = new OnlineGameMessageProcessor();
 
-    it("forwards chat to the opponent and watchers", function () {
+    it("forwards chat to the opponent only (not watchers)", function () {
         const sent = [];
         const game = {
             sendMessageToOpponent(msg) {
@@ -204,11 +204,9 @@ describe("OnlineGameMessageProcessor.chatHandler", function () {
             username: "alice",
         };
         processor.chatHandler(game, msg);
-        assert.strictEqual(sent.length, 2);
+        assert.strictEqual(sent.length, 1);
         assert.strictEqual(sent[0].channel, "opponent");
-        assert.strictEqual(sent[1].channel, "watchers");
         assert.strictEqual(sent[0].msg.data, "hello");
-        assert.strictEqual(sent[1].msg.data, "hello");
     });
 });
 

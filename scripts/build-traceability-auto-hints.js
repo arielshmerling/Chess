@@ -287,7 +287,7 @@ const COVERAGE = {
     },
     "FR-PLAY-008": {
         auto_tests: [
-            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
+            "test/playUi.rightDockMode.test.js — shows chat for online players but hides it for watchers",
             "test/playChatPanel.test.js — switches right dock between games, chat, and hidden",
         ],
         auto_coverage: "full",
@@ -536,7 +536,7 @@ const COVERAGE = {
         auto_tests: [
             "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
             "test/session.onlineMode.test.js — invokes onChatMessage for inbound chat",
-            "test/session.phase0.test.js — OnlineGameMessageProcessor.chatHandler forwards to opponent and watchers",
+            "test/session.phase0.test.js — OnlineGameMessageProcessor.chatHandler forwards to opponent only (not watchers)",
             "test/session.phase0.test.js — accepts a minimal chat info payload",
             "test/session.phase0.test.js — online capabilities require chat",
         ],
@@ -576,9 +576,10 @@ const COVERAGE = {
     "FR-WAT-007": {
         auto_tests: [
             "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
-            "test/session.phase0.test.js — watch capabilities allow network, watchers, and read chat",
-            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
-            "test/playChatPanel.test.js — switches right dock between games, chat, and hidden",
+            "test/session.onlineMode.test.js — ignores inbound chat for watchers",
+            "test/session.phase0.test.js — watch capabilities allow network and watchers but not chat",
+            "test/session.phase0.test.js — OnlineGameMessageProcessor.chatHandler forwards to opponent only (not watchers)",
+            "test/playUi.rightDockMode.test.js — shows chat for online players but hides it for watchers",
         ],
         auto_coverage: "full",
     },
@@ -1364,10 +1365,10 @@ const COVERAGE = {
     "CON-007": {
         auto_tests: [
             "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
-            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
+            "test/playUi.rightDockMode.test.js — shows chat for online players but hides it for watchers",
         ],
         auto_coverage: "full",
-        notes: "Retired constraint — Prefer-Play chat is implemented (FR-ONL-016 / FR-PLAY-008 / FR-WAT-007).",
+        notes: "Retired constraint — Prefer-Play chat is implemented for players only (FR-ONL-016 / FR-PLAY-008 / FR-WAT-007).",
     },
     "CON-008": {
         auto_tests: [

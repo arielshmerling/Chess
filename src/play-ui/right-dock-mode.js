@@ -17,8 +17,9 @@
      */
     function resolve(state) {
         const s = state || {};
-        if (s.onlineSession) {
-            return { mode: "chat", readOnly: !!s.watcher };
+        /* Watchers must not see player chat — keep the right dock hidden. */
+        if (s.onlineSession && !s.watcher) {
+            return { mode: "chat", readOnly: false };
         }
         if (s.canPlayAdvancedTools && (!s.gameActive || !!s.gameOver)) {
             return { mode: "games", readOnly: false };

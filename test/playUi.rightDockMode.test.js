@@ -4,7 +4,7 @@ const assert = require("assert");
 const RightDockMode = require("../src/play-ui/right-dock-mode");
 
 describe("PlayRightDockMode", function () {
-    it("shows chat for online players and read-only chat for watchers", function () {
+    it("shows chat for online players but hides it for watchers", function () {
         assert.deepStrictEqual(
             RightDockMode.resolve({
                 onlineSession: true,
@@ -21,7 +21,17 @@ describe("PlayRightDockMode", function () {
                 canPlayAdvancedTools: false,
                 gameActive: true,
             }),
-            { mode: "chat", readOnly: true },
+            { mode: "hidden", readOnly: false },
+        );
+        assert.deepStrictEqual(
+            RightDockMode.resolve({
+                onlineSession: true,
+                watcher: true,
+                canPlayAdvancedTools: true,
+                gameActive: true,
+                gameOver: false,
+            }),
+            { mode: "hidden", readOnly: false },
         );
     });
 

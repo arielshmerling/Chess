@@ -154,7 +154,7 @@
                     reviewNav: false,
                     positionSetup: false,
                     watchers: true,
-                    chat: true,
+                    chat: false,
                 };
             }
             return {
@@ -606,6 +606,9 @@
                     status(t("session.rematchOfferDeclined"), "info");
                     return;
                 case "chat":
+                    if (watcher) {
+                        return;
+                    }
                     if (typeof opts.onChatMessage === "function") {
                         opts.onChatMessage(classified.payload || {});
                     }

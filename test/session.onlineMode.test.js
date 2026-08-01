@@ -586,7 +586,7 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.strictEqual(caps.rematch, false);
         assert.strictEqual(caps.watchers, true);
         assert.strictEqual(caps.network, true);
-        assert.strictEqual(caps.chat, true);
+        assert.strictEqual(caps.chat, false);
         assert.strictEqual(mode.offerDraw(), false);
         assert.strictEqual(mode.offerRematch(), false);
         const ok = await mode.requestResign();
@@ -787,5 +787,26 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.ok(seen);
         assert.strictEqual(seen.data, "hi");
         assert.strictEqual(seen.username, "bob");
+    });
+
+    it("ignores inbound chat for watchers", async function () {
+        let seen = null;
+        const mode = OnlineMode.create({
+            transport: createMockTransport(),
+            gameInfo: { id: "g1", username: "spec", userId: "u9" },
+            watcher: true,
+            wsUrl: "ws://test/ws",
+            onChatMessage: function (payload) {
+                seen = payload;
+            },
+        });
+        await mode._handleInbound({
+            type: "info",
+            info: "chat",
+            username: "alice",
+            data: "secret",
+            userId: "u1",
+        });
+        assert.strictEqual(seen, null);
     });
 });
