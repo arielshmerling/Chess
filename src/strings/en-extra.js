@@ -423,7 +423,7 @@
         },
         "searchPage": {
             "title": "Search:",
-            "tagline": "Find games in the PGN archive",
+            "tagline": "Find famous games in the archive",
             "results": "Results",
             "resultsCount": "{{count}} results",
             "noResults": "No games match your search",

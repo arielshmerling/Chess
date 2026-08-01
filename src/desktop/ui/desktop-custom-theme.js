@@ -404,6 +404,8 @@
         "--moves-cell-space-color": "Moves cells space color",
         "--game-item-border-color": "Game item border color",
         "--game-mode-frame-color": "Game mode frame color",
+        "--topbar-link-forecolor": "Link text",
+        "--topbar-link-highlight": "Link highlight",
     };
 
     function labelForKey(key) {

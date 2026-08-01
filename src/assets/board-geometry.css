@@ -190,7 +190,7 @@ body:has(.board-geometry) {
 
 .board-geometry .welcome-active-games-row > *,
 .board-geometry .my-games-panel,
-.board-geometry .friends-two-columns > *,
+.board-geometry .friends-stack > *,
 .board-geometry .search-results-panel,
 .board-geometry .active-games-list-panel {
     animation: bg-geo-in 0.5s ease both;

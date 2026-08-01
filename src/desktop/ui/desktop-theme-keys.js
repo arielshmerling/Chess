@@ -17,6 +17,10 @@
             keys: ["--darker", "--dark", "--semiDark", "--semiLight", "--light"],
         },
         {
+            label: "Top bar",
+            keys: ["--topbar-link-forecolor", "--topbar-link-highlight"],
+        },
+        {
             label: "Board",
             keys: [
                 "--body-background",

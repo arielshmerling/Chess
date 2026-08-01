@@ -1,6 +1,6 @@
 /* Friends page — extends welcome.css theme variables */
 
-.friends-page.board-geometry .friends-two-columns {
+.friends-page.board-geometry .friends-stack {
     gap: 24px;
 }
 
@@ -38,17 +38,11 @@
     padding-bottom: 48px;
 }
 
-.friends-two-columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    align-items: start;
-}
-
-@media (max-width: 960px) {
-    .friends-two-columns {
-        grid-template-columns: 1fr;
-    }
+.friends-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: stretch;
 }
 
 .friends-user-list {

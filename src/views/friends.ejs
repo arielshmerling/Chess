@@ -16,7 +16,24 @@
   </header>
 
   <div class="games-section friends-section">
-    <div class="friends-two-columns">
+    <div class="friends-stack">
+      <section class="games-panel friends-search-panel">
+        <div class="panel-header">
+          <div class="panel-header-top">
+            <div class="panel-title-group">
+              <h2 class="panel-title"><%= t('site.friendsPage.findPlayers') %></h2>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="friends-search-row">
+            <input type="text" id="friendSearchInput" class="friends-search-input" autocomplete="off" maxlength="48" placeholder="<%= t('site.friendsPage.searchPlaceholder') %>" aria-label="<%= t('site.friendsPage.findPlayers') %>">
+          </div>
+          <ul id="searchResults" class="friends-user-list friends-search-results" aria-live="polite"></ul>
+          <div id="searchPlaceholder" class="friends-search-placeholder" style="display: none;" hidden></div>
+        </div>
+      </section>
+
       <section class="games-panel friends-list-panel">
         <div class="panel-header">
           <div class="panel-header-top">
@@ -30,26 +47,6 @@
             <p><%= t('site.friendsPage.noFriendsYet') %></p>
           </div>
           <ul id="friendsList" class="friends-user-list" aria-live="polite"></ul>
-        </div>
-      </section>
-
-      <section class="games-panel friends-search-panel">
-        <div class="panel-header">
-          <div class="panel-header-top">
-            <div class="panel-title-group">
-              <h2 class="panel-title"><%= t('site.friendsPage.findPlayers') %></h2>
-            </div>
-          </div>
-          <p class="panel-subtitle"><%= t('site.friendsPage.searchByUsername') %></p>
-        </div>
-        <div class="panel-body">
-          <div class="friends-search-row">
-            <label class="friends-search-label" for="friendSearchInput"><%= t('site.username').replace(':', '') %></label>
-            <input type="text" id="friendSearchInput" class="friends-search-input" autocomplete="off" maxlength="48" placeholder="<%= t('site.friendsPage.searchPlaceholder') %>" aria-describedby="friendSearchHint">
-          
-          </div>
-          <ul id="searchResults" class="friends-user-list friends-search-results" aria-live="polite"></ul>
-          <div id="searchPlaceholder" class="friends-search-placeholder"><%= t('site.friendsPage.enterCharToSearch') %></div>
         </div>
       </section>
     </div>
@@ -386,9 +383,11 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     searchResults.innerHTML = "";
     if (!results || results.length === 0) {
       searchPlaceholder.textContent = t("site.friendsPage.noMatchingUsers");
+      searchPlaceholder.hidden = false;
       searchPlaceholder.style.display = "block";
       return;
     }
+    searchPlaceholder.hidden = true;
     searchPlaceholder.style.display = "none";
     results.forEach(function (u) {
       var li = document.createElement("li");
@@ -431,8 +430,9 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
     if (clean.length < 1) {
       if (searchResults) searchResults.innerHTML = "";
       if (searchPlaceholder) {
-        searchPlaceholder.textContent = "<%= t('site.friendsPage.enterCharToSearch') %>";
-        searchPlaceholder.style.display = "block";
+        searchPlaceholder.textContent = "";
+        searchPlaceholder.hidden = true;
+        searchPlaceholder.style.display = "none";
       }
       return;
     }
