@@ -1329,56 +1329,10 @@ A {
     color: var(--semiLight);
 }
 
-.mainMenu {
-    background-color: var(--darker);
-    position: absolute;
-    top: 50px;
-    z-index: 1;
-    left: 0px;
-    transition: visibility 0.3s linear, opacity 0.3s linear;
-    /* filter: drop-shadow(black 3px 1px 5px); */
-}
-
-#menuButton {
-    padding: 8px;
-    display: flex;
-    align-items: last baseline;
-    justify-content: left;
-    filter: invert(0.9)
-}
-
-
-#menuButton:hover {
-    filter: invert(0.5);
-    transition: filter 0.5s linear;
-}
-
+.mainMenu,
+#menuButton,
 .menuItem {
-    position: relative;
-    color: var(--semiLight);
-    width: 250px;
-    background-color: var(--darker);
-    padding: 10px;
-    display: grid;
-    align-items: center;
-    font-family: "Roboto", sans-serif;
-    font-weight: 400;
-    font-style: normal;
-    font-size: 12px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--dark);
-}
-
-.last {
-    border-bottom: 0px solid var(--dark);
-}
-
-.menuItem:hover {
-    /* background-color: var(--semiLight); */
-    filter: invert(0.1);
-    color: var(--light);
-    transition: background-color 0.5s linear, color 0.5s linear;
-    /* transition: 0.6s ease;*/
+    display: none !important;
 }
 
 .hide {

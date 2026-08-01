@@ -28,9 +28,9 @@ router.route("/register")
     .get(requiresAdmin, userController.showRegistrationPage)
     .post(requiresAdmin, userController.register);
 
-router.route("/bookmark", requireLogin)
-    .get(userController.getBookmarks)
-    .post(userController.setBookmark);
+router.route("/bookmark")
+    .get(requireLogin, userController.getBookmarks)
+    .post(requireLogin, userController.setBookmark);
 
 router.post("/updateBookmark", requireLogin, userController.updateBookmark);
 router.post("/applyBookmark", requireLogin, userController.applyBookmark);

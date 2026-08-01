@@ -228,26 +228,15 @@ function movePiece() {
 }
 /* eslint-disable-next-line no-unused-vars */
 function OpenMenu() {
-
-    const mainMenu = document.getElementById("mainMenu");
-    if (mainMenu.style.visibility == "hidden") {
-        mainMenu.style.visibility = "visible";
-        mainMenu.style.opacity = "1";
-    }
-    else {
-        mainMenu.style.visibility = "hidden";
-        mainMenu.style.opacity = "0";
-    }
+    /* Legacy dropdown menu removed — Prefer-Play / site chrome replaced it. */
 }
 
 /* eslint-disable-next-line no-unused-vars */
 function menuNewGameTwoPlayers() {
-    //  gameType = 2; OnlineGame
     startGame();
 }
 /* eslint-disable-next-line no-unused-vars */
 function menuNewGameOnePlayer() {
-    // gameType = 1;
     startGame();
 }
 

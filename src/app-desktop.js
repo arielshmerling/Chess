@@ -3,11 +3,12 @@
  */
 const express = require("express");
 const cookieSession = require("cookie-session");
-const path = require("path");
 const helmet = require("helmet");
 const crypto = require("crypto");
 const ExpressError = require("./utils/ExpressError");
 const configureDesktopApp = require("./desktop/configureApp");
+const { mountClientStatic } = require("./clientStatic");
+const { buildHelmetOptions } = require("./security/helmetOptions");
 
 const app = express();
 require("dotenv").config();
@@ -22,27 +23,21 @@ app.use((req, res, next) => {
     next();
 });
 app.use(
-    helmet({
-        contentSecurityPolicy: {
-            useDefaults: false,
-            directives: {
-                scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`],
-                defaultSrc: ["'self'"],
-                objectSrc: ["'none'"],
-                upgradeInsecureRequests: [],
-            },
-        },
-    }),
+    helmet(
+        buildHelmetOptions({
+            isProd: false,
+            upgradeInsecureRequests: false,
+        }),
+    ),
 );
 app.use(cookieSession({
     name: "session1",
     keys: [process.env.SESSION_SECRET],
     maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
+    sameSite: "lax",
 }));
-app.use(express.static(path.join(__dirname)));
-app.use(express.static(path.join(__dirname, "assets")));
-app.use("/images", express.static(path.join(__dirname, "assets", "images")));
+mountClientStatic(app, __dirname);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 

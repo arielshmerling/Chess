@@ -9,9 +9,24 @@ const helmet = require("helmet");
 const crypto = require("crypto");
 const enableWs = require("express-ws");
 const presence = require("./utils/presence");
+const { mountClientStatic } = require("./clientStatic");
+const { csrfSameOrigin } = require("./security/csrfOrigin");
+const { createRateLimiter } = require("./security/rateLimit");
+const { canReadLiveGame } = require("./security/gameAccess");
+const { buildHelmetOptions } = require("./security/helmetOptions");
 
 const app = express();
 require("dotenv").config();
+
+const isProd = process.env.NODE_ENV === "production";
+if (!process.env.SESSION_SECRET || String(process.env.SESSION_SECRET).trim() === "") {
+    if (isProd) {
+        console.error("FATAL: SESSION_SECRET is required in production");
+        process.exit(1);
+    }
+    console.warn("WARNING: SESSION_SECRET missing — using insecure development default");
+    process.env.SESSION_SECRET = "dev-only-insecure-session-secret-change-me";
+}
 
 // Enable WebSocket support for Express app (must be before routes)
 enableWs(app);
@@ -21,30 +36,68 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "/views"));
 
 app.set("trust proxy", 1); // trust first proxy
-app.use(cookieSession({
-    name: "session1",
-    keys: [
-        process.env.SESSION_SECRET
-    ],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true,
-}));
-app.use(flash());
-app.use(express.static(path.join(__dirname)));
-app.use(express.static(path.join(__dirname, "src")));
-app.use(express.static(path.join(__dirname, "assets")));
-
-// Serve images from assets/Images directory
-//app.use("/Images", express.static(path.join(__dirname, "assets", "Images")));
-app.use("/images", express.static(path.join(__dirname, "assets", "images")));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(methodOverride("_method"));
 
 const scriptSrcUrl = [
     "https://cdnjs.cloudflare.com",
     "https://cdn.jsdelivr.net",
 ];
+
+app.use((req, res, next) => {
+    res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
+    next();
+});
+
+app.use(
+    helmet(
+        buildHelmetOptions({
+            isProd,
+            scriptSrcUrl,
+        }),
+    ),
+);
+
+const cookieSecure =
+    isProd ||
+    process.env.SESSION_COOKIE_SECURE === "1" ||
+    process.env.SESSION_COOKIE_SECURE === "true";
+
+app.use(cookieSession({
+    name: "session1",
+    keys: [
+        process.env.SESSION_SECRET,
+    ],
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: "lax",
+}));
+app.use(flash());
+
+mountClientStatic(app, __dirname);
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride("_method"));
+app.use(csrfSameOrigin);
+
+const loginRateLimit = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 40,
+    keyFn: (req) => {
+        const user =
+            req.body && typeof req.body.username === "string"
+                ? req.body.username.trim().toLowerCase()
+                : "";
+        return String(req.ip || "") + "|" + user;
+    },
+    message: "Too many login attempts. Try again later.",
+});
+
+const validateUsernameRateLimit = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    message: "Too many requests. Try again later.",
+});
 
 const userRoutes = require("./modules/user"); // Import the user routes
 const gamesManagerRoutes = require("./modules/gamesManager"); // Import the games manager routes
@@ -88,7 +141,9 @@ app.use((req, res, next) => {
     res.locals.canPlayAdvanced = canUsePlayAdvancedTools(req.session);
     res.locals.canUsePlayPage = canAccessPlayPage(req.session);
     res.locals.messages = req.flash("messages");
-    res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
+    if (!res.locals.cspNonce) {
+        res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
+    }
     res.locals.locale = locale;
     res.locals.htmlLang = getHtmlLang(locale);
     res.locals.htmlDir = getHtmlDir(locale);
@@ -100,6 +155,9 @@ app.use((req, res, next) => {
 
 if (process.env.SHMERLING_MODE !== "desktop") {
     require("./play/mountWebPlay").mountWebPlayRoutes(app);
+    app.post("/login", loginRateLimit);
+    app.post("/api/login", loginRateLimit);
+    app.get("/validateUsername", validateUsernameRateLimit);
     app.use("/", userRoutes);
     app.use("/", gamesManagerRoutes);
     app.use("/", gameRoutes);
@@ -157,6 +215,9 @@ app.ws("/ws", async (ws, req) => {
             const msg = JSON.parse(recivedData);
 
             if (msg.type === "subscribeLobby") {
+                if (!(req.session && req.session.user_id)) {
+                    return;
+                }
                 if (lobbyClients.indexOf(ws) === -1) {
                     lobbyClients.push(ws);
                 }
@@ -210,10 +271,23 @@ app.ws("/ws", async (ws, req) => {
             }
 
             if (msg.type == "watch") {
+                const sessionUserId = req.session && req.session.user_id;
+                if (!sessionUserId) {
+                    try {
+                        ws.close();
+                    } catch (err) {
+                        /* ignore */
+                    }
+                    return;
+                }
                 const gameId = msg.data && msg.data.gameId;
                 const game = gameManagerService.getGameById(gameId);
-                if (game) {
-                    game.addWatcher(ws, msg.data.username);
+                if (game && canReadLiveGame(game, req.session)) {
+                    const watchName =
+                        (req.session && req.session.user_name) ||
+                        (msg.data && msg.data.username) ||
+                        "";
+                    game.addWatcher(ws, watchName);
                 }
                 return;
             }
@@ -276,21 +350,5 @@ app.use((err, req, res, next) => {
     res.status(statusCode).render("error", { statusCode, message });
     next(err);
 });
-
-app.use(
-    helmet({
-        contentSecurityPolicy: {
-            useDefaults: false,
-            directives: {
-                scriptSrc: ["'self'",
-                    (req, res) => `'nonce-${res.locals.cspNonce}'`,
-                    ...scriptSrcUrl],
-                defaultSrc: ["'self'"],
-                objectSrc: ["'none'"],
-                upgradeInsecureRequests: [],
-            },
-        },
-    }),
-);
 
 module.exports = app;

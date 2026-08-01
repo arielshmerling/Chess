@@ -1,7 +1,12 @@
 const gamesManagerService = require("./service");
 const { validate } = require("../../serverValidations");
 const { User } = require("../user/model");
+const { Game } = require("../game/model");
 const { t, resolveRequestLocale } = require("../../strings");
+const { canDeletePersistedGame } = require("../../security/gameAccess");
+const { isAdminSession } = require("../user/roles");
+const ExpressError = require("../../utils/ExpressError");
+const catchAsync = require("../../utils/catchAsync");
 
 /**
  * @param {number|null|undefined} startedMs
@@ -247,8 +252,17 @@ exports.search = async (req, res) => {
 //     res.render("search", { pgn, recordsPerPage, totalPages });
 // };
 
-exports.delete = async (req, res) => {
+exports.delete = catchAsync(async (req, res) => {
     const { id } = req.params;
+    const gameDoc = await Game.findById(id)
+        .select("whitePlayer blackPlayer createBy createByUserId")
+        .lean();
+    if (!gameDoc) {
+        throw new ExpressError("Not found", 404);
+    }
+    if (!canDeletePersistedGame(gameDoc, req.session, isAdminSession(req.session))) {
+        throw new ExpressError("Forbidden", 403);
+    }
     await gamesManagerService.deleteGame(id);
     const returnTo = req.body.returnTo;
     /** Allowlist only — never redirect to arbitrary URLs from POST body */
@@ -263,7 +277,7 @@ exports.delete = async (req, res) => {
     if (sortOrder) {query.push("order=" + encodeURIComponent(sortOrder));}
     const qs = query.length ? "?" + query.join("&") : "";
     res.redirect("/list" + qs);
-};
+});
 
 
 exports.generateState = async (req, res) => {

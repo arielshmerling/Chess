@@ -25,6 +25,11 @@ const {
     resolveInviterColor,
     buildInviteOfferSnapshot,
 } = require("./friendInviteOptions");
+const {
+    canReadLiveGame,
+    canReadPersistedGame,
+    isLiveGameParticipant,
+} = require("../../security/gameAccess");
 
 function lobbyStartedFields(startedOnMs) {
     const minutesAgo = Math.max(0, Math.floor((Date.now() - startedOnMs) / 1000 / 60) || 0);
@@ -110,6 +115,14 @@ async function ensureReviewGameLoaded(req) {
 
     let game = gamesManagerService.getGameById(id);
     if (game == null) {
+        if (mongoose.Types.ObjectId.isValid(String(id))) {
+            const gameDoc = await Game.findById(id)
+                .select("whitePlayer blackPlayer createBy createByUserId isPrivate reason result")
+                .lean();
+            if (!gameDoc || !canReadPersistedGame(gameDoc, req.session)) {
+                return null;
+            }
+        }
         const gameInfo = await gamesManagerService.findReviewGame(id, req.session.user_name);
         if (!gameInfo) {
             return null;
@@ -117,6 +130,9 @@ async function ensureReviewGameLoaded(req) {
         game = gameService.createReviewGame(req.session.user_id, req.session.user_name, gameInfo, "review");
         gamesManagerService.AddGame(game);
     } else {
+        if (!canReadLiveGame(game, req.session)) {
+            return null;
+        }
         game.mode = "review";
         if (!game.reviewReason && mongoose.Types.ObjectId.isValid(String(id))) {
             try {
@@ -217,6 +233,9 @@ exports.getGameInfo = catchAsync(async (req, res) => {
 
     const game = gamesManagerService.getGameById(gameId);
     if (game) {
+        if (!canReadLiveGame(game, req.session)) {
+            throw new ExpressError("Forbidden", 403);
+        }
         if (req.session) {
             req.session.gameId = gameId;
         }
@@ -376,6 +395,21 @@ exports.getGameMoves = async (req, res) => {
     const gameId = (req.query && req.query.id) || req.session.gameId;
 
     if (gameId) {
+        const live = gamesManagerService.getGameById(gameId);
+        if (live) {
+            if (!canReadLiveGame(live, req.session)) {
+                res.status(403).json({ ok: false, message: "Forbidden" });
+                return;
+            }
+        } else if (mongoose.Types.ObjectId.isValid(String(gameId))) {
+            const gameDoc = await Game.findById(gameId)
+                .select("whitePlayer blackPlayer createBy createByUserId isPrivate")
+                .lean();
+            if (!gameDoc || !canReadPersistedGame(gameDoc, req.session)) {
+                res.status(403).json({ ok: false, message: "Forbidden" });
+                return;
+            }
+        }
         if (req.session) {
             req.session.gameId = gameId;
         }
@@ -391,6 +425,11 @@ exports.getGameMoves = async (req, res) => {
 exports.rematch = async (req, res) => {
     validate(req.body, "id");
     const { id } = req.body;
+    const game = gamesManagerService.getGameById(id);
+    if (!game || !isLiveGameParticipant(game, req.session)) {
+        res.status(403).json({ ok: false, message: "Forbidden" });
+        return;
+    }
     req.session.gameId = id;
     res.send("{ \"status\": \"OK\" }");
 };

@@ -151,7 +151,15 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.statics.authenticate = async function (username, password) {
-    const foundUser = await this.findOne({ "username": { "$regex": username, $options: "i" } });
+    const name = typeof username === "string" ? username.trim() : "";
+    if (!name) {
+        return false;
+    }
+    /* Exact case-insensitive match — input is escaped, never treated as a regex pattern. */
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const foundUser = await this.findOne({
+        username: { $regex: "^" + escaped + "$", $options: "i" },
+    });
     const isValid = foundUser && await bcrypt.compare(password, foundUser.password);
     return isValid ? foundUser : false;
 };

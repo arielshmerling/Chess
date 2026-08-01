@@ -3106,9 +3106,10 @@ async function animateMove(move, options) {
 
 
 function closeMenu() {
-
     const mainMenu = document.getElementById("mainMenu");
-
+    if (!mainMenu) {
+        return;
+    }
     if (mainMenu.style.visibility != "hidden") {
         mainMenu.style.visibility = "hidden";
         mainMenu.style.opacity = "0";

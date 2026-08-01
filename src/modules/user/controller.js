@@ -167,27 +167,33 @@ exports.applyBookmark = catchAsync(async (req, res) => {
     const { gameId, bookarkId } = req.body;
 
     if (userId && gameId && bookarkId) {
-        await userService.applyBookmark(userId, gameId, bookarkId);
-        res.send("{ \"status\": \"OK\" }");
+        const ok = await userService.applyBookmark(userId, gameId, bookarkId);
+        if (ok) {
+            res.send("{ \"status\": \"OK\" }");
+            return;
+        }
+        res.status(403).json({ ok: false, message: "Forbidden" });
+        return;
     }
-    else {
-        console.log("Bad request. No userID, gameId or bookmarkId");
-        res.send("ERROR");
-    }
+    console.log("Bad request. No userID, gameId or bookmarkId");
+    res.send("ERROR");
 });
 
 
 exports.deleteBookmark = catchAsync(async (req, res) => {
-    //const userId = req.session.user_id;
+    const userId = req.session.user_id;
     const { id } = req.body;
-    // const { name, gameType, date } = req.body;
 
-    if (id) {
-        var success = await userService.deleteBookmark(id);
-        if (success) {
-            res.send("{ \"status\": \"OK\" }");
-        }
+    if (!userId || !id) {
+        res.status(400).json({ ok: false, message: "Bad request" });
+        return;
     }
+    const success = await userService.deleteBookmark(userId, id);
+    if (success) {
+        res.send("{ \"status\": \"OK\" }");
+        return;
+    }
+    res.status(403).json({ ok: false, message: "Forbidden" });
 });
 
 /** Credentials reach Mongo as a regex; only plain strings may pass through. */

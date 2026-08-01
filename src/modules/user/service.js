@@ -311,10 +311,20 @@ exports.applyBookmark = async (userId, gameId, bookarkId) => {
 
         const game = gamesManagerService.getGameById(gameId);
         const user = await User.findOne({ _id: userId });
+        if (!user) {
+            return false;
+        }
         const userBookmark = user.bookmarks.find((o) => o._id == bookarkId);
         const bookmarkDoc = await Bookmark.findOne({ _id: bookarkId });
 
         if (bookmarkDoc && userBookmark && game) {
+            const ownsGame =
+                (game.createdBy && String(game.createdBy.userId) === String(userId)) ||
+                (game.whitePlayer && String(game.whitePlayer.userId) === String(userId)) ||
+                (game.blackPlayer && String(game.blackPlayer.userId) === String(userId));
+            if (!ownsGame) {
+                return false;
+            }
             if (game.constructor.name == "SinglePlayerGame") {
                 const moves = bookmarkDoc.moves.map(m => JSON.parse(m));
                 game.chessGame.loadMoves(moves);
@@ -326,18 +336,32 @@ exports.applyBookmark = async (userId, gameId, bookarkId) => {
                 if (!game.chessGame.GameOver && game.chessGame.Turn == "black") {
                     game.makeBrainMove(false);
                 }
-
+                return true;
             }
         }
     } catch (error) {
         console.error(error);
     }
+    return false;
 };
 
-exports.deleteBookmark = async (id) => {
+exports.deleteBookmark = async (userId, id) => {
     try {
+        const user = await User.findOne({ _id: userId });
+        if (!user) {
+            return false;
+        }
+        const owned = user.bookmarks.some((o) => String(o._id) === String(id));
+        if (!owned) {
+            return false;
+        }
         const deletedBookmark = await Bookmark.findOneAndDelete({ _id: id });
-        return deletedBookmark != null;
+        if (!deletedBookmark) {
+            return false;
+        }
+        user.bookmarks = user.bookmarks.filter((o) => String(o._id) !== String(id));
+        await user.save();
+        return true;
     } catch (error) {
         console.error(error);
         return false;
