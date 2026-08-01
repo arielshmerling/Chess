@@ -10,7 +10,7 @@
 const assert = require("assert");
 const request = require("supertest");
 const { ensureWebE2EUsers } = require("./helpers/webE2EUser");
-const { loadWebApp } = require("./helpers/webApp");
+const { loadWebApp, resetWebRateLimits } = require("./helpers/webApp");
 const { normalizeReturnTo } = require("../src/utils");
 
 describe("web HTTP / auth", function () {
@@ -25,9 +25,11 @@ describe("web HTTP / auth", function () {
         primary = users.primary;
         other = users.other;
         app = loadWebApp();
+        resetWebRateLimits(app);
     });
 
     async function loginAgent(creds = primary) {
+        resetWebRateLimits(app);
         const agent = request.agent(app);
         await agent
             .post("/login")

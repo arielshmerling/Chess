@@ -80,9 +80,18 @@ app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(csrfSameOrigin);
 
+const loginRateLimitMax = Math.max(
+    1,
+    Number(process.env.LOGIN_RATE_LIMIT_MAX) || 40,
+);
+const validateUsernameRateLimitMax = Math.max(
+    1,
+    Number(process.env.VALIDATE_USERNAME_RATE_LIMIT_MAX) || 60,
+);
+
 const loginRateLimit = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 40,
+    max: loginRateLimitMax,
     keyFn: (req) => {
         const user =
             req.body && typeof req.body.username === "string"
@@ -95,8 +104,13 @@ const loginRateLimit = createRateLimiter({
 
 const validateUsernameRateLimit = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 60,
+    max: validateUsernameRateLimitMax,
     message: "Too many requests. Try again later.",
+});
+
+app.set("rateLimiters", {
+    login: loginRateLimit,
+    validateUsername: validateUsernameRateLimit,
 });
 
 const userRoutes = require("./modules/user"); // Import the user routes

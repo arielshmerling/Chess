@@ -1,27 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>Manual QA: Shmerling Play UI</title>
-<style>
-@page { size: Letter; margin: 0.7in; }
-body { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; max-width: 7.5in; margin: 0 auto; padding: 0.5in 0; }
-h1 { font-size: 18pt; margin: 0 0 0.4em; border-bottom: 2px solid #222; padding-bottom: 0.2em; }
-h2 { font-size: 13pt; margin: 1.3em 0 0.45em; border-bottom: 1px solid #ccc; padding-bottom: 0.12em; page-break-after: avoid; }
-h3 { font-size: 11pt; margin: 1em 0 0.3em; page-break-after: avoid; }
-p, li { margin: 0.28em 0; }
-ul, ol { padding-left: 1.25em; margin: 0.3em 0 0.5em; }
-table { border-collapse: collapse; width: 100%; margin: 0.5em 0 0.8em; font-size: 9.5pt; page-break-inside: avoid; }
-th, td { border: 1px solid #bbb; padding: 0.3em 0.45em; text-align: left; vertical-align: top; }
-th { background: #f0f0f0; }
-code { font-family: SF Mono, Menlo, Consolas, monospace; font-size: 8.5pt; }
-hr { border: none; border-top: 1px solid #ccc; margin: 1.1em 0; }
-strong { font-weight: 600; }
-</style>
-</head>
-<body>
+<html lang="en"><head><meta charset="UTF-8"><title>Manual QA — Shmerling Play</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.45;max-width:880px;margin:2rem auto;padding:0 1.25rem}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem .55rem;text-align:left}code{font-size:.92em}h1,h2,h3{page-break-after:avoid}</style>
+</head><body>
 <h1 id="manual-qa-shmerling-play-ui-phase-14">Manual QA: Shmerling Play UI (Phase 1–4)</h1>
-<p><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).<br><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on <code>/play</code>. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic <code>/game</code> remains as fallback.<br><strong>Last updated:</strong> 2026-07-26 (Phase 4 draw / rematch / reconnect on <code>/play</code>)</p>
+<p><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).<br><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on <code>/play</code>. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic <code>/game</code> remains as fallback.<br><strong>Last updated:</strong> 2026-08-01 (security remediations + Prefer-Play UCI)</p>
 <p>Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.</p>
 <hr>
 <h2 id="how-to-use-this-checklist">How to use this checklist</h2>
@@ -1367,6 +1349,90 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <li><input disabled="" type="checkbox"> Short public deprecation notice / final cutover</li>
 </ul>
 <hr>
+<h2 id="prefer-play-uci-stockfish--web-only">Prefer-Play UCI (Stockfish) — web only</h2>
+<p><strong>Ops prerequisite:</strong> install Stockfish on the server host and set <code>STOCKFISH_PATH</code> to the binary (or ensure <code>stockfish</code> is on <code>PATH</code>). Restart <code>npm start</code> after changing the env. Do <strong>not</strong> expect Stockfish on classic <code>/game</code> or Electron for this slice.</p>
+<h3 id="uci1--stockfish-appears-when-available">UCI.1 — Stockfish appears when available</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>With Stockfish configured, restart the server and hard-refresh <code>/play</code>.</li>
+<li>Open <strong>New game</strong> / Play Now engine dropdown.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li><strong>Stockfish</strong> is listed with Brain 4.x options.</li>
+<li>Starting a game as White vs Stockfish: after your move, Stockfish replies within the configured thinking time.</li>
+<li>Moves are legal and animate like Brain games.</li>
+</ul>
+<h3 id="uci2--unavailable-when-binary-missing">UCI.2 — Unavailable when binary missing</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Unset <code>STOCKFISH_PATH</code> / remove <code>stockfish</code> from PATH (or point at a bad path).</li>
+<li>Restart server; hard-refresh <code>/play</code>.</li>
+<li>Open New game engine dropdown.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Stockfish is <strong>not</strong> listed (or is unavailable).</li>
+<li>Brains still work; Play shell does not crash.</li>
+</ul>
+<h3 id="uci3--think-time-only">UCI.3 — Think time only</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Preferences → thinking time 2s; play vs Stockfish.</li>
+<li>Increase thinking time; play again.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Search duration roughly tracks think time (no Elo/Skill UI required).</li>
+</ul>
+<hr>
+<h2 id="security-remediations-smoke-aug-2026">Security remediations smoke (Aug 2026)</h2>
+<p>Run after restarting the server and a hard-refresh. Automated coverage: <code>npm run test:web:api</code> (includes <code>test/security.http.test.js</code>).</p>
+<h3 id="sec1--search-history-click-→-review-on-play">SEC.1 — Search, history click → review on <code>/play</code></h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Open Search; run a query that returns rows.</li>
+<li>Click a result row.</li>
+<li>From Home/history, click one of your finished games.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Search results render; row click navigates (inline <code>onclick</code> works).</li>
+<li>Review opens on Prefer-Play <code>/play?mode=review&amp;…</code> (desktop web) with clocks/moves.</li>
+<li>No blank page / CSP console errors blocking navigation.</li>
+</ul>
+<h3 id="sec2--start-a-new-prefer-play-game">SEC.2 — Start a new Prefer-Play game</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>From Home, Play Now → start vs Brain on <code>/play</code>.</li>
+<li>Make a move; confirm engine replies.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Game starts; WebSocket connects; no HTTPS upgrade failures on <code>http://localhost</code>.</li>
+</ul>
+<h3 id="sec3--friend-invite-has-no-allow-undo">SEC.3 — Friend invite has no Allow undo</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Open Friends → invite gear / invite options.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Time, color, friendly/private options appear.</li>
+<li><strong>Allow undo</strong> checkbox is absent; invite still sends successfully.</li>
+</ul>
+<h3 id="sec4--private-game-not-listed--not-readable-by-stranger">SEC.4 — Private game not listed / not readable by stranger</h3>
+<p><strong>Steps</strong></p>
+<ol>
+<li>Start or invite a <strong>private</strong> online/SP game as user A.</li>
+<li>As user B (logged in, not a participant), open Active games / try opening A’s private finished game moves if you have an id.</li>
+</ol>
+<p><strong>Expect</strong></p>
+<ul>
+<li>Private game does not appear in public active listings.</li>
+<li>Stranger cannot load private moves/review (forbidden / redirect home).</li>
+</ul>
+<hr>
 <h2 id="sign-off">Sign-off</h2>
 <table>
 <thead>
@@ -1448,10 +1514,13 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <td>Pass / Fail</td>
 </tr>
 <tr>
+<td>Security smoke (SEC.1–SEC.4)</td>
+<td>Pass / Fail</td>
+</tr>
+<tr>
 <td>Notes</td>
 <td></td>
 </tr>
 </tbody></table>
 
-</body>
-</html>
+</body></html>

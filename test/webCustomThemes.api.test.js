@@ -9,7 +9,7 @@
 const assert = require("assert");
 const request = require("supertest");
 const { ensureWebE2EUsers, ensureWebE2EPartner } = require("./helpers/webE2EUser");
-const { loadWebApp } = require("./helpers/webApp");
+const { loadWebApp, resetWebRateLimits } = require("./helpers/webApp");
 const { createSeedThemeEntries } = require("../src/desktop/themeSchema");
 
 const THEMES_URL = "/app/api/custom-themes";
@@ -26,9 +26,11 @@ describe("web custom themes API", function () {
         primary = users.primary;
         partner = await ensureWebE2EPartner();
         app = loadWebApp();
+        resetWebRateLimits(app);
     });
 
     async function loginAgent(creds) {
+        resetWebRateLimits(app);
         const agent = request.agent(app);
         await agent
             .post("/login")

@@ -14,6 +14,24 @@ function loadWebApp() {
     return require("../../src/app");
 }
 
+/**
+ * Clear in-memory login / validateUsername rate-limit buckets (shared across mocha files).
+ * @param {import("express").Application} app
+ */
+function resetWebRateLimits(app) {
+    const limiters = app && typeof app.get === "function" ? app.get("rateLimiters") : null;
+    if (!limiters) {
+        return;
+    }
+    if (limiters.login && typeof limiters.login.reset === "function") {
+        limiters.login.reset();
+    }
+    if (limiters.validateUsername && typeof limiters.validateUsername.reset === "function") {
+        limiters.validateUsername.reset();
+    }
+}
+
 module.exports = {
     loadWebApp,
+    resetWebRateLimits,
 };

@@ -2,7 +2,7 @@
 
 **Product surface:** Web `/play` and Desktop Electron Play shell (shared UI).  
 **Scope:** Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on `/play`. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic `/game` remains as fallback.  
-**Last updated:** 2026-08-01 (Prefer-Play UCI / Stockfish via external process)
+**Last updated:** 2026-08-01 (security remediations + Prefer-Play UCI)
 
 Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.
 
@@ -1252,6 +1252,52 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 
 ---
 
+## Security remediations smoke (Aug 2026)
+
+Run after restarting the server and a hard-refresh. Automated coverage: `npm run test:web:api` (includes `test/security.http.test.js`).
+
+### SEC.1 — Search, history click → review on `/play`
+
+**Steps**
+1. Open Search; run a query that returns rows.
+2. Click a result row.
+3. From Home/history, click one of your finished games.
+
+**Expect**
+- Search results render; row click navigates (inline `onclick` works).
+- Review opens on Prefer-Play `/play?mode=review&…` (desktop web) with clocks/moves.
+- No blank page / CSP console errors blocking navigation.
+
+### SEC.2 — Start a new Prefer-Play game
+
+**Steps**
+1. From Home, Play Now → start vs Brain on `/play`.
+2. Make a move; confirm engine replies.
+
+**Expect**
+- Game starts; WebSocket connects; no HTTPS upgrade failures on `http://localhost`.
+
+### SEC.3 — Friend invite has no Allow undo
+
+**Steps**
+1. Open Friends → invite gear / invite options.
+
+**Expect**
+- Time, color, friendly/private options appear.
+- **Allow undo** checkbox is absent; invite still sends successfully.
+
+### SEC.4 — Private game not listed / not readable by stranger
+
+**Steps**
+1. Start or invite a **private** online/SP game as user A.
+2. As user B (logged in, not a participant), open Active games / try opening A’s private finished game moves if you have an id.
+
+**Expect**
+- Private game does not appear in public active listings.
+- Stranger cannot load private moves/review (forbidden / redirect home).
+
+---
+
 ## Sign-off
 
 | Field | Value |
@@ -1274,4 +1320,5 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 | Phase 8 (mobile watch) result | Pass / Fail |
 | Phase 9 (brain adapters) result | Pass / Fail |
 | Phase 10 (deprecation redirects) result | Pass / Fail |
+| Security smoke (SEC.1–SEC.4) | Pass / Fail |
 | Notes | |

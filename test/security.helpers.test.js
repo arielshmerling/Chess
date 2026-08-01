@@ -132,4 +132,13 @@ describe("security helpers", function () {
             assert.ok(!ROOT_CLIENT_FILES.includes("brain43.js"));
         });
     });
+
+    describe("rateLimit reset", function () {
+        it("exposes reset() so test suites can clear buckets", function () {
+            const { createRateLimiter } = require("../src/security/rateLimit");
+            const lim = createRateLimiter({ windowMs: 60000, max: 2 });
+            assert.strictEqual(typeof lim.reset, "function");
+            lim.reset();
+        });
+    });
 });

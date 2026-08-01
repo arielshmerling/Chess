@@ -28,7 +28,7 @@ function createRateLimiter(opts) {
         }
     }
 
-    return function rateLimit(req, res, next) {
+    function rateLimit(req, res, next) {
         const now = Date.now();
         prune(now);
         const key = keyFn(req);
@@ -52,7 +52,15 @@ function createRateLimiter(opts) {
             return res.status(429).send(message);
         }
         return next();
+    }
+
+    rateLimit.reset = function reset() {
+        hits.clear();
     };
+
+    rateLimit.max = max;
+
+    return rateLimit;
 }
 
 module.exports = {
