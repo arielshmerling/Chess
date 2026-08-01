@@ -10,6 +10,7 @@ const assert = require("assert");
 const request = require("supertest");
 const { ensureWebE2EUsers, ensureWebE2EPartner } = require("./helpers/webE2EUser");
 const { loadWebApp } = require("./helpers/webApp");
+const { createSeedThemeEntries } = require("../src/desktop/themeSchema");
 
 const THEMES_URL = "/app/api/custom-themes";
 
@@ -103,8 +104,24 @@ describe("web custom themes API", function () {
 
     it("partner keeps a deleted seeded theme deleted", async function () {
         const agent = await loginAgent(partner);
-        const before = (await agent.get(THEMES_URL).expect(200)).body;
-        const seeded = findTheme(before, "blue");
+        let before = (await agent.get(THEMES_URL).expect(200)).body;
+        let seeded = findTheme(before, "blue");
+        if (!seeded) {
+            // Prior runs may have left Blue hidden; restore the seed before asserting delete.
+            const seedBlue = createSeedThemeEntries().find(function (theme) {
+                return theme.id === "blue";
+            });
+            assert.ok(seedBlue, "seed catalog must include Blue");
+            await agent
+                .post(THEMES_URL)
+                .send({
+                    activeTheme: before.activeTheme || "custom:blue",
+                    themes: (before.themes || []).concat([seedBlue]),
+                })
+                .expect(200);
+            before = (await agent.get(THEMES_URL).expect(200)).body;
+            seeded = findTheme(before, "blue");
+        }
         assert.ok(seeded, "Blue should be an ordinary seeded catalog theme");
 
         try {

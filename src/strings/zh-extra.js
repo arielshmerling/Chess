@@ -140,6 +140,24 @@
         "cancel": "取消",
         "notice": "提示",
         "ok": "确定",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "页脚",
+            "privacy": "隐私政策",
+            "terms": "使用条款",
+            "contact": "联系我们",
+            "copyright": "© {{year}} Shmerling Chess。保留所有权利。",
+            "lastUpdated": "最后更新：{{date}}",
+            "privacyTitle": "隐私政策",
+            "privacyLead": "Shmerling Chess 如何处理账户与对局信息。",
+            "privacyBody": "我们使用您的账户信息来运营服务、保存对局与偏好并改进产品。我们不会出售个人信息。完整政策文本将在此发布。",
+            "termsTitle": "使用条款",
+            "termsLead": "使用 Shmerling Chess 的规则。",
+            "termsBody": "使用 Shmerling Chess 即表示您同意公平对弈、尊重其他玩家，并仅将服务用于个人国际象棋对局。完整条款将在此发布。",
+            "contactTitle": "联系我们",
+            "contactLead": "联系 Shmerling Chess 团队。",
+            "contactBody": "支持与隐私问题的联系方式将在此发布。"
+        },
         "username": "用户名：",
         "password": "密码：",
         "login": "登录",
@@ -382,6 +400,7 @@
             "doubleClick": "双击",
             "showAvailableMoves": "显示可走步",
             "private": "私人",
+            "privateHint": "私人对局不会显示在其他会员的进行中对局列表中。",
             "playComputer": "对电脑",
             "browseAll": "浏览全部",
             "yourHistory": "您的历史",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "偏好设置",
+            "closePreferences": "关闭偏好设置",
             "display": "显示",
             "gameplay": "对局",
             "pieceSet": "棋子样式",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "黑王侧车已动",
             "flagBlackQueensideRookMoved": "黑后侧车已动"
         }
+    },
+    "errorPage": {
+        "code": "错误 {{code}}",
+        "notFoundTitle": "页面未找到",
+        "notFoundMessage": "您要查找的页面不存在。",
+        "genericTitle": "出了点问题",
+        "genericMessage": "发生了意外错误。请重试。",
+        "backHome": "返回首页"
     },
     "mobile": {
         "drawOfferTitle": "和棋提议",

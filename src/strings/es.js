@@ -50,6 +50,12 @@
                 expandGamesPanel: "Expandir panel de partidas",
                 expandGames: "Expandir partidas",
                 collapseGamesPanel: "Contraer panel de partidas",
+                chat: "Chat",
+                expandChatPanel: "Expandir el panel de chat",
+                collapseChatPanel: "Contraer el panel de chat",
+                chatPlaceholder: "Escribe un mensaje…",
+                chatWatcherReadonly: "Los espectadores solo pueden leer el chat",
+                sendChat: "Enviar",
                 savedListFilter: "Filtro de lista guardada",
                 positions: "Posiciones",
                 gameStatus: "Estado de la partida",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Tiempo por bando (minutos)",
                 allowUndo: "Permitir deshacer",
+                private: "Privada",
+                privateHint:
+                    "Las partidas privadas no se muestran en las listas de partidas activas de otros miembros.",
             },
             prompts: {
                 positionName: "Nombre de la posición",

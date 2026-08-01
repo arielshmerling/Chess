@@ -50,6 +50,12 @@
                 expandGamesPanel: "Розгорнути панель партій",
                 expandGames: "Розгорнути партії",
                 collapseGamesPanel: "Згорнути панель партій",
+                chat: "Чат",
+                expandChatPanel: "Розгорнути панель чату",
+                collapseChatPanel: "Згорнути панель чату",
+                chatPlaceholder: "Введіть повідомлення…",
+                chatWatcherReadonly: "Глядачі можуть лише читати чат",
+                sendChat: "Надіслати",
                 savedListFilter: "Фільтр збереженого списку",
                 positions: "Позиції",
                 gameStatus: "Статус партії",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Час на сторону (хвилини)",
                 allowUndo: "Дозволити скасування ходу",
+                private: "Приватна",
+                privateHint:
+                    "Приватні партії не відображаються в списках активних партій інших учасників.",
             },
             prompts: {
                 positionName: "Назва позиції",

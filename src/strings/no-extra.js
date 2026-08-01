@@ -140,6 +140,24 @@
         "cancel": "Avbryt",
         "notice": "Melding",
         "ok": "OK",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "Bunntekst",
+            "privacy": "Personvernerklæring",
+            "terms": "Bruksvilkår",
+            "contact": "Kontakt",
+            "copyright": "© {{year}} Shmerling Chess. Alle rettigheter forbeholdt.",
+            "lastUpdated": "Sist oppdatert: {{date}}",
+            "privacyTitle": "Personvernerklæring",
+            "privacyLead": "Hvordan Shmerling Chess behandler konto- og spillinformasjon.",
+            "privacyBody": "Vi bruker kontodetaljene dine for å drive tjenesten, lagre partier og preferanser, og forbedre produktet. Vi selger ikke personopplysninger. Full policytekst publiseres her.",
+            "termsTitle": "Bruksvilkår",
+            "termsLead": "Reglene for bruk av Shmerling Chess.",
+            "termsBody": "Ved å bruke Shmerling Chess godtar du å spille fair, respektere andre spillere og bruke tjenesten kun til personlig sjakkspill. Fullstendige vilkår publiseres her.",
+            "contactTitle": "Kontakt",
+            "contactLead": "Ta kontakt med Shmerling Chess-teamet.",
+            "contactBody": "Kontaktinformasjon for support og personvernspørsmål publiseres her."
+        },
         "username": "Brukernavn:",
         "password": "Passord:",
         "login": "Logg inn",
@@ -382,6 +400,7 @@
             "doubleClick": "Dobbeltklikk",
             "showAvailableMoves": "Vis mulige trekk",
             "private": "Privat",
+            "privateHint": "Private partier vises ikke i andre medlemmers lister over aktive partier.",
             "playComputer": "Spill mot datamaskin",
             "browseAll": "Bla gjennom alle",
             "yourHistory": "Din historikk",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "Innstillinger",
+            "closePreferences": "Lukk innstillinger",
             "display": "Visning",
             "gameplay": "Spill",
             "pieceSet": "Brikkesett",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "Svarts kongeside-tårn har flyttet",
             "flagBlackQueensideRookMoved": "Svarts dronning-side-tårn har flyttet"
         }
+    },
+    "errorPage": {
+        "code": "Feil {{code}}",
+        "notFoundTitle": "Siden ble ikke funnet",
+        "notFoundMessage": "Siden du leter etter finnes ikke.",
+        "genericTitle": "Noe gikk galt",
+        "genericMessage": "Det oppstod en uventet feil. Prøv igjen.",
+        "backHome": "Tilbake til startsiden"
     },
     "mobile": {
         "drawOfferTitle": "Remistilbud",

@@ -50,6 +50,12 @@
                 expandGamesPanel: "Vis partipanel",
                 expandGames: "Vis partier",
                 collapseGamesPanel: "Skjul partipanel",
+                chat: "Chat",
+                expandChatPanel: "Utvid chat-panelet",
+                collapseChatPanel: "Skjul chat-panelet",
+                chatPlaceholder: "Skriv en melding…",
+                chatWatcherReadonly: "Tilskuere kan bare lese chatten",
+                sendChat: "Send",
                 savedListFilter: "Filter for lagret liste",
                 positions: "Stillinger",
                 gameStatus: "Partistatus",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Tid per side (minutter)",
                 allowUndo: "Tillat angre",
+                private: "Privat",
+                privateHint:
+                    "Private partier vises ikke i andre medlemmers lister over aktive partier.",
             },
             prompts: {
                 positionName: "Stillingsnavn",

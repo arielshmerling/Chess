@@ -50,6 +50,12 @@
                 expandGamesPanel: "ゲームパネルを展開",
                 expandGames: "ゲームを展開",
                 collapseGamesPanel: "ゲームパネルを折りたたむ",
+                chat: "チャット",
+                expandChatPanel: "チャットパネルを展開",
+                collapseChatPanel: "チャットパネルを折りたたむ",
+                chatPlaceholder: "メッセージを入力…",
+                chatWatcherReadonly: "観戦者はチャットを読むだけです",
+                sendChat: "送信",
                 savedListFilter: "保存リストのフィルター",
                 positions: "局面",
                 gameStatus: "ゲーム状態",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "各側の持ち時間（分）",
                 allowUndo: "待ったを許可",
+                private: "非公開",
+                privateHint:
+                    "非公開の対局は、他のメンバーの進行中の対局一覧には表示されません。",
             },
             prompts: {
                 positionName: "局面名",

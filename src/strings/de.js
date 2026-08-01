@@ -50,6 +50,12 @@
                 expandGamesPanel: "Partien-Panel ausklappen",
                 expandGames: "Partien ausklappen",
                 collapseGamesPanel: "Partien-Panel einklappen",
+                chat: "Chat",
+                expandChatPanel: "Chat-Bereich erweitern",
+                collapseChatPanel: "Chat-Bereich einklappen",
+                chatPlaceholder: "Nachricht eingeben…",
+                chatWatcherReadonly: "Zuschauer können den Chat nur lesen",
+                sendChat: "Senden",
                 savedListFilter: "Filter für gespeicherte Liste",
                 positions: "Stellungen",
                 gameStatus: "Spielstatus",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Zeit pro Seite (Minuten)",
                 allowUndo: "Rückgängig erlauben",
+                private: "Privat",
+                privateHint:
+                    "Private Partien werden nicht in den Aktive-Partien-Listen anderer Mitglieder angezeigt.",
             },
             prompts: {
                 positionName: "Stellungsname",

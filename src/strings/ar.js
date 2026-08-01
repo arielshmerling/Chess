@@ -50,6 +50,12 @@
                 expandGamesPanel: "توسيع لوحة الألعاب",
                 expandGames: "توسيع الألعاب",
                 collapseGamesPanel: "طي لوحة الألعاب",
+                chat: "دردشة",
+                expandChatPanel: "توسيع لوحة الدردشة",
+                collapseChatPanel: "طي لوحة الدردشة",
+                chatPlaceholder: "اكتب رسالة…",
+                chatWatcherReadonly: "يمكن للمشاهدين قراءة الدردشة فقط",
+                sendChat: "إرسال",
                 savedListFilter: "تصفية القائمة المحفوظة",
                 positions: "الوضعيات",
                 gameStatus: "حالة اللعبة",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "الوقت لكل طرف (دقائق)",
                 allowUndo: "السماح بالتراجع",
+                private: "خاصة",
+                privateHint:
+                    "لا تظهر الألعاب الخاصة في قوائم الألعاب النشطة للأعضاء الآخرين.",
             },
             prompts: {
                 positionName: "اسم الوضعية",

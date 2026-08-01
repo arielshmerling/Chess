@@ -140,6 +140,24 @@
         "cancel": "キャンセル",
         "notice": "お知らせ",
         "ok": "OK",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "フッター",
+            "privacy": "プライバシーポリシー",
+            "terms": "利用規約",
+            "contact": "お問い合わせ",
+            "copyright": "© {{year}} Shmerling Chess. All rights reserved.",
+            "lastUpdated": "最終更新: {{date}}",
+            "privacyTitle": "プライバシーポリシー",
+            "privacyLead": "Shmerling Chess がアカウントと対局情報を扱う方法。",
+            "privacyBody": "サービス運営、対局と設定の保存、製品改善のためにアカウント情報を使用します。個人情報は販売しません。正式なポリシー本文はここに掲載されます。",
+            "termsTitle": "利用規約",
+            "termsLead": "Shmerling Chess の利用ルール。",
+            "termsBody": "Shmerling Chess を利用することで、公正に対戦し、他のプレイヤーを尊重し、個人のチェス対局のみにサービスを使うことに同意したものとします。正式な規約はここに掲載されます。",
+            "contactTitle": "お問い合わせ",
+            "contactLead": "Shmerling Chess チームへの連絡。",
+            "contactBody": "サポートとプライバシーに関する連絡先はここに掲載されます。"
+        },
         "username": "ユーザー名:",
         "password": "パスワード:",
         "login": "ログイン",
@@ -382,6 +400,7 @@
             "doubleClick": "ダブルクリック",
             "showAvailableMoves": "合法手を表示",
             "private": "非公開",
+            "privateHint": "非公開の対局は、他のメンバーの進行中の対局一覧には表示されません。",
             "playComputer": "コンピュータと対局",
             "browseAll": "すべて閲覧",
             "yourHistory": "あなたの履歴",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "環境設定",
+            "closePreferences": "設定を閉じる",
             "display": "表示",
             "gameplay": "ゲームプレイ",
             "pieceSet": "駒セット",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "黒キング側ルーク移動済み",
             "flagBlackQueensideRookMoved": "黒クイーン側ルーク移動済み"
         }
+    },
+    "errorPage": {
+        "code": "エラー {{code}}",
+        "notFoundTitle": "ページが見つかりません",
+        "notFoundMessage": "お探しのページは存在しません。",
+        "genericTitle": "問題が発生しました",
+        "genericMessage": "予期しないエラーが発生しました。もう一度お試しください。",
+        "backHome": "ホームに戻る"
     },
     "mobile": {
         "drawOfferTitle": "引き分けの提案",

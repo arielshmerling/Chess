@@ -140,6 +140,24 @@
         "cancel": "रद्द करें",
         "notice": "सूचना",
         "ok": "ठीक है",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "फुटर",
+            "privacy": "गोपनीयता नीति",
+            "terms": "उपयोग की शर्तें",
+            "contact": "संपर्क",
+            "copyright": "© {{year}} Shmerling Chess. सर्वाधिकार सुरक्षित।",
+            "lastUpdated": "अंतिम अपडेट: {{date}}",
+            "privacyTitle": "गोपनीयता नीति",
+            "privacyLead": "Shmerling Chess खाता और गेमप्ले जानकारी को कैसे संभालता है।",
+            "privacyBody": "हम सेवा चलाने, खेल और प्राथमिकताएँ रखने तथा उत्पाद सुधारने के लिए आपके खाते का विवरण उपयोग करते हैं। हम व्यक्तिगत जानकारी नहीं बेचते। पूरी नीति यहाँ प्रकाशित की जाएगी।",
+            "termsTitle": "उपयोग की शर्तें",
+            "termsLead": "Shmerling Chess उपयोग करने के नियम।",
+            "termsBody": "Shmerling Chess का उपयोग करके आप निष्पक्ष खेलने, अन्य खिलाड़ियों का सम्मान करने और सेवा केवल व्यक्तिगत शतरंज के लिए उपयोग करने पर सहमत होते हैं। पूरी शर्तें यहाँ प्रकाशित की जाएँगी।",
+            "contactTitle": "संपर्क",
+            "contactLead": "Shmerling Chess टीम से संपर्क करें।",
+            "contactBody": "सहायता और गोपनीयता प्रश्नों के संपर्क विवरण यहाँ प्रकाशित किए जाएँगे।"
+        },
         "username": "उपयोगकर्ता नाम:",
         "password": "पासवर्ड:",
         "login": "लॉग इन",
@@ -382,6 +400,7 @@
             "doubleClick": "डबल क्लिक",
             "showAvailableMoves": "उपलब्ध चालें दिखाएँ",
             "private": "निजी",
+            "privateHint": "निजी खेल अन्य सदस्यों की सक्रिय खेल सूचियों में नहीं दिखते।",
             "playComputer": "कंप्यूटर से खेलें",
             "browseAll": "सभी ब्राउज़ करें",
             "yourHistory": "आपका इतिहास",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "प्राथमिकताएँ",
+            "closePreferences": "वरीयताएँ बंद करें",
             "display": "प्रदर्शन",
             "gameplay": "गेमप्ले",
             "pieceSet": "मोहरा सेट",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "काला kingside हाथी चला",
             "flagBlackQueensideRookMoved": "काला queenside हाथी चला"
         }
+    },
+    "errorPage": {
+        "code": "त्रुटि {{code}}",
+        "notFoundTitle": "पृष्ठ नहीं मिला",
+        "notFoundMessage": "आप जिस पृष्ठ को खोज रहे हैं वह मौजूद नहीं है।",
+        "genericTitle": "कुछ गलत हो गया",
+        "genericMessage": "एक अप्रत्याशित त्रुटि हुई। कृपया फिर से प्रयास करें।",
+        "backHome": "होम पर वापस जाएँ"
     },
     "mobile": {
         "drawOfferTitle": "ड्रॉ प्रस्ताव",

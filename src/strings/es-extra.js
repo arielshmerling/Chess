@@ -140,6 +140,24 @@
         "cancel": "Cancelar",
         "notice": "Aviso",
         "ok": "Aceptar",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "Pie de página",
+            "privacy": "Política de privacidad",
+            "terms": "Términos de uso",
+            "contact": "Contacto",
+            "copyright": "© {{year}} Shmerling Chess. Todos los derechos reservados.",
+            "lastUpdated": "Última actualización: {{date}}",
+            "privacyTitle": "Política de privacidad",
+            "privacyLead": "Cómo Shmerling Chess trata la información de cuenta y de juego.",
+            "privacyBody": "Usamos los datos de tu cuenta para operar el servicio, guardar partidas y preferencias, y mejorar el producto. No vendemos información personal. El texto completo de la política se publicará aquí.",
+            "termsTitle": "Términos de uso",
+            "termsLead": "Las reglas para usar Shmerling Chess.",
+            "termsBody": "Al usar Shmerling Chess aceptas jugar con fair play, respetar a otros jugadores y usar el servicio solo para ajedrez personal. Los términos completos se publicarán aquí.",
+            "contactTitle": "Contacto",
+            "contactLead": "Ponte en contacto con el equipo de Shmerling Chess.",
+            "contactBody": "Los datos de contacto para soporte y privacidad se publicarán aquí."
+        },
         "username": "Nombre de usuario:",
         "password": "Contraseña:",
         "login": "Iniciar sesión",
@@ -382,6 +400,7 @@
             "doubleClick": "Doble clic",
             "showAvailableMoves": "Mostrar jugadas disponibles",
             "private": "Privada",
+            "privateHint": "Las partidas privadas no se muestran en las listas de partidas activas de otros miembros.",
             "playComputer": "Jugar contra el ordenador",
             "browseAll": "Ver todo",
             "yourHistory": "Tu historial",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "Preferencias",
+            "closePreferences": "Cerrar preferencias",
             "display": "Pantalla",
             "gameplay": "Jugabilidad",
             "pieceSet": "Set de piezas",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "Torre de enroque corto negra movida",
             "flagBlackQueensideRookMoved": "Torre de enroque largo negra movida"
         }
+    },
+    "errorPage": {
+        "code": "Error {{code}}",
+        "notFoundTitle": "Página no encontrada",
+        "notFoundMessage": "La página que buscas no existe.",
+        "genericTitle": "Algo salió mal",
+        "genericMessage": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+        "backHome": "Volver al inicio"
     },
     "mobile": {
         "drawOfferTitle": "Oferta de tablas",

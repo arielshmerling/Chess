@@ -50,6 +50,12 @@
                 expandGamesPanel: "הרחב את חלונית המשחקים",
                 expandGames: "הרחב משחקים",
                 collapseGamesPanel: "כווץ את חלונית המשחקים",
+                chat: "צ'אט",
+                expandChatPanel: "הרחב את חלונית הצ'אט",
+                collapseChatPanel: "כווץ את חלונית הצ'אט",
+                chatPlaceholder: "הקלד הודעה…",
+                chatWatcherReadonly: "צופים יכולים רק לקרוא את הצ'אט",
+                sendChat: "שלח",
                 savedListFilter: "סינון רשימה שמורה",
                 positions: "עמדות",
                 gameStatus: "מצב המשחק",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "זמן לכל צד (דקות)",
                 allowUndo: "אפשר ביטול מהלך",
+                private: "פרטי",
+                privateHint:
+                    "משחקים פרטיים אינם מוצגים ברשימות המשחקים הפעילים של חברים אחרים.",
             },
             prompts: {
                 positionName: "שם העמדה",

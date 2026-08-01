@@ -161,4 +161,30 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.t("desktop.prefs.languageUkrainian", null, "en"), "Українська");
         assert.strictEqual(strings.t("desktop.prefs.languageNorwegian", null, "en"), "Norsk");
     });
+
+    it("ships chat, footer, and errorPage keys in every locale", function () {
+        const keys = [
+            "play.shell.chat",
+            "play.shell.sendChat",
+            "play.shell.chatWatcherReadonly",
+            "play.newGameDialog.private",
+            "site.playNow.privateHint",
+            "site.footer.privacy",
+            "desktop.chrome.closePreferences",
+            "errorPage.backHome",
+        ];
+        strings.LOCALES.forEach(function (code) {
+            if (code === "en") {
+                return;
+            }
+            keys.forEach(function (key) {
+                const value = strings.t(key, null, code);
+                assert.notStrictEqual(value, key, code + " missing " + key);
+                assert.ok(String(value).length > 0, code + " empty " + key);
+            });
+        });
+        assert.strictEqual(strings.t("play.shell.chat", null, "he"), "צ'אט");
+        assert.strictEqual(strings.t("play.shell.sendChat", null, "fr"), "Envoyer");
+        assert.match(strings.t("errorPage.code", { code: 404 }, "de"), /404/);
+    });
 });

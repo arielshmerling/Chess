@@ -50,6 +50,12 @@
                 expandGamesPanel: "Développer le panneau des parties",
                 expandGames: "Développer les parties",
                 collapseGamesPanel: "Réduire le panneau des parties",
+                chat: "Discussion",
+                expandChatPanel: "Développer le panneau de discussion",
+                collapseChatPanel: "Réduire le panneau de discussion",
+                chatPlaceholder: "Écrire un message…",
+                chatWatcherReadonly: "Les spectateurs peuvent seulement lire la discussion",
+                sendChat: "Envoyer",
                 savedListFilter: "Filtre de la liste enregistrée",
                 positions: "Positions",
                 gameStatus: "État de la partie",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Temps par camp (minutes)",
                 allowUndo: "Autoriser l'annulation du coup",
+                private: "Privée",
+                privateHint:
+                    "Les parties privées n’apparaissent pas dans les listes de parties actives des autres membres.",
             },
             prompts: {
                 positionName: "Nom de la position",

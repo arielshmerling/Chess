@@ -140,6 +140,24 @@
         "cancel": "Annuler",
         "notice": "Avis",
         "ok": "OK",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "Pied de page",
+            "privacy": "Politique de confidentialité",
+            "terms": "Conditions d’utilisation",
+            "contact": "Contact",
+            "copyright": "© {{year}} Shmerling Chess. Tous droits réservés.",
+            "lastUpdated": "Dernière mise à jour : {{date}}",
+            "privacyTitle": "Politique de confidentialité",
+            "privacyLead": "Comment Shmerling Chess traite les informations de compte et de partie.",
+            "privacyBody": "Nous utilisons vos données de compte pour faire fonctionner le service, conserver les parties et préférences, et améliorer le produit. Nous ne vendons pas d’informations personnelles. Le texte complet de la politique sera publié ici.",
+            "termsTitle": "Conditions d’utilisation",
+            "termsLead": "Les règles d’utilisation de Shmerling Chess.",
+            "termsBody": "En utilisant Shmerling Chess, vous acceptez de jouer loyalement, de respecter les autres joueurs et d’utiliser le service uniquement pour le jeu d’échecs personnel. Les conditions complètes seront publiées ici.",
+            "contactTitle": "Contact",
+            "contactLead": "Contacter l’équipe Shmerling Chess.",
+            "contactBody": "Les coordonnées pour le support et les questions de confidentialité seront publiées ici."
+        },
         "username": "Nom d'utilisateur :",
         "password": "Mot de passe :",
         "login": "Connexion",
@@ -382,6 +400,7 @@
             "doubleClick": "Double-clic",
             "showAvailableMoves": "Afficher les coups possibles",
             "private": "Privée",
+            "privateHint": "Les parties privées n’apparaissent pas dans les listes de parties actives des autres membres.",
             "playComputer": "Jouer contre l'ordinateur",
             "browseAll": "Tout parcourir",
             "yourHistory": "Votre historique",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "Préférences",
+            "closePreferences": "Fermer les préférences",
             "display": "Affichage",
             "gameplay": "Jeu",
             "pieceSet": "Jeu de pièces",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "Tour noire côté roi déplacée",
             "flagBlackQueensideRookMoved": "Tour noire côté dame déplacée"
         }
+    },
+    "errorPage": {
+        "code": "Erreur {{code}}",
+        "notFoundTitle": "Page introuvable",
+        "notFoundMessage": "La page que vous recherchez n’existe pas.",
+        "genericTitle": "Une erreur s’est produite",
+        "genericMessage": "Une erreur inattendue s’est produite. Veuillez réessayer.",
+        "backHome": "Retour à l’accueil"
     },
     "mobile": {
         "drawOfferTitle": "Proposition de nulle",

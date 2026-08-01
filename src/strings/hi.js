@@ -50,6 +50,12 @@
                 expandGamesPanel: "खेल पैनल विस्तार करें",
                 expandGames: "खेल विस्तार करें",
                 collapseGamesPanel: "खेल पैनल संक्षिप्त करें",
+                chat: "चैट",
+                expandChatPanel: "चैट पैनल विस्तारित करें",
+                collapseChatPanel: "चैट पैनल संक्षिप्त करें",
+                chatPlaceholder: "संदेश लिखें…",
+                chatWatcherReadonly: "दर्शक केवल चैट पढ़ सकते हैं",
+                sendChat: "भेजें",
                 savedListFilter: "सहेजी गई सूची फ़िल्टर",
                 positions: "स्थितियाँ",
                 gameStatus: "खेल स्थिति",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "प्रति पक्ष समय (मिनट)",
                 allowUndo: "पूर्ववत की अनुमति",
+                private: "निजी",
+                privateHint:
+                    "निजी खेल अन्य सदस्यों की सक्रिय खेल सूचियों में नहीं दिखते।",
             },
             prompts: {
                 positionName: "स्थिति का नाम",

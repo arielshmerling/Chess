@@ -50,6 +50,12 @@
                 expandGamesPanel: "Развернуть панель партий",
                 expandGames: "Развернуть партии",
                 collapseGamesPanel: "Свернуть панель партий",
+                chat: "Чат",
+                expandChatPanel: "Развернуть панель чата",
+                collapseChatPanel: "Свернуть панель чата",
+                chatPlaceholder: "Введите сообщение…",
+                chatWatcherReadonly: "Зрители могут только читать чат",
+                sendChat: "Отправить",
                 savedListFilter: "Фильтр сохранённого списка",
                 positions: "Позиции",
                 gameStatus: "Статус партии",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "Время на сторону (минуты)",
                 allowUndo: "Разрешить отмену хода",
+                private: "Приватная",
+                privateHint:
+                    "Приватные партии не отображаются в списках активных партий других участников.",
             },
             prompts: {
                 positionName: "Имя позиции",

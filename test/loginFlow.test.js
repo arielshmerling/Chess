@@ -101,7 +101,7 @@ describe("login flow", function () {
         assert.strictEqual(ui.screen.getAttribute("data-step"), "password");
         assert.strictEqual(ui.password.tabIndex, 0);
         await wait(300);
-        assert.strictEqual(ui.prompt.textContent, "Enter your password");
+        assert.strictEqual(ui.prompt.textContent, strings.t("auth.enterPassword", null, "en"));
     });
 
     it("stays on the username step when nothing is typed", function () {

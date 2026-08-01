@@ -50,6 +50,12 @@
                 expandGamesPanel: "展开对局面板",
                 expandGames: "展开对局",
                 collapseGamesPanel: "收起对局面板",
+                chat: "聊天",
+                expandChatPanel: "展开聊天面板",
+                collapseChatPanel: "收起聊天面板",
+                chatPlaceholder: "输入消息…",
+                chatWatcherReadonly: "观众只能阅读聊天",
+                sendChat: "发送",
                 savedListFilter: "已保存列表筛选",
                 positions: "局面",
                 gameStatus: "对局状态",
@@ -229,6 +235,9 @@
                 brain4: "Brain 4.0",
                 timePerSideMinutes: "每方时间（分钟）",
                 allowUndo: "允许悔棋",
+                private: "私人",
+                privateHint:
+                    "私人对局不会显示在其他会员的进行中对局列表中。",
             },
             prompts: {
                 positionName: "局面名称",

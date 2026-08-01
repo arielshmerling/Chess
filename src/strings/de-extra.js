@@ -140,6 +140,24 @@
         "cancel": "Abbrechen",
         "notice": "Hinweis",
         "ok": "OK",
+        "footer": {
+            "logoAlt": "Shmerling Chess",
+            "navAria": "Fußzeile",
+            "privacy": "Datenschutzrichtlinie",
+            "terms": "Nutzungsbedingungen",
+            "contact": "Kontakt",
+            "copyright": "© {{year}} Shmerling Chess. Alle Rechte vorbehalten.",
+            "lastUpdated": "Zuletzt aktualisiert: {{date}}",
+            "privacyTitle": "Datenschutzrichtlinie",
+            "privacyLead": "Wie Shmerling Chess Konto- und Spieldaten verarbeitet.",
+            "privacyBody": "Wir verwenden Ihre Kontodaten, um den Dienst zu betreiben, Partien und Einstellungen zu speichern und das Produkt zu verbessern. Wir verkaufen keine personenbezogenen Daten. Der vollständige Richtlinientext wird hier veröffentlicht.",
+            "termsTitle": "Nutzungsbedingungen",
+            "termsLead": "Die Regeln für die Nutzung von Shmerling Chess.",
+            "termsBody": "Mit der Nutzung von Shmerling Chess verpflichten Sie sich, fair zu spielen, andere Spieler zu respektieren und den Dienst nur für persönliches Schachspiel zu verwenden. Die vollständigen Bedingungen werden hier veröffentlicht.",
+            "contactTitle": "Kontakt",
+            "contactLead": "Kontakt zum Shmerling-Chess-Team.",
+            "contactBody": "Kontaktdaten für Support und Datenschutzfragen werden hier veröffentlicht."
+        },
         "username": "Benutzername:",
         "password": "Passwort:",
         "login": "Anmelden",
@@ -382,6 +400,7 @@
             "doubleClick": "Doppelklick",
             "showAvailableMoves": "Mögliche Züge anzeigen",
             "private": "Privat",
+            "privateHint": "Private Partien werden nicht in den Aktive-Partien-Listen anderer Mitglieder angezeigt.",
             "playComputer": "Gegen Computer spielen",
             "browseAll": "Alle durchsuchen",
             "yourHistory": "Ihr Verlauf",
@@ -449,6 +468,7 @@
         },
         "chrome": {
             "preferences": "Einstellungen",
+            "closePreferences": "Einstellungen schließen",
             "display": "Anzeige",
             "gameplay": "Spielverhalten",
             "pieceSet": "Figurensatz",
@@ -547,6 +567,14 @@
             "flagBlackKingsideRookMoved": "Schwarzer Königsflügel-Turm gezogen",
             "flagBlackQueensideRookMoved": "Schwarzer Damenflügel-Turm gezogen"
         }
+    },
+    "errorPage": {
+        "code": "Fehler {{code}}",
+        "notFoundTitle": "Seite nicht gefunden",
+        "notFoundMessage": "Die gesuchte Seite existiert nicht.",
+        "genericTitle": "Etwas ist schiefgelaufen",
+        "genericMessage": "Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.",
+        "backHome": "Zurück zur Startseite"
     },
     "mobile": {
         "drawOfferTitle": "Remis-Angebot",

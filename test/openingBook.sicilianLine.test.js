@@ -36,7 +36,7 @@ describe("opening book — 1.e4 c5 2.d3 Nc6 3.c3", function () {
         assert.ok(loaded.lineCount > 0);
     });
 
-    it("has book moves through 2...Nc6", function () {
+    it("has book moves through 2...Nc6 including c3", function () {
         const game = new ChessGame();
         game.startNewGame(true);
         playSan(game, "e4", "white");
@@ -46,17 +46,11 @@ describe("opening book — 1.e4 c5 2.d3 Nc6 3.c3", function () {
 
         const moves = bookSansAt(prefixIndex, game);
         assert.ok(moves.length > 0, "expected book moves for white after 2...Nc6");
-        assert.strictEqual(
-            movePrefixFromGame(game),
-            "e4 c5 d3 Nc6",
-        );
-        assert.ok(
-            !moves.includes("c3"),
-            "c3 is not in the line book for this position (known data gap)",
-        );
+        assert.strictEqual(movePrefixFromGame(game), "e4 c5 d3 Nc6");
+        assert.ok(moves.includes("c3"), "expected 3.c3 to be a book continuation");
     });
 
-    it("has no book moves for black after 3.c3", function () {
+    it("has book moves for black after 3.c3", function () {
         const game = new ChessGame();
         game.startNewGame(true);
         playSan(game, "e4", "white");
@@ -68,10 +62,9 @@ describe("opening book — 1.e4 c5 2.d3 Nc6 3.c3", function () {
         assert.strictEqual(game.Turn, "black");
         assert.strictEqual(movePrefixFromGame(game), "e4 c5 d3 Nc6 c3");
         const moves = bookSansAt(prefixIndex, game);
-        assert.strictEqual(
-            moves.length,
-            0,
-            "no line-book continuations after 3.c3 — engine must search",
+        assert.ok(
+            moves.length > 0,
+            "expected line-book continuations for black after 3.c3",
         );
     });
 });
