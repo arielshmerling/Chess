@@ -332,10 +332,11 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
 .desktop-play-header-player {
   font-size: 0.8rem;
   font-weight: 600;
-  max-width: 7rem;
+  min-width: 8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
 .desktop-play-header-player--disconnected {
@@ -1040,8 +1041,95 @@ html[dir="rtl"] .desktop-play-workspace {
   overflow: hidden;
 }
 
+.desktop-play-chat {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktop-play-chat-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+  box-sizing: border-box;
+  gap: 6px;
+}
+
+.desktop-play-chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  box-sizing: border-box;
+  font-size: 0.78em;
+  line-height: 1.35;
+  color: var(--panel-forecolor, #ddd);
+  background: var(--textbox-background, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+}
+
+.desktop-play-chat-line {
+  word-break: break-word;
+}
+
+.desktop-play-chat-who {
+  font-weight: 600;
+  color: var(--moves-dock-title-text, rgba(255, 255, 255, 0.7));
+}
+
+.desktop-play-chat-line--mine .desktop-play-chat-who {
+  color: var(--topbar-link-highlight, #9ecbff);
+}
+
+.desktop-play-chat-form {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.desktop-play-chat-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--panel-border, #444);
+  border-radius: 4px;
+  background: var(--textbox-background, #1a1a1a);
+  color: var(--panel-forecolor, #fff);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 0.8em;
+}
+
+.desktop-play-chat-input:disabled,
+.desktop-play-chat-input[readonly] {
+  opacity: 0.65;
+}
+
+.desktop-play-chat-send {
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border, #444);
+  border-radius: 4px;
+  background: var(--moves-dock-title-background, #354c69);
+  color: #fff;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.desktop-play-chat-send:hover {
+  filter: brightness(1.08);
+}
+
 .desktop-play-sidebar .desktop-play-dock.desktop-play-moves,
-.desktop-play-sidebar .desktop-play-dock.desktop-play-games {
+.desktop-play-sidebar .desktop-play-dock.desktop-play-games,
+.desktop-play-sidebar .desktop-play-dock.desktop-play-chat {
   flex: 1;
   border-bottom: none;
 }

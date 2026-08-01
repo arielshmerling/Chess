@@ -148,6 +148,8 @@
                     return { kind: "rematchAccepted", payload: message };
                 case "rematch declined":
                     return { kind: "rematchDeclined", payload: message };
+                case "chat":
+                    return { kind: "chat", payload: message };
                 default:
                     return { kind: "infoOther", payload: message };
             }

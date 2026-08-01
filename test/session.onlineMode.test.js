@@ -119,6 +119,14 @@ describe("session OnlineProtocol (Phase 3)", function () {
             }).kind,
             "clockSync",
         );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "chat",
+                data: "hi",
+            }).kind,
+            "chat",
+        );
     });
 
     it("merges clock snapshots from moveTime and explicit timers", function () {
@@ -578,6 +586,7 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.strictEqual(caps.rematch, false);
         assert.strictEqual(caps.watchers, true);
         assert.strictEqual(caps.network, true);
+        assert.strictEqual(caps.chat, true);
         assert.strictEqual(mode.offerDraw(), false);
         assert.strictEqual(mode.offerRematch(), false);
         const ok = await mode.requestResign();
@@ -724,5 +733,59 @@ describe("session OnlineMode (Phase 3)", function () {
             }),
         );
         session.dispose();
+    });
+
+    it("sends chat info and ignores send for watchers", function () {
+        const transport = createMockTransport();
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            humanIsWhite: true,
+            wsUrl: "ws://test/ws",
+        });
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.attachMode(mode);
+        session.start({ humanIsWhite: true });
+        transport.push({ type: "info", info: "connected" });
+        assert.strictEqual(mode.sendChat("  hello  "), true);
+        const chat = transport.sent.find(function (m) {
+            return m.info === "chat";
+        });
+        assert.ok(chat);
+        assert.strictEqual(chat.data, "hello");
+        session.dispose();
+
+        const watcher = OnlineMode.create({
+            transport: createMockTransport(),
+            gameInfo: { id: "g1", username: "spec", userId: "u9" },
+            watcher: true,
+            wsUrl: "ws://test/ws",
+        });
+        assert.strictEqual(watcher.sendChat("nope"), false);
+    });
+
+    it("invokes onChatMessage for inbound chat", async function () {
+        const transport = createMockTransport();
+        let seen = null;
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            humanIsWhite: true,
+            wsUrl: "ws://test/ws",
+            onChatMessage: function (payload) {
+                seen = payload;
+            },
+        });
+        await mode._handleInbound({
+            type: "info",
+            info: "chat",
+            username: "bob",
+            data: "hi",
+            userId: "u2",
+        });
+        assert.ok(seen);
+        assert.strictEqual(seen.data, "hi");
+        assert.strictEqual(seen.username, "bob");
     });
 });

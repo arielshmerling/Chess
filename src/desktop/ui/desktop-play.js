@@ -73,6 +73,7 @@
     const OnlineModeApi = window.ShmerlingOnlineMode;
     const WsTransportApi = window.ShmerlingWsTransport;
     const SpServerSyncApi = window.ShmerlingSpServerSync;
+    const PlayChatPanel = window.PlayChatPanel;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -1622,6 +1623,7 @@
         }
         playOnlineMode = null;
         onlineGameInfo = null;
+        clearPlayChat();
         setOpponentConnectionLost(false);
     }
 
@@ -2648,6 +2650,7 @@
             }),
             setButtonDisabled,
         );
+        syncRightSidebarMode();
     }
 
     function sessionPlayerNames(source) {
@@ -2911,10 +2914,10 @@
     function applyAdvancedToolsVisibility() {
         DockModeChrome.applyAdvancedToolsVisibility(
             {
-                gamesSidebar: $("desktopPlaySidebarGames"),
+                gamesSidebar: null,
                 setupDock: $("desktopPlaySetupDock"),
                 configDock: $("desktopPlayConfigDock"),
-                body: document.body,
+                body: null,
             },
             canPlayAdvancedTools,
         );
@@ -2926,6 +2929,173 @@
         if (canPlayAdvancedTools) {
             renderSavedGamesList();
         }
+        syncRightSidebarMode();
+    }
+
+    function chatPanelElements() {
+        return {
+            gamesDock: $("desktopPlayGamesDock"),
+            chatDock: $("desktopPlayChatDock"),
+            sidebar: $("desktopPlaySidebarGames"),
+            body: document.body,
+            chatInput: $("desktopPlayChatInput"),
+        };
+    }
+
+    function isOnlinePlaySession() {
+        return !!(playOnlineMode && onlineGameInfo);
+    }
+
+    function clearPlayChat() {
+        if (PlayChatPanel && typeof PlayChatPanel.clear === "function") {
+            PlayChatPanel.clear($("desktopPlayChatMessages"));
+        }
+    }
+
+    function expandGamesSidebar() {
+        const sidebar = $("desktopPlaySidebarGames");
+        if (!sidebar) {
+            return;
+        }
+        if (window.DesktopDockPanels && DesktopDockPanels.setSidebarCollapsed) {
+            DesktopDockPanels.setSidebarCollapsed(sidebar, false, { persist: false });
+            return;
+        }
+        sidebar.classList.remove("desktop-play-sidebar--collapsed");
+        const expandTab = sidebar.querySelector(".desktop-play-sidebar-tab--expand");
+        if (expandTab) {
+            expandTab.hidden = true;
+        }
+        sidebar.querySelectorAll(".desktop-play-dock-toggle--collapse").forEach(function (btn) {
+            btn.hidden = false;
+        });
+        if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
+            window.DesktopBoardScale.refresh();
+        }
+    }
+
+    /**
+     * Right dock: Games/Positions when idle or after a finished non-online game (Admin/Partner);
+     * Chat during online/watch; hidden for Members when idle and during in-progress non-online games.
+     */
+    let rightDockMode = null;
+    function syncRightSidebarMode() {
+        const showGamesDock =
+            canPlayAdvancedTools &&
+            !isOnlinePlaySession() &&
+            (!gameActive || !!(game && game.GameOver));
+        if (!PlayChatPanel || typeof PlayChatPanel.setRightDockMode !== "function") {
+            DockModeChrome.applyAdvancedToolsVisibility(
+                {
+                    gamesSidebar: $("desktopPlaySidebarGames"),
+                    setupDock: null,
+                    configDock: null,
+                    body: document.body,
+                },
+                showGamesDock,
+            );
+            return;
+        }
+        let mode = "hidden";
+        let readOnly = false;
+        if (isOnlinePlaySession()) {
+            mode = "chat";
+            readOnly = !!(onlineGameInfo && onlineGameInfo.watcher);
+        } else if (showGamesDock) {
+            mode = "games";
+        }
+        const enteredChat = mode === "chat" && rightDockMode !== "chat";
+        const enteredGames = mode === "games" && rightDockMode !== "games";
+        rightDockMode = mode;
+        PlayChatPanel.setRightDockMode(chatPanelElements(), mode, { readOnly: readOnly });
+        const sendBtn = document.querySelector("#desktopPlayChatForm .desktop-play-chat-send");
+        if (sendBtn) {
+            sendBtn.hidden = mode !== "chat" || readOnly;
+            sendBtn.disabled = mode !== "chat" || readOnly;
+        }
+        const input = $("desktopPlayChatInput");
+        if (input && mode === "chat") {
+            input.placeholder = readOnly
+                ? t("play.shell.chatWatcherReadonly")
+                : t("play.shell.chatPlaceholder");
+        }
+        const sidebar = $("desktopPlaySidebarGames");
+        if (sidebar) {
+            sidebar.setAttribute(
+                "aria-label",
+                mode === "chat" ? t("play.shell.chat") : t("play.shell.games"),
+            );
+        }
+        if (enteredChat || (enteredGames && game && game.GameOver)) {
+            expandGamesSidebar();
+        }
+    }
+
+    function appendPlayChatMessage(entry) {
+        if (!PlayChatPanel || typeof PlayChatPanel.appendMessage !== "function") {
+            return;
+        }
+        PlayChatPanel.appendMessage($("desktopPlayChatMessages"), entry);
+    }
+
+    function onInboundPlayChat(payload) {
+        if (!payload) {
+            return;
+        }
+        if (
+            onlineGameInfo &&
+            payload.userId != null &&
+            onlineGameInfo.userId != null &&
+            String(payload.userId) === String(onlineGameInfo.userId)
+        ) {
+            return;
+        }
+        const text = payload.data != null ? String(payload.data) : "";
+        if (!text) {
+            return;
+        }
+        appendPlayChatMessage({
+            username: payload.username ? String(payload.username) : "",
+            text: text,
+            mine: false,
+        });
+    }
+
+    function sendPlayChatFromInput() {
+        const input = $("desktopPlayChatInput");
+        if (!input || !playOnlineMode || typeof playOnlineMode.sendChat !== "function") {
+            return;
+        }
+        if (onlineGameInfo && onlineGameInfo.watcher) {
+            return;
+        }
+        const raw = input.value != null ? String(input.value) : "";
+        const text = raw.trim();
+        if (!text) {
+            return;
+        }
+        const sent = playOnlineMode.sendChat(text);
+        if (!sent) {
+            return;
+        }
+        input.value = "";
+        appendPlayChatMessage({
+            username: (onlineGameInfo && onlineGameInfo.username) || "",
+            text: text.slice(0, 200),
+            mine: true,
+        });
+    }
+
+    function ensureChatPanelWired() {
+        const form = $("desktopPlayChatForm");
+        if (!form || form.dataset.wired === "1") {
+            return;
+        }
+        form.dataset.wired = "1";
+        form.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            sendPlayChatFromInput();
+        });
     }
 
     function ensureSavedListFilterControls() {
@@ -4252,6 +4422,9 @@
             onDisconnectCountdownEnd: function () {
                 void syncOnlineReconnectTimeoutFromServer();
             },
+            onChatMessage: function (payload) {
+                onInboundPlayChat(payload);
+            },
         });
     }
 
@@ -4386,6 +4559,8 @@
         if (typeof playOnlineMode.capabilities === "function") {
             playCapabilities = playOnlineMode.capabilities();
         }
+        clearPlayChat();
+        syncRightSidebarMode();
         syncPrimaryGameButtonLabel();
         if (
             playGameSession.isActive &&
@@ -6675,6 +6850,7 @@
         }
         fetchLaunchContext()
             .then(function () {
+                ensureChatPanelWired();
                 applyAdvancedToolsVisibility();
                 buildActionRail();
                 ensureReviewNavBar();

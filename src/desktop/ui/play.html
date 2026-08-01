@@ -56,6 +56,7 @@
   <script src="/app/play-ui/launch-options.js"></script>
   <script src="/app/play-ui/keyboard-shortcuts.js"></script>
   <script src="/app/play-ui/bookmark-helpers.js"></script>
+  <script src="/app/play-ui/play-chat-panel.js"></script>
   <script src="/app/session/eventBus.js"></script>
   <script src="/app/session/contracts.js"></script>
   <script src="/app/session/capabilities.js"></script>
@@ -236,7 +237,7 @@
             data-i18n-attr="aria-label"
             data-i18n-title="play.shell.expandGames"
           >+</button>
-          <section class="desktop-play-dock desktop-play-games">
+          <section class="desktop-play-dock desktop-play-games" id="desktopPlayGamesDock">
             <div class="desktop-play-dock-title">
               <div class="desktop-play-saved-list-filters" role="tablist" data-i18n="play.shell.savedListFilter" data-i18n-attr="aria-label">
                 <button
@@ -268,6 +269,49 @@
               </span>
             </div>
             <div id="gamesDiv" class="desktop-play-panel-list desktop-play-games-list"></div>
+          </section>
+          <section
+            class="desktop-play-dock desktop-play-chat"
+            id="desktopPlayChatDock"
+            hidden
+            aria-hidden="true"
+          >
+            <div class="desktop-play-dock-title">
+              <span class="desktop-play-dock-title-text" data-i18n="play.shell.chat">Chat</span>
+              <span class="desktop-play-dock-title-actions">
+                <button
+                  type="button"
+                  class="desktop-play-dock-toggle desktop-play-dock-toggle--collapse"
+                  data-i18n="play.shell.collapseChatPanel"
+                  data-i18n-attr="aria-label"
+                  data-i18n-title="common.collapse"
+                >−</button>
+              </span>
+            </div>
+            <div class="desktop-play-chat-body">
+              <div
+                id="desktopPlayChatMessages"
+                class="desktop-play-chat-messages"
+                data-i18n="play.shell.chat"
+                data-i18n-attr="aria-label"
+              ></div>
+              <form id="desktopPlayChatForm" class="desktop-play-chat-form" autocomplete="off">
+                <input
+                  id="desktopPlayChatInput"
+                  class="desktop-play-chat-input"
+                  type="text"
+                  maxlength="200"
+                  data-i18n="play.shell.chatPlaceholder"
+                  data-i18n-attr="placeholder"
+                  placeholder="Type a message…"
+                />
+                <button
+                  type="submit"
+                  class="desktop-play-chat-send"
+                  data-i18n="play.shell.sendChat"
+                >Send</button>
+              </form>
+            </div>
           </section>
         </aside>
       </div>

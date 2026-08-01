@@ -40,7 +40,7 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.undo, false);
         assert.strictEqual(caps.draw, true);
         assert.strictEqual(caps.rematch, true);
-        assert.strictEqual(caps.chat, false);
+        assert.strictEqual(caps.chat, true);
         assert.strictEqual(caps.watchers, false);
     });
 

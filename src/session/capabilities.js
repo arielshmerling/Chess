@@ -77,7 +77,7 @@
             reviewNav: false,
             positionSetup: false,
             watchers: false,
-            chat: false,
+            chat: true,
         }),
         /* rematch:true = local "New game" after finish (not online rematch offers). */
         [MODE_IDS.PRACTICE]: caps({
@@ -117,7 +117,7 @@
             reviewNav: false,
             positionSetup: false,
             watchers: true,
-            chat: false,
+            chat: true,
         }),
         [MODE_IDS.POSITION_SETUP]: caps({
             undo: false,

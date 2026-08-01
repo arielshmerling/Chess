@@ -129,6 +129,7 @@ class OnlineGameMessageProcessor extends MessageProcessor {
 
     chatHandler(game, msg) {
         game.sendMessageToOpponent(msg, msg.isWhite);
+        game.sendInfoToWatchers(msg);
     }
 
     async reportOutOfTime(game, msg) {

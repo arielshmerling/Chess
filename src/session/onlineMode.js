@@ -154,7 +154,7 @@
                     reviewNav: false,
                     positionSetup: false,
                     watchers: true,
-                    chat: false,
+                    chat: true,
                 };
             }
             return {
@@ -168,7 +168,7 @@
                 reviewNav: false,
                 positionSetup: false,
                 watchers: false,
-                chat: false,
+                chat: true,
             };
         }
 
@@ -237,6 +237,31 @@
                 extra || {},
             );
             transport.send(protocol.buildInfoMessage(payload));
+        }
+
+        /**
+         * @param {string} text
+         * @returns {boolean}
+         */
+        function sendChat(text) {
+            if (watcher || !connected) {
+                return false;
+            }
+            const line = text != null ? String(text).trim() : "";
+            if (!line) {
+                return false;
+            }
+            transport.send(
+                protocol.buildInfoMessage({
+                    info: "chat",
+                    gameId: gameInfo.id,
+                    userId: gameInfo.userId,
+                    username: gameInfo.username,
+                    isWhite: humanIsWhite,
+                    data: line.slice(0, 2000),
+                }),
+            );
+            return true;
         }
 
         function clearDisconnectGrace() {
@@ -579,6 +604,11 @@
                         return;
                     }
                     status(t("session.rematchOfferDeclined"), "info");
+                    return;
+                case "chat":
+                    if (typeof opts.onChatMessage === "function") {
+                        opts.onChatMessage(classified.payload || {});
+                    }
                     return;
                 default:
                     return;
@@ -946,6 +976,7 @@
             isOpponentPresent: isOpponentPresent,
             ensureConnected: ensureConnected,
             clearDisconnectCountdown: clearDisconnectCountdown,
+            sendChat: sendChat,
             /** @internal test helper */
             _handleInbound: handleInbound,
         };
