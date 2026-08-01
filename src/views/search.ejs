@@ -1,13 +1,14 @@
 <% layout("../views/layouts/boilerplate") %>
 
 <link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
 
-<div class="welcome-container search-page">
-  <div class="hero-banner search-hero">
-    <div class="hero-overlay"></div>
+<div class="welcome-container search-page board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
     <div class="hero-content">
       <div class="hero-text-section">
-        <h1 class="hero-greeting"><%= t('site.search') %></h1>
+        <h1 class="hero-username"><%= t('site.search') %></h1>
         <p class="hero-tagline"><%= t('site.searchPage.tagline') %></p>
       </div>
       <div class="hero-right">
@@ -18,15 +19,17 @@
         </form>
       </div>
     </div>
-  </div>
+  </header>
 
   <div class="games-section">
-    <div class="games-panel search-results-panel" id="PGNGameList">
+    <section class="games-panel search-results-panel" id="PGNGameList">
       <div class="panel-header">
-        <div class="panel-title-group">
-          <h2 class="panel-title"><%= t('site.searchPage.results') %></h2>
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h2 class="panel-title"><%= t('site.searchPage.results') %></h2>
+          </div>
+          <p class="panel-subtitle panel-subtitle--inline"><%= t('site.searchPage.resultsCount', { count: pgn.length }) %></p>
         </div>
-        <div class="panel-subtitle"><%= t('site.searchPage.resultsCount', { count: pgn.length }) %></div>
       </div>
       <div class="panel-body">
         <% if (pgn.length > 0) { %>
@@ -139,8 +142,10 @@
         </nav>
         <% } %>
       </div>
-    </div>
+    </section>
   </div>
+
+  <%- include('partials/site-page-footer') %>
 </div>
 
 <% if (pgn.length > 0) { %>

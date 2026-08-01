@@ -1,0 +1,466 @@
+/**
+ * Board Geometry — lobby / site pages (home, friends, search, active list, legal).
+ * Graphic board-grid hero, sharp radii, hairline borders. Theme-aware colors.
+ */
+
+body:has(.board-geometry) {
+    --bg-geo-bg: var(--body-background);
+    --bg-geo-ink: var(--lighter);
+    --bg-geo-soft: var(--light);
+    --bg-geo-muted: var(--semiLight);
+    --bg-geo-line: color-mix(in srgb, var(--semiLight) 28%, transparent);
+    --bg-geo-line-strong: color-mix(in srgb, var(--semiLight) 48%, transparent);
+    --bg-geo-surface: color-mix(in srgb, var(--darker) 55%, transparent);
+    --bg-geo-hover: color-mix(in srgb, var(--semiLight) 12%, transparent);
+    --bg-geo-accent: var(--light);
+    --bg-geo-accent-ink: var(--darker);
+    --bg-geo-cta: color-mix(in srgb, var(--optionSquare) 82%, var(--lighter));
+    --bg-geo-cta-ink: var(--darker);
+    --bg-geo-display: "Oswald", "Raleway", sans-serif;
+    --bg-geo-ui: "Raleway", "Helvetica Neue", sans-serif;
+    background-color: var(--bg-geo-bg) !important;
+    color: var(--bg-geo-soft);
+    font-family: var(--bg-geo-ui);
+}
+
+@keyframes bg-geo-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.board-geometry {
+    max-width: 1320px;
+}
+
+/* Full-bleed hero with soft board grid watermark */
+.board-geometry .hero-banner--board {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-bottom: 28px;
+    padding: 56px 40px 48px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--darker) 88%, var(--body-background)) !important;
+    border-bottom: 1px solid var(--bg-geo-line-strong) !important;
+    box-sizing: border-box;
+    animation: bg-geo-in 0.45s ease both;
+}
+
+.board-geometry .hero-banner--board::before,
+.board-geometry .hero-overlay {
+    display: none !important;
+}
+
+.board-geometry .hero-board-grid {
+    position: absolute;
+    inset: -8% -5% -20% auto;
+    width: min(58vw, 720px);
+    aspect-ratio: 1;
+    opacity: 0.18;
+    pointer-events: none;
+    background-image:
+        linear-gradient(to right, var(--semiLight) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--semiLight) 1px, transparent 1px);
+    background-size: 12.5% 12.5%;
+    mask-image: radial-gradient(ellipse at 70% 40%, #000 20%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse at 70% 40%, #000 20%, transparent 72%);
+    transform: rotate(-6deg);
+}
+
+.board-geometry .hero-board-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-conic-gradient(
+            from 0deg,
+            color-mix(in srgb, var(--semiLight) 22%, transparent) 0deg 90deg,
+            transparent 0deg 180deg
+        );
+    background-size: 25% 25%;
+    opacity: 0.35;
+    mix-blend-mode: soft-light;
+}
+
+.board-geometry .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1320px;
+    align-items: flex-end;
+    gap: 28px;
+    padding: 0 8px;
+}
+
+.board-geometry .hero-greeting {
+    font-family: var(--bg-geo-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--hero-greeting, var(--bg-geo-muted));
+    margin: 0 0 10px;
+    text-shadow: none;
+}
+
+.board-geometry .hero-username {
+    font-family: var(--bg-geo-display);
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bg-geo-ink);
+    margin: 0;
+    line-height: 1;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-fill-color: unset;
+    text-shadow: none;
+}
+
+.board-geometry .hero-tagline {
+    margin: 12px 0 0;
+    font-size: 0.95rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--bg-geo-muted);
+    text-shadow: none;
+}
+
+.board-geometry .hero-right {
+    position: relative;
+    z-index: 1;
+}
+
+.board-geometry .hero-chess-icon,
+.board-geometry .chess-pieces-container {
+    display: none !important;
+}
+
+.board-geometry .play-now-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 40px;
+    font-family: var(--bg-geo-ui);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--bg-geo-cta-ink);
+    background: var(--bg-geo-cta);
+    border: 1px solid var(--bg-geo-cta);
+    border-radius: 4px;
+    box-shadow: none;
+    text-shadow: none;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.board-geometry .play-now-btn-text {
+    animation: none;
+}
+
+.board-geometry .play-now-btn:hover {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
+    border-color: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
+    box-shadow: none;
+}
+
+.board-geometry .play-now-btn:active {
+    transform: translateY(0);
+}
+
+.board-geometry .games-section {
+    max-width: 1320px;
+    padding: 8px 28px 48px;
+    gap: 28px;
+}
+
+.board-geometry .welcome-active-games-row {
+    gap: 24px;
+}
+
+.board-geometry .welcome-active-games-row > *,
+.board-geometry .my-games-panel,
+.board-geometry .friends-two-columns > *,
+.board-geometry .search-results-panel,
+.board-geometry .active-games-list-panel {
+    animation: bg-geo-in 0.5s ease both;
+}
+
+.board-geometry .welcome-active-games-row > *:nth-child(2) {
+    animation-delay: 0.06s;
+}
+
+.board-geometry .my-games-panel {
+    animation-delay: 0.1s;
+}
+
+/* Framed panels — sharp, hairline, no glow */
+.board-geometry .games-panel {
+    background: var(--bg-geo-surface) !important;
+    border: 1px solid var(--bg-geo-line) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    overflow: hidden;
+}
+
+.board-geometry .panel-header {
+    background: transparent !important;
+    padding: 16px 18px 14px !important;
+    border-bottom: 1px solid var(--bg-geo-line) !important;
+}
+
+.board-geometry .panel-title {
+    font-family: var(--bg-geo-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--bg-geo-ink);
+}
+
+.board-geometry .panel-badge {
+    display: none !important;
+}
+
+.board-geometry .panel-show-all-btn {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--bg-geo-muted);
+    background: transparent;
+    border: 1px solid var(--bg-geo-line);
+    border-radius: 4px;
+}
+
+.board-geometry .panel-show-all-btn:hover {
+    color: var(--bg-geo-ink);
+    border-color: var(--bg-geo-line-strong);
+    background: var(--bg-geo-hover);
+}
+
+.board-geometry .panel-body {
+    padding: 14px 16px 16px !important;
+}
+
+.board-geometry .table-scroll,
+.board-geometry .table-scroll.compact {
+    background: transparent !important;
+    border-radius: 0 !important;
+    max-height: none;
+    overflow: visible;
+}
+
+.board-geometry .games-table th {
+    background: transparent !important;
+    color: var(--bg-geo-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 8px 10px 12px;
+    border-bottom: 1px solid var(--bg-geo-line);
+}
+
+.board-geometry .games-table td {
+    padding: 12px 10px;
+    color: var(--bg-geo-soft);
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--bg-geo-line);
+}
+
+.board-geometry .games-table tbody tr {
+    background: transparent !important;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.board-geometry .games-table tbody tr:hover {
+    background: var(--bg-geo-hover) !important;
+    transform: translateX(2px);
+}
+
+.board-geometry .games-table .row-number {
+    color: var(--bg-geo-muted);
+    font-weight: 600;
+}
+
+.board-geometry .no-games-message {
+    padding: 24px 8px;
+}
+
+.board-geometry .no-games-message p {
+    font-size: 0.95rem;
+    font-style: normal;
+    letter-spacing: 0.04em;
+    color: var(--bg-geo-muted);
+}
+
+/* Active game cards — compact framed boards */
+.board-geometry .active-game-highlight {
+    gap: 14px;
+    padding: 12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--darker) 35%, transparent) !important;
+    border: 1px solid var(--bg-geo-line) !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.board-geometry .active-game-highlight:hover {
+    border-color: var(--bg-geo-line-strong) !important;
+    background: var(--bg-geo-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: none !important;
+}
+
+.board-geometry .active-mini-board {
+    width: min(148px, 34vw);
+}
+
+.board-geometry .active-mini-board-grid {
+    border-radius: 4px;
+    border: 1px solid var(--bg-geo-line-strong);
+    box-shadow: none;
+}
+
+.board-geometry .search-hero-input {
+    padding: 11px 14px;
+    font-size: 0.95rem;
+    color: var(--bg-geo-ink);
+    background: transparent;
+    border: 1px solid var(--bg-geo-line-strong);
+    border-radius: 4px;
+}
+
+.board-geometry .search-hero-input:focus {
+    border-color: var(--bg-geo-accent);
+    background: color-mix(in srgb, var(--lighter) 4%, transparent);
+}
+
+.board-geometry .search-hero-btn {
+    padding: 11px 22px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg-geo-cta-ink);
+    background: var(--bg-geo-cta);
+    border: 1px solid var(--bg-geo-cta);
+    border-radius: 4px;
+}
+
+.board-geometry .search-hero-btn:hover {
+    background: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
+    border-color: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
+    color: var(--bg-geo-cta-ink);
+}
+
+.board-geometry .search-page .pagesNav {
+    background: transparent;
+    border-top: 1px solid var(--bg-geo-line);
+    margin-top: 24px;
+    padding-top: 16px;
+}
+
+.board-geometry .legal-page-content {
+    margin: 56px auto 48px;
+    animation: bg-geo-in 0.5s ease both;
+}
+
+.board-geometry .legal-page-title {
+    font-family: var(--bg-geo-display);
+    font-size: clamp(2rem, 3.5vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bg-geo-ink);
+}
+
+.board-geometry .legal-page-lead {
+    color: var(--bg-geo-muted);
+}
+
+.board-geometry .legal-page-body {
+    color: var(--bg-geo-soft);
+}
+
+.board-geometry .site-page-footer {
+    background-color: color-mix(in srgb, var(--darker) 72%, transparent);
+    border-top: 1px solid var(--bg-geo-line);
+}
+
+.board-geometry .site-page-footer-inner {
+    max-width: 1320px;
+}
+
+.board-geometry .site-page-footer-nav a {
+    color: var(--bg-geo-soft);
+}
+
+.board-geometry .site-page-footer-nav a:hover {
+    color: var(--bg-geo-ink);
+}
+
+.board-geometry .footer-link.home-friends-empty-link {
+    background: transparent;
+    border: 1px solid var(--bg-geo-line-strong);
+    border-radius: 4px;
+    color: var(--bg-geo-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.board-geometry .footer-link.home-friends-empty-link:hover {
+    background: var(--bg-geo-hover);
+    border-color: var(--bg-geo-accent);
+    color: var(--bg-geo-ink);
+    box-shadow: none;
+}
+
+.board-geometry .home-friends-table tbody tr:hover {
+    background: var(--bg-geo-hover) !important;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .board-geometry .hero-banner--board {
+        padding: 40px 20px 32px;
+    }
+
+    .board-geometry .hero-board-grid {
+        width: 90vw;
+        opacity: 0.12;
+    }
+
+    .board-geometry .hero-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .board-geometry .games-section {
+        padding: 4px 16px 36px;
+    }
+}
+
+html[dir="rtl"] .board-geometry .hero-greeting,
+html[dir="rtl"] .board-geometry .hero-username,
+html[dir="rtl"] .board-geometry .hero-tagline,
+html[dir="rtl"] .board-geometry .panel-title {
+    text-align: right;
+}
+
+html[dir="rtl"] .board-geometry .games-table tbody tr:hover {
+    transform: translateX(-2px);
+}

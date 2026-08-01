@@ -1,27 +1,29 @@
 <% layout("../views/layouts/boilerplate") %>
 
 <link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
 <link rel="stylesheet" href="/friends.css">
 
-<div class="friends-page welcome-container">
-  <div class="hero-banner friends-hero">
-    <div class="hero-overlay"></div>
+<div class="friends-page welcome-container board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
     <div class="hero-content">
       <div class="hero-text-section">
-        <h1 class="hero-greeting"><%= t('site.friendsPage.title') %></h1>
+        <h1 class="hero-username"><%= t('site.friendsPage.title') %></h1>
         <p class="hero-tagline"><%= t('site.friendsPage.tagline') %></p>
       </div>
     </div>
-  </div>
+  </header>
 
   <div class="games-section friends-section">
     <div class="friends-two-columns">
-      <div class="games-panel friends-list-panel">
+      <section class="games-panel friends-list-panel">
         <div class="panel-header">
-          <div class="panel-title-group">
-            <h2 class="panel-title"><%= t('site.friendsPage.myFriends') %></h2>
+          <div class="panel-header-top">
+            <div class="panel-title-group">
+              <h2 class="panel-title"><%= t('site.friendsPage.myFriends') %></h2>
+            </div>
           </div>
-          <div class="panel-subtitle"></div>
         </div>
         <div class="panel-body">
           <div id="friendsEmpty" class="no-games-message">
@@ -29,14 +31,16 @@
           </div>
           <ul id="friendsList" class="friends-user-list" aria-live="polite"></ul>
         </div>
-      </div>
+      </section>
 
-      <div class="games-panel friends-search-panel">
+      <section class="games-panel friends-search-panel">
         <div class="panel-header">
-          <div class="panel-title-group">
-            <h2 class="panel-title"><%= t('site.friendsPage.findPlayers') %></h2>
+          <div class="panel-header-top">
+            <div class="panel-title-group">
+              <h2 class="panel-title"><%= t('site.friendsPage.findPlayers') %></h2>
+            </div>
           </div>
-          <div class="panel-subtitle"><%= t('site.friendsPage.searchByUsername') %></div>
+          <p class="panel-subtitle"><%= t('site.friendsPage.searchByUsername') %></p>
         </div>
         <div class="panel-body">
           <div class="friends-search-row">
@@ -47,9 +51,11 @@
           <ul id="searchResults" class="friends-user-list friends-search-results" aria-live="polite"></ul>
           <div id="searchPlaceholder" class="friends-search-placeholder"><%= t('site.friendsPage.enterCharToSearch') %></div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
+
+  <%- include('partials/site-page-footer') %>
 </div>
 
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">

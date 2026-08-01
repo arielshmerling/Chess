@@ -1,69 +1,60 @@
 <% layout("../views/layouts/boilerplate") %>
 
 <link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
 <link rel="stylesheet" href="/friends.css">
 <script>
   window.__LAST_GAME_OPTIONS__ = <%- JSON.stringify(typeof lastGameOptions !== "undefined" && lastGameOptions ? lastGameOptions : {}) %>;
 </script>
 
-<div class="welcome-container">
-  <!-- Hero Banner with Chess Theme -->
-  <div class="hero-banner">
-    <div class="hero-overlay"></div>
+<div class="welcome-container board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
     <div class="hero-content">
       <div class="hero-text-section">
-        <h1 class="hero-greeting"><%= t('site.welcome.greeting') %></h1>
-        <h2 class="hero-username"><%=username %></h2>
+        <p class="hero-greeting"><%= t('site.welcome.greeting') %></p>
+        <h1 class="hero-username"><%= username %></h1>
       </div>
-      <div class="hero-right">
-        <div class="hero-chess-icon">
-          <div class="chess-pieces-container">
-            <!-- <span class="chess-piece-symbol king-symbol">♔</span> -->
-          </div>
-        </div>
-        <div class="hero-play-now">
-          <button type="button" class="play-now-btn" id="startAIGame" onclick="startPlayFromHome()"><span class="play-now-btn-text"><%= t('site.welcome.playNow') %></span></button>
-        </div>
+      <div class="hero-play-now">
+        <button type="button" class="play-now-btn" id="startAIGame" onclick="startPlayFromHome()">
+          <span class="play-now-btn-text"><%= t('site.welcome.playNow') %></span>
+        </button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Games Section -->
   <div class="games-section">
     <div class="welcome-active-games-row">
-    <!-- <%= t('site.welcome.activeGames') %> (Online + AI) -->
-    <div class="games-panel online-games-panel">
-      <div class="panel-header">
-        <div class="panel-header-top">
-          <div class="panel-title-group">
-            <h3 class="panel-title"><%= t('site.welcome.activeGames') %></h3>
-            <span class="panel-badge"><%= t('site.welcome.live') %></span>
+      <section class="games-panel online-games-panel">
+        <div class="panel-header">
+          <div class="panel-header-top">
+            <div class="panel-title-group">
+              <h2 class="panel-title"><%= t('site.welcome.activeGames') %></h2>
+            </div>
+            <a href="/active-games-list" class="panel-show-all-btn" title="<%= t('site.welcome.viewAllActive') %>"><%= t('site.welcome.showAll') %></a>
           </div>
-          <a href="/active-games-list" class="panel-show-all-btn" title="<%= t('site.welcome.viewAllActive') %>"><%= t('site.welcome.showAll') %></a>
         </div>
-      </div>
-      <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
-        <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
-        <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
-          window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
-        </script>
-        <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="<%= t('site.welcome.activeGamesAria') %>"></div>
-        <div class="no-games-message" id="online-no-games-msg">
-          <p><%= t('site.welcome.noGamesNow') %></p>
+        <div class="panel-body online-games-body<% if (allGames && allGames.length > 0) { %> has-online-games<% } %>" id="online-games-container">
+          <script type="application/json" id="active-games-initial-json"><%- JSON.stringify(allGames || []).replace(/</g, '\\u003c') %></script>
+          <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+            window.__WELCOME_USERNAME__ = <%- typeof username !== 'undefined' && username ? JSON.stringify(String(username)) : '""' %>;
+          </script>
+          <div id="online-games-cards-root" class="online-games-cards-root online-active-games-stack" aria-label="<%= t('site.welcome.activeGamesAria') %>"></div>
+          <div class="no-games-message" id="online-no-games-msg">
+            <p><%= t('site.welcome.noGamesNow') %></p>
+          </div>
         </div>
-      </div>
-      <script src="/activeGamesHome.js" defer></script>
-    </div>
-    <%- include('partials/home-friends-welcome.ejs') %>
+        <script src="/activeGamesHome.js" defer></script>
+      </section>
 
+      <%- include('partials/home-friends-welcome.ejs') %>
     </div>
 
-    <!-- <%= t('site.welcome.myGames') %> -->
-    <div class="games-panel my-games-panel">
+    <section class="games-panel my-games-panel">
       <div class="panel-header">
         <div class="panel-header-top">
           <div class="panel-title-group">
-            <h3 class="panel-title"><%= t('site.welcome.myGames') %></h3>
+            <h2 class="panel-title"><%= t('site.welcome.myGames') %></h2>
           </div>
           <a href="/list" class="panel-show-all-btn" title="<%= t('site.welcome.viewAllGames') %>"><%= t('site.welcome.showAll') %></a>
         </div>
@@ -176,7 +167,7 @@
         </div>
         <% } %>
       </div>
-    </div>
+    </section>
   </div>
 
   <%- include('partials/site-page-footer') %>

@@ -1,11 +1,37 @@
 /* Friends page — extends welcome.css theme variables */
 
-.friends-page .friends-hero {
-    margin-bottom: 28px;
+.friends-page.board-geometry .friends-two-columns {
+    gap: 24px;
 }
 
-.friends-page .friends-hero .hero-content {
-    justify-content: flex-start;
+.friends-page.board-geometry .friends-friend-row,
+.friends-page.board-geometry .friends-search-row-item {
+    padding: 12px 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--bg-geo-line, color-mix(in srgb, var(--semiLight) 28%, transparent));
+}
+
+.friends-page.board-geometry .friends-btn {
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--bg-geo-line-strong, color-mix(in srgb, var(--semiLight) 48%, transparent));
+    color: var(--bg-geo-soft, var(--light));
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.friends-page.board-geometry .friends-btn:hover {
+    background: var(--bg-geo-hover, color-mix(in srgb, var(--semiLight) 12%, transparent));
+    color: var(--bg-geo-ink, var(--lighter));
+}
+
+.friends-page.board-geometry .friends-search-input {
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--bg-geo-line-strong, color-mix(in srgb, var(--semiLight) 48%, transparent));
+    color: var(--bg-geo-ink, var(--lighter));
 }
 
 .friends-section {
