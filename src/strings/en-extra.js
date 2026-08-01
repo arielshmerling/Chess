@@ -436,6 +436,9 @@
         },
         "list": {
             "title": "All Games",
+            "tagline": "Your completed games",
+            "allGames": "Completed games",
+            "gamesCount": "{{count}} games",
             "action": "Action"
         },
         "searchPage": {

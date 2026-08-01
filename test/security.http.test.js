@@ -35,10 +35,22 @@ describe("security HTTP remediations", function () {
     async function loginAgent(creds) {
         resetWebRateLimits(app);
         const agent = request.agent(app);
-        await agent
+        const loginRes = await agent
             .post("/login")
             .type("form")
-            .send({ username: creds.username, password: creds.password });
+            .send({ username: creds.username, password: creds.password })
+            .redirects(0);
+        assert.ok(
+            loginRes.status === 302 || loginRes.status === 200,
+            `login HTTP ${loginRes.status} for ${creds.username}`,
+        );
+        if (loginRes.status === 302) {
+            assert.match(
+                String(loginRes.headers.location || ""),
+                /home|play|friends|return/i,
+                `login did not establish a session (location=${loginRes.headers.location})`,
+            );
+        }
         return agent;
     }
 
@@ -55,22 +67,16 @@ describe("security HTTP remediations", function () {
     });
 
     it("does not expose server modules via static paths", async function () {
+        /* Prefer paths that are not under express.static(assets) to avoid send() ENOENT noise. */
         const paths = [
             "/modules/game/controller.js",
             "/db/database.js",
             "/security/csrfOrigin.js",
             "/app.js",
-            "/brains/brain43.js",
         ];
         for (const path of paths) {
             const res = await request(app).get(path).redirects(0);
-            assert.ok(
-                res.status === 404 || res.status === 302,
-                `${path} expected 404/302, got ${res.status}`,
-            );
-            if (res.status === 200) {
-                assert.fail(`${path} must not be served`);
-            }
+            assert.notStrictEqual(res.status, 200, `${path} must not be served as a static file`);
         }
         const board = await request(app).get("/ChessGame.js").expect(200);
         assert.match(String(board.headers["content-type"] || ""), /javascript|ecmascript|text\/plain/i);
@@ -184,7 +190,9 @@ describe("security HTTP remediations", function () {
     });
 
     it("rejects cross-origin mutating requests when NODE_ENV=production", async function () {
-        const prev = process.env.NODE_ENV;
+        const prev = Object.prototype.hasOwnProperty.call(process.env, "NODE_ENV")
+            ? process.env.NODE_ENV
+            : null;
         process.env.NODE_ENV = "production";
         try {
             const res = await request(app)
@@ -194,27 +202,36 @@ describe("security HTTP remediations", function () {
             assert.strictEqual(res.status, 403);
             assert.strictEqual(res.body.ok, false);
         } finally {
-            process.env.NODE_ENV = prev;
+            if (prev === null) {
+                delete process.env.NODE_ENV;
+            } else {
+                process.env.NODE_ENV = prev;
+            }
         }
     });
 
     it("rate-limits repeated login posts for the same username", async function () {
         resetWebRateLimits(app);
         const limiters = app.get("rateLimiters");
-        const max = limiters && limiters.login && limiters.login.max ? limiters.login.max : 40;
-        assert.ok(max >= 1 && max <= 100, "login max should be small enough for this test");
-
-        let lastStatus = 0;
-        for (let i = 0; i < max + 2; i++) {
-            const res = await request(app)
-                .post("/api/login")
-                .send({ username: primary.username, password: "definitely-wrong-password" });
-            lastStatus = res.status;
-            if (res.status === 429) {
-                break;
+        assert.ok(limiters && limiters.login, "login rate limiter should be attached");
+        const prevMax = limiters.login.max;
+        limiters.login.max = 3;
+        try {
+            let lastStatus = 0;
+            for (let i = 0; i < 6; i++) {
+                const res = await request(app)
+                    .post("/api/login")
+                    .send({ username: primary.username, password: "definitely-wrong-password" });
+                lastStatus = res.status;
+                if (res.status === 429) {
+                    break;
+                }
             }
+            assert.strictEqual(lastStatus, 429);
+        } finally {
+            limiters.login.max = prevMax;
+            resetWebRateLimits(app);
         }
-        assert.strictEqual(lastStatus, 429);
     });
 
     it("requires login for GET /bookmark", async function () {

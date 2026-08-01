@@ -8,7 +8,7 @@
  */
 function createRateLimiter(opts) {
     const windowMs = opts.windowMs;
-    const max = opts.max;
+    const state = { max: opts.max };
     const keyFn =
         opts.keyFn ||
         function (req) {
@@ -38,7 +38,7 @@ function createRateLimiter(opts) {
             hits.set(key, entry);
         }
         entry.count += 1;
-        if (entry.count > max) {
+        if (entry.count > state.max) {
             res.set("Retry-After", String(Math.ceil(windowMs / 1000)));
             if (req.path && req.path.startsWith("/api/")) {
                 return res.status(429).json({ ok: false, message });
@@ -58,7 +58,15 @@ function createRateLimiter(opts) {
         hits.clear();
     };
 
-    rateLimit.max = max;
+    Object.defineProperty(rateLimit, "max", {
+        get() {
+            return state.max;
+        },
+        set(n) {
+            state.max = Math.max(1, Number(n) || 1);
+        },
+        enumerable: true,
+    });
 
     return rateLimit;
 }

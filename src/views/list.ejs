@@ -1,9 +1,32 @@
 <% layout("../views/layouts/boilerplate") %>
 
-    <section id="PlayerGameList">
-        <br><br><br><br>
-        <h1><%= t('site.list.title') %></h1>
-        <br><br>
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
+
+<div class="welcome-container list-page board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-username"><%= t('site.list.title') %></h1>
+        <p class="hero-tagline"><%= t('site.list.tagline') %></p>
+      </div>
+    </div>
+  </header>
+
+  <div class="games-section">
+    <section class="games-panel my-games-panel list-games-panel" id="PlayerGameList">
+      <div class="panel-header">
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h2 class="panel-title"><%= t('site.list.allGames') %></h2>
+          </div>
+          <% if (playerGames && playerGames.length > 0) { %>
+          <p class="panel-subtitle panel-subtitle--inline"><%= t('site.list.gamesCount', { count: playerGames.length }) %></p>
+          <% } %>
+        </div>
+      </div>
+      <div class="panel-body">
         <% if (playerGames && playerGames.length > 0) { %>
         <% function gameColLabel(key) {
             var map = {
@@ -19,53 +42,49 @@
             };
             return map[key] || key;
           } %>
-        <div class="gamesTableContainer">
-            <table class="gamesTable sortable">
-                <thead>
-                <tr>
-                    <th class="sortable-th" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
-                        <span class="th-label">#</span>
-                        <span class="sort-icon" aria-hidden="true"></span>
-                    </th>
-                    <% obj = playerGames[0]; %>
-                    <% for(const key in obj) { %>
-                        <% if(key !== "Id" && !key.startsWith("_")) { %>
-                    <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key.trim()) }) %>">
-                        <span class="th-label"><%= gameColLabel(key) %></span>
-                        <span class="sort-icon" aria-hidden="true"></span>
-                    </th>
-                        <% } %>
-                    <% } %>
-                    <th><%= t('site.list.action') %></th>
-                </tr>
-                </thead>
-                <tbody>
-                <% rowIndex = 0; for(const obj of playerGames) { %>
-                    <tr data-row-index="<%= rowIndex %>">
-                        <td class="sortable-td" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>><%= rowIndex + 1 %></td>
-                        <% for(const key in obj) { %>
-                            <% if(key !== 'Id' && !key.startsWith('_')) { %>
-                                <% sortVal = key === 'Date' ? (obj._sortableDate || 0) : (key === 'Moves' ? (obj.Moves || 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
-                                <% if(key.trim() === "Reason") { %>
-                        <td class="alignLeft sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
-                                <% } else { %>
-                            <td class="sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
-                                <% } %>
-                                    <%= obj[key] %>
-                            </td>
-                            <% } %>
-                        <% } %>
-                        <td class="no-sort">
-                            <form action="/list/<%= obj.Id %>?_method=delete" method="POST" class="list-delete-form">
-                                <input type="hidden" name="sortKey" value="">
-                                <input type="hidden" name="sortOrder" value="">
-                                <a href="javascript:{}" onclick="this.closest('form').submit();return false;"><%= t('common.delete') %></a>
-                            </form>
-                        </td>
-                    </tr>
-                <% rowIndex++; } %>
-                </tbody>
-            </table>
+        <div class="table-scroll table-scroll--wide">
+          <table class="games-table sortable">
+            <thead>
+              <tr>
+                <th class="sortable-th col-num" data-sort-key="rowIndex" title="<%= t('site.welcome.sortByRowNumber') %>">
+                  <span class="th-label">#</span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                <% obj = playerGames[0]; %>
+                <% for(const key in obj) { %>
+                  <% if(key !== "Id" && !key.startsWith("_")) { %>
+                <th class="sortable-th" data-sort-key="<%= key.replace(/^\s+/, '').replace(/\s+$/, '') %>" title="<%= t('site.welcome.sortBy', { key: gameColLabel(key.trim()) }) %>">
+                  <span class="th-label"><%= gameColLabel(key) %></span>
+                  <span class="sort-icon" aria-hidden="true"></span>
+                </th>
+                  <% } %>
+                <% } %>
+                <th class="col-action"><%= t('site.list.action') %></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% rowIndex = 0; for(const obj of playerGames) { %>
+              <tr data-row-index="<%= rowIndex %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                <td class="row-number sortable-td col-num" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>"><%= rowIndex + 1 %></td>
+                <% for(const key in obj) { %>
+                  <% if(key !== 'Id' && !key.startsWith('_')) { %>
+                    <% sortVal = key === 'Date' ? (obj._sortableDate || 0) : (key === 'Moves' ? (obj.Moves || 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
+                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %>>
+                  <%= obj[key] %>
+                </td>
+                  <% } %>
+                <% } %>
+                <td class="no-sort col-action" onclick="event.stopPropagation();">
+                  <form action="/list/<%= obj.Id %>?_method=delete" method="POST" class="list-delete-form">
+                    <input type="hidden" name="sortKey" value="">
+                    <input type="hidden" name="sortOrder" value="">
+                    <button type="submit" class="list-delete-btn"><%= t('common.delete') %></button>
+                  </form>
+                </td>
+              </tr>
+              <% rowIndex++; } %>
+            </tbody>
+          </table>
         </div>
         <script>
 (function() {
@@ -161,8 +180,12 @@
         </script>
         <% } else { %>
         <div class="no-games-message">
-            <p><%= t('site.welcome.noCompleted') %></p>
+          <p><%= t('site.welcome.noCompleted') %></p>
         </div>
         <% } %>
+      </div>
     </section>
-    <br><br>
+  </div>
+
+  <%- include('partials/site-page-footer') %>
+</div>

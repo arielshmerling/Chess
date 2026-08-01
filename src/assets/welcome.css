@@ -1376,9 +1376,50 @@ main {
     background: rgba(0, 0, 0, 0.3);
 }
 
-@media (max-width: 768px) {
+/* Full /list page — same panel table as search / active-games */
+.list-page .list-games-panel .games-table th,
+.list-page .list-games-panel .games-table td {
+    white-space: nowrap;
+}
 
-    /* Keep the widest optional columns out of the way on phones */
+.list-page .games-table td.no-sort,
+.list-page .games-table th.col-action {
+    cursor: default;
+    text-align: center;
+}
+
+.list-page .list-delete-form {
+    margin: 0;
+    display: inline-flex;
+}
+
+.list-page .list-delete-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid rgba(152, 193, 217, 0.35);
+    color: var(--semiLight, #98c1d9);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.list-page .list-delete-btn:hover {
+    background: rgba(220, 80, 80, 0.18);
+    border-color: rgba(220, 120, 120, 0.55);
+    color: #f0c0c0;
+}
+
+.list-page .list-delete-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(152, 193, 217, 0.35);
+}
+
+@media (max-width: 768px) {
     .search-page .games-table .col-event,
     .search-page .games-table .col-round {
         display: none;

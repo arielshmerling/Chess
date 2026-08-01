@@ -357,12 +357,13 @@ app.all("*", (req, res, next) => {
 
 app.use((err, req, res, next) => {
     const { statusCode = 500, message = "Sorry, Something went wrong" } = err;
-    if (req.path && req.path.startsWith("/api/")) {
-        res.status(statusCode).json({ ok: false, message });
+    if (res.headersSent) {
         return next(err);
     }
-    res.status(statusCode).render("error", { statusCode, message });
-    next(err);
+    if (req.path && req.path.startsWith("/api/")) {
+        return res.status(statusCode).json({ ok: false, message });
+    }
+    return res.status(statusCode).render("error", { statusCode, message });
 });
 
 module.exports = app;
