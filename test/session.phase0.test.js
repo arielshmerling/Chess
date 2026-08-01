@@ -32,7 +32,7 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.chat, false);
     });
 
-    it("online capabilities require network, resign, draw, and rematch", function () {
+    it("online capabilities require network, resign, draw, rematch, and chat", function () {
         const caps = getModeCapabilities(MODE_IDS.ONLINE);
         assert.strictEqual(caps.network, true);
         assert.strictEqual(caps.resign, true);
@@ -42,6 +42,16 @@ describe("session Phase 0 contracts", function () {
         assert.strictEqual(caps.rematch, true);
         assert.strictEqual(caps.chat, true);
         assert.strictEqual(caps.watchers, false);
+    });
+
+    it("watch capabilities allow network, watchers, and read chat", function () {
+        const caps = getModeCapabilities(MODE_IDS.WATCH);
+        assert.strictEqual(caps.network, true);
+        assert.strictEqual(caps.watchers, true);
+        assert.strictEqual(caps.chat, true);
+        assert.strictEqual(caps.resign, false);
+        assert.strictEqual(caps.draw, false);
+        assert.strictEqual(caps.rematch, false);
     });
 
     it("practice capabilities are local self-play (no engine/network)", function () {
@@ -171,6 +181,34 @@ describe("OnlineGameMessageProcessor.drawOfferForward characterization", functio
         processor.drawOfferForward(game, { isWhite: false });
         assert.strictEqual(game.sent.length, 1);
         assert.strictEqual(game.sent[0].channel, "opponent");
+    });
+});
+
+describe("OnlineGameMessageProcessor.chatHandler", function () {
+    const processor = new OnlineGameMessageProcessor();
+
+    it("forwards chat to the opponent and watchers", function () {
+        const sent = [];
+        const game = {
+            sendMessageToOpponent(msg) {
+                sent.push({ channel: "opponent", msg });
+            },
+            sendInfoToWatchers(msg) {
+                sent.push({ channel: "watchers", msg });
+            },
+        };
+        const msg = {
+            info: "chat",
+            data: "hello",
+            isWhite: true,
+            username: "alice",
+        };
+        processor.chatHandler(game, msg);
+        assert.strictEqual(sent.length, 2);
+        assert.strictEqual(sent[0].channel, "opponent");
+        assert.strictEqual(sent[1].channel, "watchers");
+        assert.strictEqual(sent[0].msg.data, "hello");
+        assert.strictEqual(sent[1].msg.data, "hello");
     });
 });
 

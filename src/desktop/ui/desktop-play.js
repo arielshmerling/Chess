@@ -64,6 +64,8 @@
     const LaunchOptions = window.PlayLaunchOptions;
     const KeyboardShortcuts = window.PlayKeyboardShortcuts;
     const BookmarkHelpers = window.PlayBookmarkHelpers;
+    const PlayChatPanel = window.PlayChatPanel;
+    const RightDockMode = window.PlayRightDockMode;
     const GameSessionApi = window.ShmerlingGameSession;
     const LocalEngineModeApi = window.ShmerlingLocalEngineMode;
     const ReviewModeApi = window.ShmerlingReviewMode;
@@ -73,7 +75,6 @@
     const OnlineModeApi = window.ShmerlingOnlineMode;
     const WsTransportApi = window.ShmerlingWsTransport;
     const SpServerSyncApi = window.ShmerlingSpServerSync;
-    const PlayChatPanel = window.PlayChatPanel;
     const Clocks = window.PlayClocksController.create({
         getElement: function (color) {
             return $(color === "black" ? "blackClockTimeText" : "whiteClockTimeText");
@@ -2980,10 +2981,28 @@
      */
     let rightDockMode = null;
     function syncRightSidebarMode() {
-        const showGamesDock =
-            canPlayAdvancedTools &&
-            !isOnlinePlaySession() &&
-            (!gameActive || !!(game && game.GameOver));
+        const decided =
+            RightDockMode && typeof RightDockMode.resolve === "function"
+                ? RightDockMode.resolve({
+                      onlineSession: isOnlinePlaySession(),
+                      watcher: !!(onlineGameInfo && onlineGameInfo.watcher),
+                      canPlayAdvancedTools: canPlayAdvancedTools,
+                      gameActive: gameActive,
+                      gameOver: !!(game && game.GameOver),
+                  })
+                : {
+                      mode:
+                          canPlayAdvancedTools &&
+                          !isOnlinePlaySession() &&
+                          (!gameActive || !!(game && game.GameOver))
+                              ? "games"
+                              : isOnlinePlaySession()
+                                ? "chat"
+                                : "hidden",
+                      readOnly: !!(onlineGameInfo && onlineGameInfo.watcher),
+                  };
+        const mode = decided.mode;
+        const readOnly = !!decided.readOnly;
         if (!PlayChatPanel || typeof PlayChatPanel.setRightDockMode !== "function") {
             DockModeChrome.applyAdvancedToolsVisibility(
                 {
@@ -2992,17 +3011,9 @@
                     configDock: null,
                     body: document.body,
                 },
-                showGamesDock,
+                mode === "games",
             );
             return;
-        }
-        let mode = "hidden";
-        let readOnly = false;
-        if (isOnlinePlaySession()) {
-            mode = "chat";
-            readOnly = !!(onlineGameInfo && onlineGameInfo.watcher);
-        } else if (showGamesDock) {
-            mode = "games";
         }
         const enteredChat = mode === "chat" && rightDockMode !== "chat";
         const enteredGames = mode === "games" && rightDockMode !== "games";

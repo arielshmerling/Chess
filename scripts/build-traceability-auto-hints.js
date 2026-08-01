@@ -285,6 +285,21 @@ const COVERAGE = {
         ],
         auto_coverage: "full",
     },
+    "FR-PLAY-008": {
+        auto_tests: [
+            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
+            "test/playChatPanel.test.js — switches right dock between games, chat, and hidden",
+        ],
+        auto_coverage: "full",
+    },
+    "FR-PLAY-009": {
+        auto_tests: [
+            "test/playUi.rightDockMode.test.js — shows games for Admin/Partner when idle",
+            "test/playUi.rightDockMode.test.js — hides games during in-progress SP and restores after GameOver",
+            "test/playUi.rightDockMode.test.js — keeps the right dock hidden for Members when not online",
+        ],
+        auto_coverage: "full",
+    },
 
     "FR-SP-001": {
         auto_tests: [
@@ -517,6 +532,16 @@ const COVERAGE = {
         ],
         auto_coverage: "partial",
     },
+    "FR-ONL-016": {
+        auto_tests: [
+            "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
+            "test/session.onlineMode.test.js — invokes onChatMessage for inbound chat",
+            "test/session.phase0.test.js — OnlineGameMessageProcessor.chatHandler forwards to opponent and watchers",
+            "test/session.phase0.test.js — accepts a minimal chat info payload",
+            "test/session.phase0.test.js — online capabilities require chat",
+        ],
+        auto_coverage: "full",
+    },
 
     "FR-WAT-001": {
         auto_tests: [
@@ -547,6 +572,15 @@ const COVERAGE = {
     "FR-WAT-005": {
         auto_tests: [],
         auto_coverage: "none",
+    },
+    "FR-WAT-007": {
+        auto_tests: [
+            "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
+            "test/session.phase0.test.js — watch capabilities allow network, watchers, and read chat",
+            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
+            "test/playChatPanel.test.js — switches right dock between games, chat, and hidden",
+        ],
+        auto_coverage: "full",
     },
 
     "FR-REV-001": {
@@ -1100,6 +1134,8 @@ const COVERAGE = {
     "IF-WS-003": {
         auto_tests: [
             "test/session.onlineMode.test.js — move/info handling in OnlineMode",
+            "test/session.onlineMode.test.js — classifies inbound chat info",
+            "test/session.phase0.test.js — accepts a minimal chat info payload",
             "test/mobile.sessionLocalEngine.test.js — clientEngineMove cmd schema and processor",
         ],
         auto_coverage: "partial",
@@ -1326,9 +1362,12 @@ const COVERAGE = {
         notes: "Friend-invite-only policy not negative-tested (no public queue test).",
     },
     "CON-007": {
-        auto_tests: [],
-        auto_coverage: "none",
-        notes: "Deferred feature.",
+        auto_tests: [
+            "test/session.onlineMode.test.js — sends chat info and ignores send for watchers",
+            "test/playUi.rightDockMode.test.js — shows chat for online players and read-only chat for watchers",
+        ],
+        auto_coverage: "full",
+        notes: "Retired constraint — Prefer-Play chat is implemented (FR-ONL-016 / FR-PLAY-008 / FR-WAT-007).",
     },
     "CON-008": {
         auto_tests: [

@@ -21,6 +21,9 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.t("play.status.gameOver"), "Game over");
         assert.strictEqual(strings.t("common.white"), "White");
         assert.strictEqual(strings.t("site.friends"), "Friends");
+        assert.strictEqual(strings.t("play.shell.chat"), "Chat");
+        assert.strictEqual(strings.t("play.shell.sendChat"), "Send");
+        assert.ok(strings.t("play.shell.chatWatcherReadonly").length > 0);
     });
 
     it("resolves nested keys from the English catalog when locale is en", function () {

@@ -255,6 +255,9 @@ describe("web HTTP / auth", function () {
         assert.match(res.text, /onlineMode\.js/);
         assert.match(res.text, /wsTransport\.js/);
         assert.match(res.text, /onlineProtocol\.js/);
+        assert.match(res.text, /play-chat-panel\.js/);
+        assert.match(res.text, /right-dock-mode\.js/);
+        assert.match(res.text, /desktopPlayChatDock/);
     });
 
     it("authenticated GET /api/play/launch-context returns prefs payload", async function () {
