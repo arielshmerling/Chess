@@ -260,7 +260,7 @@ describe("playPaths", function () {
             assert.ok(href.indexOf("engine=brain43") >= 0);
         });
 
-        it("maps online id when onlineGameById is set", function () {
+        it("maps any id reopen to /play (online + SP / on-hold rejoin)", function () {
             assert.strictEqual(
                 resolveDeprecatedGameToPlayHref(
                     { id: "abc123" },
@@ -268,13 +268,20 @@ describe("playPaths", function () {
                 ),
                 "/play?id=abc123",
             );
-        });
-
-        it("keeps SP id and unjoined joinGame on classic (null)", function () {
             assert.strictEqual(
                 resolveDeprecatedGameToPlayHref({ id: "abc123" }),
-                null,
+                "/play?id=abc123",
             );
+            assert.strictEqual(
+                resolveDeprecatedGameToPlayHref({
+                    id: "abc123",
+                    mode: "watch",
+                }),
+                "/play?id=abc123&mode=watch",
+            );
+        });
+
+        it("keeps unjoined joinGame on classic (null)", function () {
             assert.strictEqual(
                 resolveDeprecatedGameToPlayHref({
                     gameType: "2",

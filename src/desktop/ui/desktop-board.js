@@ -80,6 +80,8 @@
     let boardAnimating = false;
     let activeMoveAnimationInterval = null;
     let animatingMoveImg = null;
+    /** @type {null|function(): void} resolves the in-flight animateMove / animateUndoMove promise */
+    let activeMoveAnimationSettle = null;
     let evaluationOverlayData = null;
 
     const MOVE_ANIM_INTERVAL_MS = 2;
@@ -383,6 +385,15 @@
             animatingMoveImg = null;
         }
         boardAnimating = false;
+        const settle = activeMoveAnimationSettle;
+        activeMoveAnimationSettle = null;
+        if (typeof settle === "function") {
+            try {
+                settle();
+            } catch {
+                /* ignore */
+            }
+        }
     }
 
     function clearDraggingSourceElevation() {
@@ -1288,6 +1299,7 @@
         cancelMoveAnimation();
         boardAnimating = true;
         return new Promise(function (resolve) {
+            activeMoveAnimationSettle = resolve;
             const speed = 50;
             clearArrows();
             const divMoveTarget = findSquare(move.target.row, move.target.col);
@@ -1295,6 +1307,7 @@
             if (!img) {
                 syncFromGameState();
                 boardAnimating = false;
+                activeMoveAnimationSettle = null;
                 resolve();
                 return;
             }
@@ -1324,6 +1337,7 @@
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
                     animatingMoveImg = null;
+                    activeMoveAnimationSettle = null;
                     syncFromGameState();
                     boardAnimating = false;
                     resolve();
@@ -1336,13 +1350,15 @@
     function animateMove(move, options) {
         options = options || {};
         cancelMoveAnimation();
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
+            activeMoveAnimationSettle = resolve;
             boardAnimating = true;
             const speed = 20;
 
             if (!move) {
                 boardAnimating = false;
-                reject(new Error("error"));
+                activeMoveAnimationSettle = null;
+                resolve();
                 return;
             }
 
@@ -1358,9 +1374,11 @@
             const divMoveTarget = findSquare(move.source.row, move.source.col);
             const img = divMoveTarget && divMoveTarget.childNodes[0];
             if (!img) {
+                /* Keep chess state applying even if DOM is briefly out of sync. */
                 syncFromGameState();
                 boardAnimating = false;
-                reject(new Error("no piece"));
+                activeMoveAnimationSettle = null;
+                resolve();
                 return;
             }
 
@@ -1394,6 +1412,7 @@
                     img.style.marginLeft = "0px";
                     img.style.marginTop = "0px";
                     animatingMoveImg = null;
+                    activeMoveAnimationSettle = null;
                     if (!options.skipFinalSync) {
                         syncFromGameState();
                     }

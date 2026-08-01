@@ -42,6 +42,11 @@ function mountWebPlayRoutes(app) {
 
     app.get("/api/play/launch-context", requireLogin, playPrefsApi.getLaunchContext);
     app.post("/api/play/last-game-options", requireLogin, playPrefsApi.setLastGameOptions);
+    app.post(
+        "/api/play/sp-game",
+        requireLogin,
+        require("../modules/game/controller").createPreferPlaySpGameHandler,
+    );
 
     app.get("/play", requireLogin, (req, res) => {
         if (!canAccessPlayPage(req)) {

@@ -197,7 +197,7 @@ app.ws("/ws", async (ws, req) => {
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
                     game.addWatcher(ws, msg.data.username);
-                } 
+                }
                 return;
             }
         } catch (error) {

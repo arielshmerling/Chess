@@ -170,15 +170,15 @@ function resolveDeprecatedGameToPlayHref(query, opts) {
     }
 
     if (q.id != null && String(q.id).trim() !== "") {
-        if (options.onlineGameById === true) {
-            let url = "/play?id=" + encodeURIComponent(String(q.id).trim());
-            if (q.mode === "watch") {
-                url += "&mode=watch";
-            }
-            return url;
+        /*
+         * Prefer-Play: reopen any live game by id (OnlineGame + SinglePlayerGame,
+         * including on-hold rejoin). Classic escape still skips this helper.
+         */
+        let url = "/play?id=" + encodeURIComponent(String(q.id).trim());
+        if (q.mode === "watch") {
+            url += "&mode=watch";
         }
-        /* Single-player / unknown id reopen stays on classic during the deprecation window. */
-        return null;
+        return url;
     }
 
     if (q.newGame === "1" || String(q.gameType) === "1") {

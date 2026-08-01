@@ -75,6 +75,15 @@ class GameBase {
         ws.gameId = this.gameId; // is it necessary?
         ws.on("message", this.onMessageReceived);
         ws.on("close", this.onConnectionClosed);
+        /* Prefer-Play SP sync waits for this before mirroring moves (avoids race where
+           client sends plies before this listener is attached). */
+        try {
+            if (ws.readyState === 1) {
+                ws.send(JSON.stringify({ type: "info", info: "connected", gameId: this.gameId }));
+            }
+        } catch (err) {
+            console.error("connected ack failed:", err && err.message ? err.message : err);
+        }
     }
 
     joinGame(player) {

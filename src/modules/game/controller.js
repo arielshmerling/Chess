@@ -372,22 +372,13 @@ exports.startGame = catchAsync(async (req, res) => {
     }
     /*
      * Phase 10 deprecation window: Prefer-Play desktop → /play when safe.
-     * Escape: ?classic=1. Unjoined joinGame and SP ?id= reopen stay classic for now.
+     * Escape: ?classic=1. Unjoined joinGame still uses classic join until seated.
      */
     if (
         req.path === "/game" &&
         effectivePreferPlayPage(req) &&
         req.query.classic !== "1"
     ) {
-        let onlineGameById = false;
-        if (req.query.id) {
-            const live = gamesManagerService.getGameById(req.query.id);
-            onlineGameById = !!(
-                live &&
-                live.constructor &&
-                live.constructor.name === "OnlineGame"
-            );
-        }
         let alreadyJoinedJoinGame = false;
         const joinIdRaw =
             req.query.joinGame != null && String(req.query.joinGame).trim() !== ""
@@ -411,7 +402,6 @@ exports.startGame = catchAsync(async (req, res) => {
             );
         }
         const playHref = resolveDeprecatedGameToPlayHref(req.query, {
-            onlineGameById: onlineGameById,
             alreadyJoinedJoinGame: alreadyJoinedJoinGame,
         });
         if (playHref) {
@@ -732,6 +722,97 @@ function registerEvents(game) {
     game.OnMoveChanged = onMoveUpdated;
 
 }
+
+/**
+ * Prefer-Play public (or private) SP: server-backed SinglePlayerGame with clientEngine
+ * so Active Games / watch work while the browser runs LocalEngineMode.
+ * @param {string} username
+ * @param {string} userId
+ * @param {object} [options]
+ * @returns {Promise<{ game: object, gameId: string }>}
+ */
+async function createPreferPlaySpGame(username, userId, options = {}) {
+    const opts = Object.assign({}, options, { clientEngine: true });
+    const game = gameService.newGame(1, username, userId, opts);
+    game.chessGame.startNewGame(true);
+    game.status = "in progress";
+    gamesManagerService.AddGame(game);
+    const gameDoc = await gamesManagerService.storeGameInDB(game);
+    game.gameId = gameDoc.id;
+    registerEvents(game);
+    const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
+    const blackName = game.blackPlayer?.userName ?? "";
+    const whiteName = game.whitePlayer?.userName ?? "";
+    broadcastActiveGameToLobby("onlineGameInProgress", game, {
+        Game: t("site.activeGames.playersVs", { white: whiteName, black: blackName }),
+        ...lobbyStartedFields(startedOn),
+        Moves: 0,
+        ...lobbyStatusFields(game.status),
+        whitePlayerName: whiteName,
+        blackPlayerName: blackName,
+    });
+    return { game, gameId: String(game.gameId) };
+}
+
+exports.createPreferPlaySpGame = createPreferPlaySpGame;
+
+exports.createPreferPlaySpGameHandler = catchAsync(async (req, res) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const color = body.color === "black" || body.color === "white" ? body.color : "white";
+    const engine =
+        typeof body.engine === "string" && body.engine.length <= 20 ? body.engine : "brain43";
+    const difficulty = parseInt(body.difficulty != null ? body.difficulty : body.thinkingTimeSeconds, 10);
+    const difficultyNum = difficulty >= 1 && difficulty <= 6 ? difficulty : 3;
+    const mouse = body.mouse === "double" || body.mouse === "drag" ? body.mouse : "drag";
+    const showAvailableMoves = body.showAvailableMoves !== false && body.showMoves !== "0";
+    const timeMinutesParsed = parseInt(body.timeMinutes, 10);
+    const timeMinutes =
+        Number.isFinite(timeMinutesParsed) && timeMinutesParsed >= 1 && timeMinutesParsed <= 180
+            ? timeMinutesParsed
+            : 90;
+    const isPrivate = body.isPrivate === true || body.private === "1" || body.private === 1;
+    const { game, gameId } = await createPreferPlaySpGame(req.session.user_name, req.session.user_id, {
+        color,
+        engine,
+        difficulty: difficultyNum,
+        mouse,
+        showAvailableMoves,
+        timeMinutes,
+        isPrivate,
+    });
+    if (req.session) {
+        req.session.gameId = gameId;
+        req.session.newGameOptions = {
+            color,
+            engine,
+            difficulty: difficultyNum,
+            mouse,
+            showAvailableMoves,
+            timeMinutes,
+            isPrivate,
+        };
+    }
+    await User.findByIdAndUpdate(req.session.user_id, {
+        lastGameOptions: {
+            color,
+            engine,
+            difficulty: difficultyNum,
+            mouse,
+            showAvailableMoves,
+            timeMinutes,
+            isPrivate,
+        },
+    });
+    res.json({
+        ok: true,
+        gameId,
+        userId: req.session.user_id,
+        isPrivate: game.isPrivate === true,
+        whitePlayerName: game.whitePlayer ? game.whitePlayer.userName : "",
+        blackPlayerName: game.blackPlayer ? game.blackPlayer.userName : "",
+        creatorId: game.createdBy ? game.createdBy.userId : null,
+    });
+});
 
 function broadcastActiveGameToLobby(type, game, extra = {}) {
     if (game.isPrivate === true) {

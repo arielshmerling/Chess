@@ -382,7 +382,7 @@ describe("session OnlineMode (Phase 3)", function () {
         session.dispose();
     });
 
-    it("maps opponent resigned to local resign of the opponent", function () {
+    it("maps opponent resigned to local resign of the opponent", async function () {
         const transport = createMockTransport();
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });
@@ -405,7 +405,7 @@ describe("session OnlineMode (Phase 3)", function () {
             { source: "human" },
         );
 
-        mode._handleInbound({
+        await mode._handleInbound({
             type: "info",
             info: "Opponent resigned",
             isWhite: false,
@@ -448,7 +448,7 @@ describe("session OnlineMode (Phase 3)", function () {
         session.dispose();
     });
 
-    it("accepts an inbound draw and ends the game", function () {
+    it("accepts an inbound draw and ends the game", async function () {
         const transport = createMockTransport();
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });
@@ -470,7 +470,7 @@ describe("session OnlineMode (Phase 3)", function () {
             { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
             { source: "human" },
         );
-        mode._handleInbound({
+        await mode._handleInbound({
             type: "info",
             info: "draw accepted",
             isWhite: false,
@@ -480,7 +480,7 @@ describe("session OnlineMode (Phase 3)", function () {
         session.dispose();
     });
 
-    it("offerRematch requires game over and notifies on rematch accepted", function () {
+    it("offerRematch requires game over and notifies on rematch accepted", async function () {
         const transport = createMockTransport();
         const rematches = [];
         const game = silentGame();
@@ -524,7 +524,7 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.ok(offerWithColor);
         assert.strictEqual(offerWithColor.offererWantsColor, "black");
 
-        mode._handleInbound({
+        await mode._handleInbound({
             type: "info",
             info: "rematch accepted",
             gameId: "game-2",
@@ -551,7 +551,7 @@ describe("session OnlineMode (Phase 3)", function () {
         );
     });
 
-    it("watcher mode uses WATCH capabilities and blocks resign/draw/rematch", function () {
+    it("watcher mode uses WATCH capabilities and blocks resign/draw/rematch", async function () {
         const transport = createMockTransport();
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });
@@ -580,51 +580,111 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.strictEqual(caps.network, true);
         assert.strictEqual(mode.offerDraw(), false);
         assert.strictEqual(mode.offerRematch(), false);
-        return Promise.resolve(mode.requestResign()).then(function (ok) {
-            assert.strictEqual(ok, false);
-            const connect = transport.sent.find(function (m) {
-                return m.type === "watch" || m.type === "connection";
-            });
-            assert.ok(connect);
-            assert.strictEqual(connect.type, "watch");
-
-            let drawOffers = 0;
-            let rematchOffers = 0;
-            const mode2 = OnlineMode.create({
-                transport: createMockTransport(),
-                gameInfo: {
-                    id: "game-1",
-                    username: "spectator",
-                    userId: "u9",
-                    creatorId: "u1",
-                    whitePlayerName: "alice",
-                    blackPlayerName: "bob",
-                },
-                humanIsWhite: true,
-                watcher: true,
-                wsUrl: "ws://test/ws",
-                onDrawOffered: function () {
-                    drawOffers += 1;
-                },
-                onRematchOffered: function () {
-                    rematchOffers += 1;
-                },
-            });
-            const session2 = GameSession.create({ game: silentGame(), humanIsWhite: true });
-            session2.attachMode(mode2);
-            session2.start();
-            mode2._handleInbound({ type: "info", info: "offer draw", isWhite: true });
-            mode2._handleInbound({ type: "info", info: "offer rematch", isWhite: true });
-            mode2._handleInbound({ type: "info", info: "draw declined", isWhite: true });
-            mode2._handleInbound({ type: "info", info: "rematch declined", isWhite: true });
-            assert.strictEqual(drawOffers, 0);
-            assert.strictEqual(rematchOffers, 0);
-            session2.dispose();
-            session.dispose();
+        const ok = await mode.requestResign();
+        assert.strictEqual(ok, false);
+        const connect = transport.sent.find(function (m) {
+            return m.type === "watch" || m.type === "connection";
         });
+        assert.ok(connect);
+        assert.strictEqual(connect.type, "watch");
+
+        let drawOffers = 0;
+        let rematchOffers = 0;
+        const mode2 = OnlineMode.create({
+            transport: createMockTransport(),
+            gameInfo: {
+                id: "game-1",
+                username: "spectator",
+                userId: "u9",
+                creatorId: "u1",
+                whitePlayerName: "alice",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            watcher: true,
+            wsUrl: "ws://test/ws",
+            onDrawOffered: function () {
+                drawOffers += 1;
+            },
+            onRematchOffered: function () {
+                rematchOffers += 1;
+            },
+        });
+        const session2 = GameSession.create({ game: silentGame(), humanIsWhite: true });
+        session2.attachMode(mode2);
+        session2.start();
+        mode2._handleInbound({ type: "info", info: "offer draw", isWhite: true });
+        mode2._handleInbound({ type: "info", info: "offer rematch", isWhite: true });
+        mode2._handleInbound({ type: "info", info: "draw declined", isWhite: true });
+        await mode2._handleInbound({ type: "info", info: "rematch declined", isWhite: true });
+        assert.strictEqual(drawOffers, 0);
+        assert.strictEqual(rematchOffers, 0);
+        session2.dispose();
+        session.dispose();
     });
 
-    it("watcher forfeit resigns the disconnected seat, not the other", function () {
+    it("serializes concurrent remote moves so later plies wait for earlier ones", async function () {
+        const transport = createMockTransport();
+        const order = [];
+        let gate = null;
+        const gatePromise = new Promise(function (resolve) {
+            gate = resolve;
+        });
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "game-1",
+                username: "alice",
+                userId: "u1",
+                creatorId: "u1",
+                blackPlayerName: "bob",
+            },
+            humanIsWhite: true,
+            watcher: true,
+            wsUrl: "ws://test/ws",
+            applyRemoteMove: async function (move) {
+                order.push("start:" + move.moveStr);
+                if (move.moveStr === "e4") {
+                    await gatePromise;
+                }
+                session.playMove(move, { source: "network" });
+                order.push("done:" + move.moveStr);
+                return true;
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+
+        const first = mode._handleInbound({
+            type: "move",
+            data: {
+                source: { row: 6, col: 4 },
+                target: { row: 4, col: 4 },
+                moveStr: "e4",
+            },
+            isWhite: true,
+        });
+        const second = mode._handleInbound({
+            type: "move",
+            data: {
+                source: { row: 1, col: 4 },
+                target: { row: 3, col: 4 },
+                moveStr: "e5",
+            },
+            isWhite: false,
+        });
+        await Promise.resolve();
+        assert.deepStrictEqual(order, ["start:e4"]);
+        gate();
+        await first;
+        await second;
+        assert.deepStrictEqual(order, ["start:e4", "done:e4", "start:e5", "done:e5"]);
+        session.dispose();
+    });
+
+    it("watcher forfeit resigns the disconnected seat, not the other", async function () {
         const statuses = [];
         const game = silentGame();
         const session = GameSession.create({ game: game, humanIsWhite: true });
@@ -651,7 +711,7 @@ describe("session OnlineMode (Phase 3)", function () {
             { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
             { source: "network" },
         );
-        mode._handleInbound({
+        await mode._handleInbound({
             type: "info",
             info: "Opponent failed to reconnect",
             disconnectedWasWhite: true,

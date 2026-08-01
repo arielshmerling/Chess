@@ -293,6 +293,47 @@ describe("web HTTP / auth", function () {
         assert.ok(Array.isArray(res.body) || typeof res.body === "object");
     });
 
+    it("POST /api/play/sp-game creates a public SP game visible in /active-games", async function () {
+        const agent = await loginAgent();
+        const created = await agent
+            .post("/api/play/sp-game")
+            .send({
+                color: "white",
+                engine: "brain43",
+                difficulty: 2,
+                timeMinutes: 15,
+                isPrivate: false,
+            })
+            .expect(200);
+        assert.strictEqual(created.body.ok, true);
+        assert.ok(created.body.gameId);
+        assert.strictEqual(created.body.isPrivate, false);
+
+        const list = await agent.get("/active-games?limit=50").expect(200);
+        const rows = Array.isArray(list.body) ? list.body : [];
+        const found = rows.some(function (g) {
+            return String(g.Id || g.gameId || "") === String(created.body.gameId);
+        });
+        assert.ok(found, "public Prefer-Play SP game should appear in active-games");
+
+        const privateGame = await agent
+            .post("/api/play/sp-game")
+            .send({
+                color: "white",
+                engine: "brain43",
+                isPrivate: true,
+            })
+            .expect(200);
+        assert.strictEqual(privateGame.body.ok, true);
+        assert.strictEqual(privateGame.body.isPrivate, true);
+        const list2 = await agent.get("/active-games?limit=50").expect(200);
+        const rows2 = Array.isArray(list2.body) ? list2.body : [];
+        const privateFound = rows2.some(function (g) {
+            return String(g.Id || g.gameId || "") === String(privateGame.body.gameId);
+        });
+        assert.ok(!privateFound, "private Prefer-Play SP game must not appear in active-games");
+    });
+
     it("authenticated GET /bookmark returns a list", async function () {
         const agent = await loginAgent();
         const res = await agent.get("/bookmark").expect(200);

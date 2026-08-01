@@ -73,7 +73,11 @@ class SinglePlayerGame extends GameBase {
     }
 
     init(ws, userId) {
-        const isRejoin = this.moves.length > 0 || this.status === "reJoining";
+        const isRejoin =
+            this.moves.length > 0 ||
+            this.status === "reJoining" ||
+            this.status === "in progress" ||
+            this.status === "on hold";
         if (isRejoin) {
             super.init(ws, userId);
             this.status = "in progress";
@@ -270,6 +274,11 @@ class SinglePlayerGame extends GameBase {
     onConnectionClosed = () => {
         if (this.status === "game over") { return; }
         if (this.status === "cancelled") { return; }
+        if (this.chessGame && this.chessGame.GameOver) {
+            this.status = "game over";
+            this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            return;
+        }
         // No moves at all: game never really started → cancelled (covers human white with 0 moves)
         if (this.moves.length === 0) {
             this.status = "cancelled";

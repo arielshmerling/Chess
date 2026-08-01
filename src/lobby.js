@@ -17,9 +17,6 @@ function getClassicPlayGameBasePath() {
 
 function getPlayGameBasePath(opts) {
     const options = opts && typeof opts === "object" ? opts : {};
-    if (options.forOnlineSession) {
-        return getClassicPlayGameBasePath();
-    }
     try {
         const p = window.location.pathname || "";
         if (p === "/play" || p.indexOf("/play/") === 0) {
@@ -34,8 +31,12 @@ function getPlayGameBasePath(opts) {
     } catch {
         /* pathname unavailable */
     }
+    /* Prefer-Play supports online + SP resume/rejoin; only fall back to classic when disabled. */
     if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
         return "/play";
+    }
+    if (options.forOnlineSession) {
+        return getClassicPlayGameBasePath();
     }
     return getClassicPlayGameBasePath();
 }

@@ -102,6 +102,8 @@
         let connected = false;
         let handlersBound = false;
         let applyingRemote = false;
+        /** Serialize async inbound handling so watch/online animations cannot race. */
+        let inboundChain = Promise.resolve();
         let humanIsWhite = opts.humanIsWhite !== false;
         let watcher = opts.watcher === true;
         const modeId = watcher
@@ -477,7 +479,7 @@
             status(t("session.rematchOfferAccepted"), "info");
         }
 
-        function handleInbound(raw) {
+        function processInbound(raw) {
             const classified = protocol.classifyInbound(raw);
             switch (classified.kind) {
                 case "move":
@@ -581,6 +583,20 @@
                 default:
                     return;
             }
+        }
+
+        function handleInbound(raw) {
+            inboundChain = inboundChain
+                .then(function () {
+                    return processInbound(raw);
+                })
+                .catch(function (err) {
+                    console.warn(
+                        "[OnlineMode] inbound error:",
+                        err && err.message ? err.message : err,
+                    );
+                });
+            return inboundChain;
         }
 
         async function onRemoteMove(message) {
