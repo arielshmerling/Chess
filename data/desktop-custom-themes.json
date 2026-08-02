@@ -1,5 +1,5 @@
 {
-  "activeTheme": "custom:custom-mr45iwvr",
+  "activeTheme": "custom:blue",
   "themes": [
     {
       "id": "blue",
@@ -12,15 +12,15 @@
         "--light": "#e0fbfc",
         "--topbar-link-forecolor": "#aaaaaa",
         "--topbar-link-highlight": "#ffffff",
-        "--body-background": "#3d5a80",
+        "--body-background": "#66A3FF",
         "--darkSquare": "#98c1d9",
         "--lightSquare": "#e0fbfc",
         "--optionSquare": "rgb(92, 171, 125)",
         "--promotion-hover-background": "#3d5a80",
         "--frame": "#293241",
         "--frame-forecolor": "#e0fbfc",
-        "--play-header-background": "#141414",
-        "--play-footer-background": "#141414",
+        "--play-header-background": "#313f58",
+        "--play-footer-background": "#313f58",
         "--play-clock-background": "rgba(0, 0, 0, 0.25)",
         "--play-clock-border": "rgba(255, 255, 255, 0.08)",
         "--play-clock-text": "#e8e8e8",
@@ -37,8 +37,8 @@
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
         "--button-highlight": "#e5e5e5",
-        "--textbox-background": "#98c1d9",
-        "--textbox-forecolor": "#2c4668",
+        "--textbox-background": "#162231",
+        "--textbox-forecolor": "#6fa5ec",
         "--moves-panel-bg": "#354c69",
         "--moves-dock-title-background": "#354c69",
         "--moves-dock-title-text": "rgba(255, 255, 255, 0.55)",
@@ -75,7 +75,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 0
+      "updatedAt": 1785639898551
     },
     {
       "id": "dark",

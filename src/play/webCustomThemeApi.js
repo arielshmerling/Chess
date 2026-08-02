@@ -1,5 +1,6 @@
 /**
- * Web custom-theme HTTP handlers (Mongo user prefs).
+ * Web custom-theme HTTP handlers.
+ * Catalog definitions are site-wide (Admin); activeTheme is per-user.
  */
 
 const catchAsync = require("../utils/catchAsync");

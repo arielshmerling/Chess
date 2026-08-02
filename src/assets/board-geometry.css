@@ -14,8 +14,8 @@ body:has(.board-geometry) {
     --bg-geo-hover: color-mix(in srgb, var(--semiLight) 12%, transparent);
     --bg-geo-accent: var(--light);
     --bg-geo-accent-ink: var(--darker);
-    --bg-geo-cta: color-mix(in srgb, var(--optionSquare) 82%, var(--lighter));
-    --bg-geo-cta-ink: var(--darker);
+    --bg-geo-cta: var(--play-now-btn-background, color-mix(in srgb, var(--optionSquare) 82%, var(--lighter)));
+    --bg-geo-cta-ink: var(--play-now-btn-forecolor, var(--darker));
     --bg-geo-display: "Oswald", "Raleway", sans-serif;
     --bg-geo-ui: "Raleway", "Helvetica Neue", sans-serif;
     background-color: var(--bg-geo-bg) !important;
@@ -142,13 +142,13 @@ body:has(.board-geometry) {
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--bg-geo-cta-ink);
-    background: var(--bg-geo-cta);
-    border: 1px solid var(--bg-geo-cta);
+    color: var(--play-now-btn-forecolor, var(--bg-geo-cta-ink));
+    background: var(--play-now-btn-background, var(--bg-geo-cta));
+    border: 1px solid var(--play-now-btn-background, var(--bg-geo-cta));
     border-radius: 4px;
     box-shadow: none;
     text-shadow: none;
-    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .board-geometry .play-now-btn-text {
@@ -157,8 +157,9 @@ body:has(.board-geometry) {
 
 .board-geometry .play-now-btn:hover {
     transform: translateY(-2px);
-    background: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
-    border-color: color-mix(in srgb, var(--bg-geo-cta) 80%, var(--lighter));
+    background: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 80%, var(--lighter));
+    border-color: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 80%, var(--lighter));
+    color: var(--play-now-btn-forecolor, var(--bg-geo-cta-ink));
     box-shadow: none;
 }
 

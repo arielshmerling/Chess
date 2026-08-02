@@ -406,6 +406,8 @@
         "--game-mode-frame-color": "Game mode frame color",
         "--topbar-link-forecolor": "Link text",
         "--topbar-link-highlight": "Link highlight",
+        "--play-now-btn-background": "Play Now background",
+        "--play-now-btn-forecolor": "Play Now text",
     };
 
     function labelForKey(key) {

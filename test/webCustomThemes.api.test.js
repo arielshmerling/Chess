@@ -131,6 +131,12 @@ describe("web custom themes API", function () {
             const saved = findTheme(after, id);
             assert.ok(saved, "new theme should be returned by GET");
             assert.strictEqual(saved.vars["--body-background"], "#123456");
+
+            const other = await loginAgent(primary);
+            const otherView = (await other.get(THEMES_URL).expect(200)).body;
+            const shared = findTheme(otherView, id);
+            assert.ok(shared, "other users must see the admin-published theme");
+            assert.strictEqual(shared.vars["--body-background"], "#123456");
         } finally {
             await agent.post(THEMES_URL).send(before);
         }

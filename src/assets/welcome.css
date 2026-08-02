@@ -218,16 +218,19 @@ main {
     font-size: 32px;
     font-weight: 800;
     text-transform: uppercase;
-    color: #fff;
+    color: var(--play-now-btn-forecolor, #fff);
     text-shadow:
         0 0 20px rgba(132, 255, 180, 0.5),
         0 2px 4px rgba(0, 0, 0, 0.5),
         0 1px 0 rgba(0, 0, 0, 0.3);
-    background: linear-gradient(165deg, #52b788 0%, #2d6a4f 35%, #1b4332 100%);
+    background: var(
+        --play-now-btn-background,
+        linear-gradient(165deg, #52b788 0%, #2d6a4f 35%, #1b4332 100%)
+    );
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    transition: background 0.25s ease, box-shadow 0.25s ease;
+    transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
     box-shadow:
         0 0 50px rgba(64, 145, 108, 0.25),
         0 4px 0 #0d2818,
@@ -248,7 +251,12 @@ main {
 }
 
 .play-now-btn:hover {
-    background: linear-gradient(165deg, #74c69d 0%, #40916c 35%, #2d6a4f 100%);
+    background: color-mix(
+        in srgb,
+        var(--play-now-btn-background, #40916c) 78%,
+        var(--lighter, #fff)
+    );
+    color: var(--play-now-btn-forecolor, #fff);
     box-shadow:
         0 0 50px rgba(64, 145, 108, 0.5),
         0 4px 0 #0d2818,

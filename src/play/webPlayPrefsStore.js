@@ -1,16 +1,17 @@
 /**
  * Web Play UI preferences stored on the User document (Mongo).
+ * Theme *catalog* (definitions) is site-wide; each user only stores activeTheme.
  */
 
 const path = require("path");
 const fs = require("fs").promises;
 const { User } = require("../modules/user/model");
+const { ThemeCatalog, SITE_CATALOG_ID } = require("./themeCatalogModel");
 const {
     DEFAULT_ACTIVE_THEME,
     normalizeStore,
     normalizeActiveThemeId,
     normalizeHiddenThemeIds,
-    pickUserThemes,
     pickHiddenThemeIds,
     resolveAvailableActiveTheme,
     mergeThemeStores,
@@ -35,6 +36,18 @@ async function readBundledThemesStore() {
         }
         throw error;
     }
+}
+
+function shouldSyncThemesToRepo() {
+    return process.env.SHMERLING_SYNC_CUSTOM_THEMES === "1";
+}
+
+async function writeBundledThemesFile(store) {
+    const payload = {
+        activeTheme: store.activeTheme || DEFAULT_ACTIVE_THEME,
+        themes: store.themes || [],
+    };
+    await fs.writeFile(BUNDLED_THEMES_PATH, JSON.stringify(payload, null, 2), "utf8");
 }
 
 async function readUiSettings(userId) {
@@ -67,56 +80,150 @@ async function writeUiSettings(userId, partial) {
     return next;
 }
 
-async function readStoredCustomThemes(userId) {
+/**
+ * Per-user preference: which theme is selected (not catalog definitions).
+ */
+async function readUserThemePreference(userId) {
     const user = await User.findById(userId).select("playCustomThemes").lean();
-    const raw = (user && user.playCustomThemes) || { ...DEFAULT_THEMES };
+    const raw = (user && user.playCustomThemes) || {};
     return {
-        store: normalizeStore(raw),
-        hiddenThemeIds: normalizeHiddenThemeIds(raw.hiddenThemeIds),
+        activeTheme: normalizeActiveThemeId(raw.activeTheme),
+    };
+}
+
+async function writeUserActiveTheme(userId, activeTheme) {
+    const nextActive = normalizeActiveThemeId(activeTheme);
+    await User.findByIdAndUpdate(userId, {
+        playCustomThemes: {
+            activeTheme: nextActive,
+            themes: [],
+            hiddenThemeIds: [],
+        },
+    });
+    return nextActive;
+}
+
+/**
+ * Site-wide catalog from Mongo, or null if never published by an Admin.
+ */
+async function readSharedCatalogDoc() {
+    const doc = await ThemeCatalog.findById(SITE_CATALOG_ID).lean();
+    if (!doc) {
+        return null;
+    }
+    return {
+        themes: Array.isArray(doc.themes) ? doc.themes : [],
+        hiddenThemeIds: normalizeHiddenThemeIds(doc.hiddenThemeIds),
+        updatedAt: doc.updatedAt || null,
+    };
+}
+
+/**
+ * Effective catalog for everyone: bundled seeds + site-wide Admin overrides.
+ */
+async function readSiteThemeCatalog() {
+    const bundled = await readBundledThemesStore();
+    const shared = await readSharedCatalogDoc();
+    if (!shared) {
+        return {
+            bundled,
+            store: normalizeStore({
+                activeTheme: bundled.activeTheme,
+                themes: bundled.themes,
+            }),
+            hiddenThemeIds: [],
+            fromShared: false,
+        };
+    }
+    const overlay = normalizeStore({
+        activeTheme: bundled.activeTheme,
+        themes: shared.themes,
+    });
+    const merged = mergeThemeStores(bundled, overlay, shared.hiddenThemeIds);
+    return {
+        bundled,
+        store: merged,
+        hiddenThemeIds: shared.hiddenThemeIds,
+        fromShared: true,
+    };
+}
+
+async function writeSiteThemeCatalog(store, options = {}) {
+    const bundled = await readBundledThemesStore();
+    const previous = await readSharedCatalogDoc();
+    const normalized = resolveAvailableActiveTheme(store || DEFAULT_THEMES);
+    const hiddenThemeIds = pickHiddenThemeIds(
+        bundled,
+        normalized,
+        previous ? previous.hiddenThemeIds : [],
+    );
+    const catalogThemes = normalized.themes || [];
+
+    await ThemeCatalog.findByIdAndUpdate(
+        SITE_CATALOG_ID,
+        {
+            _id: SITE_CATALOG_ID,
+            themes: catalogThemes,
+            hiddenThemeIds,
+            updatedAt: new Date(),
+            updatedByUserId: options.userId != null ? options.userId : null,
+        },
+        { upsert: true, setDefaultsOnInsert: true },
+    );
+
+    const merged = mergeThemeStores(
+        bundled,
+        normalizeStore({ activeTheme: normalized.activeTheme, themes: catalogThemes }),
+        hiddenThemeIds,
+    );
+
+    if (shouldSyncThemesToRepo()) {
+        await writeBundledThemesFile(merged);
+    }
+
+    return {
+        store: merged,
+        hiddenThemeIds,
     };
 }
 
 async function readCustomThemes(userId) {
-    const bundled = await readBundledThemesStore();
-    const stored = await readStoredCustomThemes(userId);
-    return mergeThemeStores(bundled, stored.store, stored.hiddenThemeIds);
-}
-
-async function writeCustomThemes(userId, store) {
-    const bundled = await readBundledThemesStore();
-    const stored = await readStoredCustomThemes(userId);
-    const normalized = resolveAvailableActiveTheme(store || DEFAULT_THEMES);
-    const userOnly = normalizeStore({
-        activeTheme: normalized.activeTheme,
-        themes: pickUserThemes(bundled, normalized),
+    const site = await readSiteThemeCatalog();
+    const pref = await readUserThemePreference(userId);
+    return resolveAvailableActiveTheme({
+        activeTheme: pref.activeTheme,
+        themes: site.store.themes,
     });
-    const hiddenThemeIds = pickHiddenThemeIds(bundled, normalized, stored.hiddenThemeIds);
-    await User.findByIdAndUpdate(userId, {
-        playCustomThemes: { ...userOnly, hiddenThemeIds },
-    });
-    return mergeThemeStores(bundled, userOnly, hiddenThemeIds);
 }
 
 /**
- * Members may change which theme is active, but not create/edit/delete themes.
+ * Admin: publish the full catalog site-wide; also save this admin's activeTheme.
+ */
+async function writeCustomThemes(userId, store) {
+    const normalized = resolveAvailableActiveTheme(store || DEFAULT_THEMES);
+    const published = await writeSiteThemeCatalog(normalized, { userId });
+    await writeUserActiveTheme(userId, normalized.activeTheme);
+    return resolveAvailableActiveTheme({
+        activeTheme: normalized.activeTheme,
+        themes: published.store.themes,
+    });
+}
+
+/**
+ * Non-admins may change which theme is active, but not the catalog.
  */
 async function writeActiveThemeOnly(userId, activeTheme) {
-    const bundled = await readBundledThemesStore();
-    const stored = await readStoredCustomThemes(userId);
-    const available = mergeThemeStores(bundled, stored.store, stored.hiddenThemeIds);
+    const site = await readSiteThemeCatalog();
     const requested = normalizeActiveThemeId(activeTheme);
     const requestedId = requested.slice(7);
-    const nextActive = available.themes.some((theme) => theme.id === requestedId)
+    const nextActive = site.store.themes.some((theme) => theme.id === requestedId)
         ? requested
-        : available.activeTheme || DEFAULT_ACTIVE_THEME;
-    const userOnly = normalizeStore({
+        : site.store.activeTheme || DEFAULT_ACTIVE_THEME;
+    await writeUserActiveTheme(userId, nextActive);
+    return resolveAvailableActiveTheme({
         activeTheme: nextActive,
-        themes: stored.store.themes,
+        themes: site.store.themes,
     });
-    await User.findByIdAndUpdate(userId, {
-        playCustomThemes: { ...userOnly, hiddenThemeIds: stored.hiddenThemeIds },
-    });
-    return mergeThemeStores(bundled, userOnly, stored.hiddenThemeIds);
 }
 
 module.exports = {
@@ -125,6 +232,8 @@ module.exports = {
     readCustomThemes,
     writeCustomThemes,
     writeActiveThemeOnly,
-    pickUserThemes,
-    pickHiddenThemeIds,
+    readSiteThemeCatalog,
+    writeSiteThemeCatalog,
+    readBundledThemesStore,
+    BUNDLED_THEMES_PATH,
 };

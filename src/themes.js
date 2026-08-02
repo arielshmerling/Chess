@@ -65,6 +65,9 @@ const themes = {
         "--button-disabled": "#3b6e8b",
         "--button-disabled-text": "#a1a1a1",
 
+        "--play-now-btn-background": "#5cb37d",
+        "--play-now-btn-forecolor": "#293241",
+
         "--selection-selected": "#6ba2c3",
         "--selection-highlight": "#3d5a80",
         "--selection-border": "rgb(4, 211, 4)",
@@ -165,6 +168,8 @@ const themes = {
         "--button-disabled": "#2d3134",
         "--button-disabled-text": "#626568",
 
+        "--play-now-btn-background": "#5cb37d",
+        "--play-now-btn-forecolor": "#1a1a1a",
 
         "--selection-selected": "#373737",
         "--selection-highlight": "#838383",

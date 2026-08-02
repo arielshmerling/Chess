@@ -64,6 +64,10 @@
             keys: ["--button-background", "--button-forecolor", "--button-highlight"],
         },
         {
+            label: "Play Now button",
+            keys: ["--play-now-btn-background", "--play-now-btn-forecolor"],
+        },
+        {
             label: "Text fields",
             keys: ["--textbox-background", "--textbox-forecolor"],
         },
