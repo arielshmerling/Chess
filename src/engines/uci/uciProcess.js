@@ -48,6 +48,9 @@ function createUciProcess(command, args, options) {
     let buffer = "";
     let starting = null;
     let disposed = false;
+    let lastStderr = "";
+    let lastExitCode = null;
+    let lowMemoryConfigured = false;
 
     function emitLine(line) {
         const trimmed = String(line || "").replace(/\r$/, "");
@@ -65,6 +68,22 @@ function createUciProcess(command, args, options) {
             buffer = buffer.slice(idx + 1);
             emitLine(line);
         }
+    }
+
+    function onStderr(chunk) {
+        const text = String(chunk || "");
+        lastStderr = (lastStderr + text).slice(-2000);
+    }
+
+    function failureDetail(prefix) {
+        const bits = [prefix];
+        if (lastExitCode != null) {
+            bits.push(`exit=${lastExitCode}`);
+        }
+        if (lastStderr.trim()) {
+            bits.push(`stderr=${lastStderr.trim().slice(0, 400)}`);
+        }
+        return bits.join(" | ");
     }
 
     function ensureStarted() {
@@ -87,18 +106,19 @@ function createUciProcess(command, args, options) {
                 reject(err);
                 return;
             }
+            lastExitCode = null;
             child.stdout.setEncoding("utf8");
             child.stderr.setEncoding("utf8");
             child.stdout.on("data", onData);
-            child.stderr.on("data", () => {
-                /* ignore engine stderr chatter */
-            });
+            child.stderr.on("data", onStderr);
             child.on("error", (err) => {
                 emitter.emit("error", err);
             });
-            child.on("exit", () => {
+            child.on("exit", (code, signal) => {
+                lastExitCode = code != null ? code : signal;
                 child = null;
                 starting = null;
+                lowMemoryConfigured = false;
                 emitter.emit("exit");
             });
             resolve();
@@ -133,7 +153,11 @@ function createUciProcess(command, args, options) {
                     let settled = false;
                     const timer = setTimeout(() => {
                         cleanup();
-                        reject(new Error(`UCI timeout waiting for response to: ${cmd}`));
+                        reject(
+                            new Error(
+                                failureDetail(`UCI timeout waiting for response to: ${cmd}`),
+                            ),
+                        );
                     }, timeoutMs);
 
                     const abortPoll =
@@ -170,7 +194,7 @@ function createUciProcess(command, args, options) {
 
                     function onExit() {
                         cleanup();
-                        reject(new Error("UCI process exited"));
+                        reject(new Error(failureDetail("UCI process exited")));
                     }
 
                     function cleanup() {
@@ -203,11 +227,29 @@ function createUciProcess(command, args, options) {
         );
     }
 
+    function wantsLowMemory() {
+        return (
+            process.env.RENDER === "true"
+            || process.env.UCI_LOW_MEMORY === "1"
+        );
+    }
+
     async function uciHandshake(timeoutMs) {
-        const limit = timeoutMs || 8000;
+        const defaultLimit =
+            process.env.RENDER === "true" || process.env.UCI_LOW_MEMORY === "1"
+                ? 30000
+                : 8000;
+        const limit =
+            Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : defaultLimit;
         await ensureStarted();
         await request("uci", (line) => line === "uciok", { timeoutMs: limit });
         await request("isready", (line) => line === "readyok", { timeoutMs: limit });
+        if (wantsLowMemory() && !lowMemoryConfigured) {
+            write("setoption name Threads value 1");
+            write("setoption name Hash value 16");
+            await request("isready", (line) => line === "readyok", { timeoutMs: limit });
+            lowMemoryConfigured = true;
+        }
         return true;
     }
 

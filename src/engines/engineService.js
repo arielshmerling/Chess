@@ -27,7 +27,7 @@ async function listPlayEnginesForClient(opts) {
         let available = def.alwaysAvailable === true;
         let unavailableReason = null;
         if (def.backend === "uci") {
-            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 2000 });
+            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 25000 });
             available = !!probe.available;
             unavailableReason = available ? null : probe.error || "unavailable";
         }
@@ -59,7 +59,7 @@ async function listPlayEnginesForAdmin() {
         let command = null;
         if (def.backend === "uci") {
             command = registry.resolveUciCommand(def, process.env);
-            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 2000 });
+            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 25000 });
             available = !!probe.available;
             unavailableReason = available ? null : probe.error || "unavailable";
         }

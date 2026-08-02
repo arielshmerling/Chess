@@ -189,7 +189,11 @@ async function computeMove(opts) {
 
     const proc = getOrCreateProcess(engine, process.env);
     try {
-        await proc.uciHandshake(8000);
+        const handshakeMs =
+            process.env.RENDER === "true" || process.env.UCI_LOW_MEMORY === "1"
+                ? 30000
+                : 15000;
+        await proc.uciHandshake(handshakeMs);
     } catch (err) {
         processesByEngineId.delete(engine);
         try {

@@ -1,0 +1,4 @@
+# Optional native packages for Render (https://render.com/docs/native-environments).
+# If the downloaded GitHub binary fails on free tier, this OS package is a fallback
+# (then set STOCKFISH_PATH to the apt binary path, often /usr/games/stockfish).
+stockfish

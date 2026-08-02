@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Download an official Stockfish Linux binary into ./bin/stockfish (for Render / Linux hosts).
-# Safe default: ubuntu x86-64 sse41-popcnt (broad CPU compatibility).
+# Default: generic ubuntu x86-64 (best free-tier / shared-CPU compatibility).
 set -euo pipefail
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 BIN_DIR="${ROOT}/bin"
 OUT="${BIN_DIR}/stockfish"
 TAG="${STOCKFISH_RELEASE_TAG:-sf_17.1}"
-ASSET="${STOCKFISH_ASSET:-stockfish-ubuntu-x86-64-sse41-popcnt.tar}"
+# Prefer the baseline binary (no SSE4.1 / AVX2 requirement). Override with STOCKFISH_ASSET if needed.
+ASSET="${STOCKFISH_ASSET:-stockfish-ubuntu-x86-64.tar}"
 URL="https://github.com/official-stockfish/Stockfish/releases/download/${TAG}/${ASSET}"
 
 mkdir -p "${BIN_DIR}"
@@ -38,6 +39,22 @@ cp "${CANDIDATE}" "${OUT}"
 chmod +x "${OUT}"
 
 echo "[install-stockfish] Installed: ${OUT}"
-echo "[install-stockfish] Set STOCKFISH_PATH=${OUT}"
-# Quick smoke: binary exists and is executable
+echo "[install-stockfish] Smoke-testing UCI handshake…"
+SMOKE_OUT="$(mktemp)"
+set +e
+if command -v timeout >/dev/null 2>&1; then
+  printf 'uci\nquit\n' | timeout 45s "${OUT}" >"${SMOKE_OUT}" 2>&1
+else
+  printf 'uci\nquit\n' | "${OUT}" >"${SMOKE_OUT}" 2>&1
+fi
+SMOKE_STATUS=$?
+set -e
+if ! grep -q '^uciok$' "${SMOKE_OUT}"; then
+  echo "[install-stockfish] ERROR: binary did not answer uciok (exit=${SMOKE_STATUS})" >&2
+  head -n 40 "${SMOKE_OUT}" >&2 || true
+  exit 1
+fi
+rm -f "${SMOKE_OUT}"
+
+echo "[install-stockfish] UCI ok. Set STOCKFISH_PATH=${OUT}"
 test -x "${OUT}"
