@@ -2727,10 +2727,14 @@
     function syncBoardFromGame() {
         const state = game.GameState;
         if (state) {
-            Board.drawBoard(state.board);
-            Board.updateCaptureLists(state.capturedPiecesList || []);
+            if (Board.syncFromGameState) {
+                Board.syncFromGameState({ softPatch: true });
+            } else {
+                Board.drawBoard(state.board);
+                Board.updateCaptureLists(state.capturedPiecesList || []);
+            }
         } else {
-            Board.syncFromGameState();
+            Board.syncFromGameState({ softPatch: true });
         }
     }
 
@@ -4138,13 +4142,13 @@
         }
         clearDisplayedEvaluation();
         if (networkMoveAlreadyApplied(adjusted)) {
-            Board.syncFromGameState();
+            Board.syncFromGameState({ softPatch: true });
             return true;
         }
 
         try {
             try {
-                await Board.animateMove(adjusted);
+                await Board.animateMove(adjusted, { skipFinalSync: true });
             } catch {
                 /* Animation may skip; chess apply below is authoritative. */
             }
@@ -4184,13 +4188,13 @@
         }
         clearDisplayedEvaluation();
         if (networkMoveAlreadyApplied(adjusted)) {
-            Board.syncFromGameState();
+            Board.syncFromGameState({ softPatch: true });
             return true;
         }
 
         try {
             try {
-                await Board.animateMove(adjusted);
+                await Board.animateMove(adjusted, { skipFinalSync: true });
             } catch {
                 /* Animation may skip; chess apply below is authoritative. */
             }
@@ -4915,10 +4919,10 @@
             return;
         }
         if (!Board.isBoardAnimating || !Board.isBoardAnimating()) {
-            if (gameState.board) {
+            if (Board.syncFromGameState) {
+                Board.syncFromGameState({ softPatch: true });
+            } else if (gameState.board) {
                 Board.drawBoard(gameState.board);
-            } else if (Board.syncFromGameState) {
-                Board.syncFromGameState();
             }
             Board.updateCaptureLists(gameState.capturedPiecesList || []);
         }

@@ -428,7 +428,16 @@
         if (!url) {
             return false;
         }
-        return img.src.indexOf(url) !== -1;
+        const srcAttr = img.getAttribute("src") || "";
+        if (srcAttr === url) {
+            return true;
+        }
+        if (img.src && img.src.indexOf(url) !== -1) {
+            return true;
+        }
+        const wanted = String(url).split("/").pop();
+        const have = String(srcAttr || img.src || "").split("/").pop();
+        return !!(wanted && have && wanted === have);
     }
 
     function patchBoardFromState(board) {
@@ -456,6 +465,35 @@
             applySetupPieceDraggability();
         }
         applyEvaluationOverlay();
+    }
+
+    /**
+     * After animating a remote/engine move, leave the piece on the target square so
+     * the following soft-patch does not recreate unchanged images.
+     */
+    function settleAnimatedPieceOnTarget(move, img) {
+        if (!move || !img || !move.target) {
+            return;
+        }
+        const targetDiv = findSquare(move.target.row, move.target.col);
+        if (!targetDiv) {
+            resetPieceImgStyles(img);
+            return;
+        }
+        resetPieceImgStyles(img);
+        img.style.position = "relative";
+        targetDiv.innerHTML = "";
+        targetDiv.appendChild(img);
+        if (move.source) {
+            const sourceDiv = findSquare(move.source.row, move.source.col);
+            if (sourceDiv && sourceDiv !== targetDiv) {
+                /* Source should be empty after the piece moved (captures already cleared). */
+                const leftover = sourceDiv.querySelector("img");
+                if (leftover === img) {
+                    sourceDiv.innerHTML = "";
+                }
+            }
+        }
     }
 
     function drawBoard(board) {
@@ -511,12 +549,24 @@
         if (!divWhite || !divBlack) {
             return;
         }
-        divWhite.innerHTML = "";
-        divBlack.innerHTML = "";
-        if (!captured) {
+        const list = Array.isArray(captured) ? captured : [];
+        const signature = list
+            .map(function (piece) {
+                if (!piece || piece.color == null) {
+                    return "";
+                }
+                return String(piece.color) + ":" + String(piece.pieceType);
+            })
+            .join("|");
+        if (divWhite.getAttribute("data-capture-sig") === signature
+            && divBlack.getAttribute("data-capture-sig") === signature) {
             return;
         }
-        captured.forEach(function (piece) {
+        divWhite.setAttribute("data-capture-sig", signature);
+        divBlack.setAttribute("data-capture-sig", signature);
+        divWhite.innerHTML = "";
+        divBlack.innerHTML = "";
+        list.forEach(function (piece) {
             if (!piece || piece.color == null) {
                 return;
             }
@@ -601,7 +651,12 @@
         }
         for (let i = 0; i < chessGame.BOARD_ROWS; i++) {
             for (let j = 0; j < chessGame.BOARD_COLUMNS; j++) {
-                guiBoard[i][j].className = "square " + (((i + j) % 2) === 0 ? "white" : "black");
+                const square = guiBoard[i][j];
+                const base = "square " + (((i + j) % 2) === 0 ? "white" : "black");
+                if (square.className === base) {
+                    continue;
+                }
+                square.className = base;
             }
         }
         applyEndgameKingHighlights();
@@ -1137,7 +1192,37 @@
             if (!executed || executed.valid === false) {
                 return false;
             }
-            syncFromGameState();
+            /*
+             * Move the existing <img> onto the target before soft-patching so Safari
+             * does not briefly empty the source (destroying the node) and recreate it.
+             */
+            if (sourcePos && targetPos && isOnBoard(targetPos.row, targetPos.col)) {
+                const sourceDiv = findSquare(sourcePos.row, sourcePos.col);
+                const movingImg =
+                    draggedImage ||
+                    (sourceDiv && sourceDiv.querySelector
+                        ? sourceDiv.querySelector("img")
+                        : null);
+                if (movingImg) {
+                    if (executed.ennPassant && executed.hitSquare) {
+                        const capturedSquare = findSquare(
+                            executed.hitSquare.row,
+                            executed.hitSquare.col,
+                        );
+                        if (capturedSquare) {
+                            capturedSquare.innerHTML = "";
+                        }
+                    }
+                    settleAnimatedPieceOnTarget(
+                        { source: sourcePos, target: targetPos },
+                        movingImg,
+                    );
+                    if (draggedImage === movingImg) {
+                        draggedImage = null;
+                    }
+                }
+            }
+            syncFromGameState({ softPatch: true });
             refreshHumanPieceInput();
             resetSquareColors();
         } finally {
@@ -1346,9 +1431,10 @@
         });
     }
 
-    /** Matches web chessboard.js animateMove (speed 20, 2× distance, 2ms interval). */
+    /** Matches web chessboard.js animateMove interval; stops at target (1× distance). */
     function animateMove(move, options) {
         options = options || {};
+        const skipFinalSync = options.skipFinalSync === true;
         cancelMoveAnimation();
         return new Promise(function (resolve) {
             activeMoveAnimationSettle = resolve;
@@ -1371,19 +1457,23 @@
                 }
             }
 
-            const divMoveTarget = findSquare(move.source.row, move.source.col);
-            const img = divMoveTarget && divMoveTarget.childNodes[0];
+            const divMoveSource = findSquare(move.source.row, move.source.col);
+            const img = divMoveSource && divMoveSource.querySelector
+                ? divMoveSource.querySelector("img")
+                : (divMoveSource && divMoveSource.childNodes[0]);
             if (!img) {
-                /* Keep chess state applying even if DOM is briefly out of sync. */
-                syncFromGameState();
+                /* Caller applies chess state next when skipFinalSync; avoid a full wipe blink. */
+                if (!skipFinalSync) {
+                    syncFromGameState();
+                }
                 boardAnimating = false;
                 activeMoveAnimationSettle = null;
                 resolve();
                 return;
             }
 
-            const squareWidth = divMoveTarget.offsetWidth;
-            const squareHeight = divMoveTarget.offsetWidth;
+            const squareWidth = divMoveSource.offsetWidth;
+            const squareHeight = divMoveSource.offsetWidth;
             const horizontalDistance = (move.target.col - move.source.col) * squareWidth;
             const verticallDistance = (move.target.row - move.source.row) * squareHeight;
             const verticalSteps = verticallDistance / speed;
@@ -1403,17 +1493,19 @@
                 img.style.marginTop = top + "px";
 
                 if (
-                    Math.abs(left - horizontalDistance * 2) < 1 &&
-                    Math.abs(top - verticallDistance * 2) < 1
+                    Math.abs(left - horizontalDistance) < 1 &&
+                    Math.abs(top - verticallDistance) < 1
                 ) {
                     clearInterval(activeMoveAnimationInterval);
                     activeMoveAnimationInterval = null;
-                    img.style.position = "relative";
-                    img.style.marginLeft = "0px";
-                    img.style.marginTop = "0px";
                     animatingMoveImg = null;
                     activeMoveAnimationSettle = null;
-                    if (!options.skipFinalSync) {
+                    if (skipFinalSync) {
+                        settleAnimatedPieceOnTarget(move, img);
+                    } else {
+                        img.style.position = "relative";
+                        img.style.marginLeft = "0px";
+                        img.style.marginTop = "0px";
                         syncFromGameState();
                     }
                     boardAnimating = false;
