@@ -1,12 +1,26 @@
 <% layout("../views/layouts/boilerplate") %>
-<link rel="stylesheet" href="/assets/welcome.css">
 
-<div class="home admin-page">
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
+
+<div class="welcome-container admin-page board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-username"><%= t('site.adminPage.title') %></h1>
+        <p class="hero-tagline"><%= t('site.adminPage.tagline') %></p>
+      </div>
+    </div>
+  </header>
+
   <div class="games-section admin-games-section">
-    <div class="games-panel admin-tabbed-panel">
+    <section class="games-panel admin-tabbed-panel">
       <div class="panel-header admin-panel-header">
-        <div class="panel-title-group admin-panel-title-row">
-          <h2 class="panel-title"><%= t('site.adminPage.title') %></h2>
+        <div class="panel-header-top">
+          <div class="panel-title-group">
+            <h2 class="panel-title"><%= t('site.adminPage.panelTitle') %></h2>
+          </div>
         </div>
         <div class="admin-tab-strip" role="tablist" aria-label="<%= t('site.adminPage.sectionsAria') %>">
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0"><%= t('site.adminPage.users') %></button>
@@ -33,7 +47,7 @@
             <%= t('site.adminPage.gameLines') %>
           </p>
         </div>
-        <div class="table-scroll compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
+        <div class="table-scroll table-scroll--wide compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
           <div id="admin-games-empty" class="no-games-message admin-games-empty" hidden>
             <p><%= t('site.adminPage.noGamesInDb') %></p>
           </div>
@@ -61,8 +75,10 @@
           <nav id="admin-games-pages-nav" class="pagesNav admin-games-pages-nav" hidden aria-label="<%= t('site.adminPage.gamesPaginationAria') %>"></nav>
         </div>
       </div>
-    </div>
+    </section>
   </div>
+
+  <%- include('partials/site-page-footer') %>
 </div>
 
 <% var adminUsersJson = JSON.stringify(typeof adminUsers !== "undefined" && adminUsers ? adminUsers : []).replace(/</g, "\\u003c"); %>

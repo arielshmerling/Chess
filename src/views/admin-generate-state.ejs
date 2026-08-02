@@ -1,16 +1,30 @@
 <% layout("../views/layouts/boilerplate") %>
 
-<div class="home admin-page admin-generate-state-page">
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
+
+<div class="welcome-container admin-page admin-generate-state-page board-geometry">
+  <header class="hero-banner hero-banner--board">
+    <div class="hero-board-grid" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-text-section">
+        <h1 class="hero-username"><%= t('site.adminPage.generateTitle') %></h1>
+        <p class="hero-tagline"><%= t('site.adminPage.generateIntro') %></p>
+      </div>
+    </div>
+  </header>
+
   <div class="games-section admin-games-section">
-    <div class="games-panel admin-tabbed-panel">
+    <section class="games-panel admin-tabbed-panel">
       <div class="panel-header admin-panel-header">
-        <div class="panel-title-group admin-panel-title-row admin-generate-state-title-row">
-          <h2 class="panel-title"><%= t('site.adminPage.generateTitle') %></h2>
+        <div class="panel-header-top admin-generate-state-title-row">
+          <div class="panel-title-group">
+            <h2 class="panel-title"><%= t('site.adminPage.generateTitle') %></h2>
+          </div>
           <a href="/admin" class="admin-generate-state-link-back"><%= t('site.adminPage.backToAdmin') %></a>
         </div>
       </div>
       <div class="panel-body admin-panel-body admin-generate-state-body">
-        <p class="admin-generate-state-intro"><%= t('site.adminPage.generateIntro') %></p>
         <fieldset class="admin-generate-state-targets">
           <legend class="admin-generate-state-legend"><%= t('site.adminPage.target') %></legend>
           <label class="admin-generate-state-radio-label">
@@ -32,8 +46,10 @@
         </div>
         <div class="admin-generate-state-log" id="generate-state-log"></div>
       </div>
-    </div>
+    </section>
   </div>
+
+  <%- include('partials/site-page-footer') %>
 </div>
 
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">

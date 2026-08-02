@@ -181,8 +181,150 @@ body:has(.board-geometry) {
 .board-geometry .my-games-panel,
 .board-geometry .friends-stack > *,
 .board-geometry .search-results-panel,
-.board-geometry .active-games-list-panel {
+.board-geometry .active-games-list-panel,
+.board-geometry .admin-tabbed-panel {
     animation: none;
+}
+
+/* Admin: wider console panel + light-surface tabs / CTAs */
+.admin-page.board-geometry .admin-games-section {
+    max-width: min(96vw, 1760px);
+}
+
+.admin-page.board-geometry .admin-panel-header .panel-header-top,
+.admin-page.board-geometry .admin-panel-title-row {
+    border-bottom-color: var(--bg-geo-line) !important;
+}
+
+.admin-page.board-geometry .admin-tab-strip {
+    border-bottom: 1px solid var(--bg-geo-line);
+    background: color-mix(in srgb, var(--bg-geo-surface) 92%, var(--bg-geo-ink) 8%);
+}
+
+.admin-page.board-geometry .admin-tab-btn {
+    font-family: var(--bg-geo-ui);
+    color: color-mix(in srgb, var(--bg-geo-ink) 62%, transparent);
+    border-right-color: var(--bg-geo-line);
+}
+
+.admin-page.board-geometry .admin-tab-btn:hover {
+    color: var(--bg-geo-ink);
+    background: color-mix(in srgb, var(--bg-geo-ink) 6%, transparent);
+}
+
+.admin-page.board-geometry .admin-tab-btn[aria-selected="true"],
+.admin-page.board-geometry .admin-tab-btn.admin-tab-btn--active {
+    color: var(--bg-geo-ink);
+    background: var(--bg-geo-surface);
+    border-bottom-color: var(--play-now-btn-background, var(--bg-geo-cta));
+}
+
+.admin-page.board-geometry .admin-tab-btn:focus-visible {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg-geo-cta) 45%, transparent);
+}
+
+.admin-page.board-geometry .admin-add-user-btn {
+    font-family: var(--bg-geo-ui);
+    color: var(--play-now-btn-forecolor, var(--bg-geo-cta-ink));
+    background: var(--play-now-btn-background, var(--bg-geo-cta));
+    border-color: var(--play-now-btn-background, var(--bg-geo-cta));
+}
+
+.admin-page.board-geometry .admin-add-user-btn:hover {
+    color: var(--play-now-btn-forecolor, var(--bg-geo-cta-ink));
+    background: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 80%, var(--lighter));
+    border-color: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 80%, var(--lighter));
+    filter: none;
+}
+
+.admin-page.board-geometry .admin-opening-book-count {
+    font-family: var(--bg-geo-ui);
+    color: color-mix(in srgb, var(--bg-geo-ink) 70%, transparent);
+}
+
+.admin-page.board-geometry .admin-opening-book-count strong {
+    color: var(--bg-geo-ink);
+}
+
+.admin-page.board-geometry .admin-editable-label:hover,
+.admin-page.board-geometry .admin-editable-label:focus {
+    background: color-mix(in srgb, var(--bg-geo-cta) 12%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg-geo-cta) 35%, transparent);
+}
+
+.admin-page.board-geometry .admin-editable-input,
+.admin-page.board-geometry .admin-editable-select {
+    color: var(--bg-geo-ink);
+    background: color-mix(in srgb, var(--bg-geo-surface) 88%, var(--bg-geo-ink) 12%);
+    border-color: var(--bg-geo-line);
+}
+
+.admin-page.board-geometry .admin-editable-input:focus,
+.admin-page.board-geometry .admin-editable-select:focus {
+    border-color: var(--play-now-btn-background, var(--bg-geo-cta));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bg-geo-cta) 22%, transparent);
+}
+
+.admin-page.board-geometry .admin-password-label {
+    color: color-mix(in srgb, var(--bg-geo-ink) 65%, transparent);
+}
+
+.admin-page.board-geometry .games-table tbody tr.admin-user-row:hover {
+    background: color-mix(in srgb, var(--bg-geo-cta) 10%, transparent);
+}
+
+.admin-page.board-geometry .admin-generate-state-link-back {
+    font-family: var(--bg-geo-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: color-mix(in srgb, var(--bg-geo-ink) 70%, transparent);
+    border: 1px solid var(--bg-geo-line);
+    border-radius: 4px;
+    padding: 6px 10px;
+}
+
+.admin-page.board-geometry .admin-generate-state-link-back:hover {
+    color: var(--bg-geo-ink);
+    background: color-mix(in srgb, var(--bg-geo-ink) 5%, transparent);
+    text-decoration: none;
+}
+
+.admin-page.board-geometry .admin-generate-state-targets {
+    border-color: var(--bg-geo-line);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-geo-surface) 94%, var(--bg-geo-ink) 6%);
+}
+
+.admin-page.board-geometry .admin-generate-state-btn-start {
+    font-family: var(--bg-geo-ui);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--play-now-btn-forecolor, var(--bg-geo-cta-ink));
+    background: var(--play-now-btn-background, var(--bg-geo-cta));
+    border: 1px solid var(--play-now-btn-background, var(--bg-geo-cta));
+    border-radius: 4px;
+}
+
+.admin-page.board-geometry .admin-generate-state-progress-wrap {
+    border: 1px solid var(--bg-geo-line);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--bg-geo-ink) 6%, transparent);
+}
+
+.admin-page.board-geometry .admin-generate-state-progress-fill {
+    background: var(--play-now-btn-background, var(--bg-geo-cta));
+}
+
+.admin-page.board-geometry .admin-generate-state-log {
+    border: 1px solid var(--bg-geo-line);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-geo-surface) 92%, var(--bg-geo-ink) 8%);
+    color: var(--bg-geo-ink);
 }
 
 /* Framed panels — sharp, hairline, no glow */

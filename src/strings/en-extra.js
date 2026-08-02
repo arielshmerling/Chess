@@ -311,6 +311,8 @@
         },
         "adminPage": {
             "title": "Administration",
+            "tagline": "Users, games, engines, and generation tools",
+            "panelTitle": "Admin console",
             "users": "Users",
             "generate": "Generate",
             "games": "Games",
