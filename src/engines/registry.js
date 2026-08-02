@@ -1,5 +1,5 @@
 /**
- * Prefer-Play engine catalog (brains + UCI).
+ * Play engine catalog (brains + UCI).
  * Availability for UCI engines is probed at runtime (external process).
  */
 
@@ -15,7 +15,6 @@ const BRAIN_IDS = Object.freeze(["brain43", "brain42", "brain41"]);
  * @property {string} labelKey - i18n key under play.newGameDialog.*
  * @property {string} fallbackLabel
  * @property {EngineBackend} backend
- * @property {boolean} preferPlay
  * @property {boolean} [alwaysAvailable]
  * @property {string} [commandEnv] - env var for executable path (UCI)
  * @property {string} [commandFallback] - PATH name if env unset (UCI)
@@ -28,7 +27,6 @@ const ENGINE_DEFINITIONS = Object.freeze([
         labelKey: "play.newGameDialog.brain43",
         fallbackLabel: "Brain 4.3",
         backend: "brain",
-        preferPlay: true,
         alwaysAvailable: true,
     },
     {
@@ -36,7 +34,6 @@ const ENGINE_DEFINITIONS = Object.freeze([
         labelKey: "play.newGameDialog.brain42",
         fallbackLabel: "Brain 4.2",
         backend: "brain",
-        preferPlay: true,
         alwaysAvailable: true,
     },
     {
@@ -44,7 +41,6 @@ const ENGINE_DEFINITIONS = Object.freeze([
         labelKey: "play.newGameDialog.brain41",
         fallbackLabel: "Brain 4.1",
         backend: "brain",
-        preferPlay: true,
         alwaysAvailable: true,
     },
     {
@@ -52,7 +48,6 @@ const ENGINE_DEFINITIONS = Object.freeze([
         labelKey: "play.newGameDialog.stockfish",
         fallbackLabel: "Stockfish",
         backend: "uci",
-        preferPlay: true,
         alwaysAvailable: false,
         commandEnv: "STOCKFISH_PATH",
         commandFallback: "stockfish",
@@ -61,8 +56,8 @@ const ENGINE_DEFINITIONS = Object.freeze([
 
 const byId = new Map(ENGINE_DEFINITIONS.map((e) => [e.id, e]));
 
-function listPreferPlayEngines() {
-    return ENGINE_DEFINITIONS.filter((e) => e.preferPlay);
+function listPlayEngines() {
+    return ENGINE_DEFINITIONS.slice();
 }
 
 function getEngine(id) {
@@ -97,20 +92,20 @@ function resolveUciCommand(def, env) {
 }
 
 /**
- * Prefer-Play selectable ids that are always allowed for brains + registered UCI ids.
+ * Selectable Play engine ids (brains + registered UCI).
  * @returns {string[]}
  */
-function preferPlayEngineIds() {
-    return listPreferPlayEngines().map((e) => e.id);
+function playEngineIds() {
+    return listPlayEngines().map((e) => e.id);
 }
 
 module.exports = {
     BRAIN_IDS,
     ENGINE_DEFINITIONS,
-    listPreferPlayEngines,
+    listPlayEngines,
     getEngine,
     isBrainEngine,
     isUciEngine,
     resolveUciCommand,
-    preferPlayEngineIds,
+    playEngineIds,
 };

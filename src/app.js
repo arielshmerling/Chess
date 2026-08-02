@@ -128,7 +128,6 @@ const {
     canAccessDebug,
     canUsePlayAdvancedTools,
     canCustomizeThemes,
-    canAccessPlayPage,
 } = require("./modules/user/roles");
 
 const {
@@ -155,7 +154,6 @@ app.use((req, res, next) => {
     res.locals.canDebug = canAccessDebug(req.session);
     res.locals.canPlayAdvanced = canUsePlayAdvancedTools(req.session);
     res.locals.canCustomizeThemes = canCustomizeThemes(req.session);
-    res.locals.canUsePlayPage = canAccessPlayPage(req.session);
     res.locals.messages = req.flash("messages");
     if (!res.locals.cspNonce) {
         res.locals.cspNonce = crypto.randomBytes(32).toString("hex");

@@ -271,7 +271,7 @@ exports.getAdminOpeningBookStatus = catchAsync(async (req, res) => {
 
 exports.listAdminEngines = catchAsync(async (req, res) => {
     const engineService = require("../../engines/engineService");
-    const engines = await engineService.listPreferPlayEnginesForAdmin();
+    const engines = await engineService.listPlayEnginesForAdmin();
     res.json({ ok: true, engines });
 });
 
@@ -285,7 +285,7 @@ exports.updateAdminEngine = async (req, res, next) => {
         if (req.body == null || typeof req.body.enabled !== "boolean") {
             return res.status(400).json({ ok: false, message: "Body must include boolean enabled" });
         }
-        const engine = await engineService.setPreferPlayEngineEnabled(id, req.body.enabled);
+        const engine = await engineService.setPlayEngineEnabled(id, req.body.enabled);
         res.json({ ok: true, engine });
     } catch (err) {
         if (err && err.code === "ENGINE_NOT_FOUND") {

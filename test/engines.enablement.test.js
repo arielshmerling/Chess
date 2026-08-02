@@ -1,5 +1,5 @@
 /**
- * Prefer-Play engine enablement store + client filtering.
+ * Play engine enablement store + client filtering.
  */
 "use strict";
 
@@ -47,8 +47,8 @@ describe("engines enablement", function () {
         }
     });
 
-    it("lists all Prefer-Play engines for admin with enabled flags", async function () {
-        const list = await engineService.listPreferPlayEnginesForAdmin();
+    it("lists all Play engines for admin with enabled flags", async function () {
+        const list = await engineService.listPlayEnginesForAdmin();
         assert.ok(list.length >= 4);
         const brain = list.find((e) => e.id === "brain43");
         assert.ok(brain);
@@ -63,31 +63,31 @@ describe("engines enablement", function () {
     });
 
     it("omits disabled engines from client launch list", async function () {
-        await engineService.setPreferPlayEngineEnabled("stockfish", false);
-        const client = await engineService.listPreferPlayEnginesForClient();
+        await engineService.setPlayEngineEnabled("stockfish", false);
+        const client = await engineService.listPlayEnginesForClient();
         assert.ok(!client.some((e) => e.id === "stockfish"));
         assert.ok(client.some((e) => e.id === "brain43"));
 
-        const admin = await engineService.listPreferPlayEnginesForAdmin();
+        const admin = await engineService.listPlayEnginesForAdmin();
         const sf = admin.find((e) => e.id === "stockfish");
         assert.ok(sf);
         assert.strictEqual(sf.enabled, false);
     });
 
-    it("resolveEnabledPreferPlayEngine skips disabled ids", async function () {
-        await engineService.setPreferPlayEngineEnabled("stockfish", false);
+    it("resolveEnabledPlayEngine skips disabled ids", async function () {
+        await engineService.setPlayEngineEnabled("stockfish", false);
         assert.strictEqual(
-            await engineService.resolveEnabledPreferPlayEngine("stockfish"),
+            await engineService.resolveEnabledPlayEngine("stockfish"),
             "brain43",
         );
         assert.strictEqual(
-            await engineService.resolveEnabledPreferPlayEngine("brain43"),
+            await engineService.resolveEnabledPlayEngine("brain43"),
             "brain43",
         );
     });
 
     it("computeMove rejects disabled engines", async function () {
-        await engineService.setPreferPlayEngineEnabled("brain42", false);
+        await engineService.setPlayEngineEnabled("brain42", false);
         await assert.rejects(
             () => engineService.computeMove({ gameState: {}, engine: "brain42" }),
             (err) => err && err.code === "ENGINE_DISABLED",

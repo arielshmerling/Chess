@@ -1,22 +1,15 @@
 /*global startGame */
 
-function getClassicPlayGameBasePath() {
+function isMobileShellPath() {
     try {
         const p = window.location.pathname || "";
-        if (p === "/mobile-game" || p.indexOf("/mobile-game") === 0) {
-            return "/mobile-game";
-        }
-        if (p === "/mobile-home" || p.indexOf("/mobile-home") === 0) {
-            return "/mobile-game";
-        }
+        return p.indexOf("/mobile") === 0;
     } catch {
-        /* pathname unavailable */
+        return false;
     }
-    return "/game";
 }
 
-function getPlayGameBasePath(opts) {
-    const options = opts && typeof opts === "object" ? opts : {};
+function getPlayGameBasePath() {
     try {
         const p = window.location.pathname || "";
         if (p === "/play" || p.indexOf("/play/") === 0) {
@@ -31,14 +24,7 @@ function getPlayGameBasePath(opts) {
     } catch {
         /* pathname unavailable */
     }
-    /* Prefer-Play supports online + SP resume/rejoin; only fall back to classic when disabled. */
-    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
-        return "/play";
-    }
-    if (options.forOnlineSession) {
-        return getClassicPlayGameBasePath();
-    }
-    return getClassicPlayGameBasePath();
+    return isMobileShellPath() ? "/mobile-game" : "/play";
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -62,15 +48,15 @@ function startAIGame() {
 }
 
 /**
- * Desktop/web home: skip the large home modal and open Play with the compact New Game dialog.
- * Mobile / classic pages without the new Play UI keep the existing modal.
+ * Desktop home: open Play with the New Game dialog.
+ * Mobile home keeps the play-now modal.
  */
 function startPlayFromHome() {
-    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
-        window.location = "/play?newGame=1";
+    if (isMobileShellPath()) {
+        openPlayNowModal();
         return;
     }
-    openPlayNowModal();
+    window.location = "/play?newGame=1";
 }
 
 function openPlayNowModal() {
@@ -95,11 +81,6 @@ function openPlayNowModal() {
     modal.setAttribute("aria-hidden", "false");
 }
 
-/**
- * Resolve engine for the Play Now form.
- * Promotes previous product defaults (brain41 / brain4) to Brain 4.3, and falls back
- * when a stored engine is not present in the select.
- */
 function resolvePlayNowEngine(raw, selectEl) {
     let engine = typeof raw === "string" ? raw.trim() : "";
     if (engine === "brain4" || engine === "brain41") {
@@ -212,11 +193,11 @@ function startNewGameFromModal(event) {
 
 /* eslint-disable-next-line no-unused-vars */
 function startPracticeGame() {
-    if (window.__SHMERLING_USE_NEW_PLAY_UI__) {
-        window.location = "/play?mode=practice";
+    if (isMobileShellPath()) {
+        window.location = "/mobile-game?gameType=3";
         return;
     }
-    window.location = getClassicPlayGameBasePath() + "?gameType=3";
+    window.location = "/play?mode=practice";
 }
 /* eslint-disable-next-line no-unused-vars */
 function navigateToGameList() {
@@ -228,7 +209,7 @@ function movePiece() {
 }
 /* eslint-disable-next-line no-unused-vars */
 function OpenMenu() {
-    /* Legacy dropdown menu removed — Prefer-Play / site chrome replaced it. */
+    /* Site chrome replaced the legacy dropdown menu. */
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -244,4 +225,5 @@ if (typeof window !== "undefined") {
     window.openPlayNowModal = openPlayNowModal;
     window.startNewGameFromModal = startNewGameFromModal;
     window.startPlayFromHome = startPlayFromHome;
+    window.getPlayGameBasePath = getPlayGameBasePath;
 }

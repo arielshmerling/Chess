@@ -21,7 +21,7 @@
         { value: "stockfish", label: ENGINE_LABELS.stockfish },
     ];
 
-    /** Mutable Prefer-Play list; may be filtered by launch-context availability. */
+    /** Mutable Play list; may be filtered by launch-context availability. */
     let ENGINE_OPTIONS = DEFAULT_ENGINE_OPTIONS.slice();
 
     const DEFAULTS = {
@@ -283,7 +283,7 @@
     }
 
     /**
-     * Apply Prefer-Play engine list from /api/play/launch-context.
+     * Apply Play engine list from /api/play/launch-context.
      * Unavailable UCI engines are omitted (brains always included when listed).
      * @param {Array<{ id: string, fallbackLabel?: string, labelKey?: string, available?: boolean }>} engines
      * @param {(key: string) => string} [tFn]

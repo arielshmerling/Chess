@@ -11,8 +11,8 @@
 |----|------|----------|------------------|
 | 1 | AI / SinglePlayer | yes | `/play` (shell) or classic `/game` |
 | 2 | Online | yes | `/play` (Play UI users) or classic `/game` |
-| 3 | Practice / Debug | yes | `/play?mode=practice` (Admin/Partner Prefer-Play) or classic `/game?gameType=3` |
-| 4 | Review | no (mode) | `/play?mode=review` (Prefer-Play) or classic `/review`, `/mobile-review`; shell also has bookmark review |
+| 3 | Practice / Debug | yes | `/play?mode=practice` (Admin/Partner Play) or classic `/game?gameType=3` |
+| 4 | Review | no (mode) | `/play?mode=review` (Play) or classic `/review`, `/mobile-review`; shell also has bookmark review |
 | 5 | Research | no (legacy) | removed from home; setup lives in Play shell |
 
 ## Web entry points (inventory)
@@ -24,18 +24,18 @@
 | Friend invite (create) | friends API → open game | `/play?id=` (Play UI) or `/game?id=` |
 | Friend invite (join) | `/game?gameType=2&joinGame=` then redirect | `/play?id=` (Play UI) or classic `/game` |
 | Active game reopen | `/play?id=` or `/game?id=` | Play shell OnlineMode or classic |
-| Debug | `/play?mode=practice` (Prefer-Play Admin/Partner) or `/game?gameType=3` | PracticeMode on Play shell, or classic `/game` |
-| Review | `/review?id=` → Prefer-Play redirects to `/play?mode=review&id=&type=` | Play shell ReviewMode; classic `game.ejs` / mobile-review fallback |
-| Watch | `/watch?id=` → Prefer-Play redirects to `/play?id=&mode=watch` | Play shell (watch) or classic `game.ejs` |
+| Debug | `/play?mode=practice` (Play Admin/Partner) or `/game?gameType=3` | PracticeMode on Play shell, or classic `/game` |
+| Review | `/review?id=` → Play redirects to `/play?mode=review&id=&type=` | Play shell ReviewMode; classic `game.ejs` / mobile-review fallback |
+| Watch | `/watch?id=` → Play redirects to `/play?id=&mode=watch` | Play shell (watch) or classic `game.ejs` |
 | Desktop Electron | `/app/play` | Play shell (local SP) |
 
 **Phase 3 (done for core):** online invite/join/`?id=` for Play UI users → `/play` with `OnlineMode` + `WsTransport`. Classic `/game` remains.
 
 **Phase 4 (done):** draw / rematch (with color) / reconnect countdown on `/play`.
 
-**Phase 5 (done for Prefer-Play desktop web):** live watch + history/PGN review on `/play`.
+**Phase 5 (done for Play desktop web):** live watch + history/PGN review on `/play`.
 
-**Phase 6 (done for Prefer-Play):** Practice / Debug on `/play` (`PracticeMode`).
+**Phase 6 (done for Play):** Practice / Debug on `/play` (`PracticeMode`).
 
 **Phase 7 (done):** Position Setup + Configuration as session modes; refuse online/watch leak.
 
@@ -45,15 +45,15 @@ Mobile watch **visual** shell polish deferred.
 **Phase 9 (done for brain adapters):** `src/adapters` (`brainHttp` / `brainIpc` /
 `createEnginePort`); session core stays fetch-free. Optional prefs leftovers deferred.
 
-**Phase 10 (slice 1 done):** Prefer-Play soft-redirects `/game` → `/play`
+**Phase 10 (slice 1 done):** Play soft-redirects `/game` → `/play`
 (via `resolveDeprecatedGameToPlayHref`). Escape `?classic=1`.
 
-**Phase 10 (slice 2 done):** Prefer-Play friend accept → `/play?id=`;
+**Phase 10 (slice 2 done):** Play friend accept → `/play?id=`;
 `/play?joinGame=` opens OnlineMode by id. Unjoined deep-link `/game?joinGame=`
 still uses classic join when needed.
 
 **Phase 10 decision:** Do **not** migrate classic SP `/game?id=` reopen to
-`/play` (rare; Prefer-Play SP is client LocalEngineMode). Keep that path on
+`/play` (rare; Play SP is client LocalEngineMode). Keep that path on
 classic until final cutover. Do not delete `chessboard.js` yet.
 
 ## WebSocket app channel (`app.ws("/ws")`)

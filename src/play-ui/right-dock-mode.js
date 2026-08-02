@@ -1,5 +1,5 @@
 /**
- * Prefer-Play right-dock mode policy (Games/Positions vs Chat vs hidden).
+ * Play right-dock mode policy (Games/Positions vs Chat vs hidden).
  *
  * Pure decision helper — the shell applies the result via PlayChatPanel /
  * DesktopDockPanels.

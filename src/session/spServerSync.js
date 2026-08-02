@@ -1,5 +1,5 @@
 /**
- * Prefer-Play SP server sync — LocalEngine plays locally; moves are mirrored to
+ * Play SP server sync — LocalEngine plays locally; moves are mirrored to
  * a clientEngine SinglePlayerGame over /ws for Active Games listing + watch.
  */
 (function (global) {
@@ -132,7 +132,7 @@
                 });
                 transport.onOpen(function () {
                     transport.send(protocol.buildConnectMessage(identity()));
-                    /* If an older server has no ack, do not block Prefer-Play forever. */
+                    /* If an older server has no ack, do not block Play forever. */
                     fallbackTimer = setTimeout(finishOk, 1500);
                 });
                 transport.onError(function (err) {

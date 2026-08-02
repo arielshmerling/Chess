@@ -45,12 +45,12 @@ function mountWebPlayRoutes(app) {
     app.post(
         "/api/play/sp-game",
         requireLogin,
-        require("../modules/game/controller").createPreferPlaySpGameHandler,
+        require("../modules/game/controller").createPlaySpGameHandler,
     );
 
     app.get("/play", requireLogin, (req, res) => {
         if (!canAccessPlayPage(req)) {
-            return res.redirect(302, "/game");
+            return res.redirect(302, "/home");
         }
         setPlayPageNoCache(res);
         res.sendFile(path.join(DESKTOP_UI_DIR, "play.html"));

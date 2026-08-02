@@ -1,5 +1,5 @@
 /**
- * Applies static Prefer-Play shell labels from the string catalog (play.html).
+ * Applies static Play shell labels from the string catalog (play.html).
  */
 (function () {
     "use strict";

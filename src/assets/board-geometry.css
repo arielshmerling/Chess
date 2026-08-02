@@ -331,6 +331,24 @@ body:has(.board-geometry) {
     color: var(--bg-geo-ink);
 }
 
+.admin-page.board-geometry .admin-bots-intro,
+.admin-page.board-geometry .admin-bots-field label,
+.admin-page.board-geometry .admin-bots-result,
+.admin-page.board-geometry .admin-bots-slider-value {
+    color: var(--bg-geo-ink);
+}
+
+.admin-page.board-geometry .admin-bots-field select,
+.admin-page.board-geometry .admin-bots-field input[type="number"] {
+    border-color: var(--bg-geo-line);
+    background: var(--bg-geo-surface);
+    color: var(--bg-geo-ink);
+}
+
+.admin-page.board-geometry .admin-bots-slider {
+    accent-color: var(--play-now-btn-background, var(--bg-geo-cta));
+}
+
 .admin-page.board-geometry .admin-engine-avail--yes {
     color: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 70%, var(--bg-geo-ink));
 }

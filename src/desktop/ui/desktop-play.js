@@ -221,7 +221,7 @@
     let playOnlineMode = null;
     /** @type {object|null} server gameInfo for OnlineGame on /play */
     let onlineGameInfo = null;
-    /** Prefer-Play public SP mirrored to server for Active Games + watch */
+    /** Play public SP mirrored to server for Active Games + watch */
     let spServerSync = null;
     let spServerGameMeta = null;
     /** Opponent left the WS (Phase 4 chrome: red name, hide clock). */
@@ -2771,9 +2771,11 @@
     }
 
     function shouldShowBackToLobby() {
+        const gameType = onlineGameInfo && onlineGameInfo.gameType;
+        const isLobbyGame =
+            gameType === "OnlineGame" || gameType === "EngineDuelGame";
         return !!(
-            onlineGameInfo &&
-            onlineGameInfo.gameType === "OnlineGame" &&
+            isLobbyGame &&
             game &&
             game.GameOver &&
             !reviewMode &&
@@ -4959,7 +4961,7 @@
         if (!game || !GameSessionApi) {
             return null;
         }
-        /* OnlineGame participants + any Prefer-Play watcher (incl. SinglePlayerGame). */
+        /* OnlineGame participants + any Play watcher (incl. SinglePlayerGame). */
         const wantOnline =
             !!(
                 onlineGameInfo &&
@@ -5815,7 +5817,7 @@
                 ? LaunchOptions.getJoinGameIdFromSearch(window.location.search || "")
                 : null;
         if (joinId) {
-            /* Prefer-Play: accept already joined; treat joinGame as reopen by id. */
+            /* Play: accept already joined; treat joinGame as reopen by id. */
             const startedJoin = await beginOnlineFromServerId(joinId);
             if (startedJoin) {
                 clearWebLaunchQueryString({ keepId: true });
@@ -6247,8 +6249,8 @@
             (LaunchOptions &&
                 typeof LaunchOptions.getModeFromSearch === "function" &&
                 LaunchOptions.getModeFromSearch(window.location.search || "") === "watch");
-        if (info.gameType === "SinglePlayerGame") {
-            if (forceWatch || info.watcher) {
+        if (info.gameType === "SinglePlayerGame" || info.gameType === "EngineDuelGame") {
+            if (forceWatch || info.watcher || info.gameType === "EngineDuelGame") {
                 info.watcher = true;
                 detachSpServerSync();
                 await beginOnlineGame(info);
@@ -6954,15 +6956,15 @@
             t("play.dialogs.leaveTitle"),
             t("play.dialogs.leaveBody"),
             function () {
-            resignPreferPlaySpAndLeave();
+            resignPlaySpAndLeave();
         });
     }
 
     /**
-     * Exit after resign confirm for Prefer-Play SP (local and/or server-synced).
+     * Exit after resign confirm for Play SP (local and/or server-synced).
      * Sends resign over WS before closing so the server records game over instead of on-hold.
      */
-    function resignPreferPlaySpAndLeave() {
+    function resignPlaySpAndLeave() {
         const player = currentPlayerIsWhite ? "White" : "Black";
         abortEngineSearch();
         const hadServerSync =

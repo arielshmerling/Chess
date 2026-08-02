@@ -104,7 +104,7 @@ class GameBase {
         ws._gameMessageHandler = onMsg;
         ws.on("message", onMsg);
         ws.on("close", this.onConnectionClosed);
-        /* Prefer-Play SP sync waits for this before mirroring moves (avoids race where
+        /* Play SP sync waits for this before mirroring moves (avoids race where
            client sends plies before this listener is attached). */
         try {
             if (ws.readyState === 1) {

@@ -156,10 +156,7 @@
                                 : t("site.friendsPage.youPlayAsBlack");
                         showEstablishingOverlayThenNavigate(
                             roleHint,
-                            (window.__SHMERLING_USE_NEW_PLAY_UI__
-                                ? "/play?id="
-                                : "/game?gameType=2&joinGame=") +
-                                encodeURIComponent(gid)
+                            "/play?id=" + encodeURIComponent(gid)
                         );
                     })
                     .catch(function (e) {
@@ -289,9 +286,7 @@
                 inviterSide === "black"
                     ? t("site.friendsPage.youPlayAsBlack")
                     : t("site.friendsPage.youPlayAsWhite"),
-                (window.__SHMERLING_USE_NEW_PLAY_UI__
-                    ? "/play?id="
-                    : "/game?id=") + encodeURIComponent(gidAcc)
+                "/play?id=" + encodeURIComponent(gidAcc)
             );
             return;
         }

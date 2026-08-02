@@ -155,7 +155,7 @@
     }
 
     /**
-     * Friend-invite join id (Prefer-Play treats as /play?id= after accept joins).
+     * Friend-invite join id (Play treats as /play?id= after accept joins).
      * @param {string|URLSearchParams|null|undefined} search
      * @returns {string|null}
      */

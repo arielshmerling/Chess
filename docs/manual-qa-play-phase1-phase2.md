@@ -2,7 +2,7 @@
 
 **Product surface:** Web `/play` and Desktop Electron Play shell (shared UI).  
 **Scope:** Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on `/play`. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic `/game` remains as fallback.  
-**Last updated:** 2026-08-01 (security remediations + Prefer-Play UCI)
+**Last updated:** 2026-08-01 (desktop /game cutover + Play naming)
 
 Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.
 
@@ -779,8 +779,8 @@ Run these after any large Play/session change:
 1. As a third user, open a live online game from Active games (non-participant), or `/play?id=<id>&mode=watch`.
 
 **Expect**
-- Prefer-Play users land on `/play` in Watch Mode (see §5.1).
-- Classic `/watch?id=` remains as fallback (redirects Prefer-Play desktop users to `/play`).
+- Play users land on `/play` in Watch Mode (see §5.1).
+- Classic `/watch?id=` remains as fallback (redirects Play desktop users to `/play`).
 
 ### 3.14 — Promotion in an online game
 
@@ -906,7 +906,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 **Steps**
 1. Two players start an online game on `/play`.
-2. As a third logged-in user (Prefer-Play), open **Active games** and click that game (or open `/watch?id=…`).
+2. As a third logged-in user (Play), open **Active games** and click that game (or open `/watch?id=…`).
 3. Observe moves as players play; try Resign / Draw / Rematch / dragging pieces.
 4. Click Home / leave.
 
@@ -917,7 +917,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Resign / Draw / Rematch disabled; pieces cannot be moved.
 - Draw / rematch offer dialogs do **not** appear for the watcher (player↔player only).
 - Leaving does **not** resign either player.
-- Classic `/watch` still works for clients that do not Prefer-Play (e.g. mobile classic path).
+- Classic `/watch` still works for clients that do not Play (e.g. mobile classic path).
 
 ### 5.2 — Watcher sees disconnect of the correct player
 
@@ -934,8 +934,8 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 ### Phase 5 remaining (to be filled)
 
 - [x] Live watch on `/play` (non-participant)
-- [x] History / PGN review deep-links into `/play` (Prefer-Play)
-- [ ] Optional: update Home/Search links to `/play?mode=review` directly (redirect covers Prefer-Play)
+- [x] History / PGN review deep-links into `/play` (Play)
+- [ ] Optional: update Home/Search links to `/play?mode=review` directly (redirect covers Play)
 
 ### 5.3 — History review on `/play`
 
@@ -965,10 +965,10 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 ## Phase 6 — Practice / Debug on `/play` (slice 1)
 
-### 6.1 — Prefer-Play Debug entry
+### 6.1 — Play Debug entry
 
 **Steps**
-1. As Admin or Partner (Prefer-Play), click **Debug** in the top bar (or open `/play?mode=practice`).
+1. As Admin or Partner (Play), click **Debug** in the top bar (or open `/play?mode=practice`).
 2. Confirm URL is `/play?mode=practice`.
 
 **Expect**
@@ -992,11 +992,11 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Position Setup is disabled for the whole practice session.
 - Resign ends the game for the side to move.
 - Exit after moves confirms with “Are you sure?” then leaves.
-- Classic `/game?gameType=3` still works for non–Prefer-Play clients.
+- Legacy `/game?gameType=3` hard-redirects to `/play?mode=practice`.
 
 ### Phase 6 remaining
 
-- [x] PracticeMode on `/play` for Prefer-Play Admin/Partner
+- [x] PracticeMode on `/play` for Play Admin/Partner
 - [ ] Optional: Electron Debug entry parity
 - [ ] Retire any remaining “debug always classic” comments once QA signed off
 
@@ -1042,7 +1042,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 - [x] PositionSetupMode + ConfigurationMode plugins
 - [x] Online/watch/practice leak guards for setup/config
-- [ ] Optional: Prefer-Play deep-link for setup
+- [ ] Optional: Play deep-link for setup
 - [ ] Optional: move more setup board logic out of `desktop-play.js`
 
 ---
@@ -1060,7 +1060,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Page still uses mobile CSS (not desktop `/play`).
 - In the browser console, `window.__SHMERLING_MOBILE_REVIEW_SESSION__` is set after load.
 - Ply nav works; board and clocks update; pieces are not playable.
-- Desktop Prefer-Play still uses `/play?mode=review` (unchanged).
+- Desktop Play still uses `/play?mode=review` (unchanged).
 
 ### 8.2 — Mobile SP uses LocalEngineMode (client brain)
 
@@ -1074,7 +1074,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 - Mobile CSS/DOM unchanged (not desktop `/play`).
 - Engine replies; board animates; clocks and moves list update.
 - Resign / game over still work.
-- Classic desktop `/game` SP (no Prefer-Play) still uses **server** brain (no mobile adapter).
+- Desktop SP uses Play LocalEngineMode; mobile `/mobile-game` may still use server brain when not clientEngine.
 
 ### 8.3 — Mobile online uses OnlineMode
 
@@ -1098,7 +1098,7 @@ Phase 4 completes social online parity on the Play shell: draw offers, rematch w
 
 **Expect**
 - Session OnlineMode watcher path works (read-only live updates).
-- Desktop Prefer-Play still uses `/play?id=&mode=watch`.
+- Desktop Play still uses `/play?id=&mode=watch`.
 - Desktop classic `/watch` (non-mobile UA) still `game.ejs`.
 
 **Known gap (deferred polish)**  
@@ -1175,12 +1175,12 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 
 ## Phase 10 — Deprecate classic `/game` (slice 1: soft redirects)
 
-**Goal:** Prefer-Play desktop users leave classic `/game` play rendering via redirects. Do **not** delete `chessboard.js` yet.
+**Goal:** Play desktop users leave classic `/game` play rendering via hard-redirects. Do **not** delete `chessboard.js` yet (mobile still uses it).
 
-### 10.1 — Prefer-Play `/game` → `/play`
+### 10.1 — Play `/game` → `/play`
 
 **Steps**
-1. Restart server, hard-refresh (desktop Prefer-Play / logged-in).
+1. Restart server, hard-refresh (desktop Play / logged-in).
 2. Visit `/game` → should land on `/play`.
 3. Visit `/game?gameType=1&newGame=1&color=white&engine=brain43&difficulty=3` → `/play?newGame=1&…`.
 4. Visit `/game?gameType=3` (Admin/Partner) → `/play?mode=practice`.
@@ -1192,10 +1192,10 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 - Mobile `/game` still → `/mobile-game` (unchanged).
 - SP reopen by `/game?id=` (non-online) still classic during this window.
 
-### 10.2 — Prefer-Play friend join without classic hop
+### 10.2 — Play friend join without classic hop
 
 **Steps**
-1. Restart server; hard-refresh both Prefer-Play clients.
+1. Restart server; hard-refresh both Play clients.
 2. As White, invite a friend to a game.
 3. As Black, accept the invite.
 4. Observe Black’s navigation URL (and White’s after accept).
@@ -1204,19 +1204,19 @@ Mobile watch may still render the **classic web `game.ejs` look** instead of the
 - Black lands on `/play?id=…` (not `/game?…&joinGame=`).
 - White lands on `/play?id=…`.
 - Both can move; OnlineMode works.
-- Classic non–Prefer-Play (if tested) still uses `/game?joinGame=` after accept.
+- Desktop join always lands on `/play?id=` after accept.
 
 ### Phase 10 remaining
 
-- [x] Soft Prefer-Play redirects `/game` → `/play` (+ `classic=1` escape)
-- [x] Resolve `/play` joinGame bounce (Prefer-Play accept → `/play?id=` without classic hop)
-- [x] **Won’t do:** migrate SP `/game?id=` reopen to `/play` (rare; Prefer-Play SP is client LocalEngineMode; classic reopen stays on `/game`)
+- [x] Hard Play redirects `/game` → `/play` (`classic=1` escape retired)
+- [x] Resolve `/play` joinGame bounce (Play accept → `/play?id=` without classic hop)
+- [x] **Won’t do:** migrate SP `/game?id=` reopen to `/play` (rare; Play SP is client LocalEngineMode; classic reopen stays on `/game`)
 - [ ] After parity sign-off: remove `/game` play render + retire `chessboard.js` play path
 - [ ] Short public deprecation notice / final cutover
 
 ---
 
-## Prefer-Play UCI (Stockfish) — web only
+## Play UCI (Stockfish) — web only
 
 **Ops prerequisite:** install Stockfish on the server host and set `STOCKFISH_PATH` to the binary (or ensure `stockfish` is on `PATH`). Restart `npm start` after changing the env. Do **not** expect Stockfish on classic `/game` or Electron for this slice.
 
@@ -1266,10 +1266,10 @@ Run after restarting the server and a hard-refresh. Automated coverage: `npm run
 
 **Expect**
 - Search results render; row click navigates (inline `onclick` works).
-- Review opens on Prefer-Play `/play?mode=review&…` (desktop web) with clocks/moves.
+- Review opens on Play `/play?mode=review&…` (desktop web) with clocks/moves.
 - No blank page / CSP console errors blocking navigation.
 
-### SEC.2 — Start a new Prefer-Play game
+### SEC.2 — Start a new Play game
 
 **Steps**
 1. From Home, Play Now → start vs Brain on `/play`.

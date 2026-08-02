@@ -147,7 +147,7 @@ const wsInfoClockSyncSchema = Joi.object({
     info: Joi.string().valid("clockSync").required(),
     whiteTimer: Joi.number().required(),
     blackTimer: Joi.number().required(),
-    /* Prefer-Play SP sync / classic clients may include identity fields. */
+    /* Play SP sync / classic clients may include identity fields. */
     userId: Joi.string().hex().length(24).optional().escapeHTML(),
     username: Joi.string().optional().escapeHTML(),
     isWhite: Joi.bool().optional(),

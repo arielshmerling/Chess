@@ -525,7 +525,7 @@ window.__FRIENDS_PAGE_USERNAME__ = <%- JSON.stringify(typeof sessionUsername !==
         pendingInviterJoiningUntil = 0;
       }
       window.location.href =
-        (window.__SHMERLING_USE_NEW_PLAY_UI__ ? "/play?id=" : "/game?id=") +
+        "/play?id=" +
         encodeURIComponent(gid);
       return;
     }

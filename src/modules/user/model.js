@@ -70,12 +70,6 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
 
-    /** @deprecated Unused — admins always use /play; kept for existing Mongo documents. */
-    preferPlayPage: {
-        type: Boolean,
-        default: false,
-    },
-
     /** Web Play UI settings (themes, dock panels, gameplay prefs). */
     playUiSettings: {
         type: mongoose.Schema.Types.Mixed,

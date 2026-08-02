@@ -15,6 +15,22 @@ class SearchAbortedError extends Error {
 }
 
 /**
+ * Clamp Stockfish-style Skill Level (0–20). Invalid → null (leave engine default).
+ * @param {unknown} raw
+ * @returns {number|null}
+ */
+function normalizeSkillLevel(raw) {
+    if (raw == null || raw === "") {
+        return null;
+    }
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 20) {
+        return null;
+    }
+    return n;
+}
+
+/**
  * @param {string} command
  * @param {string[]} [args]
  * @param {{ spawnFn?: Function, idleTimeoutMs?: number }} [options]
@@ -198,14 +214,19 @@ function createUciProcess(command, args, options) {
     /**
      * @param {string} fen
      * @param {number} movetimeMs
-     * @param {{ abortSignal?: { aborted: boolean } }} [goOpts]
+     * @param {{ abortSignal?: { aborted: boolean }, skillLevel?: number|null }} [goOpts]
      * @returns {Promise<string|null>}
      */
     async function goMovetime(fen, movetimeMs, goOpts) {
         const abortSignal = (goOpts && goOpts.abortSignal) || null;
+        const skillLevel = normalizeSkillLevel(goOpts && goOpts.skillLevel);
         await ensureStarted();
         write("ucinewgame");
         await request("isready", (line) => line === "readyok", { abortSignal });
+        if (skillLevel != null) {
+            write(`setoption name Skill Level value ${skillLevel}`);
+            await request("isready", (line) => line === "readyok", { abortSignal });
+        }
         write(`position fen ${fen}`);
         const ms = Math.max(1, Math.floor(Number(movetimeMs) || 1000));
         try {
@@ -274,4 +295,5 @@ function createUciProcess(command, args, options) {
 module.exports = {
     createUciProcess,
     SearchAbortedError,
+    normalizeSkillLevel,
 };

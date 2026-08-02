@@ -3,7 +3,7 @@
 const assert = require("assert");
 
 /**
- * Mirror of Prefer-Play captureReviewOutcome classification (reason + score).
+ * Mirror of Play captureReviewOutcome classification (reason + score).
  * Kept in unit test form so timeout vs checkmate does not regress.
  */
 function classifyFromReasonAndScore(reasonHint, resultStr, stateFlags) {

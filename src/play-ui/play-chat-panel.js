@@ -1,5 +1,5 @@
 /**
- * Prefer-Play right-dock chat presentation (online / watch).
+ * Play right-dock chat presentation (online / watch).
  */
 (function (global) {
     "use strict";

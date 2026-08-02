@@ -445,7 +445,7 @@ html[dir="rtl"] .desktop-play-actions {
   direction: rtl;
 }
 
-/* Prefer-Play main action rail on the right in Hebrew. */
+/* Play main action rail on the right in Hebrew. */
 html[dir="rtl"] .desktop-play-actions {
   left: auto;
   right: 0;

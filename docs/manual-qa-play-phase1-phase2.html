@@ -1,9 +1,7 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Manual QA — Shmerling Play</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Manual QA — Shmerling Play</title>
 <style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.45;max-width:880px;margin:2rem auto;padding:0 1.25rem}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem .55rem;text-align:left}code{font-size:.92em}h1,h2,h3{page-break-after:avoid}</style>
-</head><body>
-<h1 id="manual-qa-shmerling-play-ui-phase-14">Manual QA: Shmerling Play UI (Phase 1–4)</h1>
-<p><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).<br><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on <code>/play</code>. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic <code>/game</code> remains as fallback.<br><strong>Last updated:</strong> 2026-08-01 (security remediations + Prefer-Play UCI)</p>
+</head><body><h1 id="manual-qa-shmerling-play-ui-phase-14">Manual QA: Shmerling Play UI (Phase 1–4)</h1>
+<p><strong>Product surface:</strong> Web <code>/play</code> and Desktop Electron Play shell (shared UI).<br><strong>Scope:</strong> Phase 1–2 = single-player vs local Brain. Phase 3 = OnlineMode core play on <code>/play</code>. Phase 4 = draw, rematch (with color choice), reconnect countdown. Classic <code>/game</code> remains as fallback.<br><strong>Last updated:</strong> 2026-08-01 (desktop /game cutover + Play naming)</p>
 <p>Use this document as the living checklist. Add Phase 5+ sections at the bottom without rewriting earlier phases.</p>
 <hr>
 <h2 id="how-to-use-this-checklist">How to use this checklist</h2>
@@ -41,6 +39,12 @@
 <td>Yes</td>
 <td>Yes</td>
 <td>Hidden</td>
+</tr>
+<tr>
+<td>Manage themes (create/edit/delete)</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
 </tr>
 <tr>
 <td>Saved games / review sidebar</td>
@@ -892,8 +896,8 @@
 </ol>
 <p><strong>Expect</strong></p>
 <ul>
-<li>Prefer-Play users land on <code>/play</code> in Watch Mode (see §5.1).</li>
-<li>Classic <code>/watch?id=</code> remains as fallback (redirects Prefer-Play desktop users to <code>/play</code>).</li>
+<li>Play users land on <code>/play</code> in Watch Mode (see §5.1).</li>
+<li>Classic <code>/watch?id=</code> remains as fallback (redirects Play desktop users to <code>/play</code>).</li>
 </ul>
 <h3 id="314--promotion-in-an-online-game">3.14 — Promotion in an online game</h3>
 <p><strong>Steps</strong></p>
@@ -1024,7 +1028,7 @@
 <p><strong>Steps</strong></p>
 <ol>
 <li>Two players start an online game on <code>/play</code>.</li>
-<li>As a third logged-in user (Prefer-Play), open <strong>Active games</strong> and click that game (or open <code>/watch?id=…</code>).</li>
+<li>As a third logged-in user (Play), open <strong>Active games</strong> and click that game (or open <code>/watch?id=…</code>).</li>
 <li>Observe moves as players play; try Resign / Draw / Rematch / dragging pieces.</li>
 <li>Click Home / leave.</li>
 </ol>
@@ -1036,7 +1040,7 @@
 <li>Resign / Draw / Rematch disabled; pieces cannot be moved.</li>
 <li>Draw / rematch offer dialogs do <strong>not</strong> appear for the watcher (player↔player only).</li>
 <li>Leaving does <strong>not</strong> resign either player.</li>
-<li>Classic <code>/watch</code> still works for clients that do not Prefer-Play (e.g. mobile classic path).</li>
+<li>Classic <code>/watch</code> still works for clients that do not Play (e.g. mobile classic path).</li>
 </ul>
 <h3 id="52--watcher-sees-disconnect-of-the-correct-player">5.2 — Watcher sees disconnect of the correct player</h3>
 <p><strong>Steps</strong></p>
@@ -1054,8 +1058,8 @@
 <h3 id="phase-5-remaining-to-be-filled">Phase 5 remaining (to be filled)</h3>
 <ul>
 <li><input checked="" disabled="" type="checkbox"> Live watch on <code>/play</code> (non-participant)</li>
-<li><input checked="" disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code> (Prefer-Play)</li>
-<li><input disabled="" type="checkbox"> Optional: update Home/Search links to <code>/play?mode=review</code> directly (redirect covers Prefer-Play)</li>
+<li><input checked="" disabled="" type="checkbox"> History / PGN review deep-links into <code>/play</code> (Play)</li>
+<li><input disabled="" type="checkbox"> Optional: update Home/Search links to <code>/play?mode=review</code> directly (redirect covers Play)</li>
 </ul>
 <h3 id="53--history-review-on-play">5.3 — History review on <code>/play</code></h3>
 <p><strong>Steps</strong></p>
@@ -1085,10 +1089,10 @@
 </ul>
 <hr>
 <h2 id="phase-6--practice--debug-on-play-slice-1">Phase 6 — Practice / Debug on <code>/play</code> (slice 1)</h2>
-<h3 id="61--prefer-play-debug-entry">6.1 — Prefer-Play Debug entry</h3>
+<h3 id="61--play-debug-entry">6.1 — Play Debug entry</h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>As Admin or Partner (Prefer-Play), click <strong>Debug</strong> in the top bar (or open <code>/play?mode=practice</code>).</li>
+<li>As Admin or Partner (Play), click <strong>Debug</strong> in the top bar (or open <code>/play?mode=practice</code>).</li>
 <li>Confirm URL is <code>/play?mode=practice</code>.</li>
 </ol>
 <p><strong>Expect</strong></p>
@@ -1114,11 +1118,11 @@
 <li>Position Setup is disabled for the whole practice session.</li>
 <li>Resign ends the game for the side to move.</li>
 <li>Exit after moves confirms with “Are you sure?” then leaves.</li>
-<li>Classic <code>/game?gameType=3</code> still works for non–Prefer-Play clients.</li>
+<li>Legacy <code>/game?gameType=3</code> hard-redirects to <code>/play?mode=practice</code>.</li>
 </ul>
 <h3 id="phase-6-remaining">Phase 6 remaining</h3>
 <ul>
-<li><input checked="" disabled="" type="checkbox"> PracticeMode on <code>/play</code> for Prefer-Play Admin/Partner</li>
+<li><input checked="" disabled="" type="checkbox"> PracticeMode on <code>/play</code> for Play Admin/Partner</li>
 <li><input disabled="" type="checkbox"> Optional: Electron Debug entry parity</li>
 <li><input disabled="" type="checkbox"> Retire any remaining “debug always classic” comments once QA signed off</li>
 </ul>
@@ -1165,7 +1169,7 @@
 <ul>
 <li><input checked="" disabled="" type="checkbox"> PositionSetupMode + ConfigurationMode plugins</li>
 <li><input checked="" disabled="" type="checkbox"> Online/watch/practice leak guards for setup/config</li>
-<li><input disabled="" type="checkbox"> Optional: Prefer-Play deep-link for setup</li>
+<li><input disabled="" type="checkbox"> Optional: Play deep-link for setup</li>
 <li><input disabled="" type="checkbox"> Optional: move more setup board logic out of <code>desktop-play.js</code></li>
 </ul>
 <hr>
@@ -1182,7 +1186,7 @@
 <li>Page still uses mobile CSS (not desktop <code>/play</code>).</li>
 <li>In the browser console, <code>window.__SHMERLING_MOBILE_REVIEW_SESSION__</code> is set after load.</li>
 <li>Ply nav works; board and clocks update; pieces are not playable.</li>
-<li>Desktop Prefer-Play still uses <code>/play?mode=review</code> (unchanged).</li>
+<li>Desktop Play still uses <code>/play?mode=review</code> (unchanged).</li>
 </ul>
 <h3 id="82--mobile-sp-uses-localenginemode-client-brain">8.2 — Mobile SP uses LocalEngineMode (client brain)</h3>
 <p><strong>Steps</strong></p>
@@ -1197,7 +1201,7 @@
 <li>Mobile CSS/DOM unchanged (not desktop <code>/play</code>).</li>
 <li>Engine replies; board animates; clocks and moves list update.</li>
 <li>Resign / game over still work.</li>
-<li>Classic desktop <code>/game</code> SP (no Prefer-Play) still uses <strong>server</strong> brain (no mobile adapter).</li>
+<li>Desktop SP uses Play LocalEngineMode; mobile <code>/mobile-game</code> may still use server brain when not clientEngine.</li>
 </ul>
 <h3 id="83--mobile-online-uses-onlinemode">8.3 — Mobile online uses OnlineMode</h3>
 <p><strong>Steps</strong></p>
@@ -1223,7 +1227,7 @@
 <p><strong>Expect</strong></p>
 <ul>
 <li>Session OnlineMode watcher path works (read-only live updates).</li>
-<li>Desktop Prefer-Play still uses <code>/play?id=&amp;mode=watch</code>.</li>
+<li>Desktop Play still uses <code>/play?id=&amp;mode=watch</code>.</li>
 <li>Desktop classic <code>/watch</code> (non-mobile UA) still <code>game.ejs</code>.</li>
 </ul>
 <p><strong>Known gap (deferred polish)</strong><br>Mobile watch may still render the <strong>classic web <code>game.ejs</code> look</strong> instead of the mobile-game shell styling (narrow desktop / UA detection). Treat full mobile CSS for watch as a follow-up improvement, not a Phase 8 blocker.</p>
@@ -1308,11 +1312,11 @@
 </ul>
 <hr>
 <h2 id="phase-10--deprecate-classic-game-slice-1-soft-redirects">Phase 10 — Deprecate classic <code>/game</code> (slice 1: soft redirects)</h2>
-<p><strong>Goal:</strong> Prefer-Play desktop users leave classic <code>/game</code> play rendering via redirects. Do <strong>not</strong> delete <code>chessboard.js</code> yet.</p>
-<h3 id="101--prefer-play-game-→-play">10.1 — Prefer-Play <code>/game</code> → <code>/play</code></h3>
+<p><strong>Goal:</strong> Play desktop users leave classic <code>/game</code> play rendering via hard-redirects. Do <strong>not</strong> delete <code>chessboard.js</code> yet (mobile still uses it).</p>
+<h3 id="101--play-game-→-play">10.1 — Play <code>/game</code> → <code>/play</code></h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>Restart server, hard-refresh (desktop Prefer-Play / logged-in).</li>
+<li>Restart server, hard-refresh (desktop Play / logged-in).</li>
 <li>Visit <code>/game</code> → should land on <code>/play</code>.</li>
 <li>Visit <code>/game?gameType=1&amp;newGame=1&amp;color=white&amp;engine=brain43&amp;difficulty=3</code> → <code>/play?newGame=1&amp;…</code>.</li>
 <li>Visit <code>/game?gameType=3</code> (Admin/Partner) → <code>/play?mode=practice</code>.</li>
@@ -1325,10 +1329,10 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <li>Mobile <code>/game</code> still → <code>/mobile-game</code> (unchanged).</li>
 <li>SP reopen by <code>/game?id=</code> (non-online) still classic during this window.</li>
 </ul>
-<h3 id="102--prefer-play-friend-join-without-classic-hop">10.2 — Prefer-Play friend join without classic hop</h3>
+<h3 id="102--play-friend-join-without-classic-hop">10.2 — Play friend join without classic hop</h3>
 <p><strong>Steps</strong></p>
 <ol>
-<li>Restart server; hard-refresh both Prefer-Play clients.</li>
+<li>Restart server; hard-refresh both Play clients.</li>
 <li>As White, invite a friend to a game.</li>
 <li>As Black, accept the invite.</li>
 <li>Observe Black’s navigation URL (and White’s after accept).</li>
@@ -1338,18 +1342,18 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <li>Black lands on <code>/play?id=…</code> (not <code>/game?…&amp;joinGame=</code>).</li>
 <li>White lands on <code>/play?id=…</code>.</li>
 <li>Both can move; OnlineMode works.</li>
-<li>Classic non–Prefer-Play (if tested) still uses <code>/game?joinGame=</code> after accept.</li>
+<li>Desktop join always lands on <code>/play?id=</code> after accept.</li>
 </ul>
 <h3 id="phase-10-remaining">Phase 10 remaining</h3>
 <ul>
-<li><input checked="" disabled="" type="checkbox"> Soft Prefer-Play redirects <code>/game</code> → <code>/play</code> (+ <code>classic=1</code> escape)</li>
-<li><input checked="" disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Prefer-Play accept → <code>/play?id=</code> without classic hop)</li>
-<li><input checked="" disabled="" type="checkbox"> <strong>Won’t do:</strong> migrate SP <code>/game?id=</code> reopen to <code>/play</code> (rare; Prefer-Play SP is client LocalEngineMode; classic reopen stays on <code>/game</code>)</li>
+<li><input checked="" disabled="" type="checkbox"> Hard Play redirects <code>/game</code> → <code>/play</code> (<code>classic=1</code> escape retired)</li>
+<li><input checked="" disabled="" type="checkbox"> Resolve <code>/play</code> joinGame bounce (Play accept → <code>/play?id=</code> without classic hop)</li>
+<li><input checked="" disabled="" type="checkbox"> <strong>Won’t do:</strong> migrate SP <code>/game?id=</code> reopen to <code>/play</code> (rare; Play SP is client LocalEngineMode; classic reopen stays on <code>/game</code>)</li>
 <li><input disabled="" type="checkbox"> After parity sign-off: remove <code>/game</code> play render + retire <code>chessboard.js</code> play path</li>
 <li><input disabled="" type="checkbox"> Short public deprecation notice / final cutover</li>
 </ul>
 <hr>
-<h2 id="prefer-play-uci-stockfish--web-only">Prefer-Play UCI (Stockfish) — web only</h2>
+<h2 id="play-uci-stockfish--web-only">Play UCI (Stockfish) — web only</h2>
 <p><strong>Ops prerequisite:</strong> install Stockfish on the server host and set <code>STOCKFISH_PATH</code> to the binary (or ensure <code>stockfish</code> is on <code>PATH</code>). Restart <code>npm start</code> after changing the env. Do <strong>not</strong> expect Stockfish on classic <code>/game</code> or Electron for this slice.</p>
 <h3 id="uci1--stockfish-appears-when-available">UCI.1 — Stockfish appears when available</h3>
 <p><strong>Steps</strong></p>
@@ -1398,10 +1402,10 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <p><strong>Expect</strong></p>
 <ul>
 <li>Search results render; row click navigates (inline <code>onclick</code> works).</li>
-<li>Review opens on Prefer-Play <code>/play?mode=review&amp;…</code> (desktop web) with clocks/moves.</li>
+<li>Review opens on Play <code>/play?mode=review&amp;…</code> (desktop web) with clocks/moves.</li>
 <li>No blank page / CSP console errors blocking navigation.</li>
 </ul>
-<h3 id="sec2--start-a-new-prefer-play-game">SEC.2 — Start a new Prefer-Play game</h3>
+<h3 id="sec2--start-a-new-play-game">SEC.2 — Start a new Play game</h3>
 <p><strong>Steps</strong></p>
 <ol>
 <li>From Home, Play Now → start vs Brain on <code>/play</code>.</li>
@@ -1522,5 +1526,4 @@ Or use the full URL: <code>/game?classic=1&amp;gameType=1&amp;newGame=1&amp;colo
 <td></td>
 </tr>
 </tbody></table>
-
 </body></html>

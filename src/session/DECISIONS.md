@@ -30,7 +30,7 @@
    (watcher) via `mobile-session-online.js`.  
    **Deferred:** mobile watch **visual** shell (classic web UI look may still appear;  
    session path is the Phase 8 deliverable).  
-   Keep Prefer-Play desktop-only until a full mobile Play shell exists.  
+   Keep Play desktop-only until a full mobile Play shell exists.  
    Do not load desktop Play CSS/DOM on mobile.
 
 7. **Engine transport (Phase 9)**  
@@ -39,7 +39,7 @@
    `desktop-engine.js` is only a facade via `createEnginePort`.
 
 8. **Classic SP `/game?id=` reopen (Phase 10)**  
-   **Won’t migrate** to `/play`. Prefer-Play single-player is client  
+   **Won’t migrate** to `/play`. Play single-player is client  
    `LocalEngineMode` (local UUID / sessionStorage), not server `SinglePlayerGame`.  
    Rare classic SP reopen links stay on `/game` until final classic cutover.
 

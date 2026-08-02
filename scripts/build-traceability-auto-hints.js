@@ -264,7 +264,7 @@ const COVERAGE = {
     },
     "FR-PLAY-005": {
         auto_tests: [
-            "test/playPaths.test.js — resolveDeprecatedGameToPlayHref maps bare /game to /play",
+            "test/playPaths.test.js — resolveGameToPlayHref maps bare /game to /play",
             "test/web.api.test.js — GET /game?newGame vs computer redirects to /play",
         ],
         auto_coverage: "full",
@@ -416,7 +416,7 @@ const COVERAGE = {
     "FR-SP-018": {
         auto_tests: [
             "test/playPaths.test.js — keeps SP id and unjoined joinGame on classic (null)",
-            "test/web.api.test.js — GET /game?classic=1&newGame still uses classic create path",
+            "test/web.api.test.js — GET /game redirects to /play",
         ],
         auto_coverage: "full",
     },
@@ -839,8 +839,8 @@ const COVERAGE = {
     },
     "FR-DEP-005": {
         auto_tests: [
-            "test/playPaths.test.js — honors classic=1 escape",
-            "test/web.api.test.js — GET /game?classic=1 without gameType starts classic SP",
+            "test/playPaths.test.js — maps /game queries to /play",
+            "test/web.api.test.js — GET /game redirects to /play",
         ],
         auto_coverage: "full",
     },
@@ -853,7 +853,7 @@ const COVERAGE = {
     "FR-DEP-007": {
         auto_tests: [
             "test/playPaths.test.js — defaults to /game when usePlayPage is false",
-            "test/web.api.test.js — GET /game?classic=1&newGame still uses classic create path",
+            "test/web.api.test.js — GET /game redirects to /play",
         ],
         auto_coverage: "partial",
         notes: "Classic path remains routable; chessboard.js behavior not directly tested.",
@@ -1312,7 +1312,7 @@ const COVERAGE = {
     "NFR-QA-001": {
         auto_tests: [
             "test/session.phase0.test.js — characterization tests label",
-            "test/playPaths.test.js — resolveDeprecatedGameToPlayHref characterization",
+            "test/playPaths.test.js — resolveGameToPlayHref characterization",
         ],
         auto_coverage: "partial",
         notes: "Meta-quality gate; many slices have characterization tests but not all.",
@@ -1341,7 +1341,7 @@ const COVERAGE = {
     },
     "CON-003": {
         auto_tests: [
-            "test/playPaths.test.js — resolveDeprecatedGameToPlayHref soft-redirect mappings",
+            "test/playPaths.test.js — resolveGameToPlayHref /game → /play mappings",
         ],
         auto_coverage: "partial",
     },
@@ -1368,7 +1368,7 @@ const COVERAGE = {
             "test/playUi.rightDockMode.test.js — shows chat for online players but hides it for watchers",
         ],
         auto_coverage: "full",
-        notes: "Retired constraint — Prefer-Play chat is implemented for players only (FR-ONL-016 / FR-PLAY-008 / FR-WAT-007).",
+        notes: "Retired constraint — Play chat is implemented for players only (FR-ONL-016 / FR-PLAY-008 / FR-WAT-007).",
     },
     "CON-008": {
         auto_tests: [

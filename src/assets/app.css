@@ -1857,6 +1857,122 @@ li {
     display: none !important;
 }
 
+.admin-page .admin-bots-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-width: 52rem;
+}
+
+.admin-page .admin-bots-panel[hidden] {
+    display: none !important;
+}
+
+.admin-page .admin-bots-intro {
+    margin: 0 0 14px;
+    line-height: 1.45;
+    font-size: 0.92rem;
+}
+
+.admin-page .admin-bots-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.admin-page .admin-bots-engine-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+.admin-page .admin-bots-field--engine {
+    flex: 1 1 12rem;
+    min-width: 10rem;
+}
+
+.admin-page .admin-bots-field--difficulty {
+    flex: 0 1 11rem;
+    min-width: 9rem;
+}
+
+.admin-page .admin-bots-field--skill {
+    flex: 0 1 12rem;
+    min-width: 10rem;
+}
+
+.admin-page .admin-bots-field--skill[hidden] {
+    display: none !important;
+}
+
+.admin-page .admin-bots-field label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.admin-page .admin-bots-field select,
+.admin-page .admin-bots-field input[type="number"] {
+    width: 100%;
+    max-width: 28rem;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 0.95rem;
+    border: 1px solid rgba(152, 193, 217, 0.35);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.admin-page .admin-bots-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 2.4rem;
+}
+
+.admin-page .admin-bots-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    accent-color: #3d6b8a;
+}
+
+.admin-page .admin-bots-slider-value {
+    flex: 0 0 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-page .admin-bots-slider-value--wide {
+    flex-basis: 1.75rem;
+}
+
+.admin-page .admin-bots-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 4px;
+}
+
+.admin-page .admin-bots-result {
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.admin-page .admin-bots-result a {
+    font-weight: 600;
+}
+
 .admin-page .admin-opening-book-status-title {
     margin: 0 0 12px;
     font-size: 0.95rem;

@@ -1,6 +1,6 @@
 /**
- * Shared play-page path resolution for web routing (desktop uses /app/play).
- * Logged-in users (Admin, Partner, Member) use the new /play shell on desktop web.
+ * Shared play-page path resolution for web routing.
+ * Desktop uses `/play`; mobile uses `/mobile-game` (and `/watch` / `/review` shells).
  */
 
 const {
@@ -12,57 +12,41 @@ const {
 } = require("../modules/user/roles");
 
 /**
- * @param {{ isMobile?: boolean, desktopQuery?: boolean, usePlayPage?: boolean, isAdmin?: boolean }} opts
- * @returns {"/game"|"/mobile-game"|"/play"}
+ * @param {{ isMobile?: boolean, desktopQuery?: boolean }} opts
+ * @returns {"/mobile-game"|"/play"}
  */
 function resolvePlayGamePath(opts) {
     const options = opts || {};
-    const isMobile = !!options.isMobile;
-    const desktopQuery = !!options.desktopQuery;
-    /* isAdmin kept for callers/tests; all desktop web users that prefer play get /play. */
-    const usePlayPage = options.usePlayPage !== undefined
-        ? !!options.usePlayPage
-        : !!options.isAdmin;
-
-    if (isMobile && !desktopQuery) {
+    if (options.isMobile && !options.desktopQuery) {
         return "/mobile-game";
     }
-    if (usePlayPage) {
-        return "/play";
-    }
-    return "/game";
+    return "/play";
 }
 
 /**
  * Participant reopen URL for an online game id.
  * @param {string|number} gameId
- * @param {{ usePlayPage?: boolean }} [opts]
  * @returns {string}
  */
-function resolveOnlineParticipantHref(gameId, opts) {
-    const base = resolvePlayGamePath({
-        isMobile: false,
-        usePlayPage: !!(opts && opts.usePlayPage),
-    });
-    return base + "?id=" + encodeURIComponent(String(gameId));
+function resolveOnlineParticipantHref(gameId) {
+    return "/play?id=" + encodeURIComponent(String(gameId));
 }
 
 /**
  * Spectator watch URL for an online game id.
  * @param {string|number} gameId
- * @param {{ usePlayPage?: boolean, isMobile?: boolean }} [opts]
+ * @param {{ isMobile?: boolean }} [opts]
  * @returns {string}
  */
 function resolveOnlineWatchHref(gameId, opts) {
-    if (opts && opts.usePlayPage && !opts.isMobile) {
-        return (
-            "/play?id=" +
-            encodeURIComponent(String(gameId)) +
-            "&mode=watch"
-        );
+    if (opts && opts.isMobile) {
+        return "/watch?id=" + encodeURIComponent(String(gameId));
     }
-    /* Mobile and classic both use /watch?id=; mobile UA renders mobile-game shell. */
-    return "/watch?id=" + encodeURIComponent(String(gameId));
+    return (
+        "/play?id=" +
+        encodeURIComponent(String(gameId)) +
+        "&mode=watch"
+    );
 }
 
 /**
@@ -74,95 +58,42 @@ function resolveOnlineWatchHref(gameId, opts) {
 function resolveReviewHref(gameId, opts) {
     const type =
         opts && (opts.type === "history" || opts.type === "pgn") ? opts.type : null;
-    if (opts && opts.usePlayPage) {
-        let url =
-            "/play?mode=review&id=" + encodeURIComponent(String(gameId));
+    if (opts && opts.usePlayPage === false) {
+        let url = "/review?id=" + encodeURIComponent(String(gameId));
         if (type) {
             url += "&type=" + encodeURIComponent(type);
         }
         return url;
     }
-    let classic = "/review?id=" + encodeURIComponent(String(gameId));
+    let url =
+        "/play?mode=review&id=" + encodeURIComponent(String(gameId));
     if (type) {
-        classic += "&type=" + encodeURIComponent(type);
+        url += "&type=" + encodeURIComponent(type);
     }
-    return classic;
+    return url;
 }
 
 /**
- * Debug / Practice self-play URL.
- * @param {{ usePlayPage?: boolean }} [opts]
+ * Practice / Debug entry URL.
  * @returns {string}
  */
-function resolvePracticeHref(opts) {
-    if (opts && opts.usePlayPage) {
-        return "/play?mode=practice";
-    }
-    return "/game?gameType=3";
+function resolvePracticeHref() {
+    return "/play?mode=practice";
 }
 
 /**
- * Whether the logged-in user may open the Play shell.
- * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
- */
-function canAccessPlayPage(req) {
-    return sessionCanAccessPlayPage(req && req.session);
-}
-
-/**
- * Position Setup + Config on /play.
- * @param {{ session?: { admin?: boolean, userType?: string } }} req
- */
-function canUsePlayAdvancedTools(req) {
-    return sessionCanUsePlayAdvancedTools(req && req.session);
-}
-
-/**
- * Debug / PracticeGame (gameType 3).
- * @param {{ session?: { admin?: boolean, userType?: string } }} req
- */
-function canAccessDebug(req) {
-    return sessionCanAccessDebug(req && req.session);
-}
-
-/**
- * Desktop web users with a session use the new Play UI.
- * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
- */
-function effectivePreferPlayPage(req) {
-    return sessionCanAccessPlayPage(req && req.session);
-}
-
-/**
- * Phase 10 deprecation: map classic `/game` query → `/play` when safe.
- * Returns null to keep classic rendering (escape hatch, SP reopen by id, unjoined join).
+ * Map retired `/game` query → `/play`.
  *
  * @param {Record<string, string|undefined>|null|undefined} query
- * @param {{
- *   classicEscape?: boolean,
- *   onlineGameById?: boolean,
- *   alreadyJoinedJoinGame?: boolean,
- * }} [opts]
- * @returns {string|null}
+ * @returns {string}
  */
-function resolveDeprecatedGameToPlayHref(query, opts) {
+function resolveGameToPlayHref(query) {
     const q = query || {};
-    const options = opts || {};
-    if (options.classicEscape === true || q.classic === "1") {
-        return null;
-    }
 
-    /*
-     * Friend join: Prefer-Play accept goes to /play?id= directly.
-     * Deep-link /game?joinGame= still needs classic join unless already a participant.
-     */
     if (q.joinGame != null && String(q.joinGame).trim() !== "") {
-        if (options.alreadyJoinedJoinGame === true) {
-            return (
-                "/play?id=" + encodeURIComponent(String(q.joinGame).trim())
-            );
-        }
-        return null;
+        return (
+            "/play?id=" + encodeURIComponent(String(q.joinGame).trim())
+        );
     }
 
     if (String(q.gameType) === "3") {
@@ -170,10 +101,6 @@ function resolveDeprecatedGameToPlayHref(query, opts) {
     }
 
     if (q.id != null && String(q.id).trim() !== "") {
-        /*
-         * Prefer-Play: reopen any live game by id (OnlineGame + SinglePlayerGame,
-         * including on-hold rejoin). Classic escape still skips this helper.
-         */
         let url = "/play?id=" + encodeURIComponent(String(q.id).trim());
         if (q.mode === "watch") {
             url += "&mode=watch";
@@ -208,12 +135,22 @@ function resolveDeprecatedGameToPlayHref(query, opts) {
         return "/play?" + params.toString();
     }
 
-    /* Bare /game → Play shell. */
-    if (q.gameType == null || String(q.gameType).trim() === "") {
-        return "/play";
-    }
+    return "/play";
+}
 
-    return null;
+/**
+ * @param {{ session?: { user_id?: *, admin?: boolean, userType?: string } }} req
+ */
+function canAccessPlayPage(req) {
+    return sessionCanAccessPlayPage(req && req.session);
+}
+
+function canUsePlayAdvancedTools(req) {
+    return sessionCanUsePlayAdvancedTools(req && req.session);
+}
+
+function canAccessDebug(req) {
+    return sessionCanAccessDebug(req && req.session);
 }
 
 module.exports = {
@@ -222,11 +159,10 @@ module.exports = {
     resolveOnlineWatchHref,
     resolveReviewHref,
     resolvePracticeHref,
-    resolveDeprecatedGameToPlayHref,
+    resolveGameToPlayHref,
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,
-    effectivePreferPlayPage,
     isAdminSession,
     resolveSessionUserType,
 };

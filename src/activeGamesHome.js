@@ -98,12 +98,12 @@
         var pathFn = typeof window !== "undefined" ? window.getPlayGameBasePath : null;
         if (typeof pathFn === "function") {
             try {
-                return pathFn({ forOnlineSession: true });
+                return pathFn();
             } catch {
                 /* ignore */
             }
         }
-        return "/game";
+        return "/play";
     }
 
     function getGameUrl(g, username) {

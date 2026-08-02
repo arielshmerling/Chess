@@ -11,8 +11,8 @@ const uciBackend = require("../src/engines/uci/uciBackend");
 const engineService = require("../src/engines/engineService");
 
 describe("engines registry", function () {
-    it("lists Prefer-Play brains and stockfish", function () {
-        const ids = registry.preferPlayEngineIds();
+    it("lists Play brains and stockfish", function () {
+        const ids = registry.playEngineIds();
         assert.ok(ids.includes("brain43"));
         assert.ok(ids.includes("stockfish"));
         assert.strictEqual(registry.getEngine("stockfish").backend, "uci");
@@ -40,6 +40,7 @@ describe("engines uciBackend", function () {
         uciBackend.disposeAll();
         uciBackend.clearAvailabilityCache();
         delete process.env.STOCKFISH_PATH;
+        delete process.env.FAKE_UCI_ASSERT_SKILL;
     });
 
     it("probes availability using STOCKFISH_PATH", async function () {
@@ -76,6 +77,24 @@ describe("engines uciBackend", function () {
         assert.strictEqual(move.source.col, 4);
         assert.strictEqual(move.target.row, 3);
         assert.strictEqual(move.target.col, 4);
+    });
+
+    it("computeMove applies skillLevel to the UCI process", async function () {
+        process.env.FAKE_UCI_ASSERT_SKILL = "3";
+        const game = new ChessGame(true);
+        game.startNewGame(true);
+        game.makeMove({ row: 6, col: 4 }, { row: 4, col: 4 });
+
+        const move = await uciBackend.computeMove({
+            gameState: game.GameState,
+            engine: "stockfish",
+            thinkingTimeSeconds: 1,
+            skillLevel: 3,
+            pliesPlayed: 1,
+        });
+        assert.ok(move);
+        assert.ok(move.source);
+        delete process.env.FAKE_UCI_ASSERT_SKILL;
     });
 });
 

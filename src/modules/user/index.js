@@ -1,5 +1,6 @@
 const express = require("express");
 const userController = require("./controller");
+const gameController = require("../game/controller");
 const { storeReturnTo, requiresAdmin, requireLogin } = require("../../utils");
 const router = express.Router();
 
@@ -27,6 +28,8 @@ router.get("/admin", requiresAdmin, userController.showAdminPage);
 router.get("/admin/opening-book", requiresAdmin, userController.getAdminOpeningBookStatus);
 router.get("/admin/engines", requiresAdmin, userController.listAdminEngines);
 router.patch("/admin/engines/:id", requiresAdmin, userController.updateAdminEngine);
+router.post("/admin/bots/duel", requiresAdmin, gameController.createEngineDuelHandler);
+router.post("/admin/bots/duel/:id/stop", requiresAdmin, gameController.stopEngineDuelHandler);
 router.patch("/admin/users/:id", requiresAdmin, userController.updateUserAdmin);
 
 router.route("/register")

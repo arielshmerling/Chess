@@ -4,7 +4,6 @@ const {
     canAccessPlayPage,
     canUsePlayAdvancedTools,
     canAccessDebug,
-    effectivePreferPlayPage,
 } = require("../src/play/playPaths");
 const {
     resolveSessionUserType,
@@ -13,49 +12,27 @@ const {
 
 describe("playPaths", function () {
     describe("resolvePlayGamePath", function () {
-        it("defaults to /game when usePlayPage is false", function () {
+        it("defaults desktop to /play", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, usePlayPage: false }),
-                "/game",
+                resolvePlayGamePath({ isMobile: false }),
+                "/play",
             );
         });
 
         it("uses /mobile-game for mobile user agents", function () {
             assert.strictEqual(
-                resolvePlayGamePath({ isMobile: true, usePlayPage: true }),
+                resolvePlayGamePath({ isMobile: true }),
                 "/mobile-game",
             );
         });
 
-        it("honors desktop=1 query for mobile → /play when usePlayPage", function () {
+        it("honors desktop=1 query for mobile → /play", function () {
             assert.strictEqual(
                 resolvePlayGamePath({
                     isMobile: true,
                     desktopQuery: true,
-                    usePlayPage: true,
                 }),
                 "/play",
-            );
-        });
-
-        it("routes usePlayPage users to /play", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, usePlayPage: true }),
-                "/play",
-            );
-        });
-
-        it("keeps isAdmin compat → /play", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, isAdmin: true }),
-                "/play",
-            );
-        });
-
-        it("keeps non-preferring users on /game", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false, isAdmin: false }),
-                "/game",
             );
         });
     });
@@ -63,17 +40,10 @@ describe("playPaths", function () {
     describe("resolveOnlineParticipantHref", function () {
         const { resolveOnlineParticipantHref } = require("../src/play/playPaths");
 
-        it("uses /play?id= when usePlayPage", function () {
+        it("uses /play?id=", function () {
             assert.strictEqual(
-                resolveOnlineParticipantHref("abc123", { usePlayPage: true }),
+                resolveOnlineParticipantHref("abc123"),
                 "/play?id=abc123",
-            );
-        });
-
-        it("uses /game?id= when classic UI", function () {
-            assert.strictEqual(
-                resolveOnlineParticipantHref("abc123", { usePlayPage: false }),
-                "/game?id=abc123",
             );
         });
     });
@@ -81,23 +51,16 @@ describe("playPaths", function () {
     describe("resolveOnlineWatchHref", function () {
         const { resolveOnlineWatchHref } = require("../src/play/playPaths");
 
-        it("uses /play?id=&mode=watch when usePlayPage", function () {
+        it("uses /play?id=&mode=watch on desktop", function () {
             assert.strictEqual(
-                resolveOnlineWatchHref("abc123", { usePlayPage: true }),
+                resolveOnlineWatchHref("abc123"),
                 "/play?id=abc123&mode=watch",
             );
         });
 
-        it("uses classic /watch?id= otherwise", function () {
+        it("keeps mobile on /watch?id=", function () {
             assert.strictEqual(
-                resolveOnlineWatchHref("abc123", { usePlayPage: false }),
-                "/watch?id=abc123",
-            );
-        });
-
-        it("keeps mobile on /watch?id= even when usePlayPage (mobile shell)", function () {
-            assert.strictEqual(
-                resolveOnlineWatchHref("abc123", { usePlayPage: true, isMobile: true }),
+                resolveOnlineWatchHref("abc123", { isMobile: true }),
                 "/watch?id=abc123",
             );
         });
@@ -106,18 +69,18 @@ describe("playPaths", function () {
     describe("resolveReviewHref", function () {
         const { resolveReviewHref } = require("../src/play/playPaths");
 
-        it("uses /play?mode=review when usePlayPage", function () {
+        it("uses /play?mode=review by default", function () {
             assert.strictEqual(
-                resolveReviewHref("abc123", { usePlayPage: true, type: "history" }),
+                resolveReviewHref("abc123", { type: "history" }),
                 "/play?mode=review&id=abc123&type=history",
             );
             assert.strictEqual(
-                resolveReviewHref("abc123", { usePlayPage: true, type: "pgn" }),
+                resolveReviewHref("abc123", { type: "pgn" }),
                 "/play?mode=review&id=abc123&type=pgn",
             );
         });
 
-        it("uses classic /review otherwise", function () {
+        it("uses /review when usePlayPage is explicitly false", function () {
             assert.strictEqual(
                 resolveReviewHref("abc123", { usePlayPage: false, type: "history" }),
                 "/review?id=abc123&type=history",
@@ -128,18 +91,8 @@ describe("playPaths", function () {
     describe("resolvePracticeHref", function () {
         const { resolvePracticeHref } = require("../src/play/playPaths");
 
-        it("uses /play?mode=practice when usePlayPage", function () {
-            assert.strictEqual(
-                resolvePracticeHref({ usePlayPage: true }),
-                "/play?mode=practice",
-            );
-        });
-
-        it("uses classic /game?gameType=3 otherwise", function () {
-            assert.strictEqual(
-                resolvePracticeHref({ usePlayPage: false }),
-                "/game?gameType=3",
-            );
+        it("uses /play?mode=practice", function () {
+            assert.strictEqual(resolvePracticeHref(), "/play?mode=practice");
         });
     });
 
@@ -212,42 +165,22 @@ describe("playPaths", function () {
         });
     });
 
-    describe("effectivePreferPlayPage", function () {
-        it("returns true for any logged-in user", function () {
-            assert.strictEqual(
-                effectivePreferPlayPage({ session: { user_id: "1", admin: false, userType: "Member" } }),
-                true,
-            );
-            assert.strictEqual(
-                effectivePreferPlayPage({ session: { admin: false } }),
-                false,
-            );
-        });
-
-        it("returns true for admins", function () {
-            assert.strictEqual(
-                effectivePreferPlayPage({ session: { user_id: "1", admin: true } }),
-                true,
-            );
-        });
-    });
-
-    describe("resolveDeprecatedGameToPlayHref", function () {
-        const { resolveDeprecatedGameToPlayHref } = require("../src/play/playPaths");
+    describe("resolveGameToPlayHref", function () {
+        const { resolveGameToPlayHref } = require("../src/play/playPaths");
 
         it("maps bare /game to /play", function () {
-            assert.strictEqual(resolveDeprecatedGameToPlayHref({}), "/play");
+            assert.strictEqual(resolveGameToPlayHref({}), "/play");
         });
 
         it("maps practice gameType 3 to /play?mode=practice", function () {
             assert.strictEqual(
-                resolveDeprecatedGameToPlayHref({ gameType: "3" }),
+                resolveGameToPlayHref({ gameType: "3" }),
                 "/play?mode=practice",
             );
         });
 
         it("maps newGame SP query to /play?newGame=1…", function () {
-            const href = resolveDeprecatedGameToPlayHref({
+            const href = resolveGameToPlayHref({
                 gameType: "1",
                 newGame: "1",
                 color: "black",
@@ -260,20 +193,13 @@ describe("playPaths", function () {
             assert.ok(href.indexOf("engine=brain43") >= 0);
         });
 
-        it("maps any id reopen to /play (online + SP / on-hold rejoin)", function () {
+        it("maps id reopen and watch to /play", function () {
             assert.strictEqual(
-                resolveDeprecatedGameToPlayHref(
-                    { id: "abc123" },
-                    { onlineGameById: true },
-                ),
+                resolveGameToPlayHref({ id: "abc123" }),
                 "/play?id=abc123",
             );
             assert.strictEqual(
-                resolveDeprecatedGameToPlayHref({ id: "abc123" }),
-                "/play?id=abc123",
-            );
-            assert.strictEqual(
-                resolveDeprecatedGameToPlayHref({
+                resolveGameToPlayHref({
                     id: "abc123",
                     mode: "watch",
                 }),
@@ -281,37 +207,13 @@ describe("playPaths", function () {
             );
         });
 
-        it("keeps unjoined joinGame on classic (null)", function () {
+        it("maps joinGame to /play?id=", function () {
             assert.strictEqual(
-                resolveDeprecatedGameToPlayHref({
+                resolveGameToPlayHref({
                     gameType: "2",
                     joinGame: "abc123",
                 }),
-                null,
-            );
-        });
-
-        it("maps already-joined joinGame to /play?id=", function () {
-            assert.strictEqual(
-                resolveDeprecatedGameToPlayHref(
-                    { gameType: "2", joinGame: "abc123" },
-                    { alreadyJoinedJoinGame: true },
-                ),
                 "/play?id=abc123",
-            );
-        });
-
-        it("honors classic=1 escape", function () {
-            assert.strictEqual(
-                resolveDeprecatedGameToPlayHref({ newGame: "1", classic: "1" }),
-                null,
-            );
-            assert.strictEqual(
-                resolveDeprecatedGameToPlayHref(
-                    { newGame: "1" },
-                    { classicEscape: true },
-                ),
-                null,
             );
         });
     });

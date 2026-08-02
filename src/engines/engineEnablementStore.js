@@ -1,6 +1,6 @@
 /**
- * Admin enable/disable overrides for Prefer-Play engines.
- * Persisted at data/prefer-play-engines.json (default: all enabled).
+ * Admin enable/disable overrides for Play engines.
+ * Persisted at data/play-engines.json (default: all enabled).
  */
 
 "use strict";
@@ -8,7 +8,7 @@
 const fs = require("fs").promises;
 const path = require("path");
 
-const STORE_PATH = path.join(__dirname, "../../data/prefer-play-engines.json");
+const STORE_PATH = path.join(__dirname, "../../data/play-engines.json");
 
 /** @type {Set<string>|null} */
 let disabledCache = null;

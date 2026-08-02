@@ -10,7 +10,7 @@ const {
     canCustomizeThemes,
     canAccessDebug,
 } = require("../modules/user/roles");
-const { preferPlayEngineIds } = require("../engines/registry");
+const { playEngineIds } = require("../engines/registry");
 const engineService = require("../engines/engineService");
 
 exports.getLaunchContext = catchAsync(async (req, res) => {
@@ -24,8 +24,8 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
     ) {
         lastGameOptions.engine = "brain43";
     }
-    const engines = await engineService.listPreferPlayEnginesForClient();
-    const defaultEngine = await engineService.resolveEnabledPreferPlayEngine("brain43");
+    const engines = await engineService.listPlayEnginesForClient();
+    const defaultEngine = await engineService.resolveEnabledPlayEngine("brain43");
     if (
         lastGameOptions
         && lastGameOptions.engine
@@ -47,20 +47,20 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
 });
 
 const ALLOWED_ENGINES = Array.from(
-    new Set(["brain2", "brain3", "brain4", ...preferPlayEngineIds()]),
+    new Set(["brain2", "brain3", "brain4", ...playEngineIds()]),
 );
 
 async function normalizeLastGameOptions(body) {
     const input = body && typeof body === "object" ? body : {};
     const engineRaw = typeof input.engine === "string" ? input.engine.trim() : "";
-    const preferIds = preferPlayEngineIds();
+    const catalogIds = playEngineIds();
     let engine;
-    if (preferIds.includes(engineRaw)) {
-        engine = (await engineService.resolveEnabledPreferPlayEngine(engineRaw)) || "brain43";
+    if (catalogIds.includes(engineRaw)) {
+        engine = (await engineService.resolveEnabledPlayEngine(engineRaw)) || "brain43";
     } else if (ALLOWED_ENGINES.includes(engineRaw)) {
         engine = engineRaw;
     } else {
-        engine = (await engineService.resolveEnabledPreferPlayEngine("brain43")) || "brain43";
+        engine = (await engineService.resolveEnabledPlayEngine("brain43")) || "brain43";
     }
     const difficulty = Number(input.difficulty != null ? input.difficulty : input.thinkingTimeSeconds);
     const timeMinutes = Number(input.timeMinutes);

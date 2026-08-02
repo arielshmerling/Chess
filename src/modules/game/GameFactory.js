@@ -2,6 +2,7 @@
 const { SinglePlayerGame } = require("./SinglePlayerGame");
 const { PracticeGame } = require("./PracticeGame");
 const { OnlineGame } = require("./OnlineGame");
+const { EngineDuelGame } = require("./EngineDuelGame");
 
 
 class GameFactory {
@@ -18,6 +19,9 @@ class GameFactory {
             case 3:
             case "PracticeGame":
                 return new PracticeGame(gameInfo, player, mode);
+            case 4:
+            case "EngineDuelGame":
+                return new EngineDuelGame(gameInfo, player, mode);
             default:
                 throw new Error("Unknown game type");
         }

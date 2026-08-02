@@ -168,7 +168,7 @@ describe("GameBase connected ack", function () {
     });
 });
 
-describe("Prefer-Play SP mirror orientation vs handleMove", function () {
+describe("Play SP mirror orientation vs handleMove", function () {
     it("accepts black human ply when sent in player view", async function () {
         const human = new Player("69ac2cc393c4f39bea834f00", "tester");
         const game = new GameBase(
@@ -218,7 +218,7 @@ describe("Prefer-Play SP mirror orientation vs handleMove", function () {
         assert.ok(String(applied.moveStr).indexOf("e5") !== -1);
     });
 
-    it("rejects double-flipped black human ply (old Prefer-Play bug)", async function () {
+    it("rejects double-flipped black human ply (old Play bug)", async function () {
         const human = new Player("69ac2cc393c4f39bea834f00", "tester");
         const game = new GameBase(
             { gameType: 1, options: { clientEngine: true } },

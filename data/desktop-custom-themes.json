@@ -193,8 +193,8 @@
         "--button-background": "#707070",
         "--button-forecolor": "#a7a7a7",
         "--button-highlight": "#e5e5e5",
-        "--play-now-btn-background": "#5cb37d",
-        "--play-now-btn-forecolor": "#293241",
+        "--play-now-btn-background": "#d6d6d6",
+        "--play-now-btn-forecolor": "#787878",
         "--textbox-background": "#969696",
         "--textbox-forecolor": "#000000",
         "--moves-panel-bg": "#b9bcc0",
@@ -233,7 +233,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1783391615357
+      "updatedAt": 1785641617112
     },
     {
       "id": "custom-mpa8c3z4",
@@ -271,8 +271,8 @@
         "--button-background": "#233245",
         "--button-forecolor": "#a7a7a7",
         "--button-highlight": "#e5e5e5",
-        "--play-now-btn-background": "#5cb37d",
-        "--play-now-btn-forecolor": "#293241",
+        "--play-now-btn-background": "#e2dfd0",
+        "--play-now-btn-forecolor": "#7d8151",
         "--textbox-background": "#737373",
         "--textbox-forecolor": "#9f9984",
         "--moves-panel-bg": "#9ca088",
@@ -311,7 +311,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.12)",
         "--dialog-inner-border": "rgba(255, 255, 255, 0.12)"
       },
-      "updatedAt": 1783082098564
+      "updatedAt": 1785641651331
     },
     {
       "id": "custom-mqcodd0j",
@@ -427,7 +427,7 @@
         "--button-background": "#242424",
         "--button-forecolor": "#A5A5A5",
         "--button-highlight": "#e5e5e5",
-        "--play-now-btn-background": "#5cb37d",
+        "--play-now-btn-background": "#975cb2",
         "--play-now-btn-forecolor": "#293241",
         "--textbox-background": "#0c0c0c",
         "--textbox-forecolor": "#A5A5A5",
@@ -467,7 +467,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.2)",
         "--dialog-inner-border": "#3b3b3b"
       },
-      "updatedAt": 1783902738229
+      "updatedAt": 1785641664297
     },
     {
       "id": "custom-mr45iwvr",
@@ -505,8 +505,8 @@
         "--button-background": "#2b2b2b",
         "--button-forecolor": "#A5A5A5",
         "--button-highlight": "#e5e5e5",
-        "--play-now-btn-background": "#5cb37d",
-        "--play-now-btn-forecolor": "#293241",
+        "--play-now-btn-background": "#87722b",
+        "--play-now-btn-forecolor": "#303030",
         "--textbox-background": "#4C4C4C",
         "--textbox-forecolor": "#A5A5A5",
         "--moves-panel-bg": "#2D3134",
@@ -545,7 +545,7 @@
         "--dialog-inner-background": "rgba(0, 0, 0, 0.2)",
         "--dialog-inner-border": "#3b3b3b"
       },
-      "updatedAt": 1783301380058
+      "updatedAt": 1785641582915
     },
     {
       "id": "custom-mrihlk6r",

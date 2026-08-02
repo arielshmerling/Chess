@@ -13,7 +13,7 @@
     <div class="menuBarMenuItem"><a href="/friends"><%= t('site.friends') %></a></div>
     <div class="menuBarMenuItem topBarMenu-groups"><a href="#"><%= t('site.groups') %></a></div>
     <% if (typeof canDebug !== 'undefined' && canDebug) { %>
-    <div class="menuBarMenuItem"><a href="<%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? '/play?mode=practice' : '/game?gameType=3' %>"><%= t('site.debug') %></a></div>
+    <div class="menuBarMenuItem"><a href="/play?mode=practice"><%= t('site.debug') %></a></div>
     <% } %>
   </div>
   <% } %>

@@ -1,5 +1,5 @@
 /**
- * Site-wide Prefer-Play theme catalog (shared across all web users).
+ * Site-wide Play theme catalog (shared across all web users).
  * Singleton Mongo document; optional sync to data/desktop-custom-themes.json for local git.
  */
 

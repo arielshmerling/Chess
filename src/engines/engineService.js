@@ -1,5 +1,5 @@
 /**
- * Prefer-Play engine compute facade: brains + UCI backends.
+ * Play engine compute facade: brains + UCI backends.
  */
 
 "use strict";
@@ -13,10 +13,10 @@ const enablementStore = require("./engineEnablementStore");
  * @param {object} [opts]
  * @param {boolean} [opts.includeDisabled] - include admin-disabled engines (admin UI)
  */
-async function listPreferPlayEnginesForClient(opts) {
+async function listPlayEnginesForClient(opts) {
     const includeDisabled = !!(opts && opts.includeDisabled);
     const disabled = await enablementStore.getDisabledSet();
-    const defs = registry.listPreferPlayEngines();
+    const defs = registry.listPlayEngines();
     const out = [];
     for (let i = 0; i < defs.length; i += 1) {
         const def = defs[i];
@@ -45,11 +45,11 @@ async function listPreferPlayEnginesForClient(opts) {
 }
 
 /**
- * Full Prefer-Play catalog for Admin Engines tab (includes disabled + command hints).
+ * Full Play catalog for Admin Engines tab (includes disabled + command hints).
  */
-async function listPreferPlayEnginesForAdmin() {
+async function listPlayEnginesForAdmin() {
     const disabled = await enablementStore.getDisabledSet();
-    const defs = registry.listPreferPlayEngines();
+    const defs = registry.listPlayEngines();
     const out = [];
     for (let i = 0; i < defs.length; i += 1) {
         const def = defs[i];
@@ -68,7 +68,6 @@ async function listPreferPlayEnginesForAdmin() {
             labelKey: def.labelKey,
             fallbackLabel: def.fallbackLabel,
             backend: def.backend,
-            preferPlay: def.preferPlay === true,
             alwaysAvailable: def.alwaysAvailable === true,
             commandEnv: def.commandEnv || null,
             commandFallback: def.commandFallback || null,
@@ -85,26 +84,26 @@ async function listPreferPlayEnginesForAdmin() {
  * @param {string} id
  * @param {boolean} enabled
  */
-async function setPreferPlayEngineEnabled(id, enabled) {
+async function setPlayEngineEnabled(id, enabled) {
     const def = registry.getEngine(id);
-    if (!def || !def.preferPlay) {
-        const err = new Error(`Unknown Prefer-Play engine: ${id}`);
+    if (!def) {
+        const err = new Error(`Unknown Play engine: ${id}`);
         err.code = "ENGINE_NOT_FOUND";
         throw err;
     }
     await enablementStore.setEngineEnabled(id, enabled === true);
-    const list = await listPreferPlayEnginesForAdmin();
+    const list = await listPlayEnginesForAdmin();
     return list.find((e) => e.id === id) || null;
 }
 
 /**
- * Resolve a client-requested engine to an enabled Prefer-Play id, or null if none enabled.
+ * Resolve a client-requested engine to an enabled Play id, or null if none enabled.
  * @param {string} [requested]
  * @returns {Promise<string|null>}
  */
-async function resolveEnabledPreferPlayEngine(requested) {
+async function resolveEnabledPlayEngine(requested) {
     const disabled = await enablementStore.getDisabledSet();
-    const ids = registry.preferPlayEngineIds();
+    const ids = registry.playEngineIds();
     const req = typeof requested === "string" ? requested.trim() : "";
     if (req && ids.indexOf(req) !== -1 && !disabled.has(req)) {
         return req;
@@ -161,9 +160,9 @@ module.exports = {
     computeMove,
     evaluatePosition,
     abortSearch,
-    listPreferPlayEnginesForClient,
-    listPreferPlayEnginesForAdmin,
-    setPreferPlayEngineEnabled,
-    resolveEnabledPreferPlayEngine,
+    listPlayEnginesForClient,
+    listPlayEnginesForAdmin,
+    setPlayEngineEnabled,
+    resolveEnabledPlayEngine,
     SearchAbortedError: desktopBrainService.SearchAbortedError,
 };

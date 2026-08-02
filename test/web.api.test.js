@@ -276,7 +276,7 @@ describe("web HTTP / auth", function () {
             .post("/api/play/last-game-options")
             .send({
                 color: "black",
-                engine: "brain42",
+                engine: "brain43",
                 difficulty: 2,
                 mouse: "drag",
                 showAvailableMoves: true,
@@ -286,7 +286,7 @@ describe("web HTTP / auth", function () {
             .expect(200);
         assert.strictEqual(res.body.ok, true);
         assert.strictEqual(res.body.lastGameOptions.color, "black");
-        assert.strictEqual(res.body.lastGameOptions.engine, "brain42");
+        assert.strictEqual(res.body.lastGameOptions.engine, "brain43");
         assert.strictEqual(res.body.lastGameOptions.difficulty, 2);
         assert.strictEqual(res.body.lastGameOptions.timeMinutes, 30);
         assert.strictEqual(res.body.lastGameOptions.isPrivate, true);
@@ -319,7 +319,7 @@ describe("web HTTP / auth", function () {
         const found = rows.some(function (g) {
             return String(g.Id || g.gameId || "") === String(created.body.gameId);
         });
-        assert.ok(found, "public Prefer-Play SP game should appear in active-games");
+        assert.ok(found, "public Play SP game should appear in active-games");
 
         const privateGame = await agent
             .post("/api/play/sp-game")
@@ -336,7 +336,7 @@ describe("web HTTP / auth", function () {
         const privateFound = rows2.some(function (g) {
             return String(g.Id || g.gameId || "") === String(privateGame.body.gameId);
         });
-        assert.ok(!privateFound, "private Prefer-Play SP game must not appear in active-games");
+        assert.ok(!privateFound, "private Play SP game must not appear in active-games");
     });
 
     it("authenticated GET /bookmark returns a list", async function () {
@@ -677,7 +677,7 @@ describe("web HTTP / auth", function () {
         }
     });
 
-    it("authenticated GET /game?newGame vs computer redirects to /play (Phase 10)", async function () {
+    it("authenticated GET /game?newGame vs computer redirects to /play", async function () {
         const agent = await loginAgent();
 
         const gameUrl =
@@ -688,25 +688,11 @@ describe("web HTTP / auth", function () {
         assert.match(String(res.headers.location || ""), /newGame=1/);
     });
 
-    it("authenticated GET /game?classic=1 without gameType starts classic SP", async function () {
+    it("authenticated GET /game redirects to /play", async function () {
         const agent = await loginAgent();
-        const res = await agent.get("/game?classic=1").redirects(0);
+        const res = await agent.get("/game").redirects(0);
         assert.strictEqual(res.status, 302);
-        assert.match(
-            String(res.headers.location || ""),
-            /\/game\?classic=1&gameType=1&newGame=1/,
-        );
-    });
-
-    it("authenticated GET /game?classic=1&newGame still uses classic create path", async function () {
-        const agent = await loginAgent();
-
-        const gameUrl =
-            "/game?classic=1&gameType=1&newGame=1&color=white&engine=brain43&difficulty=1&mouse=drag&showMoves=1&timeMinutes=90";
-        const res = await agent.get(gameUrl).redirects(0);
-        assert.strictEqual(res.status, 302);
-        assert.match(String(res.headers.location || ""), /\/game\?id=/);
-        assert.match(String(res.headers.location || ""), /classic=1/);
+        assert.strictEqual(String(res.headers.location || ""), "/play");
     });
 
     it("GET /logout then /home redirects to login again", async function () {

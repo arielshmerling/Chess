@@ -9,6 +9,7 @@ const readline = require("readline");
 const rl = readline.createInterface({ input: process.stdin, terminal: false });
 let searching = false;
 let searchTimer = null;
+let lastSkillLevel = null;
 
 function reply(line) {
     process.stdout.write(String(line) + "\n");
@@ -42,11 +43,29 @@ rl.on("line", (line) => {
     if (cmd === "ucinewgame") {
         return;
     }
+    if (cmd.startsWith("setoption ")) {
+        const skillMatch = /name\s+Skill Level\s+value\s+(\d+)/i.exec(cmd);
+        if (skillMatch) {
+            lastSkillLevel = Number(skillMatch[1]);
+        }
+        return;
+    }
     if (cmd.startsWith("position ")) {
         return;
     }
     if (cmd.startsWith("go ")) {
         searching = true;
+        const assertSkill = process.env.FAKE_UCI_ASSERT_SKILL;
+        if (assertSkill != null && assertSkill !== "") {
+            const expected = Number(assertSkill);
+            if (lastSkillLevel !== expected) {
+                clearSearch();
+                process.stderr.write(
+                    `expected Skill Level ${expected}, got ${lastSkillLevel}\n`,
+                );
+                process.exit(2);
+            }
+        }
         const movetimeMatch = /movetime\s+(\d+)/.exec(cmd);
         const delay = movetimeMatch ? Math.min(Number(movetimeMatch[1]), 200) : 20;
         searchTimer = setTimeout(() => {

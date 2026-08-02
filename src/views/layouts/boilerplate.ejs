@@ -61,7 +61,6 @@
   <script src="/app/ui/desktop-prefs-language.js"></script>
   <script src="/app/ui/desktop-chrome.js"></script>
   <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
-    window.__SHMERLING_USE_NEW_PLAY_UI__ = <%= (typeof canUsePlayPage !== 'undefined' && canUsePlayPage) ? 'true' : 'false' %>;
     window.__SHMERLING_USER_TYPE__ = <%- JSON.stringify(typeof userType !== 'undefined' && userType ? userType : 'Member') %>;
     window.__SHMERLING_PLAY_ADVANCED__ = <%= (typeof canPlayAdvanced !== 'undefined' && canPlayAdvanced) ? 'true' : 'false' %>;
     window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = <%= (typeof canCustomizeThemes !== 'undefined' && canCustomizeThemes) ? 'true' : 'false' %>;

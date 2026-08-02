@@ -159,7 +159,7 @@ async function executeBookmarkFromResearch(bookmarkObj, bookmarkId) {
     }
     const engine = normalizeBookmarkEngine(bookmarkObj.engine);
     const depth = normalizeBookmarkDepth(bookmarkObj.depth);
-    const createPath = "/game?gameType=1&newGame=1&private=1&engine="
+    const createPath = "/mobile-game?gameType=1&newGame=1&private=1&engine="
         + encodeURIComponent(engine)
         + "&difficulty=" + encodeURIComponent(String(depth));
     await getServerInfo(createPath);
@@ -746,7 +746,7 @@ async function tryMove(sourcePos, targetPos) {
         lastMove = executed;
         switchClocks();
         await sendMove(executed);
-        /* Prefer-Play / mobile LocalEngineMode: reliable after-move hook (sendMove wrap alone is brittle). */
+        /* Play / mobile LocalEngineMode: reliable after-move hook (sendMove wrap alone is brittle). */
         if (typeof window !== "undefined" && typeof window.__SHMERLING_AFTER_HUMAN_MOVE__ === "function") {
             Promise.resolve().then(function () {
                 return window.__SHMERLING_AFTER_HUMAN_MOVE__(executed);

@@ -1,5 +1,5 @@
 /**
- * UCI engine backend for Prefer-Play (external Stockfish process).
+ * UCI engine backend for Play (external Stockfish process).
  */
 
 "use strict";
@@ -12,7 +12,7 @@ const {
 } = require("../../desktop/forcedMateDetection");
 const { gameStateToFen, uciToMove } = require("../fenCodec");
 const { getEngine, resolveUciCommand } = require("../registry");
-const { createUciProcess, SearchAbortedError } = require("./uciProcess");
+const { createUciProcess, SearchAbortedError, normalizeSkillLevel } = require("./uciProcess");
 
 const { thinkingTimeSecondsToMs } = brainConfigService;
 
@@ -135,7 +135,7 @@ function disposeAll() {
 }
 
 /**
- * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, immediateResign?: boolean, pliesPlayed?: number }} opts
+ * @param {{ gameState: object, engine?: string, thinkingTimeSeconds?: number, difficulty?: number, skillLevel?: number, immediateResign?: boolean, pliesPlayed?: number }} opts
  * @returns {Promise<object|null>}
  */
 async function computeMove(opts) {
@@ -145,6 +145,7 @@ async function computeMove(opts) {
         engine = "stockfish",
         thinkingTimeSeconds,
         difficulty,
+        skillLevel,
         immediateResign,
         pliesPlayed,
     } = opts || {};
@@ -205,9 +206,13 @@ async function computeMove(opts) {
         throw new SearchAbortedError();
     }
 
+    const resolvedSkill = normalizeSkillLevel(skillLevel);
     let bestUci;
     try {
-        bestUci = await proc.goMovetime(fen, thinkingTimeMs, { abortSignal });
+        bestUci = await proc.goMovetime(fen, thinkingTimeMs, {
+            abortSignal,
+            skillLevel: resolvedSkill,
+        });
     } catch (err) {
         if (err && err.name === "SearchAbortedError") {
             throw new SearchAbortedError();

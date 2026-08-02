@@ -16,12 +16,12 @@ const mongoose = require("mongoose");
 const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
-const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref, resolveDeprecatedGameToPlayHref } = require("../../play/playPaths");
+const { resolveOnlineWatchHref, resolveReviewHref, resolveGameToPlayHref } = require("../../play/playPaths");
 const { assignRematchPlayers } = require("./rematchColors");
 const { t } = require("../../strings");
 const gameClocks = require("./gameClocks");
 const engineService = require("../../engines/engineService");
-const { preferPlayEngineIds } = require("../../engines/registry");
+const { playEngineIds } = require("../../engines/registry");
 const {
     normalizeFriendInviteOptions,
     resolveInviterColor,
@@ -83,15 +83,12 @@ function playGamePath(req) {
 
 /**
  * Renders the active play page (desktop `game` or isolated `mobile-game`).
- * Play-UI users are redirected to `/play?id=` for OnlineGame only (Phase 3).
+ * Desktop OnlineGame always redirects to `/play?id=` (classic `/game` UI retired).
  */
 function renderPlayGame(req, res, locals) {
     setGamePageNoCache(res);
-    /* Phase 10: Prefer-Play normally sends OnlineGame to /play; honor classic escape. */
     if (
         req.playGameView !== PLAY_VIEW_MOBILE &&
-        effectivePreferPlayPage(req) &&
-        req.query.classic !== "1" &&
         locals &&
         locals.gameId != null
     ) {
@@ -169,14 +166,14 @@ async function executeReview(req, res, viewName) {
 
 /**
  * Review game (desktop `game.ejs`). Mobile user-agents are redirected to `/mobile-review` unless `desktop=1`.
- * Prefer-Play desktop users are redirected to `/play?mode=review&id=…`.
+ * Play desktop users are redirected to `/play?mode=review&id=…`.
  */
 exports.review = catchAsync(async (req, res) => {
     if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
         const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
         return res.redirect(302, "/mobile-review" + q);
     }
-    if (effectivePreferPlayPage(req) && !userAgentLooksMobile(req)) {
+    if (!userAgentLooksMobile(req)) {
         const game = await ensureReviewGameLoaded(req);
         if (!game) {
             return res.redirect("/home");
@@ -187,7 +184,6 @@ exports.review = catchAsync(async (req, res) => {
         return res.redirect(
             302,
             resolveReviewHref(game.gameId != null ? game.gameId : req.query.id, {
-                usePlayPage: true,
                 type: qType,
             }),
         );
@@ -207,19 +203,15 @@ exports.watchGame = catchAsync(async (req, res) => {
     const game = gamesManagerService.getGameById(id);
     if (game != null) {
         req.session.gameId = game.gameId;
-        if (effectivePreferPlayPage(req) && !userAgentLooksMobile(req)) {
-            return res.redirect(302, resolveOnlineWatchHref(game.gameId, { usePlayPage: true }));
+        if (!userAgentLooksMobile(req) || req.query.desktop === "1") {
+            return res.redirect(302, resolveOnlineWatchHref(game.gameId));
         }
         setGamePageNoCache(res);
-        /* Phase 8: mobile watch uses the mobile-game shell + OnlineMode (watcher). */
-        if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
-            return res.render(PLAY_VIEW_MOBILE, {
-                gameId: game.gameId,
-                hideTopbar: true,
-            });
-        }
-        res.render("game", { gameId: game.gameId, hideTopbar: true });
-        return;
+        /* Mobile watch uses the mobile-game shell + OnlineMode (watcher). */
+        return res.render(PLAY_VIEW_MOBILE, {
+            gameId: game.gameId,
+            hideTopbar: true,
+        });
 
     }
     else {
@@ -449,58 +441,59 @@ exports.startGame = catchAsync(async (req, res) => {
         return res.redirect(302, "/mobile-game" + q);
     }
     /*
-     * Phase 10 deprecation window: Prefer-Play desktop → /play when safe.
-     * Escape: ?classic=1. Unjoined joinGame still uses classic join until seated.
+     * Desktop classic /game UI is retired: always land on /play (after joining if needed).
+     * Mobile keeps /mobile-game via the redirect above or startGameMobile.
      */
-    if (
-        req.path === "/game" &&
-        effectivePreferPlayPage(req) &&
-        req.query.classic !== "1"
-    ) {
-        let alreadyJoinedJoinGame = false;
+    if (req.path === "/game") {
+        const username = req.session.user_name;
+        const userId = req.session.user_id;
         const joinIdRaw =
             req.query.joinGame != null && String(req.query.joinGame).trim() !== ""
                 ? String(req.query.joinGame).trim()
                 : "";
         if (joinIdRaw) {
-            const liveJoin = gamesManagerService.getGameById(joinIdRaw);
-            const openJoinStates = new Set([
+            if (!mongoose.Types.ObjectId.isValid(joinIdRaw)) {
+                return res.redirect(302, "/home");
+            }
+            const friendJoinGame = gamesManagerService.getGameById(joinIdRaw);
+            const alreadyJoinedOpenStates = new Set([
                 "establishing",
                 "in progress",
                 "on hold",
                 "reJoining",
             ]);
-            alreadyJoinedJoinGame = !!(
-                liveJoin &&
-                liveJoin.constructor &&
-                liveJoin.constructor.name === "OnlineGame" &&
-                liveJoin.blackPlayer &&
-                String(liveJoin.blackPlayer.userId) === String(req.session.user_id) &&
-                openJoinStates.has(liveJoin.status)
-            );
+            const isInvitedBlackJoiner =
+                friendJoinGame &&
+                friendJoinGame.constructor.name === "OnlineGame" &&
+                friendJoinGame.blackPlayer &&
+                String(friendJoinGame.blackPlayer.userId) === String(userId) &&
+                friendJoinGame.createdBy &&
+                String(friendJoinGame.createdBy.userId) !== String(userId);
+            if (isInvitedBlackJoiner && alreadyJoinedOpenStates.has(friendJoinGame.status)) {
+                req.session.gameId = friendJoinGame.gameId;
+                registerEvents(friendJoinGame);
+                return res.redirect(
+                    302,
+                    "/play?id=" + encodeURIComponent(String(friendJoinGame.gameId)),
+                );
+            }
+            if (
+                friendJoinGame &&
+                friendJoinGame.constructor.name === "OnlineGame" &&
+                friendJoinGame.status === "pending" &&
+                friendJoinGame.invitedUserId &&
+                String(friendJoinGame.invitedUserId) === String(userId) &&
+                String(friendJoinGame.createdBy.userId) !== String(userId)
+            ) {
+                await joinPendingOnlineGameAsBlackCore(friendJoinGame, username, userId, req);
+                return res.redirect(
+                    302,
+                    "/play?id=" + encodeURIComponent(String(friendJoinGame.gameId)),
+                );
+            }
+            return res.redirect(302, "/home");
         }
-        const playHref = resolveDeprecatedGameToPlayHref(req.query, {
-            alreadyJoinedJoinGame: alreadyJoinedJoinGame,
-        });
-        if (playHref) {
-            return res.redirect(302, playHref);
-        }
-    }
-    /*
-     * Bare ?classic=1 (no gameType/id): start a default classic SP game instead of
-     * 400 / bounce-to-home. Full escape URL still works: &gameType=1&newGame=1&…
-     */
-    if (
-        req.path === "/game" &&
-        req.query.classic === "1" &&
-        req.query.id == null &&
-        (req.query.joinGame == null || String(req.query.joinGame).trim() === "") &&
-        (req.query.gameType == null || String(req.query.gameType).trim() === "")
-    ) {
-        return res.redirect(
-            302,
-            "/game?classic=1&gameType=1&newGame=1&color=white&engine=brain43&difficulty=3&mouse=drag&showMoves=1&timeMinutes=90",
-        );
+        return res.redirect(302, resolveGameToPlayHref(req.query));
     }
     req.playGameView = PLAY_VIEW_DESKTOP;
     return executeStartGame(req, res);
@@ -551,7 +544,7 @@ const executeStartGame = catchAsync(async (req, res) => {
 
     /*
      * Missing gameType: resume session game if possible, else home.
-     * Prefer-Play bare `/game` redirects to `/play`; `?classic=1` alone used to 400.
+     * (Desktop /game hard-redirects to /play before this path; mobile uses /mobile-game.)
      */
     if (req.query.gameType == null || String(req.query.gameType).trim() === "") {
         if (req.session.gameId) {
@@ -763,11 +756,8 @@ const executeStartGame = catchAsync(async (req, res) => {
     /** Canonical URL so refresh hits ?id= and does not treat modal query params as a new-game signal */
     if (gameTypeInt === 1 && game.gameId != null) {
         setGamePageNoCache(res);
-        let dest =
+        const dest =
             playGamePath(req) + "?id=" + encodeURIComponent(String(game.gameId));
-        if (req.query.classic === "1") {
-            dest += "&classic=1";
-        }
         return res.redirect(302, dest);
     }
     renderPlayGame(req, res, { username, gameId: game.gameId, hideTopbar: true });
@@ -802,14 +792,14 @@ function registerEvents(game) {
 }
 
 /**
- * Prefer-Play public (or private) SP: server-backed SinglePlayerGame with clientEngine
+ * Play public (or private) SP: server-backed SinglePlayerGame with clientEngine
  * so Active Games / watch work while the browser runs LocalEngineMode.
  * @param {string} username
  * @param {string} userId
  * @param {object} [options]
  * @returns {Promise<{ game: object, gameId: string }>}
  */
-async function createPreferPlaySpGame(username, userId, options = {}) {
+async function createPlaySpGame(username, userId, options = {}) {
     const opts = Object.assign({}, options, { clientEngine: true });
     const game = gameService.newGame(1, username, userId, opts);
     game.chessGame.startNewGame(true);
@@ -832,23 +822,84 @@ async function createPreferPlaySpGame(username, userId, options = {}) {
     return { game, gameId: String(game.gameId) };
 }
 
-exports.createPreferPlaySpGame = createPreferPlaySpGame;
+exports.createPlaySpGame = createPlaySpGame;
 
-exports.createPreferPlaySpGameHandler = catchAsync(async (req, res) => {
+/**
+ * Admin: create public (or private) engine-vs-engine duel and start the server runner.
+ */
+exports.createEngineDuelHandler = catchAsync(async (req, res) => {
+    const engineDuelService = require("./engineDuelService");
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    try {
+        const { game, gameId } = await engineDuelService.createAndStartEngineDuel(
+            {
+                adminUsername: req.session.user_name,
+                adminUserId: req.session.user_id,
+                whiteEngine: body.whiteEngine,
+                blackEngine: body.blackEngine,
+                whiteDifficulty:
+                    body.whiteDifficulty != null ? body.whiteDifficulty : body.difficulty,
+                blackDifficulty:
+                    body.blackDifficulty != null ? body.blackDifficulty : body.difficulty,
+                whiteSkillLevel: body.whiteSkillLevel,
+                blackSkillLevel: body.blackSkillLevel,
+                timeMinutes: body.timeMinutes,
+            },
+            (duelGame, meta) => {
+                broadcastActiveGameToLobby("onlineGameInProgress", duelGame, {
+                    Game: t("site.activeGames.playersVs", {
+                        white: meta.whiteName,
+                        black: meta.blackName,
+                    }),
+                    ...lobbyStartedFields(meta.startedOn),
+                    Moves: 0,
+                    ...lobbyStatusFields(duelGame.status),
+                    whitePlayerName: meta.whiteName,
+                    blackPlayerName: meta.blackName,
+                });
+            },
+            registerEvents,
+        );
+        res.json({
+            ok: true,
+            gameId,
+            whitePlayerName: game.whitePlayer ? game.whitePlayer.userName : "",
+            blackPlayerName: game.blackPlayer ? game.blackPlayer.userName : "",
+            watchUrl: `/play?id=${encodeURIComponent(gameId)}&mode=watch`,
+        });
+    } catch (err) {
+        if (err && (err.code === "INVALID_ENGINE" || err.code === "ENGINE_DISABLED")) {
+            return res.status(400).json({ ok: false, message: err.message });
+        }
+        throw err;
+    }
+});
+
+exports.stopEngineDuelHandler = catchAsync(async (req, res) => {
+    const engineDuelService = require("./engineDuelService");
+    const id = req.params.id || (req.body && req.body.gameId);
+    const result = await engineDuelService.stopEngineDuel(id);
+    if (!result.ok) {
+        return res.status(404).json(result);
+    }
+    res.json(result);
+});
+
+exports.createPlaySpGameHandler = catchAsync(async (req, res) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const color = body.color === "black" || body.color === "white" ? body.color : "white";
     const engineRequested =
         typeof body.engine === "string" && body.engine.length <= 20 ? body.engine.trim() : "brain43";
-    const engineResolved = await engineService.resolveEnabledPreferPlayEngine(engineRequested);
+    const engineResolved = await engineService.resolveEnabledPlayEngine(engineRequested);
     if (!engineResolved) {
         return res.status(400).json({
             ok: false,
-            message: "No Prefer-Play engines are currently enabled",
+            message: "No Play engines are currently enabled",
         });
     }
     if (
         engineRequested
-        && preferPlayEngineIds().includes(engineRequested)
+        && playEngineIds().includes(engineRequested)
         && engineResolved !== engineRequested
     ) {
         return res.status(400).json({
@@ -867,7 +918,7 @@ exports.createPreferPlaySpGameHandler = catchAsync(async (req, res) => {
             ? timeMinutesParsed
             : 90;
     const isPrivate = body.isPrivate === true || body.private === "1" || body.private === 1;
-    const { game, gameId } = await createPreferPlaySpGame(req.session.user_name, req.session.user_id, {
+    const { game, gameId } = await createPlaySpGame(req.session.user_name, req.session.user_id, {
         color,
         engine,
         difficulty: difficultyNum,
@@ -919,7 +970,7 @@ function broadcastActiveGameToLobby(type, game, extra = {}) {
         return;
     }
     const name = game.constructor.name;
-    if (name !== "OnlineGame" && name !== "SinglePlayerGame") {
+    if (name !== "OnlineGame" && name !== "SinglePlayerGame" && name !== "EngineDuelGame") {
         return;
     }
     const gameIdStr = String(game.gameId);
@@ -1273,7 +1324,7 @@ const onGameStateChanged = async (e) => {
             const movesCount = game.moves ? Math.ceil(game.moves.length / 2) : 0;
             broadcastActiveGameToLobby("onlineGameUpdated", game, { movesCount, status: game.status });
         }
-        if ((game.constructor.name === "OnlineGame" || game.constructor.name === "SinglePlayerGame") && newState === "in progress") {
+        if ((game.constructor.name === "OnlineGame" || game.constructor.name === "SinglePlayerGame" || game.constructor.name === "EngineDuelGame") && newState === "in progress") {
             const startedOn = game.createOn ? new Date(game.createOn).getTime() : Date.now();
             const blackName = game.blackPlayer?.userName ?? "";
             const whiteName = game.whitePlayer?.userName ?? "";
