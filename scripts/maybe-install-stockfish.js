@@ -16,8 +16,9 @@ const script = path.join(root, "scripts", "install-stockfish-linux.sh");
 
 const force = process.env.INSTALL_STOCKFISH === "1";
 const onRender = process.env.RENDER === "true";
+const onOracleHint = process.env.ORACLE_BOOTSTRAP === "1";
 
-if (!force && !onRender) {
+if (!force && !onRender && !onOracleHint) {
     process.exit(0);
 }
 
