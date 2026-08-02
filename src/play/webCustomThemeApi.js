@@ -14,7 +14,7 @@ exports.get = catchAsync(async (req, res) => {
 exports.save = catchAsync(async (req, res) => {
     const body = req.body || {};
     if (!canCustomizeThemes(req.session)) {
-        // Members may switch the active theme, but not edit the theme catalog.
+        // Non-admins may switch the active theme, but not edit the theme catalog.
         const store = await webPlayPrefsStore.writeActiveThemeOnly(
             req.session.user_id,
             body.activeTheme,

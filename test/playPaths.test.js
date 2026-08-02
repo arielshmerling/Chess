@@ -178,7 +178,7 @@ describe("playPaths", function () {
             );
         });
 
-        it("canCustomizeThemes matches advanced tools (Admin/Partner)", function () {
+        it("canCustomizeThemes allows Admin only", function () {
             const { canCustomizeThemes } = require("../src/modules/user/roles");
             assert.strictEqual(
                 canCustomizeThemes({ admin: true, userType: "Admin" }),
@@ -186,7 +186,7 @@ describe("playPaths", function () {
             );
             assert.strictEqual(
                 canCustomizeThemes({ admin: false, userType: "Partner" }),
-                true,
+                false,
             );
             assert.strictEqual(
                 canCustomizeThemes({ admin: false, userType: "Member" }),

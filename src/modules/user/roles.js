@@ -47,12 +47,12 @@ function canUsePlayAdvancedTools(session) {
 }
 
 /**
- * Customize / edit custom themes — Admin and Partner only.
- * Members may still select built-in and existing custom themes.
+ * Customize / edit custom theme catalogs — Admin only.
+ * Partners and Members may still select built-in and existing custom themes.
  * @param {{ admin?: boolean, userType?: string }|null|undefined} session
  */
 function canCustomizeThemes(session) {
-    return canUsePlayAdvancedTools(session);
+    return isAdminSession(session);
 }
 
 module.exports = {

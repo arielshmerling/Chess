@@ -306,9 +306,6 @@
         if (typeof window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ === "boolean") {
             return window.__SHMERLING_CAN_CUSTOMIZE_THEMES__;
         }
-        if (typeof window.__SHMERLING_PLAY_ADVANCED__ === "boolean") {
-            return window.__SHMERLING_PLAY_ADVANCED__;
-        }
         return false;
     }
 
@@ -343,7 +340,7 @@
                 return res.ok ? res.json() : null;
             })
             .then(function (ctx) {
-                var allowed = !!(ctx && (ctx.canCustomizeThemes || ctx.canPlayAdvanced));
+                var allowed = !!(ctx && ctx.canCustomizeThemes);
                 window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = allowed;
                 applyCustomizeThemeButtonVisibility(allowed);
             })

@@ -7,6 +7,7 @@ const { User } = require("../modules/user/model");
 const {
     resolveSessionUserType,
     canUsePlayAdvancedTools,
+    canCustomizeThemes,
     canAccessDebug,
 } = require("../modules/user/roles");
 const { preferPlayEngineIds } = require("../engines/registry");
@@ -37,7 +38,7 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
         username: user && user.username ? user.username : req.session.user_name || "Player",
         userType,
         canPlayAdvanced: canUsePlayAdvancedTools(req.session),
-        canCustomizeThemes: canUsePlayAdvancedTools(req.session),
+        canCustomizeThemes: canCustomizeThemes(req.session),
         canDebug: canAccessDebug(req.session),
         lastGameOptions,
         engines,

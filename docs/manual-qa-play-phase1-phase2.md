@@ -23,6 +23,7 @@ Use this document as the living checklist. Add Phase 5+ sections at the bottom w
 | New Play UI (`/play`) | Yes | Yes | Yes |
 | Position setup | Yes | Yes | Hidden |
 | Brain config panel | Yes | Yes | Hidden |
+| Manage themes (create/edit/delete) | Yes | No | No |
 | Saved games / review sidebar | Yes | Yes | Typically limited / hidden tools |
 | Admin menu | Yes | No | No |
 | Debug (classic `/game`) | Yes | Yes | No |

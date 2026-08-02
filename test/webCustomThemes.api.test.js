@@ -8,7 +8,11 @@
 
 const assert = require("assert");
 const request = require("supertest");
-const { ensureWebE2EUsers, ensureWebE2EPartner } = require("./helpers/webE2EUser");
+const {
+    ensureWebE2EUsers,
+    ensureWebE2EPartner,
+    ensureWebE2EAdmin,
+} = require("./helpers/webE2EUser");
 const { loadWebApp, resetWebRateLimits } = require("./helpers/webApp");
 const { createSeedThemeEntries } = require("../src/desktop/themeSchema");
 
@@ -20,11 +24,13 @@ describe("web custom themes API", function () {
     let app;
     let primary;
     let partner;
+    let admin;
 
     before(async function () {
         const users = await ensureWebE2EUsers();
         primary = users.primary;
         partner = await ensureWebE2EPartner();
+        admin = await ensureWebE2EAdmin();
         app = loadWebApp();
         resetWebRateLimits(app);
     });
@@ -78,8 +84,34 @@ describe("web custom themes API", function () {
         assert.ok(!findTheme(after, id));
     });
 
-    it("partner persists a newly created theme", async function () {
+    it("partner can change activeTheme but cannot create themes", async function () {
         const agent = await loginAgent(partner);
+        const before = (await agent.get(THEMES_URL).expect(200)).body;
+        assert.ok(Array.isArray(before.themes) && before.themes.length > 0, "catalog should not be empty");
+        const id = "custom-partner-denied-" + Date.now().toString(36);
+        const nextActive = before.activeTheme || ("custom:" + before.themes[0].id);
+
+        const res = await agent
+            .post(THEMES_URL)
+            .send({
+                activeTheme: nextActive,
+                themes: before.themes.concat([
+                    {
+                        id: id,
+                        name: "Partner should not persist",
+                        vars: { "--body-background": "#222222" },
+                        updatedAt: Date.now(),
+                    },
+                ]),
+            })
+            .expect(200);
+
+        assert.strictEqual(res.body.activeTheme, nextActive);
+        assert.ok(!findTheme(res.body, id), "partner must not create themes");
+    });
+
+    it("admin persists a newly created theme", async function () {
+        const agent = await loginAgent(admin);
         const before = (await agent.get(THEMES_URL).expect(200)).body;
 
         const id = "custom-test-" + Date.now().toString(36);
@@ -104,8 +136,8 @@ describe("web custom themes API", function () {
         }
     });
 
-    it("partner keeps a deleted seeded theme deleted", async function () {
-        const agent = await loginAgent(partner);
+    it("admin keeps a deleted seeded theme deleted", async function () {
+        const agent = await loginAgent(admin);
         let before = (await agent.get(THEMES_URL).expect(200)).body;
         let seeded = findTheme(before, "blue");
         if (!seeded) {
@@ -153,8 +185,8 @@ describe("web custom themes API", function () {
         assert.ok(findTheme(restored, seeded.id), "restoring the full list brings it back");
     });
 
-    it("partner can delete every theme and restore the catalog", async function () {
-        const agent = await loginAgent(partner);
+    it("admin can delete every theme and restore the catalog", async function () {
+        const agent = await loginAgent(admin);
         const before = (await agent.get(THEMES_URL).expect(200)).body;
 
         try {
@@ -171,8 +203,8 @@ describe("web custom themes API", function () {
         }
     });
 
-    it("partner persists edits to a bundled theme", async function () {
-        const agent = await loginAgent(partner);
+    it("admin persists edits to a bundled theme", async function () {
+        const agent = await loginAgent(admin);
         const before = (await agent.get(THEMES_URL).expect(200)).body;
         const bundled = (before.themes || [])[0];
         if (!bundled) {

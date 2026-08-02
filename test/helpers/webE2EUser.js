@@ -138,14 +138,32 @@ async function ensureWebE2EPartner() {
     return upsertTypedUser(getWebE2EPartnerCredentials(), "Partner");
 }
 
+function getWebE2EAdminCredentials() {
+    return {
+        username: process.env.E2E_ADMIN_USERNAME || "e2e_web_admin",
+        password: process.env.E2E_ADMIN_PASSWORD || DEFAULT_PASSWORD,
+    };
+}
+
+/**
+ * Admin user for theme catalog editing and admin-only APIs.
+ * @returns {Promise<{ username: string, password: string, id: string, userType: string }>}
+ */
+async function ensureWebE2EAdmin() {
+    await connectWebE2EDb();
+    return upsertTypedUser(getWebE2EAdminCredentials(), "Admin");
+}
+
 module.exports = {
     getWebE2EDatabaseUrl,
     getWebE2ECredentials,
     getWebE2EOtherCredentials,
     getWebE2EPartnerCredentials,
+    getWebE2EAdminCredentials,
     ensureWebE2EUser,
     ensureWebE2EUsers,
     ensureWebE2EPartner,
+    ensureWebE2EAdmin,
     DEFAULT_USERNAME,
     DEFAULT_OTHER_USERNAME,
 };

@@ -824,9 +824,6 @@
         if (typeof window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ === "boolean") {
             return window.__SHMERLING_CAN_CUSTOMIZE_THEMES__;
         }
-        if (typeof window.__SHMERLING_PLAY_ADVANCED__ === "boolean") {
-            return window.__SHMERLING_PLAY_ADVANCED__;
-        }
         return false;
     }
 
