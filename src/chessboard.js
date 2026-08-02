@@ -383,19 +383,19 @@ async function syncReconnectTimeoutFromServer() {
     }
 }
 
-const WhitePawnUrl = "images/white-pawn.png";
-const WhiteRookUrl = "images/white-rook.png";
-const WhiteBishopUrl = "images/white-bishop.png";
-const WhiteKnightUrl = "images/white-knight.png";
-const WhiteKingUrl = "images/white-king.png";
-const WhiteQueenUrl = "images/white-queen.png";
+const WhitePawnUrl = "/images/pieces/storm-ivory/white-pawn.png";
+const WhiteRookUrl = "/images/pieces/storm-ivory/white-rook.png";
+const WhiteBishopUrl = "/images/pieces/storm-ivory/white-bishop.png";
+const WhiteKnightUrl = "/images/pieces/storm-ivory/white-knight.png";
+const WhiteKingUrl = "/images/pieces/storm-ivory/white-king.png";
+const WhiteQueenUrl = "/images/pieces/storm-ivory/white-queen.png";
 
-const BlackPawnUrl = "images/black-pawn.png";
-const BlackRookUrl = "images/black-rook.png";
-const BlackBishopUrl = "images/black-bishop.png";
-const BlackKnightUrl = "images/black-knight.png";
-const BlackKingUrl = "images/black-king.png";
-const BlackQueenUrl = "images/black-queen.png";
+const BlackPawnUrl = "/images/pieces/storm-ivory/black-pawn.png";
+const BlackRookUrl = "/images/pieces/storm-ivory/black-rook.png";
+const BlackBishopUrl = "/images/pieces/storm-ivory/black-bishop.png";
+const BlackKnightUrl = "/images/pieces/storm-ivory/black-knight.png";
+const BlackKingUrl = "/images/pieces/storm-ivory/black-king.png";
+const BlackQueenUrl = "/images/pieces/storm-ivory/black-queen.png";
 
 let whitePiecesURL = [WhitePawnUrl, WhiteKingUrl, WhiteKnightUrl, WhiteBishopUrl, WhiteRookUrl, WhiteQueenUrl];
 let blackPiecesURL = [BlackPawnUrl, BlackKingUrl, BlackKnightUrl, BlackBishopUrl, BlackRookUrl, BlackQueenUrl];

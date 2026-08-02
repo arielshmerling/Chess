@@ -23,6 +23,11 @@
                 return SETS[i];
             }
         }
+        for (let i = 0; i < SETS.length; i++) {
+            if (SETS[i].id === DEFAULT_SET_ID) {
+                return SETS[i];
+            }
+        }
         return SETS[0];
     }
 

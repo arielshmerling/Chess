@@ -5866,6 +5866,8 @@
                 clearWebLaunchQueryString({ keepId: true });
                 return;
             }
+            showStatus(t("play.status.couldNotLoadOnlineGame"), 0, "error");
+            return;
         }
         if (await resumeStoredGame()) {
             clearWebLaunchQueryString();

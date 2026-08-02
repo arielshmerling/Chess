@@ -225,7 +225,18 @@ exports.getGameInfo = catchAsync(async (req, res) => {
     const gameId = id || req.session.gameId;
     validate({ id: gameId }, "id");
 
-    const game = gamesManagerService.getGameById(gameId);
+    let game = gamesManagerService.getGameById(gameId);
+    if (!game) {
+        try {
+            game = await gamesManagerService.ensureLiveGameLoaded(gameId);
+            if (game) {
+                registerEvents(game);
+            }
+        } catch (err) {
+            console.error("[getGameInfo] ensureLiveGameLoaded failed:", err && err.message ? err.message : err);
+            game = null;
+        }
+    }
     if (game) {
         if (!canReadLiveGame(game, req.session)) {
             throw new ExpressError("Forbidden", 403);
@@ -241,7 +252,7 @@ exports.getGameInfo = catchAsync(async (req, res) => {
         res.send(clientDate);
     }
     else {
-        res.redirect("/home");
+        res.status(404).json({ ok: false, message: "Game not found or no longer active" });
     }
 });
 

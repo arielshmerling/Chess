@@ -400,6 +400,221 @@ exports.getGameById = (id) => {
     return games.filter(g => String(g.gameId) === idStr)[0];
 };
 
+const LIVE_REHYDRATE_STATES = new Set([
+    "new",
+    "pending",
+    "establishing",
+    "in progress",
+    "on hold",
+    "reJoining",
+]);
+
+function inferEngineIdFromLabel(label) {
+    const n = String(label || "").toLowerCase();
+    if (n.indexOf("stockfish") >= 0) {
+        return "stockfish";
+    }
+    if (n.indexOf("4.2") >= 0 || n.indexOf("brain 4.2") >= 0) {
+        return "brain42";
+    }
+    if (n.indexOf("4.1") >= 0 || n.indexOf("brain 4.1") >= 0) {
+        return "brain41";
+    }
+    if (n.indexOf("brain 3") >= 0 || n === "brain3") {
+        return "brain3";
+    }
+    if (n.indexOf("brain 2") >= 0 || n === "brain2") {
+        return "brain2";
+    }
+    return "brain43";
+}
+
+function applyStoredMovesToLiveGame(game, movesRaw) {
+    const moves = (movesRaw || []).map(parseStoredMove).filter(Boolean);
+    game.chessGame.startNewGame(true);
+    game.moves = [];
+    for (let i = 0; i < moves.length; i += 1) {
+        const m = moves[i];
+        if (!m || !m.source || !m.target) {
+            if (m && m.moveStr) {
+                game.moves.push(m);
+            }
+            continue;
+        }
+        if (typeof game.chessGame.isResultMove === "function" && game.chessGame.isResultMove(m)) {
+            game.moves.push(m);
+            break;
+        }
+        try {
+            const validation = game.chessGame.validateMove(m.source, m.target, game.chessGame.Turn);
+            if (!validation || !validation.valid) {
+                break;
+            }
+            const actual = game.chessGame.makeMove(m.source, m.target);
+            if (!actual) {
+                break;
+            }
+            if (actual.promotion) {
+                if (m.selectedPiece != null) {
+                    actual.selectedPiece = m.selectedPiece;
+                    game.chessGame.completePromotion(actual);
+                } else {
+                    break;
+                }
+            }
+            const stored = Object.assign({}, actual, m);
+            game.moves.push(stored);
+        } catch {
+            break;
+        }
+        if (game.chessGame.GameOver) {
+            break;
+        }
+    }
+}
+
+/**
+ * Re-create an in-memory live game from Mongo when the process lost it
+ * (Render restart / cold start / single-instance recycle).
+ * @param {string} gameId
+ * @returns {Promise<object|null>}
+ */
+exports.ensureLiveGameLoaded = async (gameId) => {
+    const existing = exports.getGameById(gameId);
+    if (existing) {
+        return existing;
+    }
+    const idStr = String(gameId || "");
+    if (!/^[0-9a-fA-F]{24}$/.test(idStr)) {
+        return null;
+    }
+    const doc = await Game.findById(idStr).lean();
+    if (!doc) {
+        return null;
+    }
+    const state = String(doc.state || "");
+    if (!LIVE_REHYDRATE_STATES.has(state)) {
+        return null;
+    }
+
+    const { GameFactory } = require("../game/GameFactory");
+    const { Player } = require("../game/Player");
+    const { User } = require("../user/model");
+
+    const whiteName = doc.whitePlayer != null ? String(doc.whitePlayer) : "";
+    const blackName = doc.blackPlayer != null ? String(doc.blackPlayer) : "";
+    const names = [whiteName, blackName].filter(Boolean);
+    const users = names.length
+        ? await User.find({ username: { $in: names } }).select("_id username").lean()
+        : [];
+    const idByName = new Map(users.map((u) => [String(u.username), String(u._id)]));
+    const creatorId =
+        doc.createByUserId != null
+            ? String(doc.createByUserId)
+            : idByName.get(doc.createBy) || idByName.get(whiteName) || null;
+    const creatorName = doc.createBy || whiteName || "Player";
+    const timeMinutes =
+        typeof doc.timeMinutes === "number" && doc.timeMinutes >= 1
+            ? Math.max(1, Math.min(180, Math.round(doc.timeMinutes)))
+            : 90;
+    const gameType = doc.gameType || "OnlineGame";
+
+    let game;
+    if (gameType === "OnlineGame") {
+        const whiteId = idByName.get(whiteName) || creatorId;
+        const creatorPlayer = new Player(whiteId || creatorId, whiteName || creatorName);
+        game = GameFactory.createGame(
+            {
+                id: idStr,
+                gameType: "OnlineGame",
+                isPrivate: doc.isPrivate === true,
+                options: { timeMinutes },
+            },
+            creatorPlayer,
+            "play",
+        );
+        game.gameId = idStr;
+        game.whitePlayer = new Player(whiteId || creatorId, whiteName || creatorName);
+        if (blackName) {
+            game.blackPlayer = new Player(idByName.get(blackName) || null, blackName);
+        } else {
+            game.blackPlayer = null;
+        }
+        game.createdBy = new Player(creatorId || whiteId, creatorName);
+        game.isPrivate = doc.isPrivate === true;
+        game.chessGame.GameTimeLength = timeMinutes * 60;
+        applyStoredMovesToLiveGame(game, doc.moves);
+        game.status = state === "new" || state === "pending" ? state : "in progress";
+        if (state === "on hold" || state === "reJoining") {
+            game.status = state;
+            game.lastStatus = "in progress";
+        }
+    } else if (gameType === "SinglePlayerGame") {
+        const humanIsWhite = !!(whiteName && idByName.has(whiteName));
+        const humanName = humanIsWhite ? whiteName : blackName;
+        const humanId = idByName.get(humanName) || creatorId;
+        const engineLabel = humanIsWhite ? blackName : whiteName;
+        const engineId = inferEngineIdFromLabel(engineLabel);
+        const humanPlayer = new Player(humanId, humanName || creatorName);
+        game = GameFactory.createGame(
+            {
+                id: idStr,
+                gameType: "SinglePlayerGame",
+                playAsBlack: !humanIsWhite,
+                isPrivate: doc.isPrivate === true,
+                options: {
+                    engine: engineId,
+                    difficulty: 3,
+                    mouse: "drag",
+                    showAvailableMoves: true,
+                    timeMinutes,
+                    clientEngine: true,
+                },
+            },
+            humanPlayer,
+            "play",
+        );
+        game.gameId = idStr;
+        game.createdBy = new Player(creatorId || humanId, creatorName);
+        game.isPrivate = doc.isPrivate === true;
+        game.chessGame.GameTimeLength = timeMinutes * 60;
+        applyStoredMovesToLiveGame(game, doc.moves);
+        game.status = "in progress";
+        if (state === "on hold" || state === "reJoining") {
+            game.status = state;
+            game.lastStatus = "in progress";
+        }
+    } else if (gameType === "EngineDuelGame") {
+        const adminPlayer = new Player(creatorId, creatorName);
+        game = GameFactory.createGame(
+            {
+                id: idStr,
+                gameType: "EngineDuelGame",
+                isPrivate: false,
+                options: {
+                    timeMinutes,
+                    whiteLabel: whiteName || "White engine",
+                    blackLabel: blackName || "Black engine",
+                    whiteEngine: inferEngineIdFromLabel(whiteName),
+                    blackEngine: inferEngineIdFromLabel(blackName),
+                },
+            },
+            adminPlayer,
+            "play",
+        );
+        game.gameId = idStr;
+        game.createdBy = adminPlayer;
+        game.chessGame.GameTimeLength = timeMinutes * 60;
+        applyStoredMovesToLiveGame(game, doc.moves);
+        game.status = "in progress";
+    } else {
+        return null;
+    }
+
+    exports.AddGame(game);
+    return game;
+};
+
 /**
  * In-memory online game where both players are seated (white + black), non-terminal.
  * @param {string} userIdA

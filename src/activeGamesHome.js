@@ -22,20 +22,20 @@
             return;
         }
         WHITE_URLS = [
-            "images/white-pawn.png",
-            "images/white-king.png",
-            "images/white-knight.png",
-            "images/white-bishop.png",
-            "images/white-rook.png",
-            "images/white-queen.png",
+            "/images/pieces/storm-ivory/white-pawn.png",
+            "/images/pieces/storm-ivory/white-king.png",
+            "/images/pieces/storm-ivory/white-knight.png",
+            "/images/pieces/storm-ivory/white-bishop.png",
+            "/images/pieces/storm-ivory/white-rook.png",
+            "/images/pieces/storm-ivory/white-queen.png",
         ];
         BLACK_URLS = [
-            "images/black-pawn.png",
-            "images/black-king.png",
-            "images/black-knight.png",
-            "images/black-bishop.png",
-            "images/black-rook.png",
-            "images/black-queen.png",
+            "/images/pieces/storm-ivory/black-pawn.png",
+            "/images/pieces/storm-ivory/black-king.png",
+            "/images/pieces/storm-ivory/black-knight.png",
+            "/images/pieces/storm-ivory/black-bishop.png",
+            "/images/pieces/storm-ivory/black-rook.png",
+            "/images/pieces/storm-ivory/black-queen.png",
         ];
     }
 
