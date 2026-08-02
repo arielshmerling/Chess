@@ -21,6 +21,7 @@
     "start:dev": "node --inspect ./server.js",
     "start:prod": "node ./server.js",
     "install:stockfish": "bash ./scripts/install-stockfish-linux.sh",
+    "postinstall": "node ./scripts/maybe-install-stockfish.js",
     "start:desktop:server": "SHMERLING_MODE=desktop SHMERLING_USER_DATA=./.shmerling-desktop-dev SHMERLING_SYNC_CUSTOM_THEMES=1 node ./server-desktop.js",
     "desktop": "node scripts/run-desktop.js",
     "desktop:setup": "cd desktop && npm install && npm run setup",

@@ -5,6 +5,9 @@
 
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+
 const BRAIN_IDS = Object.freeze(["brain43", "brain42", "brain41"]);
 
 /** @typedef {"brain"|"uci"} EngineBackend */
@@ -84,6 +87,16 @@ function resolveUciCommand(def, env) {
             : "";
     if (fromEnv) {
         return fromEnv;
+    }
+    // Prefer repo-local binary from scripts/install-stockfish-linux.sh (Render builds).
+    const localBin = path.join(process.cwd(), "bin", "stockfish");
+    try {
+        if (fs.existsSync(localBin)) {
+            fs.accessSync(localBin, fs.constants.X_OK);
+            return localBin;
+        }
+    } catch {
+        /* fall through to PATH fallback */
     }
     if (def.commandFallback && String(def.commandFallback).trim()) {
         return String(def.commandFallback).trim();
