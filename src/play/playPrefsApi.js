@@ -25,12 +25,13 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
         lastGameOptions.engine = "brain43";
     }
     const engines = await engineService.listPreferPlayEnginesForClient();
+    const defaultEngine = await engineService.resolveEnabledPreferPlayEngine("brain43");
     if (
         lastGameOptions
         && lastGameOptions.engine
         && !engines.some((e) => e.id === lastGameOptions.engine && e.available)
     ) {
-        lastGameOptions.engine = "brain43";
+        lastGameOptions.engine = defaultEngine || "brain43";
     }
     const userType = resolveSessionUserType(req.session);
     res.json({
@@ -49,10 +50,18 @@ const ALLOWED_ENGINES = Array.from(
     new Set(["brain2", "brain3", "brain4", ...preferPlayEngineIds()]),
 );
 
-function normalizeLastGameOptions(body) {
+async function normalizeLastGameOptions(body) {
     const input = body && typeof body === "object" ? body : {};
     const engineRaw = typeof input.engine === "string" ? input.engine.trim() : "";
-    const engine = ALLOWED_ENGINES.includes(engineRaw) ? engineRaw : "brain43";
+    const preferIds = preferPlayEngineIds();
+    let engine;
+    if (preferIds.includes(engineRaw)) {
+        engine = (await engineService.resolveEnabledPreferPlayEngine(engineRaw)) || "brain43";
+    } else if (ALLOWED_ENGINES.includes(engineRaw)) {
+        engine = engineRaw;
+    } else {
+        engine = (await engineService.resolveEnabledPreferPlayEngine("brain43")) || "brain43";
+    }
     const difficulty = Number(input.difficulty != null ? input.difficulty : input.thinkingTimeSeconds);
     const timeMinutes = Number(input.timeMinutes);
     return {
@@ -73,7 +82,7 @@ function normalizeLastGameOptions(body) {
 }
 
 exports.setLastGameOptions = catchAsync(async (req, res) => {
-    const lastGameOptions = normalizeLastGameOptions(req.body);
+    const lastGameOptions = await normalizeLastGameOptions(req.body);
     await User.findByIdAndUpdate(req.session.user_id, { lastGameOptions });
     res.json({
         ok: true,

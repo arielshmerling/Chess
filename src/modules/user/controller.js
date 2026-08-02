@@ -259,6 +259,32 @@ exports.showAdminPage = catchAsync(async (req, res) => {
     res.render("admin", { adminUsers, adminGames, openingBookEntryCount });
 });
 
+exports.listAdminEngines = catchAsync(async (req, res) => {
+    const engineService = require("../../engines/engineService");
+    const engines = await engineService.listPreferPlayEnginesForAdmin();
+    res.json({ ok: true, engines });
+});
+
+exports.updateAdminEngine = async (req, res, next) => {
+    try {
+        const engineService = require("../../engines/engineService");
+        const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+        if (!id) {
+            return res.status(400).json({ ok: false, message: "Engine id is required" });
+        }
+        if (req.body == null || typeof req.body.enabled !== "boolean") {
+            return res.status(400).json({ ok: false, message: "Body must include boolean enabled" });
+        }
+        const engine = await engineService.setPreferPlayEngineEnabled(id, req.body.enabled);
+        res.json({ ok: true, engine });
+    } catch (err) {
+        if (err && err.code === "ENGINE_NOT_FOUND") {
+            return res.status(404).json({ ok: false, message: err.message });
+        }
+        next(err);
+    }
+};
+
 exports.showGenerateStatePage = (req, res) => {
     res.render("admin-generate-state", {});
 };

@@ -320,6 +320,10 @@ body:has(.board-geometry) {
     background: var(--play-now-btn-background, var(--bg-geo-cta));
 }
 
+.admin-page.board-geometry .admin-engine-avail--yes {
+    color: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 70%, var(--bg-geo-ink));
+}
+
 .admin-page.board-geometry .admin-generate-state-log {
     border: 1px solid var(--bg-geo-line);
     border-radius: 6px;

@@ -7,12 +7,23 @@
 const desktopBrainService = require("../desktop/desktopBrainService");
 const registry = require("./registry");
 const uciBackend = require("./uci/uciBackend");
+const enablementStore = require("./engineEnablementStore");
 
-async function listPreferPlayEnginesForClient() {
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeDisabled] - include admin-disabled engines (admin UI)
+ */
+async function listPreferPlayEnginesForClient(opts) {
+    const includeDisabled = !!(opts && opts.includeDisabled);
+    const disabled = await enablementStore.getDisabledSet();
     const defs = registry.listPreferPlayEngines();
     const out = [];
     for (let i = 0; i < defs.length; i += 1) {
         const def = defs[i];
+        const enabled = !disabled.has(def.id);
+        if (!includeDisabled && !enabled) {
+            continue;
+        }
         let available = def.alwaysAvailable === true;
         let unavailableReason = null;
         if (def.backend === "uci") {
@@ -27,9 +38,96 @@ async function listPreferPlayEnginesForClient() {
             backend: def.backend,
             available,
             unavailableReason,
+            enabled,
         });
     }
     return out;
+}
+
+/**
+ * Full Prefer-Play catalog for Admin Engines tab (includes disabled + command hints).
+ */
+async function listPreferPlayEnginesForAdmin() {
+    const disabled = await enablementStore.getDisabledSet();
+    const defs = registry.listPreferPlayEngines();
+    const out = [];
+    for (let i = 0; i < defs.length; i += 1) {
+        const def = defs[i];
+        const enabled = !disabled.has(def.id);
+        let available = def.alwaysAvailable === true;
+        let unavailableReason = null;
+        let command = null;
+        if (def.backend === "uci") {
+            command = registry.resolveUciCommand(def, process.env);
+            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 2000 });
+            available = !!probe.available;
+            unavailableReason = available ? null : probe.error || "unavailable";
+        }
+        out.push({
+            id: def.id,
+            labelKey: def.labelKey,
+            fallbackLabel: def.fallbackLabel,
+            backend: def.backend,
+            preferPlay: def.preferPlay === true,
+            alwaysAvailable: def.alwaysAvailable === true,
+            commandEnv: def.commandEnv || null,
+            commandFallback: def.commandFallback || null,
+            command,
+            available,
+            unavailableReason,
+            enabled,
+        });
+    }
+    return out;
+}
+
+/**
+ * @param {string} id
+ * @param {boolean} enabled
+ */
+async function setPreferPlayEngineEnabled(id, enabled) {
+    const def = registry.getEngine(id);
+    if (!def || !def.preferPlay) {
+        const err = new Error(`Unknown Prefer-Play engine: ${id}`);
+        err.code = "ENGINE_NOT_FOUND";
+        throw err;
+    }
+    await enablementStore.setEngineEnabled(id, enabled === true);
+    const list = await listPreferPlayEnginesForAdmin();
+    return list.find((e) => e.id === id) || null;
+}
+
+/**
+ * Resolve a client-requested engine to an enabled Prefer-Play id, or null if none enabled.
+ * @param {string} [requested]
+ * @returns {Promise<string|null>}
+ */
+async function resolveEnabledPreferPlayEngine(requested) {
+    const disabled = await enablementStore.getDisabledSet();
+    const ids = registry.preferPlayEngineIds();
+    const req = typeof requested === "string" ? requested.trim() : "";
+    if (req && ids.indexOf(req) !== -1 && !disabled.has(req)) {
+        return req;
+    }
+    for (let i = 0; i < ids.length; i += 1) {
+        if (!disabled.has(ids[i])) {
+            return ids[i];
+        }
+    }
+    return null;
+}
+
+async function assertEngineEnabledForCompute(engineId) {
+    const id = typeof engineId === "string" && engineId.trim() ? engineId.trim() : "brain43";
+    if (!registry.getEngine(id)) {
+        return id;
+    }
+    if (!(await enablementStore.isEngineEnabled(id))) {
+        const err = new Error(`Engine "${id}" is disabled by an administrator`);
+        err.code = "ENGINE_DISABLED";
+        throw err;
+    }
+    return id;
 }
 
 /**
@@ -37,19 +135,21 @@ async function listPreferPlayEnginesForClient() {
  * @param {(progress: object) => void} [onProgress]
  */
 async function computeMove(opts, onProgress) {
-    const engine = (opts && opts.engine) || "brain43";
+    const engine = await assertEngineEnabledForCompute((opts && opts.engine) || "brain43");
+    const nextOpts = opts && typeof opts === "object" ? { ...opts, engine } : { engine };
     if (registry.isUciEngine(engine)) {
-        return uciBackend.computeMove(opts);
+        return uciBackend.computeMove(nextOpts);
     }
-    return desktopBrainService.computeMove(opts, onProgress);
+    return desktopBrainService.computeMove(nextOpts, onProgress);
 }
 
 async function evaluatePosition(opts) {
-    const engine = (opts && opts.engine) || "brain43";
+    const engine = await assertEngineEnabledForCompute((opts && opts.engine) || "brain43");
     if (registry.isUciEngine(engine)) {
         throw new Error(`Evaluation display is not supported for engine "${engine}"`);
     }
-    return desktopBrainService.evaluatePosition(opts);
+    const nextOpts = opts && typeof opts === "object" ? { ...opts, engine } : { engine };
+    return desktopBrainService.evaluatePosition(nextOpts);
 }
 
 function abortSearch() {
@@ -62,5 +162,8 @@ module.exports = {
     evaluatePosition,
     abortSearch,
     listPreferPlayEnginesForClient,
+    listPreferPlayEnginesForAdmin,
+    setPreferPlayEngineEnabled,
+    resolveEnabledPreferPlayEngine,
     SearchAbortedError: desktopBrainService.SearchAbortedError,
 };

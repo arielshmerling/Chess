@@ -2187,6 +2187,48 @@ li {
     font-size: 14px;
 }
 
+.admin-page .admin-engine-row--disabled {
+    opacity: 0.72;
+}
+
+.admin-page .admin-engine-avail {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.admin-page .admin-engine-avail--yes {
+    color: #2d6a4f;
+}
+
+.admin-page .admin-engine-avail--no {
+    color: #9b2226;
+}
+
+.admin-page .admin-cell-engine-enabled {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-page .admin-engine-enabled-cb {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.admin-page .admin-engine-enabled-cb:disabled {
+    cursor: wait;
+}
+
+.admin-page .admin-cell-engine-command,
+.admin-page .admin-cell-engine-notes {
+    max-width: 280px;
+    word-break: break-word;
+    white-space: normal;
+    font-size: 13px;
+}
+
 @media (max-width: 640px) {
     .admin-page .admin-tab-strip {
         flex-wrap: wrap;

@@ -116,8 +116,17 @@
         emptyMsg: t("site.adminPage.emptyData")
       },
       {
-        headers: [t("site.adminPage.colNum"), t("site.adminPage.colName"), t("site.adminPage.colAvailable"), t("site.adminPage.colNotes")],
-        emptyMsg: t("site.adminPage.emptyData")
+        headers: [
+          t("site.adminPage.colNum"),
+          t("site.adminPage.colId"),
+          t("site.adminPage.colName"),
+          t("site.adminPage.colBackend"),
+          t("site.adminPage.colAvailable"),
+          t("site.adminPage.colCommand"),
+          t("site.adminPage.colNotes"),
+          t("site.adminPage.colEnabled")
+        ],
+        emptyMsg: t("site.adminPage.emptyEngines")
       },
       {
         headers: [t("site.adminPage.colNote")],
@@ -989,6 +998,146 @@
       });
     }
 
+    function engineDisplayName(eng) {
+      if (!eng) return "—";
+      if (eng.labelKey && window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+        var translated = window.ShmerlingStrings.t(eng.labelKey);
+        if (translated && translated !== eng.labelKey) return translated;
+      }
+      return eng.fallbackLabel || eng.id || "—";
+    }
+
+    function engineNotes(eng) {
+      if (!eng) return "—";
+      var parts = [];
+      if (eng.backend === "uci" && eng.commandEnv) {
+        parts.push(eng.commandEnv);
+      }
+      if (!eng.available && eng.unavailableReason) {
+        parts.push(String(eng.unavailableReason));
+      }
+      if (eng.backend === "brain") {
+        parts.push("In-process brain");
+      }
+      return parts.length ? parts.join(" · ") : "—";
+    }
+
+    function patchEngineEnabled(engineId, enabled) {
+      return axios.patch("/admin/engines/" + encodeURIComponent(engineId), { enabled: enabled });
+    }
+
+    function renderEnginesRows(engines) {
+      tbody.innerHTML = "";
+      if (!engines || !engines.length) {
+        var trEmpty = document.createElement("tr");
+        trEmpty.className = "admin-table-empty-row";
+        var tdEmpty = document.createElement("td");
+        tdEmpty.colSpan = 8;
+        tdEmpty.className = "admin-table-empty mute";
+        tdEmpty.textContent = t("site.adminPage.emptyEngines");
+        trEmpty.appendChild(tdEmpty);
+        tbody.appendChild(trEmpty);
+        return;
+      }
+      engines.forEach(function (eng, i) {
+        var tr = document.createElement("tr");
+        tr.className = "admin-engine-row" + (eng.enabled === false ? " admin-engine-row--disabled" : "");
+        tr.setAttribute("data-engine-id", eng.id);
+
+        function addTd(text, className) {
+          var td = document.createElement("td");
+          if (className) td.className = className;
+          td.textContent = text;
+          tr.appendChild(td);
+          return td;
+        }
+
+        addTd(String(i + 1), "col-num");
+        addTd(eng.id || "—");
+        addTd(engineDisplayName(eng));
+        addTd(eng.backend || "—");
+
+        var tdAvail = document.createElement("td");
+        var availSpan = document.createElement("span");
+        availSpan.className = "admin-engine-avail " + (eng.available ? "admin-engine-avail--yes" : "admin-engine-avail--no");
+        availSpan.textContent = eng.available
+          ? t("site.adminPage.engineAvailableYes")
+          : t("site.adminPage.engineAvailableNo");
+        tdAvail.appendChild(availSpan);
+        tr.appendChild(tdAvail);
+
+        addTd(eng.backend === "uci" ? (eng.command || eng.commandFallback || "—") : "—", "admin-cell-engine-command");
+        addTd(engineNotes(eng), "admin-cell-engine-notes align-left");
+
+        var tdEnabled = document.createElement("td");
+        tdEnabled.className = "admin-cell-engine-enabled";
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "admin-engine-enabled-cb";
+        cb.checked = eng.enabled !== false;
+        cb.title = eng.enabled !== false
+          ? t("site.adminPage.engineDisable")
+          : t("site.adminPage.engineEnable");
+        cb.setAttribute("aria-label", (eng.id || "engine") + " " + t("site.adminPage.colEnabled"));
+        cb.addEventListener("change", function () {
+          var nextEnabled = !!cb.checked;
+          cb.disabled = true;
+          patchEngineEnabled(eng.id, nextEnabled)
+            .then(function (res) {
+              var updated = res && res.data && res.data.engine ? res.data.engine : null;
+              if (updated) {
+                eng.enabled = updated.enabled === true;
+                eng.available = updated.available;
+                eng.unavailableReason = updated.unavailableReason;
+                eng.command = updated.command;
+              } else {
+                eng.enabled = nextEnabled;
+              }
+              renderEnginesRows(engines);
+            })
+            .catch(function () {
+              window.alert(t("site.adminPage.enginesSaveFailed"));
+              cb.checked = eng.enabled !== false;
+              cb.disabled = false;
+            });
+        });
+        tdEnabled.appendChild(cb);
+        tr.appendChild(tdEnabled);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function loadAndRenderEngines(cfg) {
+      tbody.innerHTML = "";
+      var trLoad = document.createElement("tr");
+      trLoad.className = "admin-table-empty-row";
+      var tdLoad = document.createElement("td");
+      tdLoad.colSpan = (cfg && cfg.headers ? cfg.headers.length : 8);
+      tdLoad.className = "admin-table-empty mute";
+      tdLoad.textContent = "…";
+      trLoad.appendChild(tdLoad);
+      tbody.appendChild(trLoad);
+
+      axios.get("/admin/engines")
+        .then(function (res) {
+          var engines = res && res.data && Array.isArray(res.data.engines) ? res.data.engines : [];
+          window.__ADMIN_ENGINES__ = engines;
+          renderEnginesRows(engines);
+        })
+        .catch(function () {
+          tbody.innerHTML = "";
+          var tr = document.createElement("tr");
+          tr.className = "admin-table-empty-row";
+          var td = document.createElement("td");
+          td.colSpan = (cfg && cfg.headers ? cfg.headers.length : 8);
+          td.className = "admin-table-empty mute";
+          td.textContent = t("site.adminPage.enginesLoadFailed");
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        });
+    }
+
     function renderTableForTab(index) {
       var cfg = ADMIN_TAB_CONFIG[index];
       if (!cfg || !headRow || !tbody || !table) return;
@@ -1030,6 +1179,8 @@
 
       if (index === 0) {
         renderUsersRows(window.__ADMIN_USERS__ || []);
+      } else if (index === 2) {
+        loadAndRenderEngines(cfg);
       } else {
         var n = cfg.headers.length;
         tbody.innerHTML = "";

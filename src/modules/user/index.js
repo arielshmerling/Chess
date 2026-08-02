@@ -22,6 +22,8 @@ router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGene
 router.get("/admin/generate-state/stream", requiresAdmin, userController.generateStateStream);
 router.get("/admin/generate-state", requiresAdmin, userController.showGenerateStatePage);
 router.get("/admin", requiresAdmin, userController.showAdminPage);
+router.get("/admin/engines", requiresAdmin, userController.listAdminEngines);
+router.patch("/admin/engines/:id", requiresAdmin, userController.updateAdminEngine);
 router.patch("/admin/users/:id", requiresAdmin, userController.updateUserAdmin);
 
 router.route("/register")

@@ -20,6 +20,8 @@ const { effectivePreferPlayPage, resolveOnlineWatchHref, resolveReviewHref, reso
 const { assignRematchPlayers } = require("./rematchColors");
 const { t } = require("../../strings");
 const gameClocks = require("./gameClocks");
+const engineService = require("../../engines/engineService");
+const { preferPlayEngineIds } = require("../../engines/registry");
 const {
     normalizeFriendInviteOptions,
     resolveInviterColor,
@@ -835,8 +837,26 @@ exports.createPreferPlaySpGame = createPreferPlaySpGame;
 exports.createPreferPlaySpGameHandler = catchAsync(async (req, res) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const color = body.color === "black" || body.color === "white" ? body.color : "white";
-    const engine =
-        typeof body.engine === "string" && body.engine.length <= 20 ? body.engine : "brain43";
+    const engineRequested =
+        typeof body.engine === "string" && body.engine.length <= 20 ? body.engine.trim() : "brain43";
+    const engineResolved = await engineService.resolveEnabledPreferPlayEngine(engineRequested);
+    if (!engineResolved) {
+        return res.status(400).json({
+            ok: false,
+            message: "No Prefer-Play engines are currently enabled",
+        });
+    }
+    if (
+        engineRequested
+        && preferPlayEngineIds().includes(engineRequested)
+        && engineResolved !== engineRequested
+    ) {
+        return res.status(400).json({
+            ok: false,
+            message: `Engine "${engineRequested}" is disabled`,
+        });
+    }
+    const engine = engineResolved;
     const difficulty = parseInt(body.difficulty != null ? body.difficulty : body.thinkingTimeSeconds, 10);
     const difficultyNum = difficulty >= 1 && difficulty <= 6 ? difficulty : 3;
     const mouse = body.mouse === "double" || body.mouse === "drag" ? body.mouse : "drag";
