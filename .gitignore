@@ -35,5 +35,9 @@ trash/
 *.cpuprofile
 onlinechess@*
 
+# Downloaded UCI binaries (Render / Linux install script)
+bin/stockfish
+bin/stockfish-*
+
 # Large game databases (player / opening PGNs already tracked stay tracked)
 *.pgn
