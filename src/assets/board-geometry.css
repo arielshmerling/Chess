@@ -320,6 +320,17 @@ body:has(.board-geometry) {
     background: var(--play-now-btn-background, var(--bg-geo-cta));
 }
 
+.admin-page.board-geometry .admin-opening-book-status-grid {
+    border-color: var(--bg-geo-line);
+    background: color-mix(in srgb, var(--bg-geo-surface) 92%, var(--bg-geo-ink) 8%);
+}
+
+.admin-page.board-geometry .admin-opening-book-status-title,
+.admin-page.board-geometry .admin-opening-book-status-grid dd,
+.admin-page.board-geometry .admin-opening-book-intro {
+    color: var(--bg-geo-ink);
+}
+
 .admin-page.board-geometry .admin-engine-avail--yes {
     color: color-mix(in srgb, var(--play-now-btn-background, var(--bg-geo-cta)) 70%, var(--bg-geo-ink));
 }

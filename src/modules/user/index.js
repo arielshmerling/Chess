@@ -20,8 +20,11 @@ router.get("/contact", userController.showContactPage);
 
 router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGenerateState);
 router.get("/admin/generate-state/stream", requiresAdmin, userController.generateStateStream);
-router.get("/admin/generate-state", requiresAdmin, userController.showGenerateStatePage);
+router.get("/admin/generate-state", requiresAdmin, (req, res) => {
+    res.redirect(301, "/admin?tab=opening-book");
+});
 router.get("/admin", requiresAdmin, userController.showAdminPage);
+router.get("/admin/opening-book", requiresAdmin, userController.getAdminOpeningBookStatus);
 router.get("/admin/engines", requiresAdmin, userController.listAdminEngines);
 router.patch("/admin/engines/:id", requiresAdmin, userController.updateAdminEngine);
 router.patch("/admin/users/:id", requiresAdmin, userController.updateUserAdmin);

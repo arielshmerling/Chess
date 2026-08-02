@@ -26,7 +26,7 @@
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-users" aria-controls="admin-panel-main" aria-selected="true" tabindex="0"><%= t('site.adminPage.users') %></button>
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-games" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.games') %></button>
           <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-engines" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.engines') %></button>
-          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-states" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.states') %></button>
+          <button type="button" class="admin-tab-btn" role="tab" id="admin-tab-opening-book" aria-controls="admin-panel-main" aria-selected="false" tabindex="-1"><%= t('site.adminPage.openingBook') %></button>
         </div>
       </div>
       <div class="panel-body admin-panel-body">
@@ -35,17 +35,6 @@
             <span class="admin-add-user-icon" aria-hidden="true">+</span>
             <span class="admin-add-user-label"><%= t('site.adminPage.addUser') %></span>
           </a>
-        </div>
-        <div class="admin-tab-toolbar" id="admin-states-toolbar" hidden>
-          <a href="/admin/generate-state" class="admin-add-user-btn">
-            <span class="admin-add-user-icon" aria-hidden="true">+</span>
-            <span class="admin-add-user-label"><%= t('site.adminPage.generate') %></span>
-          </a>
-          <p class="admin-opening-book-count" aria-live="polite">
-            <%= t('site.adminPage.openingBookLabel') %>
-            <strong><%= typeof openingBookEntryCount !== 'undefined' ? openingBookEntryCount : 0 %></strong>
-            <%= t('site.adminPage.gameLines') %>
-          </p>
         </div>
         <div class="table-scroll table-scroll--wide compact" id="admin-panel-main" role="tabpanel" aria-labelledby="admin-tab-users">
           <div id="admin-games-empty" class="no-games-message admin-games-empty" hidden>
@@ -74,6 +63,47 @@
           </div>
           <nav id="admin-games-pages-nav" class="pagesNav admin-games-pages-nav" hidden aria-label="<%= t('site.adminPage.gamesPaginationAria') %>"></nav>
         </div>
+        <div class="admin-opening-book-panel" id="admin-opening-book-panel" hidden>
+          <div class="admin-opening-book-status" id="admin-opening-book-status" aria-live="polite">
+            <h3 class="admin-opening-book-status-title"><%= t('site.adminPage.openingBookStatusTitle') %></h3>
+            <dl class="admin-opening-book-status-grid">
+              <div>
+                <dt><%= t('site.adminPage.openingBookFile') %></dt>
+                <dd id="ob-status-file">—</dd>
+              </div>
+              <div>
+                <dt><%= t('site.adminPage.openingBookExists') %></dt>
+                <dd id="ob-status-exists">—</dd>
+              </div>
+              <div>
+                <dt><%= t('site.adminPage.openingBookLines') %></dt>
+                <dd id="ob-status-lines">—</dd>
+              </div>
+              <div>
+                <dt><%= t('site.adminPage.openingBookSize') %></dt>
+                <dd id="ob-status-size">—</dd>
+              </div>
+              <div>
+                <dt><%= t('site.adminPage.openingBookModified') %></dt>
+                <dd id="ob-status-mtime">—</dd>
+              </div>
+              <div>
+                <dt><%= t('site.adminPage.openingBookPgnSources') %></dt>
+                <dd id="ob-status-pgn">—</dd>
+              </div>
+            </dl>
+          </div>
+          <p class="admin-opening-book-intro"><%= t('site.adminPage.openingBookIntro') %></p>
+          <div class="admin-generate-state-actions admin-opening-book-actions">
+            <button type="button" id="btn-start-opening-book" class="button admin-generate-state-btn admin-generate-state-btn-start"><%= t('site.adminPage.generateOpeningBook') %></button>
+            <button type="button" id="btn-stop-opening-book" class="button admin-generate-state-btn admin-generate-state-btn-stop" disabled><%= t('site.adminPage.stop') %></button>
+          </div>
+          <div class="admin-generate-state-status" id="opening-book-gen-status" aria-live="polite"><%= t('site.adminPage.idle') %></div>
+          <div class="admin-generate-state-progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="opening-book-progress-wrap">
+            <div class="admin-generate-state-progress-fill" id="opening-book-progress-fill"></div>
+          </div>
+          <div class="admin-generate-state-log" id="opening-book-gen-log"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -83,9 +113,11 @@
 
 <% var adminUsersJson = JSON.stringify(typeof adminUsers !== "undefined" && adminUsers ? adminUsers : []).replace(/</g, "\\u003c"); %>
 <% var adminGamesJson = JSON.stringify(typeof adminGames !== "undefined" && adminGames ? adminGames : []).replace(/</g, "\\u003c"); %>
+<% var openingBookStatusJson = JSON.stringify(typeof openingBookStatus !== "undefined" && openingBookStatus ? openingBookStatus : null).replace(/</g, "\\u003c"); %>
 <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
   window.__ADMIN_USERS__ = <%- adminUsersJson %>;
   window.__ADMIN_GAMES__ = <%- adminGamesJson %>;
+  window.__ADMIN_OPENING_BOOK__ = <%- openingBookStatusJson %>;
   (function () {
     function t(key, params) {
       if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -129,8 +161,8 @@
         emptyMsg: t("site.adminPage.emptyEngines")
       },
       {
-        headers: [t("site.adminPage.colNote")],
-        emptyMsg: t("site.adminPage.emptyStates")
+        headers: [],
+        emptyMsg: ""
       }
     ];
 
@@ -139,8 +171,8 @@
     var headRow = document.getElementById("admin-table-head-row");
     var tbody = document.getElementById("admin-table-body");
     var toolbar = document.getElementById("admin-users-toolbar");
-    var toolbarStates = document.getElementById("admin-states-toolbar");
     var panelMain = document.getElementById("admin-panel-main");
+    var openingBookPanel = document.getElementById("admin-opening-book-panel");
     var gamesEmptyEl = document.getElementById("admin-games-empty");
     var tableShell = document.getElementById("admin-table-shell");
     var gamesPagesNav = document.getElementById("admin-games-pages-nav");
@@ -1138,12 +1170,245 @@
         });
     }
 
+    function formatBytes(n) {
+      var x = Number(n);
+      if (!Number.isFinite(x) || x < 0) return "—";
+      if (x < 1024) return x + " B";
+      if (x < 1024 * 1024) return (x / 1024).toFixed(1) + " KB";
+      return (x / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    function applyOpeningBookStatus(status) {
+      window.__ADMIN_OPENING_BOOK__ = status || null;
+      var fileEl = document.getElementById("ob-status-file");
+      var existsEl = document.getElementById("ob-status-exists");
+      var linesEl = document.getElementById("ob-status-lines");
+      var sizeEl = document.getElementById("ob-status-size");
+      var mtimeEl = document.getElementById("ob-status-mtime");
+      var pgnEl = document.getElementById("ob-status-pgn");
+      if (!status) {
+        if (fileEl) fileEl.textContent = "—";
+        if (existsEl) existsEl.textContent = "—";
+        if (linesEl) linesEl.textContent = "—";
+        if (sizeEl) sizeEl.textContent = "—";
+        if (mtimeEl) mtimeEl.textContent = "—";
+        if (pgnEl) pgnEl.textContent = "—";
+        return;
+      }
+      if (fileEl) fileEl.textContent = status.relativePath || status.basename || "—";
+      if (existsEl) {
+        existsEl.textContent = status.exists
+          ? t("site.adminPage.openingBookExistsYes")
+          : t("site.adminPage.openingBookExistsNo");
+      }
+      if (linesEl) {
+        linesEl.textContent = String(status.entryCount != null ? status.entryCount : 0)
+          + " "
+          + t("site.adminPage.gameLines");
+      }
+      if (sizeEl) sizeEl.textContent = status.exists ? formatBytes(status.sizeBytes) : "—";
+      if (mtimeEl) mtimeEl.textContent = status.mtime ? formatDateTime(status.mtime) : "—";
+      if (pgnEl) {
+        pgnEl.textContent = t("site.adminPage.openingBookPgnCount", {
+          count: status.pgnFileCount != null ? status.pgnFileCount : 0
+        });
+      }
+    }
+
+    function refreshOpeningBookStatus() {
+      return axios.get("/admin/opening-book")
+        .then(function (res) {
+          var status = res && res.data && res.data.status ? res.data.status : null;
+          applyOpeningBookStatus(status);
+          return status;
+        })
+        .catch(function () {
+          return null;
+        });
+    }
+
+    function showOpeningBookPanel(show) {
+      if (openingBookPanel) openingBookPanel.hidden = !show;
+      if (panelMain) panelMain.hidden = !!show;
+      if (toolbar && show) toolbar.hidden = true;
+      var tabbed = document.querySelector(".admin-tabbed-panel");
+      if (tabbed) {
+        if (show) tabbed.classList.add("admin-tabbed-panel--opening-book");
+        else tabbed.classList.remove("admin-tabbed-panel--opening-book");
+      }
+    }
+
+    (function setupOpeningBookGeneration() {
+      var statusEl = document.getElementById("opening-book-gen-status");
+      var fillEl = document.getElementById("opening-book-progress-fill");
+      var wrapEl = document.getElementById("opening-book-progress-wrap");
+      var logEl = document.getElementById("opening-book-gen-log");
+      var btnStart = document.getElementById("btn-start-opening-book");
+      var btnStop = document.getElementById("btn-stop-opening-book");
+      if (!statusEl || !btnStart || !btnStop) return;
+
+      var es = null;
+      var terminalStatus = false;
+
+      function setBusy(busy) {
+        btnStart.disabled = !!busy;
+        btnStop.disabled = !busy;
+      }
+
+      function setPct(p) {
+        if (!fillEl || !wrapEl) return;
+        var x = Math.max(0, Math.min(100, Math.round(p)));
+        fillEl.style.width = x + "%";
+        wrapEl.setAttribute("aria-valuenow", String(x));
+      }
+
+      function logLine(msg) {
+        if (!logEl) return;
+        var line = document.createElement("div");
+        line.className = "admin-generate-state-log-line";
+        line.textContent = msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function stopStream() {
+        if (es) {
+          es.close();
+          es = null;
+        }
+      }
+
+      function runBookGeneration() {
+        stopStream();
+        if (logEl) logEl.innerHTML = "";
+        setPct(0);
+        setBusy(true);
+        terminalStatus = false;
+        statusEl.textContent = t("site.adminPage.starting");
+        es = new EventSource("/admin/generate-state/stream?mode=book");
+
+        es.onmessage = function (ev) {
+          try {
+            var data = JSON.parse(ev.data);
+            if (data.type === "start") {
+              statusEl.textContent = t("site.adminPage.running", { mode: "book" });
+              return;
+            }
+            if (data.type === "phase") {
+              statusEl.textContent = data.message || data.phase || "";
+              if (data.phase === "reading" && data.fileCount != null) {
+                logLine(t("site.adminPage.readingFiles", { count: data.fileCount }));
+              }
+              if (data.phase === "replay" && data.totalGames != null) {
+                logLine(t("site.adminPage.replayingGames", { count: data.totalGames }));
+              }
+              return;
+            }
+            if (data.type === "progress") {
+              if (data.phase === "writing") {
+                setPct(96);
+                statusEl.textContent = data.message || t("site.adminPage.writingOpeningBook");
+                return;
+              }
+              if (data.segment === "reading" && data.fileTotal > 0) {
+                setPct((data.fileIndex / data.fileTotal) * 12);
+                statusEl.textContent = t("site.adminPage.readingPgn", {
+                  index: data.fileIndex,
+                  total: data.fileTotal,
+                  games: data.gamesLoaded || 0
+                });
+              } else if (data.segment === "replay" && data.total > 0) {
+                setPct(12 + (data.current / data.total) * 83);
+                statusEl.textContent = t("site.adminPage.replayGameProgress", {
+                  current: data.current,
+                  total: data.total,
+                  completed: data.gamesCompleted
+                });
+              }
+              return;
+            }
+            if (data.type === "done") {
+              setPct(100);
+              if (data.stopped) {
+                var parts = [t("site.adminPage.stopped")];
+                if (data.bookUnchanged) parts.push(t("site.adminPage.bookUnchanged"));
+                else if (data.entryCount != null) {
+                  parts.push(t("site.adminPage.bookLinesInFile", {
+                    count: data.entryCount,
+                    file: data.file || t("site.adminPage.openingBookDefault")
+                  }));
+                }
+                if (data.cancelledBeforeRead) parts.push(t("site.adminPage.cancelledBeforeRead"));
+                if (data.cancelledAfterRead) parts.push(t("site.adminPage.cancelledAfterRead"));
+                statusEl.textContent = parts.join(" ");
+              } else {
+                statusEl.textContent = data.entryCount != null
+                  ? t("site.adminPage.doneBook", {
+                      count: data.entryCount,
+                      file: data.file || t("site.adminPage.openingBookDefault")
+                    })
+                  : t("site.adminPage.doneBookFileOnly", {
+                      file: data.file || t("site.adminPage.openingBookDefault")
+                    });
+              }
+              logLine(statusEl.textContent);
+              terminalStatus = true;
+              stopStream();
+              setBusy(false);
+              refreshOpeningBookStatus();
+              return;
+            }
+            if (data.type === "error") {
+              statusEl.textContent = t("site.adminPage.errorPrefix", {
+                message: data.message || t("site.adminPage.unknownError")
+              });
+              logLine(statusEl.textContent);
+              terminalStatus = true;
+              stopStream();
+              setBusy(false);
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        };
+
+        es.onerror = function () {
+          stopStream();
+          setBusy(false);
+          if (!terminalStatus) {
+            statusEl.textContent = t("site.adminPage.connectionClosed");
+          }
+        };
+      }
+
+      btnStart.addEventListener("click", function () {
+        runBookGeneration();
+      });
+      btnStop.addEventListener("click", function () {
+        fetch("/admin/generate-state/stop", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        }).catch(function (err) {
+          console.error(err);
+        });
+      });
+    })();
+
     function renderTableForTab(index) {
       var cfg = ADMIN_TAB_CONFIG[index];
       if (!cfg || !headRow || !tbody || !table) return;
 
       if (toolbar) toolbar.hidden = index !== 0;
-      if (toolbarStates) toolbarStates.hidden = index !== 3;
+
+      if (index === 3) {
+        showOpeningBookPanel(true);
+        applyOpeningBookStatus(window.__ADMIN_OPENING_BOOK__);
+        refreshOpeningBookStatus();
+        return;
+      }
+
+      showOpeningBookPanel(false);
 
       if (index === 1) {
         panelMain.classList.add("admin-games-list-mode");
@@ -1182,7 +1447,7 @@
       } else if (index === 2) {
         loadAndRenderEngines(cfg);
       } else {
-        var n = cfg.headers.length;
+        var n = cfg.headers.length || 1;
         tbody.innerHTML = "";
         var tr = document.createElement("tr");
         tr.className = "admin-table-empty-row";
@@ -1227,7 +1492,7 @@
     var startTab = 0;
     if (tabQ === "games") startTab = 1;
     else if (tabQ === "engines") startTab = 2;
-    else if (tabQ === "states") startTab = 3;
+    else if (tabQ === "opening-book" || tabQ === "openingbook" || tabQ === "states") startTab = 3;
     selectTab(startTab);
     if (tabQ) {
       try {

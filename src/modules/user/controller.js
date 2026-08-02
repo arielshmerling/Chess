@@ -251,12 +251,22 @@ exports.loginJson = catchAsync(async (req, res) => {
 });
 
 exports.showAdminPage = catchAsync(async (req, res) => {
-    const [adminUsers, adminGames, openingBookEntryCount] = await Promise.all([
+    const [adminUsers, adminGames, openingBookStatus] = await Promise.all([
         userService.listUsersForAdmin(),
         gamesManagerService.getAllGamesForAdmin(2000),
-        gamesManagerService.getOpeningBookEntryCount(),
+        gamesManagerService.getOpeningBookStatus(),
     ]);
-    res.render("admin", { adminUsers, adminGames, openingBookEntryCount });
+    res.render("admin", {
+        adminUsers,
+        adminGames,
+        openingBookStatus,
+        openingBookEntryCount: openingBookStatus.entryCount,
+    });
+});
+
+exports.getAdminOpeningBookStatus = catchAsync(async (req, res) => {
+    const status = await gamesManagerService.getOpeningBookStatus();
+    res.json({ ok: true, status });
 });
 
 exports.listAdminEngines = catchAsync(async (req, res) => {
@@ -283,10 +293,6 @@ exports.updateAdminEngine = async (req, res, next) => {
         }
         next(err);
     }
-};
-
-exports.showGenerateStatePage = (req, res) => {
-    res.render("admin-generate-state", {});
 };
 
 exports.stopGenerateState = (req, res) => {

@@ -28,6 +28,47 @@ exports.getOpeningBookEntryCount = async () => {
     return lines.length;
 };
 
+/**
+ * Admin status snapshot for the line-based opening book file.
+ * @returns {Promise<object>}
+ */
+exports.getOpeningBookStatus = async () => {
+    const filePath = getOpeningBookLinesPath();
+    const relativePath = path.join("data", OPENING_BOOK_LINES_BASENAME);
+    let exists = false;
+    let sizeBytes = 0;
+    let mtime = null;
+    try {
+        const st = await fs.stat(filePath);
+        exists = st.isFile();
+        sizeBytes = st.size;
+        mtime = st.mtime ? st.mtime.toISOString() : null;
+    } catch (err) {
+        if (!err || err.code !== "ENOENT") {
+            throw err;
+        }
+    }
+    const lines = exists ? await loadOpeningBookLines(filePath) : [];
+    let pgnFileCount = 0;
+    try {
+        const pgnFiles = await exports.getOpeningBookPGNFiles();
+        pgnFileCount = Array.isArray(pgnFiles) ? pgnFiles.length : 0;
+    } catch (err) {
+        pgnFileCount = 0;
+    }
+    return {
+        exists,
+        basename: OPENING_BOOK_LINES_BASENAME,
+        relativePath,
+        absolutePath: filePath,
+        entryCount: lines.length,
+        sizeBytes,
+        mtime,
+        pgnFileCount,
+        generating: exports.isGenerateStateRunning(),
+    };
+};
+
 /** Not yet finished (same set used for stale cleanup and “active” counts). */
 const NON_TERMINAL_GAME_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
 
@@ -769,6 +810,8 @@ exports.tryAcquireGenerateStateLock = () => {
 exports.releaseGenerateStateLock = () => {
     generateStateJobLocked = false;
 };
+
+exports.isGenerateStateRunning = () => generateStateJobLocked;
 
 /**
  * Replays PGN games through ChessGame (same logic as addGamesToDB).
