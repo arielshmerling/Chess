@@ -25,7 +25,8 @@
     var snapshotThemeId = null;
     var editingSavedId = null;
     var dragState = null;
-    var cachedStore = { activeTheme: "custom:blue", themes: [] };
+    var DEFAULT_ACTIVE_THEME = "custom:custom-mr45iwvr";
+    var cachedStore = { activeTheme: DEFAULT_ACTIVE_THEME, themes: [] };
     var storeLoaded = false;
     var readyResolve = null;
     var whenReadyPromise = new Promise(function (resolve) {
@@ -125,7 +126,7 @@
     }
 
     function getActiveTheme() {
-        return cachedStore.activeTheme || localStorage.getItem("theme") || "custom:blue";
+        return cachedStore.activeTheme || localStorage.getItem("theme") || DEFAULT_ACTIVE_THEME;
     }
 
     function migrateFromLocalStorage(data) {
@@ -179,7 +180,7 @@
             })
             .then(function (data) {
                 var store = {
-                    activeTheme: data && data.activeTheme ? data.activeTheme : "custom:blue",
+                    activeTheme: data && data.activeTheme ? data.activeTheme : DEFAULT_ACTIVE_THEME,
                     themes: data && Array.isArray(data.themes) ? data.themes : [],
                 };
                 store.themes = store.themes.map(function (t) {
@@ -202,7 +203,7 @@
                 return store;
             })
             .catch(function () {
-                var fallback = { activeTheme: "custom:blue", themes: [] };
+                var fallback = { activeTheme: DEFAULT_ACTIVE_THEME, themes: [] };
                 migrateFromLocalStorage(fallback);
                 cachedStore = fallback;
                 syncLocalStorageCache();
@@ -521,7 +522,7 @@
             if (wasActive) {
                 store.activeTheme = store.themes.length
                     ? "custom:" + store.themes[0].id
-                    : "custom:blue";
+                    : DEFAULT_ACTIVE_THEME;
             }
             writeStore(store).then(function () {
                 if (wasActive) {

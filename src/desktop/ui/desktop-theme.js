@@ -66,7 +66,7 @@
         var theme =
             window.DesktopCustomTheme && window.DesktopCustomTheme.getActiveTheme
                 ? window.DesktopCustomTheme.getActiveTheme()
-                : localStorage.getItem("theme") || "custom:blue";
+                : localStorage.getItem("theme") || "custom:custom-mr45iwvr";
         applyThemeById(theme);
     }
 

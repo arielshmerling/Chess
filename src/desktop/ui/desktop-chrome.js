@@ -160,7 +160,7 @@
     }
 
     function getCurrentThemeId() {
-        var current = localStorage.getItem("theme") || "custom:blue";
+        var current = localStorage.getItem("theme") || "custom:custom-mr45iwvr";
         return current === "blue" || current === "dark" ? "custom:" + current : current;
     }
 

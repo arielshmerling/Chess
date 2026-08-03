@@ -15,6 +15,7 @@ describe("engines registry", function () {
         const ids = registry.playEngineIds();
         assert.ok(ids.includes("brain43"));
         assert.ok(ids.includes("stockfish"));
+        assert.ok(!ids.includes("crafty"));
         assert.strictEqual(registry.getEngine("stockfish").backend, "uci");
     });
 

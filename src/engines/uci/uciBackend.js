@@ -210,7 +210,8 @@ async function computeMove(opts) {
         throw new SearchAbortedError();
     }
 
-    const resolvedSkill = normalizeSkillLevel(skillLevel);
+    const resolvedSkill =
+        engine === "stockfish" ? normalizeSkillLevel(skillLevel) : null;
     let bestUci;
     try {
         bestUci = await proc.goMovetime(fen, thinkingTimeMs, {

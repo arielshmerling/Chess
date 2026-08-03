@@ -7,7 +7,7 @@ const path = require("path");
 const { blueTheme, darkTheme } = require("./builtinThemes");
 const { THEME_VAR_KEYS } = require(path.join(__dirname, "ui", "desktop-theme-keys"));
 
-const DEFAULT_ACTIVE_THEME = "custom:blue";
+const DEFAULT_ACTIVE_THEME = "custom:custom-mr45iwvr";
 
 function sanitizeThemeVarValue(value) {
     if (typeof value !== "string") {

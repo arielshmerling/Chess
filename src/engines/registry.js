@@ -21,6 +21,7 @@ const BRAIN_IDS = Object.freeze(["brain43", "brain42", "brain41"]);
  * @property {boolean} [alwaysAvailable]
  * @property {string} [commandEnv] - env var for executable path (UCI)
  * @property {string} [commandFallback] - PATH name if env unset (UCI)
+ * @property {string} [localBinName] - optional ./bin/<name> probe (UCI)
  */
 
 /** @type {EngineDefinition[]} */
@@ -54,6 +55,7 @@ const ENGINE_DEFINITIONS = Object.freeze([
         alwaysAvailable: false,
         commandEnv: "STOCKFISH_PATH",
         commandFallback: "stockfish",
+        localBinName: "stockfish",
     },
 ]);
 
@@ -76,6 +78,22 @@ function isUciEngine(id) {
     return !!(def && def.backend === "uci");
 }
 
+function tryLocalBin(name) {
+    if (!name || !String(name).trim()) {
+        return null;
+    }
+    const localBin = path.join(process.cwd(), "bin", String(name).trim());
+    try {
+        if (fs.existsSync(localBin)) {
+            fs.accessSync(localBin, fs.constants.X_OK);
+            return localBin;
+        }
+    } catch {
+        /* fall through */
+    }
+    return null;
+}
+
 function resolveUciCommand(def, env) {
     const environ = env || process.env;
     if (!def || def.backend !== "uci") {
@@ -88,15 +106,11 @@ function resolveUciCommand(def, env) {
     if (fromEnv) {
         return fromEnv;
     }
-    // Prefer repo-local binary from scripts/install-stockfish-linux.sh (Render builds).
-    const localBin = path.join(process.cwd(), "bin", "stockfish");
-    try {
-        if (fs.existsSync(localBin)) {
-            fs.accessSync(localBin, fs.constants.X_OK);
-            return localBin;
-        }
-    } catch {
-        /* fall through to PATH fallback */
+    // Prefer repo-local binary (e.g. scripts/install-stockfish-linux.sh → bin/stockfish).
+    const local =
+        tryLocalBin(def.localBinName) || tryLocalBin(def.commandFallback);
+    if (local) {
+        return local;
     }
     if (def.commandFallback && String(def.commandFallback).trim()) {
         return String(def.commandFallback).trim();
