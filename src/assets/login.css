@@ -6,6 +6,10 @@
     --login-muted: #6a6d73;
     --login-line: #2c2f34;
     --login-accent: #d8d8da;
+    --login-square-dark: #0e0f11;
+    --login-square-light: #101214;
+    --login-square-border: rgb(44 47 52 / 0%);
+    --login-square-size: clamp(96px, 14vw, 140px);
 
     position: fixed;
     inset: 0;
@@ -19,6 +23,51 @@
     box-sizing: border-box;
     background-color: var(--login-bg);
     color: var(--login-text);
+    overflow: hidden;
+}
+
+/* Soft chessboard wash — large gentle squares behind the form. */
+.login-screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: var(--login-square-dark);
+    background-image:
+        /* Vertical grid: one line on the left edge of every square */
+        repeating-linear-gradient(
+            to right,
+            var(--login-square-border) 0,
+            var(--login-square-border) 1px,
+            transparent 1px,
+            transparent var(--login-square-size)
+        ),
+        /* Horizontal grid: one line on the top edge of every square */
+        repeating-linear-gradient(
+            to bottom,
+            var(--login-square-border) 0,
+            var(--login-square-border) 1px,
+            transparent 1px,
+            transparent var(--login-square-size)
+        ),
+        repeating-conic-gradient(
+            var(--login-square-dark) 0deg 90deg,
+            var(--login-square-light) 90deg 180deg,
+            var(--login-square-dark) 180deg 270deg,
+            var(--login-square-light) 270deg 360deg
+        );
+    background-size:
+        var(--login-square-size) 100%,
+        100% var(--login-square-size),
+        calc(var(--login-square-size) * 2) calc(var(--login-square-size) * 2);
+    background-position: 0 0;
+}
+
+.login-form,
+.login-version {
+    position: relative;
+    z-index: 1;
 }
 
 .login-form {
@@ -26,14 +75,15 @@
     flex-direction: column;
     align-items: center;
     gap: 2rem;
-    width: min(420px, 100%);
+    width: min(520px, 100%);
 }
 
 .login-prompt {
     margin: 0;
-    font-size: clamp(1.6rem, 4.5vw, 2.4rem);
-    font-weight: 300;
-    letter-spacing: 0.01em;
+    font-family: "Cinzel", "Playfair Display", "Times New Roman", serif;
+    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-align: center;
     transition: opacity 0.22s ease, transform 0.22s ease;
 }
@@ -50,30 +100,58 @@
     width: 100%;
 }
 
-.login-input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.5rem 0.2rem;
-    border: 0;
-    border-bottom: 1px solid var(--login-line);
-    border-radius: 0;
-    background: transparent;
-    color: var(--login-text);
-    font-family: inherit;
-    font-size: 1.15rem;
-    line-height: 1.6;
+/* Beat global `app.css` `input { height: 30px; font-size: 1.4em; background: #4C4C4C }` */
+.login-screen input.login-input,
+.login-screen input.login-input:hover,
+.login-screen input.login-input:focus,
+.login-screen input.login-input:active,
+.login-screen input.login-input:focus-visible {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 3.25rem !important;
+    padding: 0.85rem 0.35rem !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--login-line) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    color: var(--login-text) !important;
+    font-family: inherit !important;
+    font-size: 1.75rem !important;
+    line-height: 1.55 !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
     transition: border-color 0.2s ease, opacity 0.22s ease;
 }
 
-.login-input:focus {
-    outline: none;
-    border-bottom-color: var(--login-accent);
+.login-screen input.login-input:focus,
+.login-screen input.login-input:focus-visible {
+    outline: none !important;
+    border-bottom-color: var(--login-accent) !important;
 }
 
-.login-input:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 1000px var(--login-bg) inset;
-    -webkit-text-fill-color: var(--login-text);
-    caret-color: var(--login-text);
+/* Keep autofill fill transparent (Chrome paints an opaque yellow otherwise). */
+.login-screen input.login-input:-webkit-autofill,
+.login-screen input.login-input:-webkit-autofill:hover,
+.login-screen input.login-input:-webkit-autofill:focus,
+.login-screen input.login-input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--login-text) !important;
+    caret-color: var(--login-text) !important;
+    font-size: 1.75rem !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid var(--login-line) !important;
+    transition: background-color 99999s ease-out 0s !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+    background-color: transparent !important;
+    background-image: none !important;
 }
 
 .login-next {
@@ -81,8 +159,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 3.1rem;
+    height: 3.1rem;
     padding: 0;
     border: 1px solid var(--login-line);
     border-radius: 50%;
@@ -110,8 +188,8 @@
 }
 
 .login-next-icon {
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 1.35rem;
+    height: 1.35rem;
 }
 
 html[dir="rtl"] .login-next-icon {
