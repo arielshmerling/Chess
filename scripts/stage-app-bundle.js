@@ -156,9 +156,14 @@ function main() {
         path.join(ROOT, "src", "session"),
         path.join(BUNDLE, "src", "session"),
     );
+    // UCI + Play engine facade (Electron IPC routes through engineService).
+    copyDirFiltered(
+        path.join(ROOT, "src", "engines"),
+        path.join(BUNDLE, "src", "engines"),
+    );
 
     ensureDir(path.join(BUNDLE, "data"));
-    for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json"]) {
+    for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json", "play-engines.json"]) {
         const src = path.join(ROOT, "data", name);
         if (fs.existsSync(src)) {
             copyFile(src, path.join(BUNDLE, "data", name));
@@ -197,6 +202,21 @@ function main() {
         cwd: BUNDLE,
         stdio: "inherit",
     });
+
+    const requiredPaths = [
+        "src/engines/engineService.js",
+        "src/engines/registry.js",
+        "src/engines/uci/uciBackend.js",
+        "src/engines/uci/uciProcess.js",
+        "src/engines/fenCodec.js",
+        "src/desktop/desktopBrainService.js",
+    ];
+    for (const rel of requiredPaths) {
+        const full = path.join(BUNDLE, rel);
+        if (!fs.existsSync(full)) {
+            throw new Error(`[stage-app-bundle] Missing required file: ${rel}`);
+        }
+    }
 
     console.log("[stage-app-bundle] Done:", BUNDLE);
 }
