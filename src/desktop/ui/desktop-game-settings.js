@@ -14,11 +14,11 @@
         stockfish: "Stockfish",
     };
 
+    /** Brains only until launch/probe adds available UCI engines (e.g. Stockfish). */
     const DEFAULT_ENGINE_OPTIONS = [
         { value: "brain43", label: ENGINE_LABELS.brain43 },
         { value: "brain42", label: ENGINE_LABELS.brain42 },
         { value: "brain41", label: ENGINE_LABELS.brain41 },
-        { value: "stockfish", label: ENGINE_LABELS.stockfish },
     ];
 
     /** Mutable Play list; may be filtered by launch-context availability. */

@@ -278,12 +278,112 @@ async function startLocalServer() {
     });
 }
 
+function stripPathQuotes(value) {
+    let s = String(value || "").trim();
+    if (
+        (s.charAt(0) === '"' && s.charAt(s.length - 1) === '"')
+        || (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")
+    ) {
+        s = s.slice(1, -1).trim();
+    }
+    return s;
+}
+
+function readWindowsUserEnvVar(name) {
+    if (process.platform !== "win32" || !name) {
+        return "";
+    }
+    try {
+        const { execFileSync } = require("child_process");
+        const out = execFileSync(
+            "reg",
+            ["query", "HKCU\\Environment", "/v", String(name)],
+            { encoding: "utf8", windowsHide: true },
+        );
+        const match = String(out).match(/REG_(?:EXPAND_)?SZ\s+(.+)\s*$/m);
+        return match ? stripPathQuotes(match[1]) : "";
+    } catch {
+        return "";
+    }
+}
+
+function applyStockfishPath(raw, sourceLabel) {
+    const cleaned = stripPathQuotes(raw);
+    if (!cleaned) {
+        return false;
+    }
+    if (!fs.existsSync(cleaned)) {
+        console.warn(`[desktop] STOCKFISH_PATH from ${sourceLabel} does not exist: ${cleaned}`);
+        return false;
+    }
+    process.env.STOCKFISH_PATH = cleaned;
+    console.log(`[desktop] STOCKFISH_PATH from ${sourceLabel}: ${cleaned}`);
+    return true;
+}
+
+function loadDesktopStockfishPathHint(userDataPath) {
+    // Prefer an explicit file next to the app profile — GUI launches often miss
+    // newly set User env vars until sign-out. Filename may be anything.
+    if (userDataPath) {
+        const pathFiles = [
+            path.join(userDataPath, "stockfish.path"),
+            path.join(userDataPath, "engines", "stockfish.path"),
+        ];
+        for (let i = 0; i < pathFiles.length; i += 1) {
+            try {
+                if (!fs.existsSync(pathFiles[i])) {
+                    continue;
+                }
+                const raw = fs.readFileSync(pathFiles[i], "utf8").trim().split(/\r?\n/)[0];
+                if (applyStockfishPath(raw, pathFiles[i])) {
+                    return;
+                }
+            } catch (err) {
+                console.warn(
+                    "[desktop] Could not read stockfish path file:",
+                    err && err.message ? err.message : err,
+                );
+            }
+        }
+
+        const enginesDir = path.join(userDataPath, "engines");
+        try {
+            if (fs.existsSync(enginesDir)) {
+                const entries = fs.readdirSync(enginesDir);
+                const match = entries.find((name) => /stockfish/i.test(name));
+                if (match) {
+                    const full = path.join(enginesDir, match);
+                    if (applyStockfishPath(full, "userData/engines")) {
+                        return;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn(
+                "[desktop] Could not scan engines folder:",
+                err && err.message ? err.message : err,
+            );
+        }
+    }
+
+    if (process.env.STOCKFISH_PATH && applyStockfishPath(process.env.STOCKFISH_PATH, "process.env")) {
+        return;
+    }
+
+    const fromUserEnv = readWindowsUserEnvVar("STOCKFISH_PATH");
+    if (fromUserEnv && applyStockfishPath(fromUserEnv, "HKCU\\Environment")) {
+        return;
+    }
+}
+
 function initDesktopBrainIpc() {
     process.env.SHMERLING_MODE = "desktop";
     process.env.SHMERLING_USER_DATA = app.getPath("userData");
+    process.env.SHMERLING_APP_RESOURCES = process.resourcesPath || "";
     process.env.SHMERLING_SYNC_CUSTOM_THEMES = app.isPackaged ? "" : "1";
     process.env.SESSION_SECRET = process.env.SESSION_SECRET || "shmerling-desktop-local-session";
     process.env.NODE_ENV = process.env.NODE_ENV || "production";
+    loadDesktopStockfishPathHint(process.env.SHMERLING_USER_DATA);
     const bundleRoot = resolveBundleRoot();
     const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
     // Route through engineService so UCI engines (Stockfish) work the same as brains.
@@ -309,7 +409,7 @@ function initDesktopBrainIpc() {
                 console.log("[desktop] Stockfish UCI available");
             } else {
                 console.log(
-                    "[desktop] Stockfish not available — install Stockfish and set STOCKFISH_PATH (or put stockfish on PATH)",
+                    "[desktop] Stockfish not available — set User env STOCKFISH_PATH to the full .exe path (any filename), or put that path in %APPDATA%\\Shmerling Chess\\stockfish.path, then fully quit and reopen the app",
                 );
             }
         })
@@ -318,6 +418,15 @@ function initDesktopBrainIpc() {
         });
 
     ipcMain.handle("log:getHistory", () => getLogHistory());
+
+    ipcMain.handle("engines:listPlay", async () => {
+        try {
+            return await listPlayEnginesForClient();
+        } catch (err) {
+            console.warn("[desktop] engines:listPlay failed:", err && err.message ? err.message : err);
+            return [];
+        }
+    });
 
     ipcMain.handle("brain:computeMove", async (event, payload) => {
         const sender = event.sender;
@@ -335,6 +444,12 @@ function initDesktopBrainIpc() {
                 || err?.message === "Search aborted"
             ) {
                 return { searchAborted: true };
+            }
+            const msg = err && err.message ? String(err.message) : String(err);
+            if (/ENOENT|not available|spawn /i.test(msg)) {
+                throw new Error(
+                    "Stockfish was not found on this PC. Install Stockfish, or set STOCKFISH_PATH / place stockfish.exe in your Shmerling userData engines folder.",
+                );
             }
             throw err;
         }

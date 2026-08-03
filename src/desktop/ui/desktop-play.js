@@ -5469,6 +5469,21 @@
             if (!isWebPlayPage()) {
                 canPlayAdvancedTools = true;
                 canDebug = true;
+                try {
+                    if (
+                        window.shmerling
+                        && typeof window.shmerling.invoke === "function"
+                        && Settings
+                        && typeof Settings.applyLaunchEngines === "function"
+                    ) {
+                        const engines = await window.shmerling.invoke("engines:listPlay");
+                        if (Array.isArray(engines)) {
+                            Settings.applyLaunchEngines(engines, t);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("[Play] Could not load desktop engine list:", err);
+                }
                 return {
                     ok: true,
                     canPlayAdvanced: true,

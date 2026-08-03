@@ -4,6 +4,7 @@
 "use strict";
 
 const assert = require("assert");
+const fs = require("fs");
 const path = require("path");
 const { ChessGame } = require("../src/ChessGame");
 const registry = require("../src/engines/registry");
@@ -25,18 +26,54 @@ describe("engines registry", function () {
         assert.strictEqual(cmd, "/opt/stockfish");
     });
 
+    it("accepts STOCKFISH_PATH with a custom filename and strips quotes", function () {
+        const def = registry.getEngine("stockfish");
+        const cmd = registry.resolveUciCommand(def, {
+            STOCKFISH_PATH: '"C:\\Engines\\stockfish-windows-x86-64-avx2.exe"',
+        });
+        assert.strictEqual(cmd, "C:\\Engines\\stockfish-windows-x86-64-avx2.exe");
+    });
+
     it("uses stockfish.exe PATH fallback on win32 when env unset", function () {
         const def = registry.getEngine("stockfish");
         const original = process.platform;
         Object.defineProperty(process, "platform", { value: "win32" });
         try {
-            const cmd = registry.resolveUciCommand(def, {});
+            const cmd = registry.resolveUciCommand(def, {
+                USERPROFILE: path.join(__dirname, "no-such-user-profile-for-stockfish"),
+                LOCALAPPDATA: path.join(__dirname, "no-such-local-appdata-for-stockfish"),
+            });
             assert.ok(cmd === "stockfish.exe" || /stockfish\.exe$/i.test(cmd) || /stockfish$/i.test(cmd));
             if (!cmd.includes("/") && !cmd.includes("\\")) {
                 assert.strictEqual(cmd, "stockfish.exe");
             }
         } finally {
             Object.defineProperty(process, "platform", { value: original });
+        }
+    });
+
+    it("discovers stockfish under SHMERLING_USER_DATA/engines", function () {
+        const dir = path.join(__dirname, "fixtures", "fake-stockfish-home", "engines");
+        fs.mkdirSync(dir, { recursive: true });
+        const fake = path.join(dir, process.platform === "win32" ? "stockfish.exe" : "stockfish");
+        fs.writeFileSync(fake, "#!/bin/sh\nexit 0\n");
+        try {
+            fs.chmodSync(fake, 0o755);
+        } catch {
+            /* windows */
+        }
+        try {
+            const found = registry.findExistingCandidate(
+                { SHMERLING_USER_DATA: path.join(__dirname, "fixtures", "fake-stockfish-home") },
+                "stockfish",
+            );
+            assert.strictEqual(found, fake);
+        } finally {
+            try {
+                fs.unlinkSync(fake);
+            } catch {
+                /* ignore */
+            }
         }
     });
 });

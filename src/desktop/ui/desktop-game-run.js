@@ -35,7 +35,6 @@
         { value: "brain43", label: t("play.newGameDialog.brain43") },
         { value: "brain42", label: t("play.newGameDialog.brain42") },
         { value: "brain41", label: t("play.newGameDialog.brain41") },
-        { value: "stockfish", label: t("play.newGameDialog.stockfish") },
     ];
 
     function updateSwatchPair(whiteBtn, blackBtn, isWhiteSelected) {
