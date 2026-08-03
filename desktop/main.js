@@ -286,7 +286,14 @@ function initDesktopBrainIpc() {
     process.env.NODE_ENV = process.env.NODE_ENV || "production";
     const bundleRoot = resolveBundleRoot();
     const runtime = require(path.join(bundleRoot, "src/desktop/runtime"));
-    const { computeMove, evaluatePosition, abortSearch, SearchAbortedError } = require(path.join(bundleRoot, "src/desktop/desktopBrainService"));
+    // Route through engineService so UCI engines (Stockfish) work the same as brains.
+    const {
+        computeMove,
+        evaluatePosition,
+        abortSearch,
+        SearchAbortedError,
+        listPlayEnginesForClient,
+    } = require(path.join(bundleRoot, "src/engines/engineService"));
     const { appendCompletedGame, getGamesLogPath } = require(path.join(bundleRoot, "src/desktop/gameHistoryStore"));
     const { preloadOpeningBookAtStartup } = require(path.join(bundleRoot, "src/desktop/preloadOpeningBook"));
 
@@ -294,6 +301,21 @@ function initDesktopBrainIpc() {
     preloadOpeningBookAtStartup().catch((err) => {
         console.error("[desktop] Opening book preload in main:", err);
     });
+
+    listPlayEnginesForClient()
+        .then((engines) => {
+            const sf = (engines || []).find((e) => e.id === "stockfish");
+            if (sf && sf.available) {
+                console.log("[desktop] Stockfish UCI available");
+            } else {
+                console.log(
+                    "[desktop] Stockfish not available — install Stockfish and set STOCKFISH_PATH (or put stockfish on PATH)",
+                );
+            }
+        })
+        .catch((err) => {
+            console.warn("[desktop] Could not probe Play engines:", err && err.message ? err.message : err);
+        });
 
     ipcMain.handle("log:getHistory", () => getLogHistory());
 
@@ -307,7 +329,11 @@ function initDesktopBrainIpc() {
                 sender.send("brain:searchProgress", progress);
             });
         } catch (err) {
-            if (err instanceof SearchAbortedError || err?.message === "Search aborted") {
+            if (
+                err instanceof SearchAbortedError
+                || err?.name === "SearchAbortedError"
+                || err?.message === "Search aborted"
+            ) {
                 return { searchAborted: true };
             }
             throw err;

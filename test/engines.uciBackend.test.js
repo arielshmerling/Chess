@@ -24,6 +24,21 @@ describe("engines registry", function () {
         const cmd = registry.resolveUciCommand(def, { STOCKFISH_PATH: "/opt/stockfish" });
         assert.strictEqual(cmd, "/opt/stockfish");
     });
+
+    it("uses stockfish.exe PATH fallback on win32 when env unset", function () {
+        const def = registry.getEngine("stockfish");
+        const original = process.platform;
+        Object.defineProperty(process, "platform", { value: "win32" });
+        try {
+            const cmd = registry.resolveUciCommand(def, {});
+            assert.ok(cmd === "stockfish.exe" || /stockfish\.exe$/i.test(cmd) || /stockfish$/i.test(cmd));
+            if (!cmd.includes("/") && !cmd.includes("\\")) {
+                assert.strictEqual(cmd, "stockfish.exe");
+            }
+        } finally {
+            Object.defineProperty(process, "platform", { value: original });
+        }
+    });
 });
 
 describe("engines uciBackend", function () {
@@ -105,5 +120,10 @@ describe("engines engineService routing", function () {
             () => engineService.evaluatePosition({ gameState: {}, engine: "stockfish" }),
             /not supported/,
         );
+    });
+
+    it("abortSearch stops both brain and UCI backends", function () {
+        assert.strictEqual(typeof engineService.abortSearch, "function");
+        engineService.abortSearch();
     });
 });

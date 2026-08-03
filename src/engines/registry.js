@@ -82,14 +82,21 @@ function tryLocalBin(name) {
     if (!name || !String(name).trim()) {
         return null;
     }
-    const localBin = path.join(process.cwd(), "bin", String(name).trim());
-    try {
-        if (fs.existsSync(localBin)) {
-            fs.accessSync(localBin, fs.constants.X_OK);
-            return localBin;
+    const base = String(name).trim();
+    const names = [base];
+    if (process.platform === "win32" && !/\.exe$/i.test(base)) {
+        names.push(`${base}.exe`);
+    }
+    for (let i = 0; i < names.length; i += 1) {
+        const localBin = path.join(process.cwd(), "bin", names[i]);
+        try {
+            if (fs.existsSync(localBin)) {
+                fs.accessSync(localBin, fs.constants.X_OK);
+                return localBin;
+            }
+        } catch {
+            /* try next */
         }
-    } catch {
-        /* fall through */
     }
     return null;
 }
@@ -113,7 +120,11 @@ function resolveUciCommand(def, env) {
         return local;
     }
     if (def.commandFallback && String(def.commandFallback).trim()) {
-        return String(def.commandFallback).trim();
+        const fallback = String(def.commandFallback).trim();
+        if (process.platform === "win32" && !/\.exe$/i.test(fallback)) {
+            return `${fallback}.exe`;
+        }
+        return fallback;
     }
     return null;
 }
