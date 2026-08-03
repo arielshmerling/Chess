@@ -18,7 +18,7 @@ const { preloadOpeningBookAtStartup } = require("./src/desktop/preloadOpeningBoo
 async function startDesktopServer() {
     await preloadOpeningBookAtStartup();
 
-    const app = require("./src/app.js");
+    const app = require("./src/app-desktop.js");
 
     const PORT = Number(process.env.PORT) || 0;
     const HOST = "127.0.0.1";

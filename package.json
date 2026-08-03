@@ -26,6 +26,8 @@
     "start:desktop:server": "SHMERLING_MODE=desktop SHMERLING_USER_DATA=./.shmerling-desktop-dev SHMERLING_SYNC_CUSTOM_THEMES=1 node ./server-desktop.js",
     "desktop": "node scripts/run-desktop.js",
     "desktop:setup": "cd desktop && npm install && npm run setup",
+    "desktop:stage": "node ./scripts/stage-app-bundle.js",
+    "desktop:verify": "node ./scripts/verify-desktop-bundle.js",
     "desktop:dist:win": "cd desktop && npm install && npm run dist:win",
     "desktop:git:release": "node scripts/git-publish-release.js"
   },

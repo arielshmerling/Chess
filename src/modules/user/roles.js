@@ -3,7 +3,7 @@
  * `session.admin` remains authoritative for Admin (legacy); Partner/Member use `userType`.
  */
 
-const { USER_TYPES, resolveUserType } = require("./model");
+const { USER_TYPES, resolveUserType } = require("./userTypes");
 
 /**
  * @param {{ admin?: boolean, userType?: string }|null|undefined} session

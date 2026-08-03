@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-
-const USER_TYPES = ["Admin", "Partner", "Member"];
+const { USER_TYPES, resolveUserType } = require("./userTypes");
 
 const bookmarkSchema = new mongoose.Schema({
     state: {
@@ -159,23 +158,6 @@ userSchema.statics.authenticate = async function (username, password) {
 };
 
 userSchema.statics.USER_TYPES = USER_TYPES;
-
-/**
- * Resolve userType for documents that predate the field.
- * @param {{ userType?: string, admin?: boolean }} user
- * @returns {"Admin"|"Partner"|"Member"}
- */
-function resolveUserType(user) {
-    // `admin` predates `userType`; it remains authoritative for legacy users
-    // that may have received the new "Member" schema default.
-    if (user && user.admin) {
-        return "Admin";
-    }
-    if (user && USER_TYPES.includes(user.userType)) {
-        return user.userType;
-    }
-    return "Member";
-}
 
 module.exports = {
     Bookmark: mongoose.model("Bookmark", bookmarkSchema),

@@ -1,5 +1,6 @@
 /**
  * Stage a slim desktop server bundle into desktop/app-bundle/ for electron-builder.
+ * After staging, runs scripts/verify-desktop-bundle.js (real require() smoke test).
  */
 const fs = require("fs");
 const path = require("path");
@@ -9,8 +10,10 @@ const ROOT = path.join(__dirname, "..");
 const DESKTOP = path.join(ROOT, "desktop");
 const BUNDLE = path.join(DESKTOP, "app-bundle");
 
+/** Files copied from src/ to app-bundle/src/ (flat root of src). */
 const DESKTOP_ROOT_FILES = [
     "app-desktop.js",
+    "clientStatic.js",
     "ChessGame.js",
     "brain41.js",
     "brain42.js",
@@ -25,22 +28,26 @@ const DESKTOP_ROOT_FILES = [
     "gameStateCompact.js",
     "themes.js",
     "pieceSets.js",
+    "utils.js",
     "favicon.ico",
 ];
 
+/** Nested files under src/ required at runtime by the desktop Express/IPC stack. */
 const DESKTOP_SRC_FILES = [
     "modules/game/brainConfigService.js",
+    "modules/user/userTypes.js",
+    "modules/user/roles.js",
+    "play/bookmarkShape.js",
+    "security/helmetOptions.js",
     "utils/catchAsync.js",
     "utils/ExpressError.js",
-    "utils.js",
 ];
 
 const DESKTOP_BRAIN_CONFIGS = ["brain41.json", "brain42.json", "brain43.json"];
 
-const DESKTOP_UI_PAGES = ["play.html", "error.html"];
-
 const DESKTOP_UI_EXCLUDE = new Set([]);
 
+/** Desktop server modules that pull Mongo / full web game stack — keep out of the slim bundle. */
 const DESKTOP_SERVER_EXCLUDE = new Set([
     "gameApi.js",
     "gameStore.js",
@@ -78,12 +85,18 @@ function ensureDir(dir) {
 }
 
 function copyFile(from, to) {
+    if (!fs.existsSync(from)) {
+        throw new Error(`[stage-app-bundle] Source missing: ${from}`);
+    }
     ensureDir(path.dirname(to));
     fs.copyFileSync(from, to);
 }
 
 function copyDirFiltered(srcDir, destDir, options = {}) {
     const { excludeNames = new Set(), excludeTest = true } = options;
+    if (!fs.existsSync(srcDir)) {
+        throw new Error(`[stage-app-bundle] Source dir missing: ${srcDir}`);
+    }
     ensureDir(destDir);
     for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
         if (excludeNames.has(entry.name)) {
@@ -156,11 +169,22 @@ function main() {
         path.join(ROOT, "src", "session"),
         path.join(BUNDLE, "src", "session"),
     );
-    // UCI + Play engine facade (Electron IPC routes through engineService).
     copyDirFiltered(
         path.join(ROOT, "src", "engines"),
         path.join(BUNDLE, "src", "engines"),
     );
+    copyDirFiltered(
+        path.join(ROOT, "src", "adapters"),
+        path.join(BUNDLE, "src", "adapters"),
+    );
+
+    // Optional static dir referenced by routes (404s are fine if empty).
+    const mobileSrc = path.join(ROOT, "src", "mobile");
+    if (fs.existsSync(mobileSrc)) {
+        copyDirFiltered(mobileSrc, path.join(BUNDLE, "src", "mobile"));
+    } else {
+        ensureDir(path.join(BUNDLE, "src", "mobile"));
+    }
 
     ensureDir(path.join(BUNDLE, "data"));
     for (const name of ["opening-book-lines.txt", "desktop-custom-themes.json", "play-engines.json"]) {
@@ -203,20 +227,11 @@ function main() {
         stdio: "inherit",
     });
 
-    const requiredPaths = [
-        "src/engines/engineService.js",
-        "src/engines/registry.js",
-        "src/engines/uci/uciBackend.js",
-        "src/engines/uci/uciProcess.js",
-        "src/engines/fenCodec.js",
-        "src/desktop/desktopBrainService.js",
-    ];
-    for (const rel of requiredPaths) {
-        const full = path.join(BUNDLE, rel);
-        if (!fs.existsSync(full)) {
-            throw new Error(`[stage-app-bundle] Missing required file: ${rel}`);
-        }
-    }
+    console.log("[stage-app-bundle] Verifying staged bundle can load…");
+    execSync("node ../scripts/verify-desktop-bundle.js", {
+        cwd: DESKTOP,
+        stdio: "inherit",
+    });
 
     console.log("[stage-app-bundle] Done:", BUNDLE);
 }

@@ -23,7 +23,9 @@ jobs:
 
       - name: Verify desktop build scripts
         shell: bash
-        run: test -f scripts/stage-app-bundle.js
+        run: |
+          test -f scripts/stage-app-bundle.js
+          test -f scripts/verify-desktop-bundle.js
 
       - name: Build Windows NSIS installer
         run: npm run desktop:dist:win
