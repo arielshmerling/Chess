@@ -15,7 +15,7 @@ function loadWebApp() {
 }
 
 /**
- * Clear in-memory login / validateUsername rate-limit buckets (shared across mocha files).
+ * Clear in-memory rate-limit buckets (shared across mocha files).
  * @param {import("express").Application} app
  */
 function resetWebRateLimits(app) {
@@ -23,12 +23,12 @@ function resetWebRateLimits(app) {
     if (!limiters) {
         return;
     }
-    if (limiters.login && typeof limiters.login.reset === "function") {
-        limiters.login.reset();
-    }
-    if (limiters.validateUsername && typeof limiters.validateUsername.reset === "function") {
-        limiters.validateUsername.reset();
-    }
+    Object.keys(limiters).forEach(function (name) {
+        const limiter = limiters[name];
+        if (limiter && typeof limiter.reset === "function") {
+            limiter.reset();
+        }
+    });
 }
 
 module.exports = {

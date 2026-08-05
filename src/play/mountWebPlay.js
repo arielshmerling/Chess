@@ -3,6 +3,7 @@ const express = require("express");
 const { requireLogin } = require("../utils");
 const { canAccessPlayPage } = require("./playPaths");
 const brainApi = require("./brainApi");
+const { brainRateLimit } = require("./brainGuards");
 const webCustomThemeApi = require("./webCustomThemeApi");
 const webUiSettingsApi = require("./webUiSettingsApi");
 const playPrefsApi = require("./playPrefsApi");
@@ -31,9 +32,9 @@ function mountWebPlayRoutes(app) {
     app.use("/app/mobile", express.static(MOBILE_DIR));
     app.use("/app/adapters", express.static(path.join(__dirname, "../adapters")));
 
-    app.post("/api/brain/compute-move", requireLogin, brainApi.computeMove);
-    app.post("/api/brain/evaluate-position", requireLogin, brainApi.evaluatePosition);
-    app.post("/api/brain/abort-search", requireLogin, brainApi.abortSearch);
+    app.post("/api/brain/compute-move", requireLogin, brainRateLimit, brainApi.computeMove);
+    app.post("/api/brain/evaluate-position", requireLogin, brainRateLimit, brainApi.evaluatePosition);
+    app.post("/api/brain/abort-search", requireLogin, brainRateLimit, brainApi.abortSearch);
 
     app.get("/app/api/custom-themes", requireLogin, webCustomThemeApi.get);
     app.post("/app/api/custom-themes", requireLogin, webCustomThemeApi.save);

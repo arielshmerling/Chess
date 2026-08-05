@@ -111,6 +111,7 @@ const validateUsernameRateLimit = createRateLimiter({
 app.set("rateLimiters", {
     login: loginRateLimit,
     validateUsername: validateUsernameRateLimit,
+    brain: require("./play/brainGuards").brainRateLimit,
 });
 
 const userRoutes = require("./modules/user"); // Import the user routes

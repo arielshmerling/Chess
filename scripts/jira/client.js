@@ -185,6 +185,10 @@ function getIssue(key) {
  * @param {string} [spec.description]
  * @param {string} [spec.issueType="Task"]
  * @param {string[]} [spec.labels]
+ * @param {string} [spec.priority] Priority name (e.g. "High"). Only set on issue
+ *   types whose create screen exposes the field (Bug in this project).
+ * @param {string} [spec.parentKey] Parent issue key, e.g. an Epic key, for
+ *   team-managed projects.
  * @param {string} [spec.projectKey] Defaults to JIRA_PROJECT_KEY.
  * @returns {Promise<object>} Created issue stub with key.
  */
@@ -201,7 +205,26 @@ function createIssue(spec) {
     if (spec.labels && spec.labels.length) {
         fields.labels = spec.labels;
     }
+    if (spec.priority) {
+        fields.priority = { name: spec.priority };
+    }
+    if (spec.parentKey) {
+        fields.parent = { key: spec.parentKey };
+    }
     return request("POST", "/rest/api/3/issue", { fields: fields }, cfg);
+}
+
+/**
+ * Set the priority on an existing issue.
+ *
+ * @param {string} key
+ * @param {string} priorityName
+ * @returns {Promise<object|null>}
+ */
+function setPriority(key, priorityName) {
+    return request("PUT", "/rest/api/3/issue/" + encodeURIComponent(key), {
+        fields: { priority: { name: priorityName } },
+    });
 }
 
 /**
@@ -283,6 +306,7 @@ module.exports = {
     searchIssues,
     getIssue,
     createIssue,
+    setPriority,
     addComment,
     listTransitions,
     transitionIssue,
