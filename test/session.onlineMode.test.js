@@ -37,6 +37,10 @@ function createMockTransport() {
         },
         close: function () {
             open = false;
+            /* Match real WsTransport.close: intentional close does not fire onClose. */
+        },
+        simulateDisconnect: function () {
+            open = false;
             if (typeof closeHandler === "function") {
                 closeHandler();
             }
@@ -108,6 +112,69 @@ describe("session OnlineProtocol (Phase 3)", function () {
             "opponentResigned",
         );
         assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "Opponent disconnected",
+            }).kind,
+            "opponentDisconnected",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "opponent rejoined",
+            }).kind,
+            "opponentRejoined",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "Opponent failed to reconnect",
+            }).kind,
+            "opponentFailedReconnect",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "offer draw",
+            }).kind,
+            "offerDraw",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "draw accepted",
+            }).kind,
+            "drawAccepted",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "draw declined",
+            }).kind,
+            "drawDeclined",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "offer rematch",
+            }).kind,
+            "offerRematch",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "rematch accepted",
+            }).kind,
+            "rematchAccepted",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "rematch declined",
+            }).kind,
+            "rematchDeclined",
+        );
+        assert.strictEqual(
             OnlineProtocol.classifyInbound({ type: "move", data: {} }).kind,
             "move",
         );
@@ -126,6 +193,14 @@ describe("session OnlineProtocol (Phase 3)", function () {
                 data: "hi",
             }).kind,
             "chat",
+        );
+        assert.strictEqual(
+            OnlineProtocol.classifyInbound({
+                type: "info",
+                info: "connected",
+                moveCount: 2,
+            }).kind,
+            "connected",
         );
     });
 
@@ -184,6 +259,86 @@ describe("session WsTransport (Phase 3)", function () {
         assert.strictEqual(instance.sent.length, 1);
         assert.deepStrictEqual(JSON.parse(instance.sent[0]), { type: "ping" });
         transport.close();
+    });
+
+    it("errors instead of queuing when socket is closed", function () {
+        let instance = null;
+        const errors = [];
+        function FakeWS() {
+            this.readyState = 1;
+            this.sent = [];
+            instance = this;
+        }
+        FakeWS.prototype.send = function (data) {
+            this.sent.push(data);
+        };
+        FakeWS.prototype.close = function () {
+            this.readyState = 3;
+        };
+
+        const transport = WsTransport.create({ WebSocket: FakeWS });
+        transport.onError(function (err) {
+            errors.push(err);
+        });
+        transport.connect("ws://test/ws");
+        instance.readyState = 1;
+        instance.onopen();
+        instance.readyState = 3;
+        const ok = transport.send({ type: "move" });
+        assert.strictEqual(ok, false);
+        assert.strictEqual(instance.sent.length, 0);
+        assert.strictEqual(errors.length, 1);
+        assert.match(String(errors[0].message), /not open/i);
+    });
+
+    it("intentional close does not invoke onClose handler", function () {
+        let instance = null;
+        let closed = 0;
+        function FakeWS() {
+            this.readyState = 1;
+            instance = this;
+        }
+        FakeWS.prototype.send = function () {};
+        FakeWS.prototype.close = function () {
+            this.readyState = 3;
+            if (typeof this.onclose === "function") {
+                this.onclose();
+            }
+        };
+
+        const transport = WsTransport.create({ WebSocket: FakeWS });
+        transport.onClose(function () {
+            closed += 1;
+        });
+        transport.connect("ws://test/ws");
+        instance.readyState = 1;
+        instance.onopen();
+        transport.close();
+        assert.strictEqual(closed, 0);
+    });
+
+    it("unexpected socket close invokes onClose handler", function () {
+        let instance = null;
+        let closed = 0;
+        function FakeWS() {
+            this.readyState = 1;
+            instance = this;
+        }
+        FakeWS.prototype.send = function () {};
+        FakeWS.prototype.close = function () {
+            this.readyState = 3;
+        };
+
+        const transport = WsTransport.create({ WebSocket: FakeWS });
+        transport.onClose(function () {
+            closed += 1;
+        });
+        transport.connect("ws://test/ws");
+        instance.readyState = 1;
+        instance.onopen();
+        instance.onclose();
+        assert.strictEqual(closed, 1);
+        assert.strictEqual(transport.isOpen(), false);
     });
 });
 
@@ -532,6 +687,15 @@ describe("session OnlineMode (Phase 3)", function () {
         assert.ok(offerWithColor);
         assert.strictEqual(offerWithColor.offererWantsColor, "black");
 
+        transport.sent.length = 0;
+        assert.ok(mode.offerRematch("white", 45));
+        const offerWithTime = transport.sent.find(function (m) {
+            return m.info === "offer rematch";
+        });
+        assert.ok(offerWithTime);
+        assert.strictEqual(offerWithTime.offererWantsColor, "white");
+        assert.strictEqual(offerWithTime.timeMinutes, 45);
+
         await mode._handleInbound({
             type: "info",
             info: "rematch accepted",
@@ -808,5 +972,257 @@ describe("session OnlineMode (Phase 3)", function () {
             userId: "u1",
         });
         assert.strictEqual(seen, null);
+    });
+
+    it("notifies on transport drop and restores on reconnect", function () {
+        const transport = createMockTransport();
+        const statuses = [];
+        let lost = 0;
+        let restored = 0;
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: {
+                id: "g1",
+                username: "alice",
+                userId: "u1",
+                blackPlayerName: "bob",
+            },
+            wsUrl: "ws://test/ws",
+            onStatus: function (message, kind) {
+                statuses.push({ message: message, kind: kind });
+            },
+            onConnectionLost: function () {
+                lost += 1;
+            },
+            onConnectionRestored: function () {
+                restored += 1;
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        assert.strictEqual(mode.isConnected(), true);
+        transport.simulateDisconnect();
+        assert.strictEqual(mode.isConnected(), false);
+        assert.strictEqual(lost, 1);
+        assert.ok(
+            statuses.some(function (s) {
+                return s.kind === "error";
+            }),
+        );
+        transport.connect("ws://test/ws");
+        assert.strictEqual(mode.isConnected(), true);
+        assert.strictEqual(restored, 1);
+        mode.detach();
+        session.dispose();
+    });
+
+    it("schedules auto-reconnect after unexpected transport drop", async function () {
+        this.timeout(5000);
+        const transport = createMockTransport();
+        let connectCount = 0;
+        const originalConnect = transport.connect;
+        transport.connect = function (url) {
+            connectCount += 1;
+            return originalConnect.call(transport, url);
+        };
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        assert.strictEqual(connectCount, 1);
+        transport.simulateDisconnect();
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 1100);
+        });
+        assert.ok(connectCount >= 2, "expected auto-reconnect attempt");
+        mode.detach();
+        session.dispose();
+    });
+
+    it("disables rematch after post-game opponent disconnect", async function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        transport.push({ type: "info", info: "connected" });
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "human" },
+        );
+        session.resign("White");
+        assert.strictEqual(mode.canOfferRematch(), true);
+        await mode._handleInbound({
+            type: "info",
+            info: "Opponent disconnected",
+            disconnectedWasWhite: false,
+        });
+        assert.strictEqual(mode.canOfferRematch(), false);
+        assert.strictEqual(mode.offerRematch(), false);
+        session.dispose();
+    });
+
+    it("starts disconnect countdown after grace and clears on rejoin", async function () {
+        this.timeout(5000);
+        const transport = createMockTransport();
+        const ticks = [];
+        let cleared = 0;
+        const game = silentGame();
+        game.startNewGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+            onDisconnectCountdown: function (seconds) {
+                ticks.push(seconds);
+            },
+            onDisconnectCountdownClear: function () {
+                cleared += 1;
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        await mode._handleInbound({
+            type: "info",
+            info: "Opponent disconnected",
+            disconnectedWasWhite: false,
+        });
+        assert.strictEqual(ticks.length, 0);
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 1100);
+        });
+        assert.ok(ticks.length >= 1);
+        assert.strictEqual(ticks[0], 60);
+        await mode._handleInbound({
+            type: "info",
+            info: "opponent rejoined",
+            rejoinedWasWhite: false,
+        });
+        assert.ok(cleared >= 1);
+        session.dispose();
+    });
+
+    it("sends rematch offer / accept / decline infos", function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        transport.push({ type: "info", info: "connected" });
+        session.playMove(
+            { source: { row: 6, col: 4 }, target: { row: 4, col: 4 } },
+            { source: "human" },
+        );
+        session.resign("White");
+        assert.strictEqual(mode.offerRematch("black", 12), true);
+        const offer = transport.sent.find(function (m) {
+            return m.info === "offer rematch";
+        });
+        assert.ok(offer);
+        assert.strictEqual(offer.offererWantsColor, "black");
+        assert.strictEqual(offer.timeMinutes, 12);
+
+        transport.sent.length = 0;
+        assert.strictEqual(mode.acceptRematchOffer("white", 20), true);
+        const accept = transport.sent.find(function (m) {
+            return m.info === "rematch accepted";
+        });
+        assert.ok(accept);
+        assert.strictEqual(accept.offererWantsColor, "white");
+        assert.strictEqual(accept.timeMinutes, 20);
+
+        transport.sent.length = 0;
+        assert.strictEqual(mode.declineRematchOffer(), true);
+        assert.ok(
+            transport.sent.some(function (m) {
+                return m.info === "rematch declined";
+            }),
+        );
+        session.dispose();
+    });
+
+    it("sends draw accept and decline infos", function () {
+        const transport = createMockTransport();
+        const game = silentGame();
+        game.startNewGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+        });
+        session.attachMode(mode);
+        session.start();
+        transport.push({ type: "info", info: "connected" });
+        assert.strictEqual(mode.acceptDrawOffer(), true);
+        assert.ok(
+            transport.sent.some(function (m) {
+                return m.info === "draw accepted";
+            }),
+        );
+        transport.sent.length = 0;
+        assert.strictEqual(mode.declineDrawOffer(), true);
+        assert.ok(
+            transport.sent.some(function (m) {
+                return m.info === "draw declined";
+            }),
+        );
+        session.dispose();
+    });
+
+    it("emits drawOffered and rematch offer hooks for inbound offers", async function () {
+        const transport = createMockTransport();
+        let drawPayload = null;
+        let rematchPayload = null;
+        const game = silentGame();
+        game.startNewGame();
+        const session = GameSession.create({ game: game, humanIsWhite: true });
+        session.on("drawOffered", function (p) {
+            drawPayload = p;
+        });
+        const mode = OnlineMode.create({
+            transport: transport,
+            gameInfo: { id: "g1", username: "alice", userId: "u1" },
+            wsUrl: "ws://test/ws",
+            onRematchOffered: function (p) {
+                rematchPayload = p;
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        await mode._handleInbound({
+            type: "info",
+            info: "offer draw",
+            isWhite: false,
+        });
+        assert.ok(drawPayload);
+        await mode._handleInbound({
+            type: "info",
+            info: "offer rematch",
+            isWhite: false,
+            offererWantsColor: "white",
+            timeMinutes: 15,
+        });
+        assert.ok(rematchPayload);
+        assert.strictEqual(rematchPayload.timeMinutes, 15);
+        session.dispose();
     });
 });

@@ -17,7 +17,7 @@ const presence = require("../../utils/presence");
 const catchAsync = require("../../utils/catchAsync");
 const { canAccessDebug, canUsePlayAdvancedTools } = require("../user/roles");
 const { resolveOnlineWatchHref, resolveReviewHref, resolveGameToPlayHref } = require("../../play/playPaths");
-const { assignRematchPlayers } = require("./rematchColors");
+const { assignRematchPlayers, resolveRematchTimeMinutes } = require("./rematchColors");
 const { t } = require("../../strings");
 const gameClocks = require("./gameClocks");
 const engineService = require("../../engines/engineService");
@@ -1395,8 +1395,10 @@ const onRematch = async (e) => {
     oldGame.OnPracticeQuitMidGame = null;
     oldGame.OnRematch = null;
 
+    const timeMinutes = resolveRematchTimeMinutes(e.timeMinutes, oldGame);
     const newGame = gameService.newGame(oldGame.constructor.name, initiator.userName, initiator.userId, {
         isPrivate: oldGame.isPrivate === true,
+        timeMinutes: timeMinutes,
     });
     gamesManagerService.AddGame(newGame);
 

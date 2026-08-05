@@ -174,9 +174,19 @@
   window.__ADMIN_GAMES__ = <%- adminGamesJson %>;
   window.__ADMIN_OPENING_BOOK__ = <%- openingBookStatusJson %>;
   (function () {
+    /* Keep admin LTR/English even if the UI language cookie is another locale. */
+    if (window.ShmerlingStrings) {
+      if (typeof window.ShmerlingStrings.setLocale === "function") {
+        window.ShmerlingStrings.setLocale("en");
+      }
+      if (typeof window.ShmerlingStrings.applyDocumentLocale === "function") {
+        window.ShmerlingStrings.applyDocumentLocale(document);
+      }
+    }
     function t(key, params) {
+      /* Match server: admin UI is always English (avoid partial locale catalogs). */
       if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
-        return window.ShmerlingStrings.t(key, params);
+        return window.ShmerlingStrings.t(key, params, "en");
       }
       return key;
     }
@@ -1094,7 +1104,7 @@
     function engineDisplayName(eng) {
       if (!eng) return "—";
       if (eng.labelKey && window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
-        var translated = window.ShmerlingStrings.t(eng.labelKey);
+        var translated = window.ShmerlingStrings.t(eng.labelKey, null, "en");
         if (translated && translated !== eng.labelKey) return translated;
       }
       return eng.fallbackLabel || eng.id || "—";
@@ -1320,7 +1330,7 @@
           opt.value = eng.id;
           var label = eng.fallbackLabel || eng.id;
           if (eng.labelKey && window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
-            var tr = window.ShmerlingStrings.t(eng.labelKey);
+            var tr = window.ShmerlingStrings.t(eng.labelKey, null, "en");
             if (tr && tr !== eng.labelKey) label = tr;
           }
           if (eng.available === false) {

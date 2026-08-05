@@ -60,6 +60,7 @@
      * @param {string} [opts.loser]
      * @param {*} [opts.data]
      * @param {"white"|"black"} [opts.offererWantsColor]
+     * @param {number} [opts.timeMinutes]
      */
     function buildInfoMessage(opts) {
         const o = opts || {};
@@ -94,6 +95,13 @@
         }
         if (o.offererWantsColor === "white" || o.offererWantsColor === "black") {
             msg.offererWantsColor = o.offererWantsColor;
+        }
+        if (
+            typeof o.timeMinutes === "number" &&
+            o.timeMinutes >= 1 &&
+            o.timeMinutes <= 180
+        ) {
+            msg.timeMinutes = Math.round(o.timeMinutes);
         }
         return msg;
     }
@@ -148,8 +156,12 @@
                     return { kind: "rematchAccepted", payload: message };
                 case "rematch declined":
                     return { kind: "rematchDeclined", payload: message };
+                case "rematch unavailable":
+                    return { kind: "rematchUnavailable", payload: message };
                 case "chat":
                     return { kind: "chat", payload: message };
+                case "connected":
+                    return { kind: "connected", payload: message };
                 default:
                     return { kind: "infoOther", payload: message };
             }

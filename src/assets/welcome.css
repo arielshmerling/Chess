@@ -734,7 +734,7 @@ main {
 .home-friends-actions-cell {
     width: 1%;
     white-space: nowrap;
-    text-align: right;
+    text-align: end;
 }
 
 .home-friends-actions-cell .friends-row-actions {

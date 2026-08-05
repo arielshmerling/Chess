@@ -165,6 +165,7 @@ describe("GameBase connected ack", function () {
         assert.strictEqual(sent.length, 1);
         assert.strictEqual(sent[0].type, "info");
         assert.strictEqual(sent[0].info, "connected");
+        assert.strictEqual(sent[0].moveCount, 0);
     });
 });
 

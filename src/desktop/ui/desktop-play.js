@@ -228,6 +228,8 @@
     let opponentConnectionLost = false;
     /** @type {boolean|null} which seat is disconnected (from server); used for watchers + chrome */
     let disconnectedSeatIsWhite = null;
+    /** @type {{ close: function }|null} open rematch offer/accept dialog */
+    let rematchDialogHandle = null;
     /** @type {"history"|"pgn"|null} last server review launch type (for URL keep) */
     let lastServerReviewType = null;
     /** @type {ReturnType<typeof ReviewModeApi.create>|null} */
@@ -591,6 +593,7 @@
             disconnectedSeatIsWhite = seatIsWhite;
         }
         applyOpponentConnectionChrome();
+        updateActionButtons();
     }
 
     function syncPrimaryGameButtonLabel() {
@@ -2766,7 +2769,15 @@
                     !!(onlineCaps &&
                         typeof playOnlineMode.canOfferDraw === "function" &&
                         playOnlineMode.canOfferDraw()),
-                canRematch: !!(onlineCaps && game && game.GameOver),
+                canRematch: !!(
+                    onlineCaps &&
+                    game &&
+                    game.GameOver &&
+                    !opponentConnectionLost &&
+                    (!playOnlineMode ||
+                        typeof playOnlineMode.canOfferRematch !== "function" ||
+                        playOnlineMode.canOfferRematch())
+                ),
             }),
             setButtonDisabled,
         );
@@ -2804,6 +2815,7 @@
             btn.type = "button";
             btn.id = "desktopBackToLobbyBtn";
             btn.className = "desktop-topbar-lobby-btn";
+            btn.setAttribute("data-i18n", "play.actions.backToLobby");
             btn.addEventListener("click", function () {
                 onHome();
             });
@@ -4135,6 +4147,93 @@
         });
     }
 
+    /**
+     * After WS bind (or when a peer joins), reload any plies that arrived while this
+     * client had no live channel — prevents both sides waiting forever after the first move.
+     * @param {{ moveCount?: number }|null} [payload]
+     */
+    async function resyncOnlinePositionFromServer(payload) {
+        if (
+            !Api ||
+            typeof Api.get !== "function" ||
+            !onlineGameInfo ||
+            onlineGameInfo.watcher ||
+            !game ||
+            !gameActive
+        ) {
+            return;
+        }
+        const id = onlineGameInfo.id;
+        if (id == null) {
+            return;
+        }
+        const localCount = game.Moves ? game.Moves.length : 0;
+        const hinted =
+            payload && typeof payload.moveCount === "number" && Number.isFinite(payload.moveCount)
+                ? Math.max(0, Math.round(payload.moveCount))
+                : null;
+        if (hinted != null && hinted <= localCount) {
+            return;
+        }
+        try {
+            const movesObj = await Api.get(
+                "/gameMoves?id=" + encodeURIComponent(String(id)),
+            );
+            const serverMoves = parseServerMoves(
+                movesObj && Array.isArray(movesObj.moves) ? movesObj.moves : [],
+            );
+            if (serverMoves.length <= localCount) {
+                return;
+            }
+            let info = null;
+            try {
+                info = await Api.get("/gameInfo?id=" + encodeURIComponent(String(id)));
+            } catch (infoErr) {
+                console.warn("[Play] resync gameInfo failed:", infoErr);
+            }
+            if (info && info.gameState) {
+                const stateStr =
+                    typeof info.gameState === "string"
+                        ? info.gameState
+                        : JSON.stringify(info.gameState);
+                game.loadGame(stateStr);
+            }
+            game.loadMoves(serverMoves);
+            if (
+                info &&
+                (typeof info.whiteTimer === "number" || typeof info.blackTimer === "number")
+            ) {
+                Clocks.stop();
+                Clocks.set({
+                    white:
+                        typeof info.whiteTimer === "number"
+                            ? info.whiteTimer
+                            : Clocks.get().white,
+                    black:
+                        typeof info.blackTimer === "number"
+                            ? info.blackTimer
+                            : Clocks.get().black,
+                });
+            }
+            Board.syncFromGameState();
+            if (Board.updateCaptureLists && game.GameState && game.GameState.capturedPiecesList) {
+                Board.updateCaptureLists(game.GameState.capturedPiecesList);
+            }
+            updateMovesTable(tableMovesFromGame());
+            updateHeaderTurn();
+            updateMatchHeader();
+            if (game && !game.GameOver) {
+                Clocks.startFor(game.Turn);
+            }
+            if (Board.refreshHumanPieceInput) {
+                Board.refreshHumanPieceInput();
+            }
+            updateActionButtons();
+        } catch (err) {
+            console.warn("[Play] Could not resync online position:", err);
+        }
+    }
+
     async function applyEngineMove(move) {
         const adjusted = adjustIncomingNetworkMoveForBoardView(move);
         if (!adjusted) {
@@ -4504,6 +4603,22 @@
                     updateActionButtons();
                 }
             },
+            onConnected: async function (payload) {
+                await resyncOnlinePositionFromServer(payload);
+            },
+            onConnectionLost: function () {
+                if (Board && typeof Board.setHumanPlayEnabled === "function") {
+                    Board.setHumanPlayEnabled(false);
+                }
+                updateActionButtons();
+            },
+            onConnectionRestored: function () {
+                if (Board && typeof Board.setHumanPlayEnabled === "function") {
+                    Board.setHumanPlayEnabled(true);
+                }
+                void resyncOnlinePositionFromServer({ moveCount: Number.MAX_SAFE_INTEGER });
+                updateActionButtons();
+            },
             cancelBeforeMove: async function (gameId) {
                 if (!Api || typeof Api.post !== "function") {
                     return;
@@ -4534,6 +4649,8 @@
                 setOpponentConnectionLost(false);
                 updateMatchHeader();
                 updateActionButtons();
+                /* Peer may have moved while we were still binding the socket. */
+                void resyncOnlinePositionFromServer(null);
             },
             onOpponentDisconnected: function (payload) {
                 const seat =
@@ -4544,6 +4661,7 @@
             },
             onOpponentRejoined: function () {
                 setOpponentConnectionLost(false);
+                showStatus("");
             },
             onGameCancelled: function () {
                 setOpponentConnectionLost(false);
@@ -4580,29 +4698,62 @@
                         payload.offererWantsColor === "black")
                         ? payload.offererWantsColor
                         : null;
+                const offeredMinutes =
+                    payload &&
+                    typeof payload.timeMinutes === "number" &&
+                    payload.timeMinutes >= 1 &&
+                    payload.timeMinutes <= 180
+                        ? Math.round(payload.timeMinutes)
+                        : null;
                 let message = t("play.dialogs.rematchOfferAgree");
-                if (wants) {
+                if (wants && offeredMinutes != null) {
+                    message = t("play.dialogs.rematchColorPreferenceWithTime", {
+                        offerer: wants === "white" ? t("common.white") : t("common.black"),
+                        you: wants === "white" ? t("common.black") : t("common.white"),
+                        minutes: offeredMinutes,
+                    });
+                } else if (wants) {
                     message = t("play.dialogs.rematchColorPreference", {
                         offerer: wants === "white" ? t("common.white") : t("common.black"),
                         you: wants === "white" ? t("common.black") : t("common.white"),
                     });
+                } else if (offeredMinutes != null) {
+                    message = t("play.dialogs.rematchOfferAgreeWithTime", {
+                        minutes: offeredMinutes,
+                    });
                 }
-                Dialog.confirm({
+                rematchDialogHandle = Dialog.confirm({
                     title: t("play.status.rematchTitle"),
                     message: message,
                     confirmLabel: t("play.dialogs.accept"),
                     cancelLabel: t("play.dialogs.decline"),
                     onConfirm: function () {
+                        rematchDialogHandle = null;
                         if (playOnlineMode && playOnlineMode.acceptRematchOffer) {
-                            playOnlineMode.acceptRematchOffer(wants || undefined);
+                            playOnlineMode.acceptRematchOffer(
+                                wants || undefined,
+                                offeredMinutes != null ? offeredMinutes : undefined,
+                            );
                         }
                     },
                     onCancel: function () {
+                        rematchDialogHandle = null;
                         if (playOnlineMode && playOnlineMode.declineRematchOffer) {
                             playOnlineMode.declineRematchOffer();
                         }
                     },
                 });
+            },
+            onRematchCancelled: function () {
+                if (rematchDialogHandle && typeof rematchDialogHandle.close === "function") {
+                    try {
+                        rematchDialogHandle.close();
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                rematchDialogHandle = null;
+                updateActionButtons();
             },
             onRematchAccepted: function (payload) {
                 const newId = payload && payload.gameId;
@@ -4654,7 +4805,8 @@
                 }
             },
             onDisconnectCountdownClear: function () {
-                /* Status will refresh on next event / move. */
+                showStatus("");
+                setOpponentConnectionLost(false);
             },
             onDisconnectCountdownEnd: function () {
                 void syncOnlineReconnectTimeoutFromServer();
@@ -6850,25 +7002,95 @@
             if (dialogOn) {
                 return;
             }
-            let rematchColorHandle;
-            rematchColorHandle = Dialog.open({
+            if (
+                opponentConnectionLost ||
+                (typeof playOnlineMode.canOfferRematch === "function" &&
+                    !playOnlineMode.canOfferRematch())
+            ) {
+                showStatus(t("session.rematchUnavailable"), 0, "info");
+                updateActionButtons();
+                return;
+            }
+            const defaultMinutes = (function () {
+                if (
+                    session &&
+                    typeof session.gameTimeMinutes === "number" &&
+                    session.gameTimeMinutes >= 1
+                ) {
+                    return Math.max(1, Math.min(180, Math.round(session.gameTimeMinutes)));
+                }
+                if (
+                    onlineGameInfo &&
+                    typeof onlineGameInfo.gameTimeMinutes === "number" &&
+                    onlineGameInfo.gameTimeMinutes >= 1
+                ) {
+                    return Math.max(
+                        1,
+                        Math.min(180, Math.round(onlineGameInfo.gameTimeMinutes)),
+                    );
+                }
+                return 90;
+            })();
+
+            const body = document.createElement("div");
+            body.className = "desktop-play-dialog-rematch-body";
+
+            const colorMsg = document.createElement("p");
+            colorMsg.className = "desktop-play-dialog-message";
+            colorMsg.textContent = t("play.dialogs.rematchChooseColor");
+            body.appendChild(colorMsg);
+
+            const timeLabel = document.createElement("label");
+            timeLabel.className = "desktop-play-dialog-label";
+            timeLabel.setAttribute("for", "desktopRematchTimeMinutes");
+            timeLabel.textContent = t("play.newGameDialog.timePerSideMinutes");
+            body.appendChild(timeLabel);
+
+            const timeInput = document.createElement("input");
+            timeInput.type = "number";
+            timeInput.id = "desktopRematchTimeMinutes";
+            timeInput.name = "rematchTimeMinutes";
+            timeInput.className = "desktop-play-dialog-input";
+            timeInput.min = "1";
+            timeInput.max = "180";
+            timeInput.step = "1";
+            timeInput.value = String(defaultMinutes);
+            body.appendChild(timeInput);
+
+            function readRematchMinutes() {
+                const raw = parseInt(timeInput.value, 10);
+                if (!Number.isFinite(raw) || raw < 1) {
+                    return defaultMinutes;
+                }
+                return Math.max(1, Math.min(180, Math.round(raw)));
+            }
+
+            function closeRematchOfferDialog() {
+                if (rematchDialogHandle && typeof rematchDialogHandle.close === "function") {
+                    rematchDialogHandle.close();
+                }
+                rematchDialogHandle = null;
+            }
+
+            rematchDialogHandle = Dialog.open({
                 title: t("play.status.rematchTitle"),
-                body: t("play.dialogs.rematchChooseColor"),
+                body: body,
                 panelClass: "desktop-play-dialog--confirm",
                 buttons: [
                     {
                         label: t("common.cancel"),
                         className: "desktop-btn",
                         onClick: function () {
-                            rematchColorHandle.close();
+                            closeRematchOfferDialog();
                         },
                     },
                     {
                         label: t("common.white"),
                         className: "desktop-btn desktop-btn-gold",
                         onClick: function () {
-                            rematchColorHandle.close();
-                            playOnlineMode.offerRematch("white");
+                            const minutes = readRematchMinutes();
+                            closeRematchOfferDialog();
+                            playOnlineMode.offerRematch("white", minutes);
                             updateActionButtons();
                         },
                     },
@@ -6876,8 +7098,9 @@
                         label: t("common.black"),
                         className: "desktop-btn desktop-btn-gold",
                         onClick: function () {
-                            rematchColorHandle.close();
-                            playOnlineMode.offerRematch("black");
+                            const minutes = readRematchMinutes();
+                            closeRematchOfferDialog();
+                            playOnlineMode.offerRematch("black", minutes);
                             updateActionButtons();
                         },
                     },

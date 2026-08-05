@@ -1,6 +1,9 @@
 
 const { MessageProcessor } = require("./MessageProcessor");
-const { normalizeOffererWantsColor } = require("./rematchColors");
+const {
+    normalizeOffererWantsColor,
+    resolveRematchTimeMinutes,
+} = require("./rematchColors");
 const gameClocks = require("./gameClocks");
 
 class OnlineGameMessageProcessor extends MessageProcessor {
@@ -73,15 +76,36 @@ class OnlineGameMessageProcessor extends MessageProcessor {
     }
 
     rematchOfferForward(game, msg) {
+        const offererIsWhite = msg.isWhite === true;
+        const opponentWs = offererIsWhite
+            ? game.blackPlayer && game.blackPlayer.channel
+            : game.whitePlayer && game.whitePlayer.channel;
+        const opponentOpen =
+            !!(opponentWs && opponentWs.readyState === opponentWs.OPEN);
+        if (!opponentOpen) {
+            game.pendingRematchOffer = null;
+            game.sendMessage(
+                {
+                    type: "info",
+                    info: "rematch unavailable",
+                    gameId: msg.gameId,
+                },
+                offererIsWhite,
+            );
+            return;
+        }
         const offererWantsColor = normalizeOffererWantsColor(msg.offererWantsColor);
         if (offererWantsColor) {
             msg.offererWantsColor = offererWantsColor;
         } else {
             delete msg.offererWantsColor;
         }
+        const timeMinutes = resolveRematchTimeMinutes(msg.timeMinutes, game);
+        msg.timeMinutes = timeMinutes;
         game.pendingRematchOffer = {
-            offererIsWhite: msg.isWhite === true,
+            offererIsWhite: offererIsWhite,
             offererWantsColor: offererWantsColor,
+            timeMinutes: timeMinutes,
         };
         game.sendMessageToOpponent(msg, msg.isWhite);
     }
@@ -100,6 +124,12 @@ class OnlineGameMessageProcessor extends MessageProcessor {
         const fromPending = pending && normalizeOffererWantsColor(pending.offererWantsColor);
         const fromMsg = normalizeOffererWantsColor(msg.offererWantsColor);
         const offererWantsColor = fromPending || fromMsg || undefined;
+        const timeMinutes = resolveRematchTimeMinutes(
+            (pending && pending.timeMinutes) != null
+                ? pending.timeMinutes
+                : msg.timeMinutes,
+            game,
+        );
         game.pendingRematchOffer = null;
         game.createRemtach(
             msg.isWhite,
@@ -111,12 +141,13 @@ class OnlineGameMessageProcessor extends MessageProcessor {
                 if (offererWantsColor) {
                     msg.offererWantsColor = offererWantsColor;
                 }
+                msg.timeMinutes = timeMinutes;
                 newGame.sendMessage(msg, msg.isWhite);
                 newGame.sendMessageToOpponent(msg, msg.isWhite);
                 newGame.init(newGame.whitePlayer.channel, newGame.whitePlayer.userId);
                 newGame.init(newGame.blackPlayer.channel, newGame.blackPlayer.userId);
             },
-            { offererWantsColor: offererWantsColor },
+            { offererWantsColor: offererWantsColor, timeMinutes: timeMinutes },
         );
     }
 

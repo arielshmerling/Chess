@@ -364,24 +364,31 @@ class SinglePlayerGame extends GameBase {
     }
 
     updateChannel = (player, channel) => {
-        if (player) {
-            if (player.channel) {
-                if (player.channel.readyState != player.channel.OPEN) {
-                    this.clearRejoinWaitIfAny();
-                    this.status = this.lastStatus || "in progress";
-                    this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-                    const isWhite = this.whitePlayer && this.whitePlayer.userId == player.userId;
-                    const message = {
-                        type: "info",
-                        info: "opponent rejoined",
-                        gameId: this.gameId,
-                        rejoinedWasWhite: Boolean(isWhite),
-                    };
-                    this.sendInfoToWatchers(message);
-                }
-            }
-            super.updateChannel(player, channel);
+        if (!player) {
+            return;
         }
+        const prev = player.channel;
+        const shouldAnnounceRejoin =
+            this.status === "on hold" ||
+            (prev != null && !GameBase.isChannelOpen(prev));
+        if (shouldAnnounceRejoin) {
+            this.clearRejoinWaitIfAny();
+            if (this.status === "on hold") {
+                this.status = this.lastStatus || "in progress";
+                this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+            }
+            const isWhite =
+                this.whitePlayer &&
+                String(this.whitePlayer.userId) === String(player.userId);
+            const message = {
+                type: "info",
+                info: "opponent rejoined",
+                gameId: this.gameId,
+                rejoinedWasWhite: Boolean(isWhite),
+            };
+            this.sendInfoToWatchers(message);
+        }
+        super.updateChannel(player, channel);
     };
 
     updateLastMoveTime = (gameTime, whiteT, blackT) => {

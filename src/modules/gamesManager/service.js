@@ -611,6 +611,19 @@ exports.ensureLiveGameLoaded = async (gameId) => {
         return null;
     }
 
+    if (game.lastMoveOn == null && Array.isArray(game.moves) && game.moves.length) {
+        game.lastMoveOn = Date.now();
+    }
+    try {
+        const gameClocks = require("../game/gameClocks");
+        gameClocks.ensureServerClocksActive(game);
+    } catch (err) {
+        console.error(
+            "ensureLiveGameLoaded clocks:",
+            err && err.message ? err.message : err,
+        );
+    }
+
     exports.AddGame(game);
     return game;
 };

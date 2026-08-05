@@ -81,6 +81,10 @@
         "offerDrawConfirm": "Offer a Draw?",
         "drawOfferAccept": "Opponent sent a draw offer, accept?",
         "rematchOfferAccept": "Opponenet offer a rematch, agree?",
+        "rematchOfferAcceptWithTime":
+            "Opponent offered a rematch ({{minutes}} min per side). Agree?",
+        "rematchTimePrompt": "Minutes per side for the rematch:",
+        "connectionLost": "Connection lost — moves are not reaching the server",
         "confirmExitGame": "Are you sure you want to exit the game?",
         "mobileResign": "Resign",
         "mobileRematch": "Rematch",

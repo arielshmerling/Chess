@@ -505,11 +505,11 @@ body.research-mode .debug-game-id {
     margin: 3px;
     background-color: var(--panel-background);
     color: white;
-    text-align: left;
+    text-align: start;
     font-size: 0.7em;
     display: flex;
     flex-direction: column;
-    justify-content: left;
+    justify-content: flex-start;
     outline: none;
     resize: none;
     user-select: all;
@@ -521,6 +521,22 @@ body.research-mode .debug-game-id {
     box-sizing: border-box;
     line-height: 1.5em;
     overflow: overlay;
+}
+
+/* Chat lines follow page direction: RTL → name, then ":", then text from the right. */
+.messages > div {
+    text-align: start;
+    unicode-bidi: isolate;
+}
+
+html[dir="rtl"] .messages > div {
+    direction: rtl;
+}
+
+.messages .chat-who,
+.messages .chat-sep,
+.messages .chat-text {
+    unicode-bidi: isolate;
 }
 
 .chatlog {
@@ -535,7 +551,7 @@ body.research-mode .debug-game-id {
     background: transparent;
     border: 1px solid lightblue;
     font-size: 10px;
-    margin-left: 5px;
+    margin-inline-start: 5px;
 }
 
 .clock {
@@ -3099,8 +3115,12 @@ input:checked+.slider:before {
     height: 14px;
     width: 14px;
     top: 3px;
-    right: -20px;
+    inset-inline-end: -20px;
     cursor: pointer;
+}
+
+html[dir="rtl"] .sendButton {
+    transform: scaleX(-1);
 }
 
 .chatSendLine {

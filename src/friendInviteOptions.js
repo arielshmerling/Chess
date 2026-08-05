@@ -270,7 +270,10 @@
         var popW = pop.offsetWidth || 280;
         var popH = pop.offsetHeight || 0;
         var top = rect.bottom + pad;
-        var left = rect.right - popW;
+        var isRtl =
+            (document.documentElement.getAttribute("dir") || "").toLowerCase() === "rtl";
+        /* Align popover to the gear's outer edge (inline-start in each direction). */
+        var left = isRtl ? rect.left : rect.right - popW;
         if (left < pad) {
             left = pad;
         }

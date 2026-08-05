@@ -81,6 +81,10 @@
         "offerDrawConfirm": "להציע תיקו?",
         "drawOfferAccept": "היריב שלח הצעת תיקו, לקבל?",
         "rematchOfferAccept": "היריב הציע משחק חוזר, להסכים?",
+        "rematchOfferAcceptWithTime":
+            "היריב הציע משחק חוזר ({{minutes}} דק׳ לכל צד). להסכים?",
+        "rematchTimePrompt": "דקות לכל צד במשחק החוזר:",
+        "connectionLost": "החיבור אבד — מהלכים לא מגיעים לשרת",
         "confirmExitGame": "האם אתה בטוח שברצונך לצאת מהמשחק?",
         "mobileResign": "כניעה",
         "mobileRematch": "משחק חוזר",

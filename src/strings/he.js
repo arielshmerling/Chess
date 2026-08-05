@@ -197,6 +197,7 @@
                 flip: "הפוך לוח",
                 save: "שמור",
                 exit: "יציאה",
+                backToLobby: "חזרה ללובי",
                 loadToStart: "טען להתחלה",
                 editPosition: "ערוך עמדה",
             },
@@ -258,8 +259,12 @@
                 invalidPosition: "עמדה לא חוקית",
                 rematchChooseColor: "בחר את הצבע שלך למשחק החוזר:",
                 rematchOfferAgree: "היריב הציע משחק חוזר. להסכים?",
+                rematchOfferAgreeWithTime:
+                    "היריב הציע משחק חוזר ({{minutes}} דק׳ לכל צד). להסכים?",
                 rematchColorPreference:
                     "היריב רוצה לשחק ב{{offerer}}. אתה תשחק ב{{you}}. להסכים?",
+                rematchColorPreferenceWithTime:
+                    "היריב רוצה לשחק ב{{offerer}} ({{minutes}} דק׳ לכל צד). אתה תשחק ב{{you}}. להסכים?",
             },
         },
         session: {
@@ -276,6 +281,7 @@
             drawOfferDeclined: "הצעת התיקו נדחתה",
             rematchOfferSent: "הצעת משחק חוזר נשלחה",
             rematchOfferDeclined: "הצעת המשחק החוזר נדחתה",
+            rematchUnavailable: "היריב כבר לא זמין למשחק חוזר",
             drawAgreed: "הוסכם על תיקו",
             rematchAcceptedNoGameId: "הצעת המשחק החוזר התקבלה אך אין מזהה משחק חדש",
             rematchOfferAccepted: "הצעת המשחק החוזר התקבלה",
@@ -291,6 +297,9 @@
             opponentJoined: "{{name}} הצטרף/ה",
             opponentDefault: "יריב",
             connectionError: "שגיאת חיבור",
+            connectionLost: "החיבור אבד — מהלכים לא מגיעים לשרת",
+            reconnecting: "מתחבר מחדש…",
+            connectionRestored: "החיבור שוחזר",
             playerDisconnectedWaitingRejoin:
                 "{{name}} התנתק/ה — ממתין לחזרה",
             playerFailedToReconnectWins:

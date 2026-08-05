@@ -81,6 +81,10 @@
      * @param {(payload?: object) => void} [options.onDrawOffered]
      * @param {(payload?: object) => void} [options.onRematchOffered]
      * @param {(payload: { gameId: string|number }) => void} [options.onRematchAccepted]
+     * @param {(payload?: object) => void} [options.onRematchCancelled]
+     * @param {(payload?: object) => void|Promise<void>} [options.onConnected]
+     * @param {() => void} [options.onConnectionLost]
+     * @param {() => void} [options.onConnectionRestored]
      * @param {(seconds: number) => void} [options.onDisconnectCountdown]
      * @param {() => void} [options.onDisconnectCountdownEnd]
      * @param {() => void} [options.onDisconnectCountdownClear]
@@ -100,6 +104,10 @@
 
         let session = null;
         let connected = false;
+        let connectionLost = false;
+        let closingIntentionally = false;
+        let reconnectTimer = null;
+        let reconnectAttempt = 0;
         let handlersBound = false;
         let applyingRemote = false;
         /** Serialize async inbound handling so watch/online animations cannot race. */
@@ -114,6 +122,8 @@
             !!(gameInfo.blackPlayerName && String(gameInfo.blackPlayerName).trim()) ||
             !humanIsWhite ||
             watcher;
+        /** After game over, rematch requires the peer still connected to this finished game. */
+        let rematchPeerAvailable = true;
         let disconnectGraceTimer = null;
         let disconnectCountdownHandle = null;
         let disconnectSecondsLeft = 0;
@@ -244,7 +254,10 @@
          * @returns {boolean}
          */
         function sendChat(text) {
-            if (watcher || !connected) {
+            if (watcher || !connected || connectionLost) {
+                if (!watcher && (!connected || connectionLost)) {
+                    status(t("session.connectionLost"), "error");
+                }
                 return false;
             }
             const line = text != null ? String(text).trim() : "";
@@ -321,6 +334,23 @@
             } else {
                 disconnectedWasWhite = null;
             }
+            const game = session && session.getGame && session.getGame();
+            const postGame = !!(game && game.GameOver);
+            if (postGame) {
+                rematchPeerAvailable = false;
+                opponentPresent = false;
+                if (typeof opts.onOpponentDisconnected === "function") {
+                    opts.onOpponentDisconnected(payload || {});
+                }
+                if (typeof opts.onRematchCancelled === "function") {
+                    opts.onRematchCancelled({ reason: "peerLeft" });
+                }
+                if (session) {
+                    session.emit("opponentDisconnected", payload || {});
+                }
+                status(t("session.rematchUnavailable"), "info");
+                return;
+            }
             disconnectGraceTimer = setTimeout(function () {
                 disconnectGraceTimer = null;
                 if (typeof opts.onOpponentDisconnected === "function") {
@@ -348,6 +378,7 @@
             clearDisconnectCountdown();
             disconnectedWasWhite = null;
             opponentPresent = true;
+            rematchPeerAvailable = true;
             if (typeof opts.onOpponentRejoined === "function") {
                 opts.onOpponentRejoined(payload || {});
             }
@@ -417,7 +448,7 @@
             return true;
         }
 
-        function offerRematch(offererWantsColor) {
+        function offerRematch(offererWantsColor, timeMinutes) {
             if (!session || watcher) {
                 return false;
             }
@@ -425,12 +456,27 @@
             if (!game || !game.GameOver) {
                 return false;
             }
+            if (!rematchPeerAvailable) {
+                status(t("session.rematchUnavailable"), "error");
+                return false;
+            }
             const color =
                 offererWantsColor === "white" || offererWantsColor === "black"
                     ? offererWantsColor
                     : null;
+            const extra = {};
             if (color) {
-                sendInfo("offer rematch", { offererWantsColor: color });
+                extra.offererWantsColor = color;
+            }
+            const tm =
+                typeof timeMinutes === "number" && timeMinutes >= 1 && timeMinutes <= 180
+                    ? Math.round(timeMinutes)
+                    : null;
+            if (tm != null) {
+                extra.timeMinutes = tm;
+            }
+            if (Object.keys(extra).length) {
+                sendInfo("offer rematch", extra);
             } else {
                 sendInfo("offer rematch");
             }
@@ -438,7 +484,15 @@
             return true;
         }
 
-        function acceptRematchOffer(offererWantsColor) {
+        function canOfferRematch() {
+            if (watcher || !session) {
+                return false;
+            }
+            const game = session.getGame && session.getGame();
+            return !!(game && game.GameOver && rematchPeerAvailable);
+        }
+
+        function acceptRematchOffer(offererWantsColor, timeMinutes) {
             if (watcher) {
                 return false;
             }
@@ -446,8 +500,19 @@
                 offererWantsColor === "white" || offererWantsColor === "black"
                     ? offererWantsColor
                     : null;
+            const extra = {};
             if (color) {
-                sendInfo("rematch accepted", { offererWantsColor: color });
+                extra.offererWantsColor = color;
+            }
+            const tm =
+                typeof timeMinutes === "number" && timeMinutes >= 1 && timeMinutes <= 180
+                    ? Math.round(timeMinutes)
+                    : null;
+            if (tm != null) {
+                extra.timeMinutes = tm;
+            }
+            if (Object.keys(extra).length) {
+                sendInfo("rematch accepted", extra);
             } else {
                 sendInfo("rematch accepted");
             }
@@ -551,10 +616,31 @@
                     clearDisconnectCountdown();
                     return onGameCancelled(classified.payload);
                 case "gameOverNotice":
+                    clearDisconnectGrace();
                     clearDisconnectCountdown();
-                    status(t("session.gameOver"), "info");
-                    if (session) {
-                        session.emit("statusChanged", "gameOver");
+                    {
+                        const payload = classified.payload || {};
+                        const loserRaw = payload.loser || payload.outOfTime;
+                        const loser =
+                            loserRaw === "white" || loserRaw === "black"
+                                ? loserRaw
+                                : null;
+                        if (
+                            loser &&
+                            session &&
+                            typeof session.flagTimeout === "function"
+                        ) {
+                            applyingRemote = true;
+                            try {
+                                session.flagTimeout(loser);
+                            } finally {
+                                applyingRemote = false;
+                            }
+                        }
+                        status(t("session.gameOver"), "info");
+                        if (session) {
+                            session.emit("statusChanged", "gameOver");
+                        }
                     }
                     return;
                 case "moveValidated":
@@ -603,7 +689,20 @@
                     if (watcher) {
                         return;
                     }
+                    if (typeof opts.onRematchCancelled === "function") {
+                        opts.onRematchCancelled({ reason: "declined" });
+                    }
                     status(t("session.rematchOfferDeclined"), "info");
+                    return;
+                case "rematchUnavailable":
+                    if (watcher) {
+                        return;
+                    }
+                    rematchPeerAvailable = false;
+                    if (typeof opts.onRematchCancelled === "function") {
+                        opts.onRematchCancelled({ reason: "unavailable" });
+                    }
+                    status(t("session.rematchUnavailable"), "info");
                     return;
                 case "chat":
                     if (watcher) {
@@ -611,6 +710,12 @@
                     }
                     if (typeof opts.onChatMessage === "function") {
                         opts.onChatMessage(classified.payload || {});
+                    }
+                    return;
+                case "connected":
+                    connected = true;
+                    if (typeof opts.onConnected === "function") {
+                        return opts.onConnected(classified.payload || {});
                     }
                     return;
                 default:
@@ -756,12 +861,24 @@
                 });
                 session.emit("statusChanged", "cancelled");
             }
-            transport.close();
+            clearReconnectTimer();
+            closingIntentionally = true;
+            try {
+                transport.close();
+            } catch {
+                /* ignore */
+            }
+            closingIntentionally = false;
             connected = false;
+            connectionLost = false;
         }
 
         function sendHumanMove(executed) {
-            if (watcher || !connected || !executed || applyingRemote) {
+            if (watcher || !executed || applyingRemote) {
+                return;
+            }
+            if (!connected || connectionLost || !(transport.isOpen && transport.isOpen())) {
+                status(t("session.connectionLost"), "error");
                 return;
             }
             const clocks = readClocks();
@@ -792,6 +909,48 @@
             }
         }
 
+        function clearReconnectTimer() {
+            if (reconnectTimer != null) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+        }
+
+        function scheduleReconnect() {
+            clearReconnectTimer();
+            const attempt = reconnectAttempt;
+            reconnectAttempt += 1;
+            const delayMs = Math.min(1000 * Math.pow(2, Math.min(attempt, 4)), 15000);
+            reconnectTimer = setTimeout(function () {
+                reconnectTimer = null;
+                if (closingIntentionally || !session) {
+                    return;
+                }
+                status(t("session.reconnecting"), "info");
+                try {
+                    ensureConnected();
+                } catch (err) {
+                    scheduleReconnect();
+                }
+            }, delayMs);
+        }
+
+        function handleTransportClosed() {
+            connected = false;
+            if (closingIntentionally) {
+                return;
+            }
+            connectionLost = true;
+            status(t("session.connectionLost"), "error");
+            if (typeof opts.onConnectionLost === "function") {
+                opts.onConnectionLost();
+            }
+            if (session) {
+                session.emit("connectionLost");
+            }
+            scheduleReconnect();
+        }
+
         function bindTransportHandlers() {
             if (handlersBound) {
                 return;
@@ -800,20 +959,35 @@
             transport.onMessage(handleInbound);
             if (typeof transport.onOpen === "function") {
                 transport.onOpen(function () {
+                    const restored = connectionLost;
                     connected = true;
+                    connectionLost = false;
+                    reconnectAttempt = 0;
+                    clearReconnectTimer();
                     sendConnect();
-                    if (!opponentPresent && humanIsWhite && !watcher) {
+                    if (restored) {
+                        status(t("session.connectionRestored"), "info");
+                        if (typeof opts.onConnectionRestored === "function") {
+                            opts.onConnectionRestored();
+                        }
+                        if (session) {
+                            session.emit("connectionRestored");
+                        }
+                    } else if (!opponentPresent && humanIsWhite && !watcher) {
                         status(t("session.waitingForOpponent"), "info");
                     }
                 });
             }
             if (typeof transport.onClose === "function") {
                 transport.onClose(function () {
-                    connected = false;
+                    handleTransportClosed();
                 });
             }
             if (typeof transport.onError === "function") {
                 transport.onError(function (err) {
+                    if (connectionLost || !connected) {
+                        return;
+                    }
                     status((err && err.message) || t("session.connectionError"), "error");
                 });
             }
@@ -826,6 +1000,7 @@
             bindTransportHandlers();
             if (transport.isOpen && transport.isOpen()) {
                 connected = true;
+                connectionLost = false;
                 sendConnect();
                 return;
             }
@@ -842,6 +1017,7 @@
             transport.connect(url);
             if (transport.isOpen && transport.isOpen()) {
                 connected = true;
+                connectionLost = false;
                 sendConnect();
             }
         }
@@ -904,10 +1080,20 @@
                 return;
             }
             const game = session.getGame && session.getGame();
+            if (game && game.GameOver) {
+                return;
+            }
             const side =
-                loser ||
-                (game && (game.Turn || (game.GameState && game.GameState.turn))) ||
-                "white";
+                loser === "white" || loser === "black"
+                    ? loser
+                    : (game && (game.Turn || (game.GameState && game.GameState.turn))) ||
+                      "white";
+            const normalized =
+                String(side).toLowerCase() === "black" ? "black" : "white";
+            /*
+             * Do not end the local game until the server confirms (flagFall / game over).
+             * Ending early left the lobby "in progress" and allowed on-hold / resume.
+             */
             transport.send(
                 protocol.buildInfoMessage({
                     info: "outOfTime",
@@ -915,17 +1101,10 @@
                     userId: gameInfo.userId,
                     username: gameInfo.username,
                     isWhite: humanIsWhite,
-                    loser: side,
+                    loser: normalized,
                 }),
             );
-            if (session && typeof session.flagTimeout === "function") {
-                applyingRemote = true;
-                try {
-                    session.flagTimeout(side);
-                } finally {
-                    applyingRemote = false;
-                }
-            }
+            status(t("session.flagReported"), "info");
         }
 
         function setGameInfo(partial) {
@@ -947,13 +1126,21 @@
         function detach() {
             clearDisconnectGrace();
             clearDisconnectCountdown();
+            clearReconnectTimer();
+            closingIntentionally = true;
             try {
                 transport.close();
             } catch {
                 /* ignore */
             }
+            closingIntentionally = false;
             connected = false;
+            connectionLost = false;
             session = null;
+        }
+
+        function isConnected() {
+            return !!(connected && !connectionLost && transport.isOpen && transport.isOpen());
         }
 
         return {
@@ -972,16 +1159,20 @@
             acceptDrawOffer: acceptDrawOffer,
             declineDrawOffer: declineDrawOffer,
             offerRematch: offerRematch,
+            canOfferRematch: canOfferRematch,
             acceptRematchOffer: acceptRematchOffer,
             declineRematchOffer: declineRematchOffer,
             setGameInfo: setGameInfo,
             setHumanIsWhite: setHumanIsWhite,
             isOpponentPresent: isOpponentPresent,
+            isConnected: isConnected,
             ensureConnected: ensureConnected,
             clearDisconnectCountdown: clearDisconnectCountdown,
             sendChat: sendChat,
             /** @internal test helper */
             _handleInbound: handleInbound,
+            /** @internal test helper */
+            _simulateTransportClose: handleTransportClosed,
         };
     }
 

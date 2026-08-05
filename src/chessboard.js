@@ -3350,6 +3350,15 @@ function startWebSockets(username, isWhite, isWatcher) {
         await sendMessage(message);
     };
 
+    webSocket.onclose = () => {
+        displayMessage(t("classic.connectionLost"));
+        log("System", t("classic.connectionLost"));
+    };
+
+    webSocket.onerror = () => {
+        displayMessage(t("classic.connectionLost"));
+    };
+
     webSocket.onmessage = async (event) => {
         const message = JSON.parse(event.data);
         if (message.type == "move") {
@@ -3434,6 +3443,13 @@ function startWebSockets(username, isWhite, isWatcher) {
                 //displayMessage(t("classic.gameOver"));
                 enableButtons(["rematchBtn", "lastMoveBtn", "homeBtn"]);
                 disableButtons(["resignBtn", "redoBtn", "undoBtn", "drawBtn"]);
+                if (message.loser === "white" || message.loser === "black") {
+                    game.OutOfTime = message.loser;
+                } else if (message.reason && /out\s*of\s*time/i.test(String(message.reason))) {
+                    game.OutOfTime = game.Turn;
+                }
+                if (whiteHandle) { clearInterval(whiteHandle); whiteHandle = null; }
+                if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
                 gameMoves = await getMovesForTable();
                 updateMovesTable(gameMoves.moves);
                 log("System", "Game over.");
@@ -3637,7 +3653,19 @@ function startWebSockets(username, isWhite, isWatcher) {
                 } else {
                     displayMessage("");
                     if (gameInfo.gameType == "OnlineGame") {
-                        messageBox(t("classic.rematchOfferAccept"), acceptRematch, declineRematch);
+                        const offeredMinutes =
+                            typeof message.timeMinutes === "number" &&
+                            message.timeMinutes >= 1 &&
+                            message.timeMinutes <= 180
+                                ? Math.round(message.timeMinutes)
+                                : null;
+                        const acceptMsg =
+                            offeredMinutes != null
+                                ? t("classic.rematchOfferAcceptWithTime", {
+                                      minutes: offeredMinutes,
+                                  })
+                                : t("classic.rematchOfferAccept");
+                        messageBox(acceptMsg, acceptRematch, declineRematch);
                     } else if (gameInfo.gameType == "SinglePlayerGame") {
                         if (typeof gameInfo !== "undefined" && gameInfo) {
                             window.__LAST_GAME_OPTIONS__ = {
@@ -4015,14 +4043,32 @@ async function menuRematchEventHandler() {
     }
 
     if (gameType == "OnlineGame") {
+        const defaultTm =
+            typeof gameInfo !== "undefined" &&
+            gameInfo &&
+            gameInfo.gameTimeMinutes != null &&
+            Number(gameInfo.gameTimeMinutes) >= 1
+                ? Math.max(1, Math.min(180, Math.round(Number(gameInfo.gameTimeMinutes))))
+                : 90;
+        let timeMinutes = defaultTm;
+        if (typeof window !== "undefined" && typeof window.prompt === "function") {
+            const raw = window.prompt(t("classic.rematchTimePrompt"), String(defaultTm));
+            if (raw === null) {
+                return;
+            }
+            const parsed = parseInt(raw, 10);
+            if (Number.isFinite(parsed) && parsed >= 1) {
+                timeMinutes = Math.max(1, Math.min(180, Math.round(parsed)));
+            }
+        }
         const message = {
             type: "info",
             info: "offer rematch",
             gameId: gameInfo.id,
             userId: gameInfo.userId,
             username: gameInfo.username,
-            isWhite: currentPlayerIsWhite
-
+            isWhite: currentPlayerIsWhite,
+            timeMinutes: timeMinutes,
         };
         await sendMessage(message);
 
@@ -4462,6 +4508,16 @@ function outOfTime() {
     const loser = game.Turn;
     displayMessage(t("play.status.timesUpLost", { loser: localizeColorName(loser) }));
     log("System", `Time's up — ${loser} ran out of time.`);
+    /*
+     * Online / SP with server clocks: wait for server "game over" before setting OutOfTime.
+     * Setting it early left the server "in progress" and allowed on-hold resume.
+     */
+    if (gameInfo.gameType == "SinglePlayerGame" || gameInfo.gameType == "OnlineGame") {
+        sendOutOfTime(loser);
+        if (whiteHandle) { clearInterval(whiteHandle); whiteHandle = null; }
+        if (blackHandle) { clearInterval(blackHandle); blackHandle = null; }
+        return;
+    }
     game.OutOfTime = loser;
     sendOutOfTime(loser);
 }
@@ -5074,7 +5130,18 @@ function log(logger, message, isChat) {
     }
     const messages = document.getElementById("messages");
     const msgDiv = document.createElement("div");
-    msgDiv.innerHTML = `${logger}: ${message}\n`;
+    const who = document.createElement("span");
+    who.className = "chat-who";
+    who.textContent = logger != null ? String(logger) : "";
+    const sep = document.createElement("span");
+    sep.className = "chat-sep";
+    sep.textContent = ": ";
+    const body = document.createElement("span");
+    body.className = "chat-text";
+    body.textContent = message != null ? String(message) : "";
+    msgDiv.appendChild(who);
+    msgDiv.appendChild(sep);
+    msgDiv.appendChild(body);
     if (isChat) {
         msgDiv.classList.add("chatlog");
     }

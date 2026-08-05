@@ -188,6 +188,8 @@ const wsInfoGenericSchema = Joi.object({
     blackTimer: Joi.number().min(0).max(864000).optional(),
     /* Offerer preferred color for rematch (optional; legacy clients omit → keep seats). */
     offererWantsColor: Joi.string().valid("white", "black").optional(),
+    /* Offerer rematch clock (minutes); omit → server reuses finished game length. */
+    timeMinutes: Joi.number().integer().min(1).max(180).optional(),
 }).strict();
 
 const wsCmdUndoRedoSchema = Joi.object({

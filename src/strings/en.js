@@ -262,8 +262,12 @@
                 invalidPosition: "Invalid position",
                 rematchChooseColor: "Choose your color for the rematch:",
                 rematchOfferAgree: "Opponent offered a rematch. Agree?",
+                rematchOfferAgreeWithTime:
+                    "Opponent offered a rematch ({{minutes}} min per side). Agree?",
                 rematchColorPreference:
                     "Opponent wants to play as {{offerer}}. You would play as {{you}}. Agree?",
+                rematchColorPreferenceWithTime:
+                    "Opponent wants to play as {{offerer}} ({{minutes}} min per side). You would play as {{you}}. Agree?",
             },
         },
         session: {
@@ -280,6 +284,7 @@
             drawOfferDeclined: "Draw offer declined",
             rematchOfferSent: "Rematch offer sent",
             rematchOfferDeclined: "Rematch offer declined",
+            rematchUnavailable: "Opponent is no longer available for a rematch",
             drawAgreed: "Draw agreed",
             rematchAcceptedNoGameId: "Rematch accepted but no new game id",
             rematchOfferAccepted: "Rematch offer accepted",
@@ -295,6 +300,10 @@
             opponentJoined: "{{name}} joined",
             opponentDefault: "Opponent",
             connectionError: "Connection error",
+            connectionLost: "Connection lost — moves are not reaching the server",
+            reconnecting: "Reconnecting…",
+            connectionRestored: "Connection restored",
+            flagReported: "Flag — confirming with server…",
             playerDisconnectedWaitingRejoin:
                 "{{name}} disconnected — waiting for rejoin",
             playerFailedToReconnectWins:

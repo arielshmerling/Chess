@@ -67,6 +67,7 @@
                 messageHandler(parsed);
             };
             socket.onclose = function () {
+                pending.length = 0;
                 socket = null;
                 if (typeof closeHandler === "function") {
                     closeHandler();
@@ -87,6 +88,7 @@
             try {
                 socket.onopen = null;
                 socket.onmessage = null;
+                /* Intentional close — do not invoke closeHandler (avoids "connection lost" on leave). */
                 socket.onclose = null;
                 socket.onerror = null;
                 socket.close();
@@ -98,18 +100,28 @@
         }
 
         function send(message) {
-            if (!socket || socket.readyState !== 1) {
+            /* Queue only while the handshake is in flight. */
+            if (socket && socket.readyState === 0) {
                 pending.push(message);
-                return;
+                return true;
+            }
+            if (!socket || socket.readyState !== 1) {
+                /* Do not silently queue forever when the socket is down. */
+                if (typeof errorHandler === "function") {
+                    errorHandler(new Error("WebSocket is not open"));
+                }
+                return false;
             }
             try {
                 socket.send(
                     typeof message === "string" ? message : JSON.stringify(message),
                 );
+                return true;
             } catch (err) {
                 if (typeof errorHandler === "function") {
                     errorHandler(err instanceof Error ? err : new Error(String(err)));
                 }
+                return false;
             }
         }
 

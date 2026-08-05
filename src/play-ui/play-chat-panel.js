@@ -24,11 +24,14 @@
         const who = doc.createElement("span");
         who.className = "desktop-play-chat-who";
         who.textContent = entry.username ? String(entry.username) : "";
+        const sep = doc.createElement("span");
+        sep.className = "desktop-play-chat-sep";
+        sep.textContent = ": ";
         const body = doc.createElement("span");
         body.className = "desktop-play-chat-text";
         body.textContent = entry.text != null ? String(entry.text) : "";
         row.appendChild(who);
-        row.appendChild(doc.createTextNode(": "));
+        row.appendChild(sep);
         row.appendChild(body);
         messagesEl.appendChild(row);
         messagesEl.scrollTop = messagesEl.scrollHeight;

@@ -1,5 +1,6 @@
 const { GameBase } = require("./GameBase");
 const { OnlineGameMessageProcessor } = require("./OnlineGameMessageProcessor");
+const gameClocks = require("./gameClocks");
 
 /** True when no piece has been placed (constructor default before startNewGame). */
 function isChessBoardEmpty(board) {
@@ -122,8 +123,12 @@ class OnlineGame extends GameBase {
 
     onConnectionClosed = () => {
 
-        if (this.status === "game over") { return; }
         if (this.status === "cancelled") { return; }
+
+        /* Chess already finished (e.g. timeout) but status lagged — never put on hold. */
+        if (this.chessGame && this.chessGame.GameOver && this.status !== "game over") {
+            this.status = "game over";
+        }
 
         const moveCount = this.moves ? this.moves.length : 0;
         const wpCh = this.whitePlayer && this.whitePlayer.channel;
@@ -141,6 +146,22 @@ class OnlineGame extends GameBase {
         } else if (whiteOpen && !blackOpen) {
             disconnectedWasWhite = false;
         } else {
+            return;
+        }
+
+        /*
+         * After the game ends, leaving for Home must still notify the peer so rematch
+         * cannot hang forever. Do not start reconnect/forfeit timers.
+         */
+        if (this.status === "game over") {
+            this.clearPendingRematchAfterPeerLeft(!disconnectedWasWhite);
+            const leftMsg = {
+                type: "info",
+                info: "Opponent disconnected",
+                gameId: this.gameId,
+                disconnectedWasWhite,
+            };
+            this.sendMessage(leftMsg, !disconnectedWasWhite);
             return;
         }
 
@@ -179,6 +200,26 @@ class OnlineGame extends GameBase {
         this.waitForRejoin(disconnectedWasWhite);
     };
 
+    /**
+     * Drop a pending rematch and tell the remaining player it is no longer available.
+     * @param {boolean} remainingIsWhite
+     */
+    clearPendingRematchAfterPeerLeft(remainingIsWhite) {
+        const hadPending = !!this.pendingRematchOffer;
+        this.pendingRematchOffer = null;
+        if (!hadPending) {
+            return;
+        }
+        this.sendMessage(
+            {
+                type: "info",
+                info: "rematch unavailable",
+                gameId: this.gameId,
+            },
+            remainingIsWhite === true,
+        );
+    }
+
 
     sendMoveToOpponent(gameId, isWhite, moveObj) {
 
@@ -191,7 +232,19 @@ class OnlineGame extends GameBase {
             gameId: gameId,
         };
 
-        if (opponentWs) { opponentWs.send(JSON.stringify(message)); }
+        if (!GameBase.isChannelOpen(opponentWs)) {
+            return false;
+        }
+        try {
+            opponentWs.send(JSON.stringify(message));
+            return true;
+        } catch (err) {
+            console.error(
+                "sendMoveToOpponent failed:",
+                err && err.message ? err.message : err,
+            );
+            return false;
+        }
     }
 
     sendMoveToWatchers(gameId, isWhite, moveObj) {
@@ -227,8 +280,19 @@ class OnlineGame extends GameBase {
             }
         }
 
-        if (opponentWs) { opponentWs.send(JSON.stringify(message)); }
-
+        if (!GameBase.isChannelOpen(opponentWs)) {
+            return false;
+        }
+        try {
+            opponentWs.send(JSON.stringify(message));
+            return true;
+        } catch (err) {
+            console.error(
+                "sendMessageToOpponent failed:",
+                err && err.message ? err.message : err,
+            );
+            return false;
+        }
     }
 
     /**
@@ -289,26 +353,39 @@ class OnlineGame extends GameBase {
     }
 
     updateChannel = (player, channel) => {
-        if (player) {
-            if (player.channel) {
-                if (player.channel.readyState != player.channel.OPEN) {
-                    this.clearRejoinWaitIfAny();
-                    this.status = this.lastStatus;
-                    this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
-                    const isWhite = (this.whitePlayer.userId == player.userId);
-                    const message = {
-                        type: "info",
-                        info: "opponent rejoined",
-                        gameId: this.gameId,
-                        rejoinedWasWhite: Boolean(isWhite),
-                    };
-                    this.sendMessageToOpponent(message, isWhite);
-                    this.sendInfoToWatchers(message);
+        if (!player) {
+            return;
+        }
+        const prev = player.channel;
+        /*
+         * After clearChannelIfMatches, prev is null on rejoin — still must restore
+         * from "on hold" and notify the peer (otherwise disconnect countdown sticks).
+         */
+        const shouldAnnounceRejoin =
+            this.status === "on hold" ||
+            (prev != null && !GameBase.isChannelOpen(prev));
+        if (shouldAnnounceRejoin) {
+            this.clearRejoinWaitIfAny();
+            if (this.status === "on hold") {
+                this.status = this.lastStatus || "in progress";
+                this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+                if (this.status === "in progress" && !(this.chessGame && this.chessGame.GameOver)) {
+                    gameClocks.ensureServerClocksActive(this);
                 }
             }
-            super.updateChannel(player, channel);
-
+            const isWhite =
+                this.whitePlayer &&
+                String(this.whitePlayer.userId) === String(player.userId);
+            const message = {
+                type: "info",
+                info: "opponent rejoined",
+                gameId: this.gameId,
+                rejoinedWasWhite: Boolean(isWhite),
+            };
+            this.sendMessageToOpponent(message, isWhite);
+            this.sendInfoToWatchers(message);
         }
+        super.updateChannel(player, channel);
     };
 
 

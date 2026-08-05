@@ -3,7 +3,8 @@
  * Clients may hint flag-fall; the server only ends the game when remaining ≤ 0.
  */
 
-const FLAG_GRACE_SEC = 0.5;
+/** Client UI ticks whole seconds; allow a small skew vs server Date.now(). */
+const FLAG_GRACE_SEC = 2.5;
 
 function initialSeconds(game) {
     const gtl = game && game.chessGame && game.chessGame.GameTimeLength;
@@ -56,6 +57,93 @@ function clearFlagTimer(game) {
         clearTimeout(game._flagTimerHandle);
         game._flagTimerHandle = null;
     }
+}
+
+/**
+ * Restore remaining seconds from the latest move that carries clock fields.
+ * @param {*} game
+ */
+function restoreClocksFromLastMove(game) {
+    ensureClocks(game);
+    const moves = game && Array.isArray(game.moves) ? game.moves : [];
+    for (let i = moves.length - 1; i >= 0; i -= 1) {
+        const m = moves[i];
+        if (!m) {
+            continue;
+        }
+        let touched = false;
+        if (typeof m.whiteTimer === "number" && Number.isFinite(m.whiteTimer)) {
+            game.clockWhiteSec = Math.max(0, m.whiteTimer);
+            touched = true;
+        }
+        if (typeof m.blackTimer === "number" && Number.isFinite(m.blackTimer)) {
+            game.clockBlackSec = Math.max(0, m.blackTimer);
+            touched = true;
+        }
+        if (touched) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Charge think-time since lastMoveOn onto the side to move (static clocks).
+ * Used when server clocks were never started or were lost after rehydrate.
+ * @param {*} game
+ * @param {number} [nowMs]
+ */
+function chargeElapsedSinceLastMove(game, nowMs) {
+    if (!game || game._clockRunningFor != null) {
+        return;
+    }
+    const last = typeof game.lastMoveOn === "number" ? game.lastMoveOn : null;
+    if (last == null || !Number.isFinite(last)) {
+        return;
+    }
+    const now = typeof nowMs === "number" ? nowMs : Date.now();
+    const elapsed = Math.max(0, (now - last) / 1000);
+    if (elapsed <= 0) {
+        return;
+    }
+    ensureClocks(game);
+    const turn = game.chessGame && game.chessGame.Turn === "black" ? "black" : "white";
+    if (turn === "white") {
+        game.clockWhiteSec = Math.max(0, game.clockWhiteSec - elapsed);
+    } else {
+        game.clockBlackSec = Math.max(0, game.clockBlackSec - elapsed);
+    }
+}
+
+/**
+ * Ensure live in-progress games have server clocks (after rehydrate / rejoin).
+ * @param {*} game
+ * @param {number} [nowMs]
+ */
+function ensureServerClocksActive(game, nowMs) {
+    if (!game) {
+        return;
+    }
+    const st = game.status;
+    if (st === "game over" || st === "cancelled" || st === "pending" || st === "new") {
+        return;
+    }
+    if (st === "on hold" || st === "reJoining") {
+        restoreClocksFromLastMove(game);
+        pauseClocks(game, nowMs);
+        game._serverClocksActive = true;
+        return;
+    }
+    if (game._serverClocksActive && game._clockRunningFor != null) {
+        return;
+    }
+    restoreClocksFromLastMove(game);
+    if (!game._serverClocksActive) {
+        chargeElapsedSinceLastMove(game, nowMs);
+    }
+    game._serverClocksActive = true;
+    const turn = game.chessGame && game.chessGame.Turn === "black" ? "black" : "white";
+    startTurnClock(game, turn, nowMs);
 }
 
 /**
@@ -175,7 +263,13 @@ async function flagFall(game, loser) {
     }
     await game.outOfTime(loser);
     try {
-        const go = { type: "info", info: "game over", gameId: game.gameId };
+        const go = {
+            type: "info",
+            info: "game over",
+            gameId: game.gameId,
+            loser: loser,
+            reason: "out of time",
+        };
         if (typeof game.sendMessage === "function") {
             game.sendMessage(go, true);
             game.sendMessage(go, false);
@@ -212,11 +306,28 @@ async function flagFall(game, loser) {
  * @returns {Promise<boolean>}
  */
 async function tryClientFlagHint(game, claimedLoser) {
-    if (!game || !game._serverClocksActive || (claimedLoser !== "white" && claimedLoser !== "black")) {
+    if (!game || (claimedLoser !== "white" && claimedLoser !== "black")) {
         return false;
     }
     if (game.status === "game over" || game.status === "cancelled") {
         return false;
+    }
+    /*
+     * Clocks may be inactive after process rehydrate or if startServerClocks never ran.
+     * Rebuild remaining time only when counters are missing — do not overwrite an
+     * already-authoritative zero (or other remaining values set by the caller).
+     */
+    if (!game._serverClocksActive) {
+        const missing =
+            typeof game.clockWhiteSec !== "number" ||
+            typeof game.clockBlackSec !== "number" ||
+            !Number.isFinite(game.clockWhiteSec) ||
+            !Number.isFinite(game.clockBlackSec);
+        if (missing) {
+            restoreClocksFromLastMove(game);
+            chargeElapsedSinceLastMove(game);
+        }
+        game._serverClocksActive = true;
     }
     ensureClocks(game);
     const now = Date.now();
@@ -265,4 +376,7 @@ module.exports = {
     tryClientFlagHint,
     snapshotSeconds,
     clearFlagTimer,
+    restoreClocksFromLastMove,
+    chargeElapsedSinceLastMove,
+    ensureServerClocksActive,
 };

@@ -103,12 +103,22 @@ class GameBase {
         };
         ws._gameMessageHandler = onMsg;
         ws.on("message", onMsg);
-        ws.on("close", this.onConnectionClosed);
+        const onClose = () => {
+            this.clearChannelIfMatches(ws);
+            this.onConnectionClosed(ws);
+        };
+        ws._gameCloseHandler = onClose;
+        ws.on("close", onClose);
         /* Play SP sync waits for this before mirroring moves (avoids race where
            client sends plies before this listener is attached). */
         try {
             if (ws.readyState === 1) {
-                ws.send(JSON.stringify({ type: "info", info: "connected", gameId: this.gameId }));
+                ws.send(JSON.stringify({
+                    type: "info",
+                    info: "connected",
+                    gameId: this.gameId,
+                    moveCount: Array.isArray(this.moves) ? this.moves.length : 0,
+                }));
             }
         } catch (err) {
             console.error("connected ack failed:", err && err.message ? err.message : err);
@@ -371,6 +381,7 @@ class GameBase {
             cb: callback,
             acceptorIsWhite: isWhite === true,
             offererWantsColor: opts.offererWantsColor,
+            timeMinutes: opts.timeMinutes,
         });
     }
 
@@ -474,6 +485,30 @@ class GameBase {
 
     onConnectionClosed = () => { };
 
+    /**
+     * Drop a seat channel when its socket closes so later sends do not hit a dead WS.
+     * @param {*} ws
+     */
+    clearChannelIfMatches(ws) {
+        if (!ws) {
+            return;
+        }
+        if (this.whitePlayer && this.whitePlayer.channel === ws) {
+            this.whitePlayer.channel = null;
+        }
+        if (this.blackPlayer && this.blackPlayer.channel === ws) {
+            this.blackPlayer.channel = null;
+        }
+    }
+
+    /**
+     * @param {*} ws
+     * @returns {boolean}
+     */
+    static isChannelOpen(ws) {
+        return !!(ws && ws.readyState === ws.OPEN);
+    }
+
     closeGame = () => {
         gameClocks.clearFlagTimer(this);
         if (this.whitePlayer) {
@@ -483,6 +518,9 @@ class GameBase {
                     ch.off("message", ch._gameMessageHandler);
                 } else {
                     ch.off("message", this.onMessageReceived);
+                }
+                if (ch._gameCloseHandler) {
+                    ch.off("close", ch._gameCloseHandler);
                 }
             }
         }
@@ -494,6 +532,9 @@ class GameBase {
                 } else {
                     ch.off("message", this.onMessageReceived);
                 }
+                if (ch._gameCloseHandler) {
+                    ch.off("close", ch._gameCloseHandler);
+                }
             }
         }
     };
@@ -504,6 +545,19 @@ class GameBase {
 
 
     updateChannel(player, channel) {
+        if (player && player.channel && player.channel !== channel) {
+            const prev = player.channel;
+            try {
+                if (prev._gameCloseHandler) {
+                    prev.off("close", prev._gameCloseHandler);
+                }
+                if (prev._gameMessageHandler) {
+                    prev.off("message", prev._gameMessageHandler);
+                }
+            } catch (err) {
+                /* ignore cleanup errors on stale sockets */
+            }
+        }
         player.channel = channel;
     }
 

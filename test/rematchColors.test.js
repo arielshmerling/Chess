@@ -4,6 +4,9 @@ const assert = require("assert");
 const {
     assignRematchPlayers,
     normalizeOffererWantsColor,
+    normalizeRematchTimeMinutes,
+    timeMinutesFromGame,
+    resolveRematchTimeMinutes,
 } = require("../src/modules/game/rematchColors");
 
 describe("rematchColors", function () {
@@ -76,5 +79,23 @@ describe("rematchColors", function () {
         assert.strictEqual(normalizeOffererWantsColor("black"), "black");
         assert.strictEqual(normalizeOffererWantsColor("random"), null);
         assert.strictEqual(normalizeOffererWantsColor(undefined), null);
+    });
+
+    it("normalizeRematchTimeMinutes clamps to 1–180", function () {
+        assert.strictEqual(normalizeRematchTimeMinutes(45), 45);
+        assert.strictEqual(normalizeRematchTimeMinutes("30"), 30);
+        assert.strictEqual(normalizeRematchTimeMinutes(0), null);
+        assert.strictEqual(normalizeRematchTimeMinutes(200), 180);
+        assert.strictEqual(normalizeRematchTimeMinutes("x"), null);
+    });
+
+    it("resolveRematchTimeMinutes prefers offer, then old game, then 90", function () {
+        assert.strictEqual(resolveRematchTimeMinutes(25, null), 25);
+        assert.strictEqual(
+            resolveRematchTimeMinutes(null, { chessGame: { GameTimeLength: 60 * 60 } }),
+            60,
+        );
+        assert.strictEqual(resolveRematchTimeMinutes(null, null), 90);
+        assert.strictEqual(timeMinutesFromGame({ chessGame: { GameTimeLength: 45 * 60 } }), 45);
     });
 });

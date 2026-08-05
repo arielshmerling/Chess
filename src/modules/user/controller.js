@@ -1,4 +1,4 @@
-const { t } = require("../../strings");
+const { t, getHtmlLang, getHtmlDir } = require("../../strings");
 const { version: appVersion } = require("../../../desktop/package.json");
 
 const { normalizeReturnTo } = require("../../utils");
@@ -256,6 +256,16 @@ exports.showAdminPage = catchAsync(async (req, res) => {
         gamesManagerService.getAllGamesForAdmin(2000),
         gamesManagerService.getOpeningBookStatus(),
     ]);
+    /*
+     * Admin console stays English. Non-en catalogs only partially cover
+     * site.adminPage, which produced mixed Hebrew/English UI.
+     */
+    res.locals.locale = "en";
+    res.locals.htmlLang = getHtmlLang("en");
+    res.locals.htmlDir = getHtmlDir("en");
+    res.locals.t = function (key, params) {
+        return t(key, params, "en");
+    };
     res.render("admin", {
         adminUsers,
         adminGames,

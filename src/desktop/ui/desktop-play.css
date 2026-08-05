@@ -1091,6 +1091,19 @@ html[dir="rtl"] .desktop-play-workspace {
 
 .desktop-play-chat-line {
   word-break: break-word;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+/* RTL: reading order is name, then ":", then message (start = right). */
+html[dir="rtl"] .desktop-play-chat-line {
+  direction: rtl;
+}
+
+.desktop-play-chat-who,
+.desktop-play-chat-sep,
+.desktop-play-chat-text {
+  unicode-bidi: isolate;
 }
 
 .desktop-play-chat-who {
