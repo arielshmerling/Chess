@@ -25,7 +25,7 @@
             rename: "Gi nytt navn",
             save: "Lagre",
             aPlayer: "En spiller",
-            pleaseEnterValue: "Skriv inn en verdi.",
+            pleaseEnterValue: "Skriv inn en verdi."
         },
         play: {
             appTitle: "Shmerling Chess",
@@ -49,6 +49,7 @@
                 games: "Partier",
                 expandGamesPanel: "Vis partipanel",
                 expandGames: "Vis partier",
+                expandGamesLocked: "Spillpanelet er utilgjengelig under et spill",
                 collapseGamesPanel: "Skjul partipanel",
                 chat: "Chat",
                 expandChatPanel: "Utvid chat-panelet",
@@ -59,7 +60,7 @@
                 savedListFilter: "Filter for lagret liste",
                 positions: "Stillinger",
                 gameStatus: "Partistatus",
-                capturedPieces: "Slåtte brikker",
+                capturedPieces: "Slåtte brikker"
             },
             sessionMode: {
                 play: "Spillmodus",
@@ -68,50 +69,38 @@
                 playback: "Avspillingsmodus",
                 review: "Gjennomgangsmodus",
                 watch: "Tittemodus",
-                practice: "Treningsmodus",
+                practice: "Treningsmodus"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "Velg Nytt parti eller Stillingsoppsett i sidepanelet",
+                chooseNewGameOrSetup: "Velg Nytt parti eller Stillingsoppsett i sidepanelet",
                 chooseNewGame: "Velg Nytt parti i sidepanelet",
-                setMoveColorEngineThinkTime:
-                    "Angi trekk, farge, motor og tenketid i topplinjen, og trykk Spill",
+                setMoveColorEngineThinkTime: "Angi trekk, farge, motor og tenketid i topplinjen, og trykk Spill",
                 gameOver: "Partiet er avsluttet",
                 gameInProgress: "Parti pågår",
                 boardLoading: "Brekket lastes fortsatt…",
                 boardNotReady: "Brekket er ikke klart ennå. Vent litt og prøv igjen.",
-                leaveOnlineBeforeConfiguration:
-                    "Forlat nettpartiet før du åpner Konfigurasjon",
-                configurationNotInPractice:
-                    "Konfigurasjon er ikke tilgjengelig i treningsmodus",
-                configurationModeEdit:
-                    "Konfigurasjonsmodus — rediger verdier og lagre",
-                selectSavedOrSetup:
-                    "Velg et lagret parti eller sett opp en stilling på brettet først",
+                leaveOnlineBeforeConfiguration: "Forlat nettpartiet før du åpner Konfigurasjon",
+                configurationNotInPractice: "Konfigurasjon er ikke tilgjengelig i treningsmodus",
+                configurationModeEdit: "Konfigurasjonsmodus — rediger verdier og lagre",
+                selectSavedOrSetup: "Velg et lagret parti eller sett opp en stilling på brettet først",
                 gameAlreadyInProgress: "Et parti pågår allerede",
                 yourMove: "Ditt trekk",
                 engineToMove: "Motor skal flytte…",
-                leaveOnlineBeforePositionSetup:
-                    "Forlat nettpartiet før du åpner Stillingsoppsett",
-                positionSetupNotInPractice:
-                    "Stillingsoppsett er ikke tilgjengelig i treningsmodus",
-                positionSetupPlacePieces:
-                    "Stillingsoppsett — plasser brikker på brettet",
+                leaveOnlineBeforePositionSetup: "Forlat nettpartiet før du åpner Stillingsoppsett",
+                positionSetupNotInPractice: "Stillingsoppsett er ikke tilgjengelig i treningsmodus",
+                positionSetupPlacePieces: "Stillingsoppsett — plasser brikker på brettet",
                 drawWithReason: "Remis — {{reason}}",
                 checkmateWins: "Sjakkmatt — {{winner}} vinner",
                 check: "Sjakk",
-                waitBeforeEvaluate:
-                    "Vent til det nåværende trekket er ferdig før du evaluerer",
-                evaluationUnavailable:
-                    "Evaluering er ikke tilgjengelig. Start Shmerling Chess-appen på nytt.",
+                waitBeforeEvaluate: "Vent til det nåværende trekket er ferdig før du evaluerer",
+                evaluationUnavailable: "Evaluering er ikke tilgjengelig. Start Shmerling Chess-appen på nytt.",
                 evaluatingPosition: "Evaluerer stilling…",
                 evaluationFailed: "Evaluering mislyktes",
                 evaluationLine: "Evaluering ({{side}} skal flytte): {{score}}",
                 checkmate: "Sjakkmatt",
                 drawZero: "Remis (0)",
                 totalLabel: "Totalt: {{value}}",
-                openFolderDesktopOnly:
-                    "Åpne mappe er bare tilgjengelig i skrivebordsappen",
+                openFolderDesktopOnly: "Åpne mappe er bare tilgjengelig i skrivebordsappen",
                 couldNotOpenGamesLogFolder: "Kunne ikke åpne partilogg-mappen",
                 positionValid: "Stillingen er gyldig",
                 playingFromCustomPosition: "Spiller fra egendefinert stilling",
@@ -127,10 +116,8 @@
                 deletedCount: "Slettet {{count}} element(er)",
                 couldNotDeleteSelected: "Kunne ikke slette valgte elementer",
                 couldNotLoadSavedGame: "Kunne ikke laste lagret parti",
-                editingPositionSaveBookmark:
-                    "Redigerer stilling — Lagre for å oppdatere dette bokmerket",
-                couldNotOpenPositionForEditing:
-                    "Kunne ikke åpne stilling for redigering",
+                editingPositionSaveBookmark: "Redigerer stilling — Lagre for å oppdatere dette bokmerket",
+                couldNotOpenPositionForEditing: "Kunne ikke åpne stilling for redigering",
                 gameSaved: "Parti lagret",
                 couldNotSaveGame: "Kunne ikke lagre parti",
                 engineMoveNotApplied: "Motorens trekk kunne ikke utføres",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "Remistilbud",
                 drawOfferMessage: "Motstanderen tilbød remis. Godta?",
                 rematchTitle: "Omkamp",
-                playerDisconnectedWaiting:
-                    "{{who}} koblet fra — venter på gjenopptakelse ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "Motstander koblet fra — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "Parti avbrutt — gjenopptakelse tidsavbrutt uten at trekk ble spilt.",
-                playerFailedToReconnectWins:
-                    "{{loser}} klarte ikke å koble til igjen — {{winner}} vinner",
-                gameOverOpponentFailedReconnect:
-                    "Partiet er avsluttet — motstanderen klarte ikke å koble til igjen.",
+                playerDisconnectedWaiting: "{{who}} koblet fra — venter på gjenopptakelse ({{countdown}})",
+                opponentDisconnectedCountdown: "Motstander koblet fra — {{countdown}}",
+                gameCancelledReconnectTimeout: "Parti avbrutt — gjenopptakelse tidsavbrutt uten at trekk ble spilt.",
+                playerFailedToReconnectWins: "{{loser}} klarte ikke å koble til igjen — {{winner}} vinner",
+                gameOverOpponentFailedReconnect: "Partiet er avsluttet — motstanderen klarte ikke å koble til igjen.",
                 couldNotStartRematch: "Kunne ikke starte omkamp",
                 rematchStarted: "Omkamp startet",
                 gameCancelled: "Parti avbrutt",
                 gameCancelledWithDetail: "Parti avbrutt — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "Spillet kansellert — Motstanderen dro før første trekk.",
                 resignFailed: "Oppgivelse mislyktes",
                 gameResumedYourMove: "Parti gjenopptatt — ditt trekk",
                 practiceNotAvailable: "Treningsmodus er ikke tilgjengelig",
                 couldNotJoinOnPlay: "Kunne ikke bli med i dette partiet på /play",
-                practiceDebugNotAvailable:
-                    "Trening / feilsøking er ikke tilgjengelig for denne kontoen",
+                practiceDebugNotAvailable: "Trening / feilsøking er ikke tilgjengelig for denne kontoen",
                 reviewRequiresWebApi: "Gjennomgang krever web-API",
                 couldNotLoadReviewGame: "Kunne ikke laste gjennomgangsparti",
                 notReviewGameLink: "Denne lenken er ikke et gjennomgangsparti",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} elementer slettet",
                 choosePromotionPiece: "Velg bondeunderpromovering",
                 invalidPromotionPiece: "Ugyldig underpromoveringsbrikke",
-                drawOfferNotAvailable: "Remistilbud er ikke tilgjengelig nå",
+                drawOfferNotAvailable: "Remistilbud er ikke tilgjengelig nå"
             },
             drawReasons: {
                 stalemate: "Patt",
                 fiftyMoves: "50-trekksregelen",
                 insufficientMaterial: "Utilstrekkelig materiale",
                 threefoldRepetition: "Tredobbel gjentakelse",
-                drawOfferAccepted: "Remistilbud fra {{by}} godtatt",
+                drawOfferAccepted: "Remistilbud fra {{by}} godtatt"
             },
             actions: {
                 newGame: "Nytt parti",
@@ -197,8 +179,11 @@
                 flip: "Snu",
                 save: "Lagre",
                 exit: "Avslutt",
+                backToLobby: "Tilbake til lobbyen",
                 loadToStart: "Last for å starte",
                 editPosition: "Rediger stilling",
+                loadGame: "Last inn parti",
+                loadPosition: "Last inn stilling"
             },
             savedGames: {
                 defaultName: "Lagret parti",
@@ -216,6 +201,8 @@
                 savedAt: "Lagret: {{when}}",
                 gameId: "Parti-ID: {{id}}",
                 playersVs: "{{white}} mot {{black}}",
+                defaultPositionName: "Lagret stilling",
+                itemsSelected: "{{count}} elementer valgt"
             },
             reviewNav: {
                 start: "Start",
@@ -223,7 +210,7 @@
                 play: "Spill av",
                 pause: "Pause",
                 forward: "Frem",
-                end: "Slutt",
+                end: "Slutt"
             },
             newGameDialog: {
                 title: "Nytt parti mot AI",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "Tid per side (minutter)",
                 allowUndo: "Tillat angre",
                 private: "Privat",
-                privateHint:
-                    "Private partier vises ikke i andre medlemmers lister over aktive partier.",
+                privateHint: "Private partier vises ikke i andre medlemmers lister over aktive partier."
             },
             prompts: {
                 positionName: "Stillingsnavn",
-                savePositionAs: "Lagre stilling som",
+                savePositionAs: "Lagre stilling som"
             },
             dialogs: {
                 resignTitle: "Gi opp dette partiet?",
@@ -249,8 +236,7 @@
                 leaveTitle: "Forlate partiet?",
                 leaveBody: "Partiet ditt blir gitt opp.",
                 areYouSure: "Er du sikker?",
-                discardUnsavedBrainConfig:
-                    "Forkaste ulagrede endringer i brain-konfigurasjonen?",
+                discardUnsavedBrainConfig: "Forkaste ulagrede endringer i brain-konfigurasjonen?",
                 accept: "Godta",
                 decline: "Avslå",
                 saveAs: "Lagre som",
@@ -258,9 +244,10 @@
                 invalidPosition: "Ugyldig stilling",
                 rematchChooseColor: "Velg farge for omkampen:",
                 rematchOfferAgree: "Motstanderen tilbød omkamp. Godta?",
-                rematchColorPreference:
-                    "Motstanderen vil spille som {{offerer}}. Du ville spille som {{you}}. Godta?",
-            },
+                rematchOfferAgreeWithTime: "Motstanderen tilbød en omkamp ({{minutes}} min per side). Enig?",
+                rematchColorPreference: "Motstanderen vil spille som {{offerer}}. Du ville spille som {{you}}. Godta?",
+                rematchColorPreferenceWithTime: "Motstanderen ønsker å spille som {{offerer}} ({{minutes}} min per side). Du vil spille som {{you}}. Enig?"
+            }
         },
         session: {
             engineThinking: "Motoren tenker…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "Remistilbud avslått",
             rematchOfferSent: "Omkamptilbud sendt",
             rematchOfferDeclined: "Omkamptilbud avslått",
+            rematchUnavailable: "Motstanderen er ikke lenger tilgjengelig for en omkamp",
             drawAgreed: "Remis avtalt",
             rematchAcceptedNoGameId: "Omkamp godtatt, men ingen ny parti-ID",
             rematchOfferAccepted: "Omkamptilbud godtatt",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "Motstanderen klarte ikke å koble til igjen",
             gameCancelled: "Parti avbrutt",
             gameCancelledWithDetail: "Parti avbrutt — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "Spillet kansellert — Motstanderen dro før første trekk.",
+            gameCancelledReconnectTimeout: "Spillet ble avbrutt — Tilkoblingen ble tidsavbrutt uten at det ble spilt noen trekk.",
             waitingForOpponent: "Venter på motstander…",
             couldNotResolveWebSocketUrl: "Kunne ikke finne WebSocket-URL",
             opponentJoined: "{{name}} ble med",
             opponentDefault: "Motstander",
             connectionError: "Tilkoblingsfeil",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} koblet fra — venter på gjenopptakelse",
-            playerFailedToReconnectWins:
-                "{{loser}} klarte ikke å koble til igjen — {{winner}} vinner",
-            watcherWaitingForReconnect: "Venter på at en spiller kobler til igjen…",
+            connectionLost: "Tilkoblingen mistet — trekk når ikke serveren",
+            reconnecting: "Kobler på nytt …",
+            connectionRestored: "Tilkoblingen gjenopprettet",
+            flagReported: "Flagg – bekrefter med server …",
+            playerDisconnectedWaitingRejoin: "{{name}} koblet fra — venter på gjenopptakelse",
+            playerFailedToReconnectWins: "{{loser}} klarte ikke å koble til igjen — {{winner}} vinner",
+            watcherWaitingForReconnect: "Venter på at en spiller kobler til igjen…"
         },
         site: {
             confirm: "Bekreft",
@@ -313,7 +305,7 @@
             logOut: "Logg ut",
             logIn: "Logg inn",
             admin: "Admin",
-            homeAria: "Hjem",
+            homeAria: "Hjem"
         },
         validation: {
             validEmail: "Fyll inn en gyldig e-postadresse",
@@ -321,8 +313,8 @@
             chooseUsername: "Velg et brukernavn",
             usernameNotAvailable: "Dette brukernavnet er ikke tilgjengelig",
             passwordNoWhitespace: "Passordet kan ikke inneholde mellomrom.",
-            passwordUppercase: "Passordet må ha minst én stor bokstav.",
-        },
+            passwordUppercase: "Passordet må ha minst én stor bokstav."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

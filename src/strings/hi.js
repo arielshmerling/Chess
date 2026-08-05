@@ -25,7 +25,7 @@
             rename: "नाम बदलें",
             save: "सहेजें",
             aPlayer: "एक खिलाड़ी",
-            pleaseEnterValue: "कृपया एक मान दर्ज करें।",
+            pleaseEnterValue: "कृपया एक मान दर्ज करें।"
         },
         play: {
             appTitle: "श्मर्लिंग चेस",
@@ -49,6 +49,7 @@
                 games: "खेल",
                 expandGamesPanel: "खेल पैनल विस्तार करें",
                 expandGames: "खेल विस्तार करें",
+                expandGamesLocked: "गेम के दौरान गेम पैनल अनुपलब्ध है",
                 collapseGamesPanel: "खेल पैनल संक्षिप्त करें",
                 chat: "चैट",
                 expandChatPanel: "चैट पैनल विस्तारित करें",
@@ -59,7 +60,7 @@
                 savedListFilter: "सहेजी गई सूची फ़िल्टर",
                 positions: "स्थितियाँ",
                 gameStatus: "खेल स्थिति",
-                capturedPieces: "मारे गए मोहरे",
+                capturedPieces: "मारे गए मोहरे"
             },
             sessionMode: {
                 play: "खेल मोड",
@@ -68,50 +69,38 @@
                 playback: "प्लेबैक मोड",
                 review: "समीक्षा मोड",
                 watch: "देखने का मोड",
-                practice: "अभ्यास मोड",
+                practice: "अभ्यास मोड"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "साइडबार से नया खेल या स्थिति सेटअप चुनें",
+                chooseNewGameOrSetup: "साइडबार से नया खेल या स्थिति सेटअप चुनें",
                 chooseNewGame: "साइडबार से नया खेल चुनें",
-                setMoveColorEngineThinkTime:
-                    "हेडर में चाल, रंग, इंजन और सोचने का समय सेट करें, फिर Play दबाएँ",
+                setMoveColorEngineThinkTime: "हेडर में चाल, रंग, इंजन और सोचने का समय सेट करें, फिर Play दबाएँ",
                 gameOver: "खेल समाप्त",
                 gameInProgress: "खेल जारी है",
                 boardLoading: "बोर्ड अभी लोड हो रहा है…",
                 boardNotReady: "बोर्ड अभी तैयार नहीं है। कृपया प्रतीक्षा करें और पुनः प्रयास करें।",
-                leaveOnlineBeforeConfiguration:
-                    "कॉन्फ़िगरेशन खोलने से पहले ऑनलाइन खेल छोड़ें",
-                configurationNotInPractice:
-                    "अभ्यास मोड में कॉन्फ़िगरेशन उपलब्ध नहीं है",
-                configurationModeEdit:
-                    "कॉन्फ़िगरेशन मोड — मान संपादित करें और सहेजें",
-                selectSavedOrSetup:
-                    "पहले कोई सहेजा गया खेल चुनें या बोर्ड पर स्थिति सेट करें",
+                leaveOnlineBeforeConfiguration: "कॉन्फ़िगरेशन खोलने से पहले ऑनलाइन खेल छोड़ें",
+                configurationNotInPractice: "अभ्यास मोड में कॉन्फ़िगरेशन उपलब्ध नहीं है",
+                configurationModeEdit: "कॉन्फ़िगरेशन मोड — मान संपादित करें और सहेजें",
+                selectSavedOrSetup: "पहले कोई सहेजा गया खेल चुनें या बोर्ड पर स्थिति सेट करें",
                 gameAlreadyInProgress: "एक खेल पहले से जारी है",
                 yourMove: "आपकी चाल",
                 engineToMove: "इंजन की चाल…",
-                leaveOnlineBeforePositionSetup:
-                    "स्थिति सेटअप खोलने से पहले ऑनलाइन खेल छोड़ें",
-                positionSetupNotInPractice:
-                    "अभ्यास मोड में स्थिति सेटअप उपलब्ध नहीं है",
-                positionSetupPlacePieces:
-                    "स्थिति सेटअप — बोर्ड पर मोहरे रखें",
+                leaveOnlineBeforePositionSetup: "स्थिति सेटअप खोलने से पहले ऑनलाइन खेल छोड़ें",
+                positionSetupNotInPractice: "अभ्यास मोड में स्थिति सेटअप उपलब्ध नहीं है",
+                positionSetupPlacePieces: "स्थिति सेटअप — बोर्ड पर मोहरे रखें",
                 drawWithReason: "ड्रॉ — {{reason}}",
                 checkmateWins: "शहमात — {{winner}} जीत गया",
                 check: "शह",
-                waitBeforeEvaluate:
-                    "मूल्यांकन से पहले वर्तमान चाल पूरी होने की प्रतीक्षा करें",
-                evaluationUnavailable:
-                    "मूल्यांकन उपलब्ध नहीं है। Shmerling Chess ऐप पुनः आरंभ करें।",
+                waitBeforeEvaluate: "मूल्यांकन से पहले वर्तमान चाल पूरी होने की प्रतीक्षा करें",
+                evaluationUnavailable: "मूल्यांकन उपलब्ध नहीं है। Shmerling Chess ऐप पुनः आरंभ करें।",
                 evaluatingPosition: "स्थिति का मूल्यांकन…",
                 evaluationFailed: "मूल्यांकन विफल",
                 evaluationLine: "मूल्यांकन ({{side}} की चाल): {{score}}",
                 checkmate: "शहमात",
                 drawZero: "ड्रॉ (0)",
                 totalLabel: "कुल: {{value}}",
-                openFolderDesktopOnly:
-                    "फ़ोल्डर खोलना केवल डेस्कटॉप ऐप में उपलब्ध है",
+                openFolderDesktopOnly: "फ़ोल्डर खोलना केवल डेस्कटॉप ऐप में उपलब्ध है",
                 couldNotOpenGamesLogFolder: "खेल लॉग फ़ोल्डर नहीं खोल सका",
                 positionValid: "स्थिति मान्य है",
                 playingFromCustomPosition: "कस्टम स्थिति से खेल रहे हैं",
@@ -127,10 +116,8 @@
                 deletedCount: "{{count}} आइटम हटाए गए",
                 couldNotDeleteSelected: "चयनित आइटम हटाए नहीं जा सके",
                 couldNotLoadSavedGame: "सहेजा गया खेल लोड नहीं हो सका",
-                editingPositionSaveBookmark:
-                    "स्थिति संपादित — इस बुकमार्क को अपडेट करने के लिए सहेजें",
-                couldNotOpenPositionForEditing:
-                    "संपादन के लिए स्थिति नहीं खोल सका",
+                editingPositionSaveBookmark: "स्थिति संपादित — इस बुकमार्क को अपडेट करने के लिए सहेजें",
+                couldNotOpenPositionForEditing: "संपादन के लिए स्थिति नहीं खोल सका",
                 gameSaved: "खेल सहेजा गया",
                 couldNotSaveGame: "खेल सहेज नहीं सका",
                 engineMoveNotApplied: "इंजन की चाल लागू नहीं हो सकी",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "ड्रॉ प्रस्ताव",
                 drawOfferMessage: "प्रतिद्वंद्वी ने ड्रॉ प्रस्ताव भेजा। स्वीकार करें?",
                 rematchTitle: "पुनर्मैच",
-                playerDisconnectedWaiting:
-                    "{{who}} डिस्कनेक्ट — पुनः जुड़ने की प्रतीक्षा ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "प्रतिद्वंद्वी डिस्कनेक्ट — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "खेल रद्द — कोई चाल न खेले पुनः कनेक्ट समय समाप्त।",
-                playerFailedToReconnectWins:
-                    "{{loser}} पुनः कनेक्ट नहीं हो सका — {{winner}} जीत गया",
-                gameOverOpponentFailedReconnect:
-                    "खेल समाप्त — प्रतिद्वंद्वी पुनः कनेक्ट नहीं हो सका।",
+                playerDisconnectedWaiting: "{{who}} डिस्कनेक्ट — पुनः जुड़ने की प्रतीक्षा ({{countdown}})",
+                opponentDisconnectedCountdown: "प्रतिद्वंद्वी डिस्कनेक्ट — {{countdown}}",
+                gameCancelledReconnectTimeout: "खेल रद्द — कोई चाल न खेले पुनः कनेक्ट समय समाप्त।",
+                playerFailedToReconnectWins: "{{loser}} पुनः कनेक्ट नहीं हो सका — {{winner}} जीत गया",
+                gameOverOpponentFailedReconnect: "खेल समाप्त — प्रतिद्वंद्वी पुनः कनेक्ट नहीं हो सका।",
                 couldNotStartRematch: "पुनर्मैच शुरू नहीं हो सका",
                 rematchStarted: "पुनर्मैच शुरू",
                 gameCancelled: "खेल रद्द",
                 gameCancelledWithDetail: "खेल रद्द — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "खेल रद्द - प्रतिद्वंद्वी पहली चाल से पहले ही चला गया।",
                 resignFailed: "हार मानना विफल",
                 gameResumedYourMove: "खेल फिर शुरू — आपकी चाल",
                 practiceNotAvailable: "अभ्यास मोड उपलब्ध नहीं है",
                 couldNotJoinOnPlay: "इस खेल में /play पर शामिल नहीं हो सके",
-                practiceDebugNotAvailable:
-                    "इस खाते के लिए अभ्यास / डिबग उपलब्ध नहीं है",
+                practiceDebugNotAvailable: "इस खाते के लिए अभ्यास / डिबग उपलब्ध नहीं है",
                 reviewRequiresWebApi: "समीक्षा के लिए वेब API आवश्यक है",
                 couldNotLoadReviewGame: "समीक्षा खेल लोड नहीं हो सका",
                 notReviewGameLink: "यह लिंक समीक्षा खेल नहीं है",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} आइटम हटाए गए",
                 choosePromotionPiece: "प्रमोशन मोहरा चुनें",
                 invalidPromotionPiece: "अमान्य प्रमोशन मोहरा",
-                drawOfferNotAvailable: "ड्रॉ प्रस्ताव अभी उपलब्ध नहीं है",
+                drawOfferNotAvailable: "ड्रॉ प्रस्ताव अभी उपलब्ध नहीं है"
             },
             drawReasons: {
                 stalemate: "गतिरोध",
                 fiftyMoves: "50 चालें",
                 insufficientMaterial: "अपर्याप्त सामग्री",
                 threefoldRepetition: "त्रिगुण पुनरावृत्ति",
-                drawOfferAccepted: "{{by}} खिलाड़ी का ड्रॉ प्रस्ताव स्वीकार",
+                drawOfferAccepted: "{{by}} खिलाड़ी का ड्रॉ प्रस्ताव स्वीकार"
             },
             actions: {
                 newGame: "नया खेल",
@@ -197,8 +179,11 @@
                 flip: "पलटें",
                 save: "सहेजें",
                 exit: "बाहर निकलें",
+                backToLobby: "लॉबी को लौटें",
                 loadToStart: "शुरू करने के लिए लोड करें",
                 editPosition: "स्थिति संपादित करें",
+                loadGame: "खेल लोड करें",
+                loadPosition: "स्थिति लोड करें"
             },
             savedGames: {
                 defaultName: "सहेजा गया खेल",
@@ -216,6 +201,8 @@
                 savedAt: "सहेजा गया: {{when}}",
                 gameId: "खेल ID: {{id}}",
                 playersVs: "{{white}} बनाम {{black}}",
+                defaultPositionName: "सहेजी गई स्थिति",
+                itemsSelected: "{{count}} आइटम चयनित"
             },
             reviewNav: {
                 start: "शुरू",
@@ -223,7 +210,7 @@
                 play: "चलाएँ",
                 pause: "रोकें",
                 forward: "आगे",
-                end: "अंत",
+                end: "अंत"
             },
             newGameDialog: {
                 title: "AI के विरुद्ध नया खेल",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "प्रति पक्ष समय (मिनट)",
                 allowUndo: "पूर्ववत की अनुमति",
                 private: "निजी",
-                privateHint:
-                    "निजी खेल अन्य सदस्यों की सक्रिय खेल सूचियों में नहीं दिखते।",
+                privateHint: "निजी खेल अन्य सदस्यों की सक्रिय खेल सूचियों में नहीं दिखते।"
             },
             prompts: {
                 positionName: "स्थिति का नाम",
-                savePositionAs: "स्थिति इस नाम से सहेजें",
+                savePositionAs: "स्थिति इस नाम से सहेजें"
             },
             dialogs: {
                 resignTitle: "इस खेल में हार मानें?",
@@ -249,8 +236,7 @@
                 leaveTitle: "खेल छोड़ें?",
                 leaveBody: "आपका खेल हार मान लिया जाएगा।",
                 areYouSure: "क्या आप सुनिश्चित हैं?",
-                discardUnsavedBrainConfig:
-                    "सहेजे न गए Brain कॉन्फ़िगरेशन परिवर्तन छोड़ दें?",
+                discardUnsavedBrainConfig: "सहेजे न गए Brain कॉन्फ़िगरेशन परिवर्तन छोड़ दें?",
                 accept: "स्वीकार करें",
                 decline: "अस्वीकार करें",
                 saveAs: "इस नाम से सहेजें",
@@ -258,9 +244,10 @@
                 invalidPosition: "अमान्य स्थिति",
                 rematchChooseColor: "पुनर्मैच के लिए अपना रंग चुनें:",
                 rematchOfferAgree: "प्रतिद्वंद्वी ने पुनर्मैच प्रस्तावित किया। सहमत?",
-                rematchColorPreference:
-                    "प्रतिद्वंद्वी {{offerer}} के रूप में खेलना चाहता है। आप {{you}} के रूप में खेलेंगे। सहमत?",
-            },
+                rematchOfferAgreeWithTime: "प्रतिद्वंद्वी ने दोबारा मैच की पेशकश की ({{minutes}} मिनट प्रति पक्ष)। सहमत होना?",
+                rematchColorPreference: "प्रतिद्वंद्वी {{offerer}} के रूप में खेलना चाहता है। आप {{you}} के रूप में खेलेंगे। सहमत?",
+                rematchColorPreferenceWithTime: "प्रतिद्वंद्वी {{offerer}} ({{minutes}} प्रति पक्ष) के रूप में खेलना चाहता है। आप {{you}} के रूप में खेलेंगे। सहमत होना?"
+            }
         },
         session: {
             engineThinking: "इंजन सोच रहा है…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "ड्रॉ प्रस्ताव अस्वीकार",
             rematchOfferSent: "पुनर्मैच प्रस्ताव भेजा गया",
             rematchOfferDeclined: "पुनर्मैच प्रस्ताव अस्वीकार",
+            rematchUnavailable: "प्रतिद्वंद्वी अब दोबारा मैच के लिए उपलब्ध नहीं है",
             drawAgreed: "ड्रॉ पर सहमति",
             rematchAcceptedNoGameId: "पुनर्मैच स्वीकार, लेकिन नया खेल ID नहीं",
             rematchOfferAccepted: "पुनर्मैच प्रस्ताव स्वीकार",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "प्रतिद्वंद्वी पुनः कनेक्ट नहीं हो सका",
             gameCancelled: "खेल रद्द",
             gameCancelledWithDetail: "खेल रद्द — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "खेल रद्द - प्रतिद्वंद्वी पहली चाल से पहले ही चला गया।",
+            gameCancelledReconnectTimeout: "खेल रद्द - बिना कोई चाल खेले पुनः कनेक्ट करने का समय समाप्त हो गया।",
             waitingForOpponent: "प्रतिद्वंद्वी की प्रतीक्षा…",
             couldNotResolveWebSocketUrl: "WebSocket URL हल नहीं हो सका",
             opponentJoined: "{{name}} शामिल हुआ",
             opponentDefault: "प्रतिद्वंद्वी",
             connectionError: "कनेक्शन त्रुटि",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} डिस्कनेक्ट — पुनः जुड़ने की प्रतीक्षा",
-            playerFailedToReconnectWins:
-                "{{loser}} पुनः कनेक्ट नहीं हो सका — {{winner}} जीत गया",
-            watcherWaitingForReconnect: "किसी खिलाड़ी के पुनः कनेक्ट होने की प्रतीक्षा…",
+            connectionLost: "कनेक्शन टूट गया - चालें सर्वर तक नहीं पहुंच रही हैं",
+            reconnecting: "पुनः कनेक्ट हो रहा है...",
+            connectionRestored: "कनेक्शन बहाल कर दिया गया",
+            flagReported: "फ़्लैग - सर्वर से पुष्टि की जा रही है...",
+            playerDisconnectedWaitingRejoin: "{{name}} डिस्कनेक्ट — पुनः जुड़ने की प्रतीक्षा",
+            playerFailedToReconnectWins: "{{loser}} पुनः कनेक्ट नहीं हो सका — {{winner}} जीत गया",
+            watcherWaitingForReconnect: "किसी खिलाड़ी के पुनः कनेक्ट होने की प्रतीक्षा…"
         },
         site: {
             confirm: "पुष्टि करें",
@@ -313,7 +305,7 @@
             logOut: "लॉग आउट",
             logIn: "लॉग इन",
             admin: "एडमिन",
-            homeAria: "होम",
+            homeAria: "होम"
         },
         validation: {
             validEmail: "कृपया मान्य ईमेल दर्ज करें",
@@ -321,8 +313,8 @@
             chooseUsername: "कृपया उपयोगकर्ता नाम चुनें",
             usernameNotAvailable: "यह उपयोगकर्ता नाम उपलब्ध नहीं है",
             passwordNoWhitespace: "पासवर्ड में रिक्त स्थान नहीं होना चाहिए।",
-            passwordUppercase: "पासवर्ड में कम से कम एक बड़ा अक्षर होना चाहिए।",
-        },
+            passwordUppercase: "पासवर्ड में कम से कम एक बड़ा अक्षर होना चाहिए।"
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

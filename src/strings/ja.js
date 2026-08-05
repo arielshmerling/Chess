@@ -25,7 +25,7 @@
             rename: "名前を変更",
             save: "保存",
             aPlayer: "プレイヤー",
-            pleaseEnterValue: "値を入力してください。",
+            pleaseEnterValue: "値を入力してください。"
         },
         play: {
             appTitle: "シュマーリングチェス",
@@ -49,6 +49,7 @@
                 games: "ゲーム",
                 expandGamesPanel: "ゲームパネルを展開",
                 expandGames: "ゲームを展開",
+                expandGamesLocked: "ゲーム中はゲームパネルを使用できません",
                 collapseGamesPanel: "ゲームパネルを折りたたむ",
                 chat: "チャット",
                 expandChatPanel: "チャットパネルを展開",
@@ -59,7 +60,7 @@
                 savedListFilter: "保存リストのフィルター",
                 positions: "局面",
                 gameStatus: "ゲーム状態",
-                capturedPieces: "取った駒",
+                capturedPieces: "取った駒"
             },
             sessionMode: {
                 play: "対局モード",
@@ -68,50 +69,38 @@
                 playback: "再生モード",
                 review: "レビューモード",
                 watch: "観戦モード",
-                practice: "練習モード",
+                practice: "練習モード"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "サイドバーから「新しいゲーム」または「局面設定」を選択してください",
+                chooseNewGameOrSetup: "サイドバーから「新しいゲーム」または「局面設定」を選択してください",
                 chooseNewGame: "サイドバーから「新しいゲーム」を選択してください",
-                setMoveColorEngineThinkTime:
-                    "ヘッダーで手番・色・エンジン・思考時間を設定し、「対局」を押してください",
+                setMoveColorEngineThinkTime: "ヘッダーで手番・色・エンジン・思考時間を設定し、「対局」を押してください",
                 gameOver: "ゲーム終了",
                 gameInProgress: "対局中",
                 boardLoading: "盤面を読み込み中…",
                 boardNotReady: "盤面の準備ができていません。しばらく待ってから再度お試しください。",
-                leaveOnlineBeforeConfiguration:
-                    "設定を開く前にオンライン対局を終了してください",
-                configurationNotInPractice:
-                    "練習モードでは設定は利用できません",
-                configurationModeEdit:
-                    "設定モード — 値を編集して保存",
-                selectSavedOrSetup:
-                    "保存したゲームを選択するか、盤面に局面を設定してください",
+                leaveOnlineBeforeConfiguration: "設定を開く前にオンライン対局を終了してください",
+                configurationNotInPractice: "練習モードでは設定は利用できません",
+                configurationModeEdit: "設定モード — 値を編集して保存",
+                selectSavedOrSetup: "保存したゲームを選択するか、盤面に局面を設定してください",
                 gameAlreadyInProgress: "すでに対局中です",
                 yourMove: "あなたの手番",
                 engineToMove: "エンジン思考中…",
-                leaveOnlineBeforePositionSetup:
-                    "局面設定を開く前にオンライン対局を終了してください",
-                positionSetupNotInPractice:
-                    "練習モードでは局面設定は利用できません",
-                positionSetupPlacePieces:
-                    "局面設定 — 盤面に駒を配置してください",
+                leaveOnlineBeforePositionSetup: "局面設定を開く前にオンライン対局を終了してください",
+                positionSetupNotInPractice: "練習モードでは局面設定は利用できません",
+                positionSetupPlacePieces: "局面設定 — 盤面に駒を配置してください",
                 drawWithReason: "引き分け — {{reason}}",
                 checkmateWins: "詰み — {{winner}} の勝ち",
                 check: "チェック",
-                waitBeforeEvaluate:
-                    "評価する前に現在の手が終わるまでお待ちください",
-                evaluationUnavailable:
-                    "評価は利用できません。シュマーリングチェスアプリを再起動してください。",
+                waitBeforeEvaluate: "評価する前に現在の手が終わるまでお待ちください",
+                evaluationUnavailable: "評価は利用できません。シュマーリングチェスアプリを再起動してください。",
                 evaluatingPosition: "局面を評価中…",
                 evaluationFailed: "評価に失敗しました",
                 evaluationLine: "評価（{{side}} の手番）: {{score}}",
                 checkmate: "詰み",
                 drawZero: "引き分け (0)",
                 totalLabel: "合計: {{value}}",
-                openFolderDesktopOnly:
-                    "フォルダを開くのはデスクトップアプリでのみ利用できます",
+                openFolderDesktopOnly: "フォルダを開くのはデスクトップアプリでのみ利用できます",
                 couldNotOpenGamesLogFolder: "ゲームログフォルダを開けませんでした",
                 positionValid: "局面は有効です",
                 playingFromCustomPosition: "カスタム局面から対局",
@@ -127,10 +116,8 @@
                 deletedCount: "{{count}} 件を削除しました",
                 couldNotDeleteSelected: "選択した項目を削除できませんでした",
                 couldNotLoadSavedGame: "保存したゲームを読み込めませんでした",
-                editingPositionSaveBookmark:
-                    "局面を編集中 — 保存してこのブックマークを更新",
-                couldNotOpenPositionForEditing:
-                    "編集用に局面を開けませんでした",
+                editingPositionSaveBookmark: "局面を編集中 — 保存してこのブックマークを更新",
+                couldNotOpenPositionForEditing: "編集用に局面を開けませんでした",
                 gameSaved: "ゲームを保存しました",
                 couldNotSaveGame: "ゲームを保存できませんでした",
                 engineMoveNotApplied: "エンジンの手を適用できませんでした",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "引き分けの提案",
                 drawOfferMessage: "相手が引き分けを提案しました。受け入れますか？",
                 rematchTitle: "再戦",
-                playerDisconnectedWaiting:
-                    "{{who}} が切断されました — 再接続を待っています（{{countdown}}）",
-                opponentDisconnectedCountdown:
-                    "相手が切断されました — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "ゲームがキャンセルされました — 手が指されないまま再接続がタイムアウトしました。",
-                playerFailedToReconnectWins:
-                    "{{loser}} が再接続できませんでした — {{winner}} の勝ち",
-                gameOverOpponentFailedReconnect:
-                    "ゲーム終了 — 相手が再接続できませんでした。",
+                playerDisconnectedWaiting: "{{who}} が切断されました — 再接続を待っています（{{countdown}}）",
+                opponentDisconnectedCountdown: "相手が切断されました — {{countdown}}",
+                gameCancelledReconnectTimeout: "ゲームがキャンセルされました — 手が指されないまま再接続がタイムアウトしました。",
+                playerFailedToReconnectWins: "{{loser}} が再接続できませんでした — {{winner}} の勝ち",
+                gameOverOpponentFailedReconnect: "ゲーム終了 — 相手が再接続できませんでした。",
                 couldNotStartRematch: "再戦を開始できませんでした",
                 rematchStarted: "再戦を開始しました",
                 gameCancelled: "ゲームがキャンセルされました",
                 gameCancelledWithDetail: "ゲームがキャンセルされました — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "ゲームがキャンセルされました — 相手が最初の動きをする前に退場しました。",
                 resignFailed: "投了に失敗しました",
                 gameResumedYourMove: "対局再開 — あなたの手番",
                 practiceNotAvailable: "練習モードは利用できません",
                 couldNotJoinOnPlay: "/play でこのゲームに参加できませんでした",
-                practiceDebugNotAvailable:
-                    "このアカウントでは練習 / デバッグは利用できません",
+                practiceDebugNotAvailable: "このアカウントでは練習 / デバッグは利用できません",
                 reviewRequiresWebApi: "レビューには Web API が必要です",
                 couldNotLoadReviewGame: "レビューゲームを読み込めませんでした",
                 notReviewGameLink: "このリンクはレビューゲームではありません",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} 件を削除しました",
                 choosePromotionPiece: "昇格する駒を選択",
                 invalidPromotionPiece: "無効な昇格駒です",
-                drawOfferNotAvailable: "現在引き分けの提案はできません",
+                drawOfferNotAvailable: "現在引き分けの提案はできません"
             },
             drawReasons: {
                 stalemate: "ステイルメイト",
                 fiftyMoves: "50手ルール",
                 insufficientMaterial: "持ち駒不足",
                 threefoldRepetition: "同一局面三回",
-                drawOfferAccepted: "{{by}} の引き分け提案が受け入れられました",
+                drawOfferAccepted: "{{by}} の引き分け提案が受け入れられました"
             },
             actions: {
                 newGame: "新しいゲーム",
@@ -197,8 +179,11 @@
                 flip: "反転",
                 save: "保存",
                 exit: "終了",
+                backToLobby: "ロビーに戻る",
                 loadToStart: "読み込んで開始",
                 editPosition: "局面を編集",
+                loadGame: "対局を読み込む",
+                loadPosition: "局面を読み込む"
             },
             savedGames: {
                 defaultName: "保存したゲーム",
@@ -216,6 +201,8 @@
                 savedAt: "保存: {{when}}",
                 gameId: "ゲーム ID: {{id}}",
                 playersVs: "{{white}} 対 {{black}}",
+                defaultPositionName: "保存した局面",
+                itemsSelected: "{{count}} 件選択中"
             },
             reviewNav: {
                 start: "最初",
@@ -223,7 +210,7 @@
                 play: "再生",
                 pause: "一時停止",
                 forward: "進む",
-                end: "最後",
+                end: "最後"
             },
             newGameDialog: {
                 title: "AI との新しいゲーム",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "各側の持ち時間（分）",
                 allowUndo: "待ったを許可",
                 private: "非公開",
-                privateHint:
-                    "非公開の対局は、他のメンバーの進行中の対局一覧には表示されません。",
+                privateHint: "非公開の対局は、他のメンバーの進行中の対局一覧には表示されません。"
             },
             prompts: {
                 positionName: "局面名",
-                savePositionAs: "局面名を入力",
+                savePositionAs: "局面名を入力"
             },
             dialogs: {
                 resignTitle: "このゲームを投了しますか？",
@@ -249,8 +236,7 @@
                 leaveTitle: "ゲームを終了しますか？",
                 leaveBody: "ゲームは投了扱いになります。",
                 areYouSure: "よろしいですか？",
-                discardUnsavedBrainConfig:
-                    "保存していない Brain 設定の変更を破棄しますか？",
+                discardUnsavedBrainConfig: "保存していない Brain 設定の変更を破棄しますか？",
                 accept: "受け入れる",
                 decline: "拒否",
                 saveAs: "名前を付けて保存",
@@ -258,9 +244,10 @@
                 invalidPosition: "無効な局面",
                 rematchChooseColor: "再戦で使う色を選択してください:",
                 rematchOfferAgree: "相手が再戦を提案しました。同意しますか？",
-                rematchColorPreference:
-                    "相手は {{offerer}} で指したいと言っています。あなたは {{you}} になります。同意しますか？",
-            },
+                rematchOfferAgreeWithTime: "相手は再戦を申し出ました (片側 {{minutes}} 分)。同意する？",
+                rematchColorPreference: "相手は {{offerer}} で指したいと言っています。あなたは {{you}} になります。同意しますか？",
+                rematchColorPreferenceWithTime: "対戦相手は {{offerer}} (各サイドで {{minutes}} 分) としてプレイしたいと考えています。あなたは{{you}}としてプレイします。同意する？"
+            }
         },
         session: {
             engineThinking: "エンジン思考中…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "引き分けの提案が拒否されました",
             rematchOfferSent: "再戦を提案しました",
             rematchOfferDeclined: "再戦の提案が拒否されました",
+            rematchUnavailable: "相手は再戦に参加できなくなりました",
             drawAgreed: "引き分けで合意",
             rematchAcceptedNoGameId: "再戦は承諾されましたが、新しいゲーム ID がありません",
             rematchOfferAccepted: "再戦の提案が受け入れられました",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "相手が再接続できませんでした",
             gameCancelled: "ゲームがキャンセルされました",
             gameCancelledWithDetail: "ゲームがキャンセルされました — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "ゲームがキャンセルされました — 相手が最初の動きをする前に退場しました。",
+            gameCancelledReconnectTimeout: "ゲームがキャンセルされました — 何もプレイされずに再接続がタイムアウトしました。",
             waitingForOpponent: "相手を待っています…",
             couldNotResolveWebSocketUrl: "WebSocket URL を解決できませんでした",
             opponentJoined: "{{name}} が参加しました",
             opponentDefault: "相手",
             connectionError: "接続エラー",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} が切断されました — 再接続を待っています",
-            playerFailedToReconnectWins:
-                "{{loser}} が再接続できませんでした — {{winner}} の勝ち",
-            watcherWaitingForReconnect: "プレイヤーの再接続を待っています…",
+            connectionLost: "接続が失われました - 移動がサーバーに到達していません",
+            reconnecting: "再接続中…",
+            connectionRestored: "接続が回復しました",
+            flagReported: "フラグ — サーバーに確認中…",
+            playerDisconnectedWaitingRejoin: "{{name}} が切断されました — 再接続を待っています",
+            playerFailedToReconnectWins: "{{loser}} が再接続できませんでした — {{winner}} の勝ち",
+            watcherWaitingForReconnect: "プレイヤーの再接続を待っています…"
         },
         site: {
             confirm: "確認",
@@ -313,7 +305,7 @@
             logOut: "ログアウト",
             logIn: "ログイン",
             admin: "管理者",
-            homeAria: "ホーム",
+            homeAria: "ホーム"
         },
         validation: {
             validEmail: "有効なメールアドレスを入力してください",
@@ -321,8 +313,8 @@
             chooseUsername: "ユーザー名を選択してください",
             usernameNotAvailable: "このユーザー名は利用できません",
             passwordNoWhitespace: "パスワードに空白を含めることはできません。",
-            passwordUppercase: "パスワードには大文字を1文字以上含めてください。",
-        },
+            passwordUppercase: "パスワードには大文字を1文字以上含めてください。"
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

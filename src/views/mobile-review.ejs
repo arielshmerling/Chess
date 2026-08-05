@@ -82,8 +82,11 @@
     <div class="messagesContainer">
       <div id="messages" class="messages"></div>
       <div class="chatSendLine">
-        <input type="text" class="chatline" id="chatline" maxlength="30" />
-        <img src="/images/whiteSend.png" alt="send" class="sendButton" onclick="onSendChatButtonClick(event)" />
+        <label class="a11y-sr-only" for="chatline"><%= t('site.accessibility.chatInput') %></label>
+        <input type="text" class="chatline" id="chatline" maxlength="30" aria-label="<%= t('site.accessibility.chatInput') %>" />
+        <button type="button" class="sendButton" aria-label="<%= t('site.accessibility.sendChat') %>" onclick="onSendChatButtonClick(event)">
+          <img src="/images/whiteSend.png" alt="" />
+        </button>
       </div>
     </div>
     <div id="blackPlayersInfo" class="sideBlock playerInfo short mobile-game-hidden-player">

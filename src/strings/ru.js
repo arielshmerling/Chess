@@ -25,7 +25,7 @@
             rename: "Переименовать",
             save: "Сохранить",
             aPlayer: "Игрок",
-            pleaseEnterValue: "Введите значение.",
+            pleaseEnterValue: "Введите значение."
         },
         play: {
             appTitle: "Shmerling Chess",
@@ -49,6 +49,7 @@
                 games: "Партии",
                 expandGamesPanel: "Развернуть панель партий",
                 expandGames: "Развернуть партии",
+                expandGamesLocked: "Панель игр недоступна во время игры",
                 collapseGamesPanel: "Свернуть панель партий",
                 chat: "Чат",
                 expandChatPanel: "Развернуть панель чата",
@@ -59,7 +60,7 @@
                 savedListFilter: "Фильтр сохранённого списка",
                 positions: "Позиции",
                 gameStatus: "Статус партии",
-                capturedPieces: "Сбитые фигуры",
+                capturedPieces: "Сбитые фигуры"
             },
             sessionMode: {
                 play: "Режим игры",
@@ -68,50 +69,38 @@
                 playback: "Режим воспроизведения",
                 review: "Режим просмотра",
                 watch: "Режим наблюдения",
-                practice: "Режим тренировки",
+                practice: "Режим тренировки"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "Выберите «Новая партия» или «Редактор позиции» на боковой панели",
+                chooseNewGameOrSetup: "Выберите «Новая партия» или «Редактор позиции» на боковой панели",
                 chooseNewGame: "Выберите «Новая партия» на боковой панели",
-                setMoveColorEngineThinkTime:
-                    "Укажите ход, цвет, движок и время обдумывания в заголовке, затем нажмите «Играть»",
+                setMoveColorEngineThinkTime: "Укажите ход, цвет, движок и время обдумывания в заголовке, затем нажмите «Играть»",
                 gameOver: "Партия окончена",
                 gameInProgress: "Партия идёт",
                 boardLoading: "Доска ещё загружается…",
                 boardNotReady: "Доска ещё не готова. Подождите и попробуйте снова.",
-                leaveOnlineBeforeConfiguration:
-                    "Выйдите из онлайн-партии перед открытием настроек",
-                configurationNotInPractice:
-                    "Настройка недоступна в режиме тренировки",
-                configurationModeEdit:
-                    "Режим настройки — измените значения и сохраните",
-                selectSavedOrSetup:
-                    "Сначала выберите сохранённую партию или расставьте позицию на доске",
+                leaveOnlineBeforeConfiguration: "Выйдите из онлайн-партии перед открытием настроек",
+                configurationNotInPractice: "Настройка недоступна в режиме тренировки",
+                configurationModeEdit: "Режим настройки — измените значения и сохраните",
+                selectSavedOrSetup: "Сначала выберите сохранённую партию или расставьте позицию на доске",
                 gameAlreadyInProgress: "Партия уже идёт",
                 yourMove: "Ваш ход",
                 engineToMove: "Ход движка…",
-                leaveOnlineBeforePositionSetup:
-                    "Выйдите из онлайн-партии перед открытием редактора позиции",
-                positionSetupNotInPractice:
-                    "Редактор позиции недоступен в режиме тренировки",
-                positionSetupPlacePieces:
-                    "Редактор позиции — расставьте фигуры на доске",
+                leaveOnlineBeforePositionSetup: "Выйдите из онлайн-партии перед открытием редактора позиции",
+                positionSetupNotInPractice: "Редактор позиции недоступен в режиме тренировки",
+                positionSetupPlacePieces: "Редактор позиции — расставьте фигуры на доске",
                 drawWithReason: "Ничья — {{reason}}",
                 checkmateWins: "Мат — победа {{winner}}",
                 check: "Шах",
-                waitBeforeEvaluate:
-                    "Дождитесь завершения текущего хода перед оценкой",
-                evaluationUnavailable:
-                    "Оценка недоступна. Перезапустите приложение Shmerling Chess.",
+                waitBeforeEvaluate: "Дождитесь завершения текущего хода перед оценкой",
+                evaluationUnavailable: "Оценка недоступна. Перезапустите приложение Shmerling Chess.",
                 evaluatingPosition: "Оценка позиции…",
                 evaluationFailed: "Ошибка оценки",
                 evaluationLine: "Оценка (ход {{side}}): {{score}}",
                 checkmate: "Мат",
                 drawZero: "Ничья (0)",
                 totalLabel: "Итого: {{value}}",
-                openFolderDesktopOnly:
-                    "Открытие папки доступно только в настольном приложении",
+                openFolderDesktopOnly: "Открытие папки доступно только в настольном приложении",
                 couldNotOpenGamesLogFolder: "Не удалось открыть папку журнала партий",
                 positionValid: "Позиция корректна",
                 playingFromCustomPosition: "Игра с пользовательской позиции",
@@ -127,10 +116,8 @@
                 deletedCount: "Удалено элементов: {{count}}",
                 couldNotDeleteSelected: "Не удалось удалить выбранные элементы",
                 couldNotLoadSavedGame: "Не удалось загрузить сохранённую партию",
-                editingPositionSaveBookmark:
-                    "Редактирование позиции — сохраните, чтобы обновить закладку",
-                couldNotOpenPositionForEditing:
-                    "Не удалось открыть позицию для редактирования",
+                editingPositionSaveBookmark: "Редактирование позиции — сохраните, чтобы обновить закладку",
+                couldNotOpenPositionForEditing: "Не удалось открыть позицию для редактирования",
                 gameSaved: "Партия сохранена",
                 couldNotSaveGame: "Не удалось сохранить партию",
                 engineMoveNotApplied: "Не удалось выполнить ход движка",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "Предложение ничьей",
                 drawOfferMessage: "Соперник предложил ничью. Принять?",
                 rematchTitle: "Реванш",
-                playerDisconnectedWaiting:
-                    "{{who}} отключился — ожидание переподключения ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "Соперник отключён — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "Партия отменена — время переподключения истекло, ходов не было.",
-                playerFailedToReconnectWins:
-                    "{{loser}} не переподключился — победа {{winner}}",
-                gameOverOpponentFailedReconnect:
-                    "Партия окончена — соперник не переподключился.",
+                playerDisconnectedWaiting: "{{who}} отключился — ожидание переподключения ({{countdown}})",
+                opponentDisconnectedCountdown: "Соперник отключён — {{countdown}}",
+                gameCancelledReconnectTimeout: "Партия отменена — время переподключения истекло, ходов не было.",
+                playerFailedToReconnectWins: "{{loser}} не переподключился — победа {{winner}}",
+                gameOverOpponentFailedReconnect: "Партия окончена — соперник не переподключился.",
                 couldNotStartRematch: "Не удалось начать реванш",
                 rematchStarted: "Реванш начат",
                 gameCancelled: "Партия отменена",
                 gameCancelledWithDetail: "Партия отменена — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "Игра отменена — противник ушел до первого хода.",
                 resignFailed: "Не удалось сдаться",
                 gameResumedYourMove: "Партия возобновлена — ваш ход",
                 practiceNotAvailable: "Режим тренировки недоступен",
                 couldNotJoinOnPlay: "Не удалось присоединиться к этой партии на /play",
-                practiceDebugNotAvailable:
-                    "Тренировка / отладка недоступна для этой учётной записи",
+                practiceDebugNotAvailable: "Тренировка / отладка недоступна для этой учётной записи",
                 reviewRequiresWebApi: "Просмотр требует веб-API",
                 couldNotLoadReviewGame: "Не удалось загрузить партию для просмотра",
                 notReviewGameLink: "Эта ссылка не ведёт к партии для просмотра",
@@ -176,14 +158,14 @@
                 itemsDeleted: "Удалено элементов: {{count}}",
                 choosePromotionPiece: "Выберите фигуру для превращения",
                 invalidPromotionPiece: "Недопустимая фигура превращения",
-                drawOfferNotAvailable: "Предложение ничьей сейчас недоступно",
+                drawOfferNotAvailable: "Предложение ничьей сейчас недоступно"
             },
             drawReasons: {
                 stalemate: "Пат",
                 fiftyMoves: "50 ходов",
                 insufficientMaterial: "Недостаточно материала",
                 threefoldRepetition: "Троекратное повторение",
-                drawOfferAccepted: "Предложение ничьей от {{by}} принято",
+                drawOfferAccepted: "Предложение ничьей от {{by}} принято"
             },
             actions: {
                 newGame: "Новая партия",
@@ -197,8 +179,11 @@
                 flip: "Перевернуть",
                 save: "Сохранить",
                 exit: "Выход",
+                backToLobby: "Вернуться в лобби",
                 loadToStart: "Загрузить для старта",
                 editPosition: "Редактировать позицию",
+                loadGame: "Загрузить партию",
+                loadPosition: "Загрузить позицию"
             },
             savedGames: {
                 defaultName: "Сохранённая партия",
@@ -216,6 +201,8 @@
                 savedAt: "Сохранено: {{when}}",
                 gameId: "ID партии: {{id}}",
                 playersVs: "{{white}} против {{black}}",
+                defaultPositionName: "Сохранённая позиция",
+                itemsSelected: "Выбрано элементов: {{count}}"
             },
             reviewNav: {
                 start: "Начало",
@@ -223,7 +210,7 @@
                 play: "Воспроизвести",
                 pause: "Пауза",
                 forward: "Вперёд",
-                end: "Конец",
+                end: "Конец"
             },
             newGameDialog: {
                 title: "Новая партия против ИИ",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "Время на сторону (минуты)",
                 allowUndo: "Разрешить отмену хода",
                 private: "Приватная",
-                privateHint:
-                    "Приватные партии не отображаются в списках активных партий других участников.",
+                privateHint: "Приватные партии не отображаются в списках активных партий других участников."
             },
             prompts: {
                 positionName: "Имя позиции",
-                savePositionAs: "Сохранить позицию как",
+                savePositionAs: "Сохранить позицию как"
             },
             dialogs: {
                 resignTitle: "Сдаться в этой партии?",
@@ -249,8 +236,7 @@
                 leaveTitle: "Покинуть партию?",
                 leaveBody: "Ваша партия будет засчитана как сдача.",
                 areYouSure: "Вы уверены?",
-                discardUnsavedBrainConfig:
-                    "Отменить несохранённые изменения настроек движка?",
+                discardUnsavedBrainConfig: "Отменить несохранённые изменения настроек движка?",
                 accept: "Принять",
                 decline: "Отклонить",
                 saveAs: "Сохранить как",
@@ -258,9 +244,10 @@
                 invalidPosition: "Некорректная позиция",
                 rematchChooseColor: "Выберите цвет для реванша:",
                 rematchOfferAgree: "Соперник предложил реванш. Согласиться?",
-                rematchColorPreference:
-                    "Соперник хочет играть {{offerer}}. Вы будете играть {{you}}. Согласиться?",
-            },
+                rematchOfferAgreeWithTime: "Соперник предложил матч-реванш ({{minutes}} мин на каждую сторону). Соглашаться?",
+                rematchColorPreference: "Соперник хочет играть {{offerer}}. Вы будете играть {{you}}. Согласиться?",
+                rematchColorPreferenceWithTime: "Противник хочет играть как {{offerer}} ({{minutes}} мин на каждую сторону). Вы будете играть как {{you}}. Соглашаться?"
+            }
         },
         session: {
             engineThinking: "Движок думает…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "Предложение ничьей отклонено",
             rematchOfferSent: "Предложение реванша отправлено",
             rematchOfferDeclined: "Предложение реванша отклонено",
+            rematchUnavailable: "Соперник больше не доступен для матча-реванша",
             drawAgreed: "Ничья согласована",
             rematchAcceptedNoGameId: "Реванш принят, но новый ID партии не получен",
             rematchOfferAccepted: "Предложение реванша принято",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "Соперник не переподключился",
             gameCancelled: "Партия отменена",
             gameCancelledWithDetail: "Партия отменена — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "Игра отменена — противник ушел до первого хода.",
+            gameCancelledReconnectTimeout: "Игра отменена — время повторного подключения истекло, ходы не были сыграны.",
             waitingForOpponent: "Ожидание соперника…",
             couldNotResolveWebSocketUrl: "Не удалось определить URL WebSocket",
             opponentJoined: "{{name}} присоединился",
             opponentDefault: "Соперник",
             connectionError: "Ошибка подключения",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} отключился — ожидание переподключения",
-            playerFailedToReconnectWins:
-                "{{loser}} не переподключился — победа {{winner}}",
-            watcherWaitingForReconnect: "Ожидание переподключения игрока…",
+            connectionLost: "Соединение потеряно — ходы не доходят до сервера",
+            reconnecting: "Повторное подключение…",
+            connectionRestored: "Соединение восстановлено",
+            flagReported: "Флаг — подтверждение с сервером…",
+            playerDisconnectedWaitingRejoin: "{{name}} отключился — ожидание переподключения",
+            playerFailedToReconnectWins: "{{loser}} не переподключился — победа {{winner}}",
+            watcherWaitingForReconnect: "Ожидание переподключения игрока…"
         },
         site: {
             confirm: "Подтвердить",
@@ -313,7 +305,7 @@
             logOut: "Выйти",
             logIn: "Войти",
             admin: "Админ",
-            homeAria: "Главная",
+            homeAria: "Главная"
         },
         validation: {
             validEmail: "Введите корректный адрес электронной почты",
@@ -321,8 +313,8 @@
             chooseUsername: "Выберите имя пользователя",
             usernameNotAvailable: "Это имя пользователя недоступно",
             passwordNoWhitespace: "Пароль не должен содержать пробелы.",
-            passwordUppercase: "Пароль должен содержать хотя бы одну заглавную букву.",
-        },
+            passwordUppercase: "Пароль должен содержать хотя бы одну заглавную букву."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

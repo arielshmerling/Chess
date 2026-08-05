@@ -1134,6 +1134,13 @@ main {
     color: var(--semiLight);
 }
 
+.legal-page-subtitle {
+    margin: 24px 0 10px;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--lighter);
+}
+
 .legal-page-body {
     margin: 0 0 24px;
     font-size: 15px;

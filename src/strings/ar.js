@@ -25,7 +25,7 @@
             rename: "إعادة تسمية",
             save: "حفظ",
             aPlayer: "لاعب",
-            pleaseEnterValue: "يرجى إدخال قيمة.",
+            pleaseEnterValue: "يرجى إدخال قيمة."
         },
         play: {
             appTitle: "شمرلنغ للشطرنج",
@@ -49,6 +49,7 @@
                 games: "الألعاب",
                 expandGamesPanel: "توسيع لوحة الألعاب",
                 expandGames: "توسيع الألعاب",
+                expandGamesLocked: "لوحة الألعاب غير متاحة أثناء اللعبة",
                 collapseGamesPanel: "طي لوحة الألعاب",
                 chat: "دردشة",
                 expandChatPanel: "توسيع لوحة الدردشة",
@@ -59,7 +60,7 @@
                 savedListFilter: "تصفية القائمة المحفوظة",
                 positions: "الوضعيات",
                 gameStatus: "حالة اللعبة",
-                capturedPieces: "القطع المأسورة",
+                capturedPieces: "القطع المأسورة"
             },
             sessionMode: {
                 play: "وضع اللعب",
@@ -68,50 +69,38 @@
                 playback: "وضع التشغيل",
                 review: "وضع المراجعة",
                 watch: "وضع المشاهدة",
-                practice: "وضع التدريب",
+                practice: "وضع التدريب"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "اختر لعبة جديدة أو إعداد الوضعية من الشريط الجانبي",
+                chooseNewGameOrSetup: "اختر لعبة جديدة أو إعداد الوضعية من الشريط الجانبي",
                 chooseNewGame: "اختر لعبة جديدة من الشريط الجانبي",
-                setMoveColorEngineThinkTime:
-                    "حدّد النقلة واللون والمحرك ووقت التفكير في الشريط العلوي، ثم اضغط لعب",
+                setMoveColorEngineThinkTime: "حدّد النقلة واللون والمحرك ووقت التفكير في الشريط العلوي، ثم اضغط لعب",
                 gameOver: "انتهت اللعبة",
                 gameInProgress: "اللعبة جارية",
                 boardLoading: "الرقعة ما زالت تُحمّل…",
                 boardNotReady: "الرقعة غير جاهزة بعد. يرجى الانتظار والمحاولة مرة أخرى.",
-                leaveOnlineBeforeConfiguration:
-                    "غادر اللعبة عبر الإنترنت قبل فتح الإعداد",
-                configurationNotInPractice:
-                    "الإعداد غير متاح في وضع التدريب",
-                configurationModeEdit:
-                    "وضع الإعداد — عدّل القيم واحفظ",
-                selectSavedOrSetup:
-                    "اختر لعبة محفوظة أو أعد وضعية على الرقعة أولاً",
+                leaveOnlineBeforeConfiguration: "غادر اللعبة عبر الإنترنت قبل فتح الإعداد",
+                configurationNotInPractice: "الإعداد غير متاح في وضع التدريب",
+                configurationModeEdit: "وضع الإعداد — عدّل القيم واحفظ",
+                selectSavedOrSetup: "اختر لعبة محفوظة أو أعد وضعية على الرقعة أولاً",
                 gameAlreadyInProgress: "هناك لعبة جارية بالفعل",
                 yourMove: "دورك",
                 engineToMove: "دور المحرك…",
-                leaveOnlineBeforePositionSetup:
-                    "غادر اللعبة عبر الإنترنت قبل فتح إعداد الوضعية",
-                positionSetupNotInPractice:
-                    "إعداد الوضعية غير متاح في وضع التدريب",
-                positionSetupPlacePieces:
-                    "إعداد الوضعية — ضع القطع على الرقعة",
+                leaveOnlineBeforePositionSetup: "غادر اللعبة عبر الإنترنت قبل فتح إعداد الوضعية",
+                positionSetupNotInPractice: "إعداد الوضعية غير متاح في وضع التدريب",
+                positionSetupPlacePieces: "إعداد الوضعية — ضع القطع على الرقعة",
                 drawWithReason: "تعادل — {{reason}}",
                 checkmateWins: "كش مات — {{winner}} يفوز",
                 check: "كش",
-                waitBeforeEvaluate:
-                    "انتظر انتهاء النقلة الحالية قبل التقييم",
-                evaluationUnavailable:
-                    "التقييم غير متاح. أعد تشغيل تطبيق شمرلنغ للشطرنج.",
+                waitBeforeEvaluate: "انتظر انتهاء النقلة الحالية قبل التقييم",
+                evaluationUnavailable: "التقييم غير متاح. أعد تشغيل تطبيق شمرلنغ للشطرنج.",
                 evaluatingPosition: "جارٍ تقييم الوضعية…",
                 evaluationFailed: "فشل التقييم",
                 evaluationLine: "التقييم (دور {{side}}): {{score}}",
                 checkmate: "كش مات",
                 drawZero: "تعادل (0)",
                 totalLabel: "المجموع: {{value}}",
-                openFolderDesktopOnly:
-                    "فتح المجلد متاح فقط في تطبيق سطح المكتب",
+                openFolderDesktopOnly: "فتح المجلد متاح فقط في تطبيق سطح المكتب",
                 couldNotOpenGamesLogFolder: "تعذّر فتح مجلد سجل الألعاب",
                 positionValid: "الوضعية صالحة",
                 playingFromCustomPosition: "اللعب من وضعية مخصّصة",
@@ -127,10 +116,8 @@
                 deletedCount: "تم حذف {{count}} عنصر/عناصر",
                 couldNotDeleteSelected: "تعذّر حذف العناصر المحددة",
                 couldNotLoadSavedGame: "تعذّر تحميل اللعبة المحفوظة",
-                editingPositionSaveBookmark:
-                    "تحرير الوضعية — احفظ لتحديث هذه العلامة",
-                couldNotOpenPositionForEditing:
-                    "تعذّر فتح الوضعية للتحرير",
+                editingPositionSaveBookmark: "تحرير الوضعية — احفظ لتحديث هذه العلامة",
+                couldNotOpenPositionForEditing: "تعذّر فتح الوضعية للتحرير",
                 gameSaved: "تم حفظ اللعبة",
                 couldNotSaveGame: "تعذّر حفظ اللعبة",
                 engineMoveNotApplied: "تعذّر تطبيق نقلة المحرك",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "عرض تعادل",
                 drawOfferMessage: "أرسل الخصم عرض تعادل. هل تقبل؟",
                 rematchTitle: "إعادة المباراة",
-                playerDisconnectedWaiting:
-                    "انقطع اتصال {{who}} — في انتظار إعادة الانضمام ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "انقطع اتصال الخصم — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "أُلغيت اللعبة — انتهت مهلة إعادة الاتصال دون أي نقلة.",
-                playerFailedToReconnectWins:
-                    "فشل {{loser}} في إعادة الاتصال — {{winner}} يفوز",
-                gameOverOpponentFailedReconnect:
-                    "انتهت اللعبة — فشل الخصم في إعادة الاتصال.",
+                playerDisconnectedWaiting: "انقطع اتصال {{who}} — في انتظار إعادة الانضمام ({{countdown}})",
+                opponentDisconnectedCountdown: "انقطع اتصال الخصم — {{countdown}}",
+                gameCancelledReconnectTimeout: "أُلغيت اللعبة — انتهت مهلة إعادة الاتصال دون أي نقلة.",
+                playerFailedToReconnectWins: "فشل {{loser}} في إعادة الاتصال — {{winner}} يفوز",
+                gameOverOpponentFailedReconnect: "انتهت اللعبة — فشل الخصم في إعادة الاتصال.",
                 couldNotStartRematch: "تعذّر بدء إعادة المباراة",
                 rematchStarted: "بدأت إعادة المباراة",
                 gameCancelled: "أُلغيت اللعبة",
                 gameCancelledWithDetail: "أُلغيت اللعبة — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "تم إلغاء اللعبة — غادر الخصم قبل الحركة الأولى.",
                 resignFailed: "فشل الاستسلام",
                 gameResumedYourMove: "استُؤنفت اللعبة — دورك",
                 practiceNotAvailable: "وضع التدريب غير متاح",
                 couldNotJoinOnPlay: "تعذّر الانضمام إلى هذه اللعبة على /play",
-                practiceDebugNotAvailable:
-                    "التدريب / التصحيح غير متاح لهذا الحساب",
+                practiceDebugNotAvailable: "التدريب / التصحيح غير متاح لهذا الحساب",
                 reviewRequiresWebApi: "المراجعة تتطلب واجهة الويب",
                 couldNotLoadReviewGame: "تعذّر تحميل لعبة المراجعة",
                 notReviewGameLink: "هذا الرابط ليس لعبة مراجعة",
@@ -176,14 +158,14 @@
                 itemsDeleted: "تم حذف {{count}} عنصر/عناصر",
                 choosePromotionPiece: "اختر قطعة الترقية",
                 invalidPromotionPiece: "قطعة ترقية غير صالحة",
-                drawOfferNotAvailable: "عرض التعادل غير متاح الآن",
+                drawOfferNotAvailable: "عرض التعادل غير متاح الآن"
             },
             drawReasons: {
                 stalemate: "جمود",
                 fiftyMoves: "50 نقلة",
                 insufficientMaterial: "نقص المواد",
                 threefoldRepetition: "تكرار ثلاثي",
-                drawOfferAccepted: "قُبل عرض تعادل لاعب {{by}}",
+                drawOfferAccepted: "قُبل عرض تعادل لاعب {{by}}"
             },
             actions: {
                 newGame: "لعبة جديدة",
@@ -197,8 +179,11 @@
                 flip: "قلب",
                 save: "حفظ",
                 exit: "خروج",
+                backToLobby: "العودة إلى الردهة",
                 loadToStart: "تحميل للبدء",
                 editPosition: "تحرير الوضعية",
+                loadGame: "تحميل اللعبة",
+                loadPosition: "تحميل الوضعية"
             },
             savedGames: {
                 defaultName: "لعبة محفوظة",
@@ -216,6 +201,8 @@
                 savedAt: "حُفظت: {{when}}",
                 gameId: "معرّف اللعبة: {{id}}",
                 playersVs: "{{white}} مقابل {{black}}",
+                defaultPositionName: "وضعية محفوظة",
+                itemsSelected: "تم تحديد {{count}} عنصر"
             },
             reviewNav: {
                 start: "البداية",
@@ -223,7 +210,7 @@
                 play: "تشغيل",
                 pause: "إيقاف مؤقت",
                 forward: "تقدّم",
-                end: "النهاية",
+                end: "النهاية"
             },
             newGameDialog: {
                 title: "لعبة جديدة ضد الذكاء الاصطناعي",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "الوقت لكل طرف (دقائق)",
                 allowUndo: "السماح بالتراجع",
                 private: "خاصة",
-                privateHint:
-                    "لا تظهر الألعاب الخاصة في قوائم الألعاب النشطة للأعضاء الآخرين.",
+                privateHint: "لا تظهر الألعاب الخاصة في قوائم الألعاب النشطة للأعضاء الآخرين."
             },
             prompts: {
                 positionName: "اسم الوضعية",
-                savePositionAs: "حفظ الوضعية باسم",
+                savePositionAs: "حفظ الوضعية باسم"
             },
             dialogs: {
                 resignTitle: "هل تستسلم من هذه اللعبة؟",
@@ -249,8 +236,7 @@
                 leaveTitle: "مغادرة اللعبة؟",
                 leaveBody: "ستُستسلم من لعبتك.",
                 areYouSure: "هل أنت متأكد؟",
-                discardUnsavedBrainConfig:
-                    "هل تتجاهل تغييرات إعداد المحرك غير المحفوظة؟",
+                discardUnsavedBrainConfig: "هل تتجاهل تغييرات إعداد المحرك غير المحفوظة؟",
                 accept: "قبول",
                 decline: "رفض",
                 saveAs: "حفظ باسم",
@@ -258,9 +244,10 @@
                 invalidPosition: "وضعية غير صالحة",
                 rematchChooseColor: "اختر لونك لإعادة المباراة:",
                 rematchOfferAgree: "عرض الخصم إعادة مباراة. هل توافق؟",
-                rematchColorPreference:
-                    "يريد الخصم اللعب كلون {{offerer}}. ستلعب كلون {{you}}. هل توافق؟",
-            },
+                rematchOfferAgreeWithTime: "عرض الخصم إعادة المباراة ({{minutes}} دقيقة لكل جانب). يوافق؟",
+                rematchColorPreference: "يريد الخصم اللعب كلون {{offerer}}. ستلعب كلون {{you}}. هل توافق؟",
+                rematchColorPreferenceWithTime: "يريد الخصم اللعب بـ {{offerer}} ({{minutes}} دقيقة لكل جانب). ستلعب بشخصية {{you}}. يوافق؟"
+            }
         },
         session: {
             engineThinking: "المحرك يفكّر…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "رُفض عرض التعادل",
             rematchOfferSent: "أُرسل عرض إعادة المباراة",
             rematchOfferDeclined: "رُفض عرض إعادة المباراة",
+            rematchUnavailable: "الخصم لم يعد متاحا لمباراة العودة",
             drawAgreed: "اتُفق على التعادل",
             rematchAcceptedNoGameId: "قُبلت إعادة المباراة لكن لا يوجد معرّف لعبة جديد",
             rematchOfferAccepted: "قُبل عرض إعادة المباراة",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "فشل الخصم في إعادة الاتصال",
             gameCancelled: "أُلغيت اللعبة",
             gameCancelledWithDetail: "أُلغيت اللعبة — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "تم إلغاء اللعبة — غادر الخصم قبل الحركة الأولى.",
+            gameCancelledReconnectTimeout: "تم إلغاء اللعبة - انتهت مهلة إعادة الاتصال دون لعب أي حركات.",
             waitingForOpponent: "في انتظار الخصم…",
             couldNotResolveWebSocketUrl: "تعذّر تحديد عنوان WebSocket",
             opponentJoined: "انضم {{name}}",
             opponentDefault: "الخصم",
             connectionError: "خطأ في الاتصال",
-            playerDisconnectedWaitingRejoin:
-                "انقطع اتصال {{name}} — في انتظار إعادة الانضمام",
-            playerFailedToReconnectWins:
-                "فشل {{loser}} في إعادة الاتصال — {{winner}} يفوز",
-            watcherWaitingForReconnect: "في انتظار إعادة اتصال أحد اللاعبين…",
+            connectionLost: "تم فقد الاتصال - لا تصل الحركات إلى الخادم",
+            reconnecting: "جارٍ إعادة الاتصال…",
+            connectionRestored: "تمت استعادة الاتصال",
+            flagReported: "علامة - التأكيد مع الخادم...",
+            playerDisconnectedWaitingRejoin: "انقطع اتصال {{name}} — في انتظار إعادة الانضمام",
+            playerFailedToReconnectWins: "فشل {{loser}} في إعادة الاتصال — {{winner}} يفوز",
+            watcherWaitingForReconnect: "في انتظار إعادة اتصال أحد اللاعبين…"
         },
         site: {
             confirm: "تأكيد",
@@ -313,7 +305,7 @@
             logOut: "تسجيل الخروج",
             logIn: "تسجيل الدخول",
             admin: "المشرف",
-            homeAria: "الرئيسية",
+            homeAria: "الرئيسية"
         },
         validation: {
             validEmail: "يرجى إدخال بريد إلكتروني صالح",
@@ -321,8 +313,8 @@
             chooseUsername: "يرجى اختيار اسم مستخدم",
             usernameNotAvailable: "اسم المستخدم هذا غير متاح",
             passwordNoWhitespace: "يجب ألا تحتوي كلمة المرور على مسافات.",
-            passwordUppercase: "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.",
-        },
+            passwordUppercase: "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

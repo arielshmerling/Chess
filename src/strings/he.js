@@ -25,7 +25,7 @@
             rename: "שנה שם",
             save: "שמור",
             aPlayer: "שחקן",
-            pleaseEnterValue: "אנא הזן ערך.",
+            pleaseEnterValue: "אנא הזן ערך."
         },
         play: {
             appTitle: "שחמט שמרלינג",
@@ -49,6 +49,7 @@
                 games: "משחקים",
                 expandGamesPanel: "הרחב את חלונית המשחקים",
                 expandGames: "הרחב משחקים",
+                expandGamesLocked: "חלונית משחקים לא זמינה במהלך משחק",
                 collapseGamesPanel: "כווץ את חלונית המשחקים",
                 chat: "צ'אט",
                 expandChatPanel: "הרחב את חלונית הצ'אט",
@@ -59,7 +60,7 @@
                 savedListFilter: "סינון רשימה שמורה",
                 positions: "עמדות",
                 gameStatus: "מצב המשחק",
-                capturedPieces: "כלים שנאכלו",
+                capturedPieces: "כלים שנאכלו"
             },
             sessionMode: {
                 play: "מצב משחק",
@@ -68,50 +69,38 @@
                 playback: "מצב הפעלה חוזרת",
                 review: "מצב סקירה",
                 watch: "מצב צפייה",
-                practice: "מצב תרגול",
+                practice: "מצב תרגול"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "בחר משחק חדש או הגדרת עמדה מהתפריט הצדדי",
+                chooseNewGameOrSetup: "בחר משחק חדש או הגדרת עמדה מהתפריט הצדדי",
                 chooseNewGame: "בחר משחק חדש מהתפריט הצדדי",
-                setMoveColorEngineThinkTime:
-                    "הגדר מהלך, צבע, מנוע וזמן חשיבה בכותרת, ולאחר מכן לחץ על שחק",
+                setMoveColorEngineThinkTime: "הגדר מהלך, צבע, מנוע וזמן חשיבה בכותרת, ולאחר מכן לחץ על שחק",
                 gameOver: "המשחק הסתיים",
                 gameInProgress: "משחק בעיצומו",
                 boardLoading: "הלוח עדיין נטען…",
                 boardNotReady: "הלוח עדיין לא מוכן. אנא המתן ונסה שוב.",
-                leaveOnlineBeforeConfiguration:
-                    "עזוב את המשחק המקוון לפני פתיחת התצורה",
-                configurationNotInPractice:
-                    "תצורה אינה זמינה במצב תרגול",
-                configurationModeEdit:
-                    "מצב תצורה — ערוך ערכים ושמור",
-                selectSavedOrSetup:
-                    "בחר משחק שמור או הגדר עמדה על הלוח תחילה",
+                leaveOnlineBeforeConfiguration: "עזוב את המשחק המקוון לפני פתיחת התצורה",
+                configurationNotInPractice: "תצורה אינה זמינה במצב תרגול",
+                configurationModeEdit: "מצב תצורה — ערוך ערכים ושמור",
+                selectSavedOrSetup: "בחר משחק שמור או הגדר עמדה על הלוח תחילה",
                 gameAlreadyInProgress: "משחק כבר בעיצומו",
                 yourMove: "התור שלך",
                 engineToMove: "המנוע חושב…",
-                leaveOnlineBeforePositionSetup:
-                    "עזוב את המשחק המקוון לפני פתיחת הגדרת עמדה",
-                positionSetupNotInPractice:
-                    "הגדרת עמדה אינה זמינה במצב תרגול",
-                positionSetupPlacePieces:
-                    "הגדרת עמדה — הצב כלים על הלוח",
+                leaveOnlineBeforePositionSetup: "עזוב את המשחק המקוון לפני פתיחת הגדרת עמדה",
+                positionSetupNotInPractice: "הגדרת עמדה אינה זמינה במצב תרגול",
+                positionSetupPlacePieces: "הגדרת עמדה — הצב כלים על הלוח",
                 drawWithReason: "תיקו — {{reason}}",
                 checkmateWins: "מט — {{winner}} מנצח",
                 check: "שח",
-                waitBeforeEvaluate:
-                    "המתן לסיום המהלך הנוכחי לפני ההערכה",
-                evaluationUnavailable:
-                    "ההערכה אינה זמינה. הפעל מחדש את אפליקציית שחמט שמרלינג.",
+                waitBeforeEvaluate: "המתן לסיום המהלך הנוכחי לפני ההערכה",
+                evaluationUnavailable: "ההערכה אינה זמינה. הפעל מחדש את אפליקציית שחמט שמרלינג.",
                 evaluatingPosition: "מעריך עמדה…",
                 evaluationFailed: "ההערכה נכשלה",
                 evaluationLine: "הערכה ({{side}} למהלך): {{score}}",
                 checkmate: "מט",
                 drawZero: "תיקו (0)",
                 totalLabel: "סה״כ: {{value}}",
-                openFolderDesktopOnly:
-                    "פתיחת תיקייה זמינה רק באפליקציית שולחן העבודה",
+                openFolderDesktopOnly: "פתיחת תיקייה זמינה רק באפליקציית שולחן העבודה",
                 couldNotOpenGamesLogFolder: "לא ניתן לפתוח את תיקיית יומני המשחקים",
                 positionValid: "העמדה תקינה",
                 playingFromCustomPosition: "משחק מעמדה מותאמת אישית",
@@ -127,10 +116,8 @@
                 deletedCount: "נמחקו {{count}} פריטים",
                 couldNotDeleteSelected: "לא ניתן למחוק את הפריטים שנבחרו",
                 couldNotLoadSavedGame: "לא ניתן לטעון את המשחק השמור",
-                editingPositionSaveBookmark:
-                    "עריכת עמדה — שמור כדי לעדכן סימנייה זו",
-                couldNotOpenPositionForEditing:
-                    "לא ניתן לפתוח את העמדה לעריכה",
+                editingPositionSaveBookmark: "עריכת עמדה — שמור כדי לעדכן סימנייה זו",
+                couldNotOpenPositionForEditing: "לא ניתן לפתוח את העמדה לעריכה",
                 gameSaved: "המשחק נשמר",
                 couldNotSaveGame: "לא ניתן לשמור את המשחק",
                 engineMoveNotApplied: "לא ניתן היה להחיל את מהלך המנוע",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "הצעת תיקו",
                 drawOfferMessage: "היריב שלח הצעת תיקו. לקבל?",
                 rematchTitle: "משחק חוזר",
-                playerDisconnectedWaiting:
-                    "{{who}} התנתק/ה — ממתין לחזרה ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "היריב התנתק — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "המשחק בוטל — הזמן להתחברות מחדש פג ולא בוצעו מהלכים.",
-                playerFailedToReconnectWins:
-                    "{{loser}} לא הצליח/ה להתחבר מחדש — {{winner}} מנצח/ת",
-                gameOverOpponentFailedReconnect:
-                    "המשחק הסתיים — היריב לא הצליח להתחבר מחדש.",
+                playerDisconnectedWaiting: "{{who}} התנתק/ה — ממתין לחזרה ({{countdown}})",
+                opponentDisconnectedCountdown: "היריב התנתק — {{countdown}}",
+                gameCancelledReconnectTimeout: "המשחק בוטל — הזמן להתחברות מחדש פג ולא בוצעו מהלכים.",
+                playerFailedToReconnectWins: "{{loser}} לא הצליח/ה להתחבר מחדש — {{winner}} מנצח/ת",
+                gameOverOpponentFailedReconnect: "המשחק הסתיים — היריב לא הצליח להתחבר מחדש.",
                 couldNotStartRematch: "לא ניתן להתחיל משחק חוזר",
                 rematchStarted: "המשחק החוזר החל",
                 gameCancelled: "המשחק בוטל",
                 gameCancelledWithDetail: "המשחק בוטל — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "המשחק בוטל — היריב עזב לפני המסע הראשון.",
                 resignFailed: "הכניעה נכשלה",
                 gameResumedYourMove: "המשחק חודש — התור שלך",
                 practiceNotAvailable: "מצב תרגול אינו זמין",
                 couldNotJoinOnPlay: "לא ניתן להצטרף למשחק זה ב-/play",
-                practiceDebugNotAvailable:
-                    "תרגול / דיבוג אינם זמינים עבור חשבון זה",
+                practiceDebugNotAvailable: "תרגול / דיבוג אינם זמינים עבור חשבון זה",
                 reviewRequiresWebApi: "סקירה דורשת את ה-API של האינטרנט",
                 couldNotLoadReviewGame: "לא ניתן לטעון את משחק הסקירה",
                 notReviewGameLink: "קישור זה אינו משחק סקירה",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} פריטים נמחקו",
                 choosePromotionPiece: "בחר כלי להכתרה",
                 invalidPromotionPiece: "כלי הכתרה לא תקין",
-                drawOfferNotAvailable: "הצעת תיקו אינה זמינה כרגע",
+                drawOfferNotAvailable: "הצעת תיקו אינה זמינה כרגע"
             },
             drawReasons: {
                 stalemate: "פט",
                 fiftyMoves: "50 מהלכים",
                 insufficientMaterial: "חוסר חומר",
                 threefoldRepetition: "חזרה משולשת",
-                drawOfferAccepted: "הצעת התיקו של {{by}} התקבלה",
+                drawOfferAccepted: "הצעת התיקו של {{by}} התקבלה"
             },
             actions: {
                 newGame: "משחק חדש",
@@ -200,6 +182,8 @@
                 backToLobby: "חזרה ללובי",
                 loadToStart: "טען להתחלה",
                 editPosition: "ערוך עמדה",
+                loadGame: "טען משחק",
+                loadPosition: "טען עמדה"
             },
             savedGames: {
                 defaultName: "משחק שמור",
@@ -217,6 +201,8 @@
                 savedAt: "נשמר: {{when}}",
                 gameId: "מזהה משחק: {{id}}",
                 playersVs: "{{white}} נגד {{black}}",
+                defaultPositionName: "עמדה שמורה",
+                itemsSelected: "{{count}} פריטים נבחרו"
             },
             reviewNav: {
                 start: "התחלה",
@@ -224,7 +210,7 @@
                 play: "נגן",
                 pause: "השהה",
                 forward: "קדימה",
-                end: "סוף",
+                end: "סוף"
             },
             newGameDialog: {
                 title: "משחק חדש נגד מחשב",
@@ -234,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "זמן לכל צד (דקות)",
                 allowUndo: "אפשר ביטול מהלך",
                 private: "פרטי",
-                privateHint:
-                    "משחקים פרטיים אינם מוצגים ברשימות המשחקים הפעילים של חברים אחרים.",
+                privateHint: "משחקים פרטיים אינם מוצגים ברשימות המשחקים הפעילים של חברים אחרים."
             },
             prompts: {
                 positionName: "שם העמדה",
-                savePositionAs: "שמור עמדה בשם",
+                savePositionAs: "שמור עמדה בשם"
             },
             dialogs: {
                 resignTitle: "להיכנע במשחק זה?",
@@ -250,8 +236,7 @@
                 leaveTitle: "לעזוב את המשחק?",
                 leaveBody: "המשחק יוכרז ככניעה.",
                 areYouSure: "האם אתה בטוח?",
-                discardUnsavedBrainConfig:
-                    "לבטל שינויים שלא נשמרו בהגדרות המוח?",
+                discardUnsavedBrainConfig: "לבטל שינויים שלא נשמרו בהגדרות המוח?",
                 accept: "קבל",
                 decline: "דחה",
                 saveAs: "שמור בשם",
@@ -259,13 +244,10 @@
                 invalidPosition: "עמדה לא חוקית",
                 rematchChooseColor: "בחר את הצבע שלך למשחק החוזר:",
                 rematchOfferAgree: "היריב הציע משחק חוזר. להסכים?",
-                rematchOfferAgreeWithTime:
-                    "היריב הציע משחק חוזר ({{minutes}} דק׳ לכל צד). להסכים?",
-                rematchColorPreference:
-                    "היריב רוצה לשחק ב{{offerer}}. אתה תשחק ב{{you}}. להסכים?",
-                rematchColorPreferenceWithTime:
-                    "היריב רוצה לשחק ב{{offerer}} ({{minutes}} דק׳ לכל צד). אתה תשחק ב{{you}}. להסכים?",
-            },
+                rematchOfferAgreeWithTime: "היריב הציע משחק חוזר ({{minutes}} דק׳ לכל צד). להסכים?",
+                rematchColorPreference: "היריב רוצה לשחק ב{{offerer}}. אתה תשחק ב{{you}}. להסכים?",
+                rematchColorPreferenceWithTime: "היריב רוצה לשחק ב{{offerer}} ({{minutes}} דק׳ לכל צד). אתה תשחק ב{{you}}. להסכים?"
+            }
         },
         session: {
             engineThinking: "המנוע חושב…",
@@ -292,6 +274,8 @@
             opponentFailedToReconnect: "היריב לא הצליח להתחבר מחדש",
             gameCancelled: "המשחק בוטל",
             gameCancelledWithDetail: "המשחק בוטל — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "המשחק בוטל — היריב עזב לפני המסע הראשון.",
+            gameCancelledReconnectTimeout: "המשחק בוטל — הזמן להתחברות מחדש פג ולא בוצעו מהלכים.",
             waitingForOpponent: "ממתין ליריב…",
             couldNotResolveWebSocketUrl: "לא ניתן לפענח את כתובת ה-WebSocket",
             opponentJoined: "{{name}} הצטרף/ה",
@@ -300,11 +284,10 @@
             connectionLost: "החיבור אבד — מהלכים לא מגיעים לשרת",
             reconnecting: "מתחבר מחדש…",
             connectionRestored: "החיבור שוחזר",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} התנתק/ה — ממתין לחזרה",
-            playerFailedToReconnectWins:
-                "{{loser}} לא הצליח/ה להתחבר מחדש — {{winner}} מנצח/ת",
-            watcherWaitingForReconnect: "ממתין לחיבור מחדש של שחקן…",
+            flagReported: "דגל - מאשר עם השרת...",
+            playerDisconnectedWaitingRejoin: "{{name}} התנתק/ה — ממתין לחזרה",
+            playerFailedToReconnectWins: "{{loser}} לא הצליח/ה להתחבר מחדש — {{winner}} מנצח/ת",
+            watcherWaitingForReconnect: "ממתין לחיבור מחדש של שחקן…"
         },
         site: {
             confirm: "אשר",
@@ -322,7 +305,7 @@
             logOut: "התנתק",
             logIn: "התחבר",
             admin: "מנהל",
-            homeAria: "בית",
+            homeAria: "בית"
         },
         validation: {
             validEmail: "אנא הזן כתובת אימייל תקינה",
@@ -330,8 +313,8 @@
             chooseUsername: "אנא בחר שם משתמש",
             usernameNotAvailable: "שם המשתמש הזה אינו זמין",
             passwordNoWhitespace: "הסיסמה לא יכולה להכיל רווחים.",
-            passwordUppercase: "הסיסמה חייבת להכיל לפחות אות גדולה אחת.",
-        },
+            passwordUppercase: "הסיסמה חייבת להכיל לפחות אות גדולה אחת."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

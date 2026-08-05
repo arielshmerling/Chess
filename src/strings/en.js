@@ -158,6 +158,8 @@
                 rematchStarted: "Rematch started",
                 gameCancelled: "Game cancelled",
                 gameCancelledWithDetail: "Game cancelled — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove:
+                    "Game cancelled — Opponent left before the first move.",
                 resignFailed: "Resign failed",
                 gameResumedYourMove: "Game resumed — your move",
                 practiceNotAvailable: "Practice mode is not available",
@@ -202,9 +204,13 @@
                 backToLobby: "Back to Lobby",
                 loadToStart: "Load to start",
                 editPosition: "Edit position",
+                loadGame: "Load game",
+                loadPosition: "Load position",
             },
             savedGames: {
                 defaultName: "Saved game",
+                defaultPositionName: "Saved position",
+                itemsSelected: "{{count}} items selected",
                 nameAriaLabel: "Saved game name",
                 showDetails: "Show details",
                 detailsAriaLabel: "Saved game details",
@@ -295,6 +301,10 @@
             opponentFailedToReconnect: "Opponent failed to reconnect",
             gameCancelled: "Game cancelled",
             gameCancelledWithDetail: "Game cancelled — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove:
+                "Game cancelled — Opponent left before the first move.",
+            gameCancelledReconnectTimeout:
+                "Game cancelled — Reconnect timed out with no moves played.",
             waitingForOpponent: "Waiting for opponent…",
             couldNotResolveWebSocketUrl: "Could not resolve WebSocket URL",
             opponentJoined: "{{name}} joined",

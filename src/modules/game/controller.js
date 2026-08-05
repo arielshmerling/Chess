@@ -276,6 +276,7 @@ exports.saveBrainConfig = catchAsync(async (req, res) => {
 
 function createGameInfo(game, userName, userId) {
     let watcher = false;
+    const infoFlags = require("./liveGameInfo").resolveLiveGameInfoFlags(game);
     const clientDate = {
         id: game.gameId,
         username: userName,
@@ -288,7 +289,7 @@ function createGameInfo(game, userName, userId) {
         reviewType: game.reviewType,
         whiteTimer: calculateTimer(game, true),
         blackTimer: calculateTimer(game, false),
-        status: game.status,
+        status: infoFlags.status,
         isPrivate: game.isPrivate === true,
     };
     if (game.reviewReason != null && String(game.reviewReason).trim() !== "") {
@@ -325,14 +326,7 @@ function createGameInfo(game, userName, userId) {
         watcher = true;
     }
 
-    const stateForBoard =
-        game.lastStatus === "in progress" ||
-        game.status === "in progress" ||
-        game.status === "pending" ||
-        game.status === "establishing" ||
-        game.status === "on hold" ||
-        game.status === "reJoining";
-    if (stateForBoard || watcher) {
+    if (infoFlags.includeBoard || watcher) {
         const gameState = game.chessGame.GameState;
         clientDate.gameState = gameState;
         clientDate.watcher = watcher;
@@ -1501,6 +1495,6 @@ exports.cancelBeforeMove = catchAsync(async (req, res) => {
         return res.json({ ok: true });
     }
     const leavingIsWhite = game.whitePlayer && String(game.whitePlayer.userId) === userId;
-    game.applyCancelledNoMoves("Opponent left before the first move.", !leavingIsWhite);
+    await game.applyCancelledNoMoves("opponentLeftBeforeFirstMove", !leavingIsWhite);
     res.json({ ok: true });
 });

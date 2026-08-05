@@ -21,6 +21,8 @@
         { value: "ru", labelKey: "desktop.prefs.languageRussian", titleEn: "Russian" },
         { value: "uk", labelKey: "desktop.prefs.languageUkrainian", titleEn: "Ukrainian" },
         { value: "no", labelKey: "desktop.prefs.languageNorwegian", titleEn: "Norwegian" },
+        { value: "bn", labelKey: "desktop.prefs.languageBengali", titleEn: "Bengali" },
+        { value: "pt", labelKey: "desktop.prefs.languagePortuguese", titleEn: "Portuguese" },
     ];
 
     function escapeAttr(value) {

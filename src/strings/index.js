@@ -6,7 +6,7 @@
  *   t("play.status.timesUpLost", { loser: "White" })
  *
  * Default locale: English ("en"). Other locales (he, ja, fr, de, zh, ar, hi, es,
- * ru, uk, no) via setLocale / t(key, params, locale). Missing keys fall back to English.
+ * ru, uk, no, bn, pt) via setLocale / t(key, params, locale). Missing keys fall back to English.
  */
 (function (global) {
     "use strict";
@@ -172,6 +172,24 @@
         );
     }
 
+    function loadBnCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsBn",
+            "ShmerlingStringsBnExtra",
+            "./bn",
+            "./bn-extra",
+        );
+    }
+
+    function loadPtCatalog() {
+        return loadCatalogPair(
+            "ShmerlingStringsPt",
+            "ShmerlingStringsPtExtra",
+            "./pt",
+            "./pt-extra",
+        );
+    }
+
     const LOCALES = {
         he: loadHeCatalog,
         en: loadEnCatalog,
@@ -185,6 +203,8 @@
         ru: loadRuCatalog,
         uk: loadUkCatalog,
         no: loadNoCatalog,
+        bn: loadBnCatalog,
+        pt: loadPtCatalog,
     };
 
     const RTL_LOCALES = { he: true, ar: true };

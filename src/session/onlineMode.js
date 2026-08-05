@@ -847,9 +847,7 @@
                 message && message.data && String(message.data).trim()
                     ? String(message.data).trim()
                     : "";
-            const shown = detail
-                ? t("session.gameCancelledWithDetail", { detail: detail })
-                : t("session.gameCancelled");
+            const shown = protocol.formatGameCancelledMessage(detail, t, "session");
             status(shown, "info");
             if (typeof opts.onGameCancelled === "function") {
                 opts.onGameCancelled({ message: shown, detail: detail });

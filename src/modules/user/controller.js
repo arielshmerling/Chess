@@ -57,6 +57,36 @@ exports.showContactPage = (req, res) => {
     });
 };
 
+exports.showAccessibilityPage = (req, res) => {
+    res.render("accessibility", {
+        pageTitle: t("site.footer.accessibilityTitle"),
+        pageLead: t("site.footer.accessibilityLead"),
+        lastUpdated: "August 4, 2026",
+        pageSections: [
+            {
+                heading: t("site.accessibility.statementCommitmentHeading"),
+                body: t("site.accessibility.statementCommitmentBody"),
+            },
+            {
+                heading: t("site.accessibility.statementScopeHeading"),
+                body: t("site.accessibility.statementScopeBody"),
+            },
+            {
+                heading: t("site.accessibility.statementLimitsHeading"),
+                body: t("site.accessibility.statementLimitsBody"),
+            },
+            {
+                heading: t("site.accessibility.statementContactHeading"),
+                body: t("site.accessibility.statementContactBody"),
+            },
+            {
+                heading: t("site.accessibility.statementStandardsHeading"),
+                body: t("site.accessibility.statementStandardsBody"),
+            },
+        ],
+    });
+};
+
 exports.logout = async (req, res) => {
     req.session.user_id = null;
     req.session = null;

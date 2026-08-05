@@ -279,6 +279,32 @@ app.ws("/ws", async (ws, req) => {
                 const gameId = msg.data && msg.data.gameId;
                 const game = gameManagerService.getGameById(gameId);
                 if (game) {
+                    if (game.status === "cancelled") {
+                        try {
+                            const open = typeof ws.OPEN === "number" ? ws.OPEN : 1;
+                            if (ws.readyState === open) {
+                                ws.send(
+                                    JSON.stringify({
+                                        type: "info",
+                                        info: "Game cancelled",
+                                        gameId: game.gameId,
+                                        data: "opponentLeftBeforeFirstMove",
+                                    }),
+                                );
+                            }
+                        } catch (err) {
+                            console.error(
+                                "WS cancelled game notify:",
+                                err && err.message ? err.message : err,
+                            );
+                        }
+                        try {
+                            ws.close();
+                        } catch {
+                            /* ignore */
+                        }
+                        return;
+                    }
                     game.init(ws, sessionUserId);
                 }
                 return;

@@ -107,6 +107,48 @@
     }
 
     /**
+     * Map server cancel `data` (stable code or legacy English prose) to an i18n key suffix
+     * under session.* / play.status.*.
+     * @param {string|null|undefined} detail
+     * @returns {{ keySuffix: string, params?: object }}
+     */
+    function resolveGameCancelledI18n(detail) {
+        const raw = detail != null ? String(detail).trim() : "";
+        if (!raw) {
+            return { keySuffix: "gameCancelled" };
+        }
+        const reasonToSuffix = {
+            opponentLeftBeforeFirstMove: "gameCancelledOpponentLeftBeforeFirstMove",
+            "Opponent left before the first move.":
+                "gameCancelledOpponentLeftBeforeFirstMove",
+            reconnectTimedOutNoMoves: "gameCancelledReconnectTimeout",
+            "Reconnect timed out with no moves played.":
+                "gameCancelledReconnectTimeout",
+        };
+        if (reasonToSuffix[raw]) {
+            return { keySuffix: reasonToSuffix[raw] };
+        }
+        return { keySuffix: "gameCancelledWithDetail", params: { detail: raw } };
+    }
+
+    /**
+     * @param {string|null|undefined} detail
+     * @param {(key: string, params?: object) => string} translate
+     * @param {"session"|"play.status"} [ns]
+     * @returns {string}
+     */
+    function formatGameCancelledMessage(detail, translate, ns) {
+        const prefix = ns === "play.status" ? "play.status." : "session.";
+        const resolved = resolveGameCancelledI18n(detail);
+        if (typeof translate !== "function") {
+            return resolved.params && resolved.params.detail
+                ? "Game cancelled — " + resolved.params.detail
+                : "Game cancelled";
+        }
+        return translate(prefix + resolved.keySuffix, resolved.params);
+    }
+
+    /**
      * Classify an inbound server message for OnlineMode (Phase 3–4).
      * @param {object} message
      * @returns {{ kind: string, payload?: * }}
@@ -212,6 +254,8 @@
         buildInfoMessage: buildInfoMessage,
         classifyInbound: classifyInbound,
         mergeClockSnapshot: mergeClockSnapshot,
+        resolveGameCancelledI18n: resolveGameCancelledI18n,
+        formatGameCancelledMessage: formatGameCancelledMessage,
     };
 
     global.ShmerlingOnlineProtocol = OnlineProtocol;

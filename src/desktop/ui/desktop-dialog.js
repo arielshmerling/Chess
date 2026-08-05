@@ -103,12 +103,20 @@
         openCount++;
         setLocked(true);
 
+        let focusSession = null;
+        let closed = false;
+
         const handle = {
             overlay: overlay,
             panel: panel,
             close: function closeDialog() {
-                if (!overlay.parentNode) {
+                if (closed || !overlay.parentNode) {
                     return;
+                }
+                closed = true;
+                if (focusSession && focusSession.release) {
+                    focusSession.release();
+                    focusSession = null;
                 }
                 overlay.remove();
                 openCount = Math.max(0, openCount - 1);
@@ -125,10 +133,28 @@
             ev.stopPropagation();
         });
 
+        function onKey(e) {
+            if (e.key === "Escape" && opts.dismissOnBackdrop !== false) {
+                e.preventDefault();
+                handle.close();
+                if (opts.onCancel) {
+                    opts.onCancel();
+                }
+            }
+        }
+        document.addEventListener("keydown", onKey);
+        const originalClose = handle.close;
+        handle.close = function () {
+            document.removeEventListener("keydown", onKey);
+            originalClose();
+        };
+
         const focusEl = panel.querySelector(
             "button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
         );
-        if (focusEl && focusEl.focus) {
+        if (window.ShmerlingFocusTrap && typeof window.ShmerlingFocusTrap.trapFocus === "function") {
+            focusSession = window.ShmerlingFocusTrap.trapFocus(panel, { initialFocus: focusEl });
+        } else if (focusEl && focusEl.focus) {
             focusEl.focus();
         }
 

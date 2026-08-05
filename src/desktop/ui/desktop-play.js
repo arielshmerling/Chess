@@ -3448,7 +3448,7 @@
         if (selectedSavedGameIds.size > 1 && selectedSavedGameIds.has(sid)) {
             const count = selectedSavedGameIds.size;
             window.DesktopContextMenu.show(ev.clientX, ev.clientY, [
-                { header: true, label: count + " items selected" },
+                { header: true, label: t("play.savedGames.itemsSelected", { count: count }) },
                 {
                     label: t("common.delete"),
                     onClick: function () {
@@ -3463,11 +3463,17 @@
         }
         const blocked = savedGameActionsBlocked();
         const isPosition = isSavedPositionEntry(entry);
-        const label = entry.name || (isPosition ? "Saved position" : "Saved game");
+        const label =
+            entry.name
+            || t(
+                isPosition
+                    ? "play.savedGames.defaultPositionName"
+                    : "play.savedGames.defaultName",
+            );
         const items = [
             { header: true, label: label },
             {
-                label: isPosition ? "Load position" : "Load game",
+                label: t(isPosition ? "play.actions.loadPosition" : "play.actions.loadGame"),
                 disabled: blocked,
                 onClick: function () {
                     loadSavedGame(bookmarkId);
@@ -5197,13 +5203,21 @@
                 alertMode = true;
                 Clocks.stop();
                 clearActiveGameSnapshot();
-                showStatus(
-                    payload.detail
-                        ? t("play.status.gameCancelledWithDetail", { detail: payload.detail })
-                        : t("play.status.gameCancelled"),
-                    0,
-                    "info",
-                );
+                const cancelShown =
+                    window.ShmerlingOnlineProtocol &&
+                    typeof window.ShmerlingOnlineProtocol.formatGameCancelledMessage ===
+                        "function"
+                        ? window.ShmerlingOnlineProtocol.formatGameCancelledMessage(
+                              payload.detail,
+                              t,
+                              "play.status",
+                          )
+                        : payload.detail
+                          ? t("play.status.gameCancelledWithDetail", {
+                                detail: payload.detail,
+                            })
+                          : t("play.status.gameCancelled");
+                showStatus(cancelShown, 0, "info");
                 updateActionButtons();
                 return;
             }
@@ -6436,12 +6450,70 @@
             showStatus(t("play.status.notOnlineGameOnPlay"), 0, "error");
             return false;
         }
+        if (info.status === "cancelled") {
+            const shown =
+                window.ShmerlingOnlineProtocol &&
+                typeof window.ShmerlingOnlineProtocol.formatGameCancelledMessage ===
+                    "function"
+                    ? window.ShmerlingOnlineProtocol.formatGameCancelledMessage(
+                          "opponentLeftBeforeFirstMove",
+                          t,
+                          "play.status",
+                      )
+                    : t("play.status.gameCancelled");
+            showStatus(shown, 0, "info");
+            clearActiveGameSnapshot();
+            return false;
+        }
         if (forceWatch) {
             info.watcher = true;
         }
         detachSpServerSync();
         await beginOnlineGame(info);
         return true;
+    }
+
+    function showFinishedOnlineStatus(info) {
+        const reason = info && info.reason != null ? String(info.reason) : "";
+        const st = game && game.GameState ? game.GameState : null;
+        if (st && st.outOfTime) {
+            showTimeoutStatus(String(st.outOfTime).toLowerCase() === "black" ? "black" : "white");
+            return;
+        }
+        if (st && st.resigned) {
+            finishResignGame(String(st.resigned));
+            return;
+        }
+        if (st && st.checkmate) {
+            const winner =
+                game && typeof game.opponent === "function"
+                    ? game.opponent(game.Turn)
+                    : null;
+            showStatus(
+                t("play.status.checkmateWins", {
+                    winner: winner ? localizeColorName(winner) : t("common.winner"),
+                }),
+                0,
+                "checkmate",
+            );
+            return;
+        }
+        if (st && st.draw) {
+            showStatus(
+                t("play.status.drawWithReason", {
+                    reason: localizeDrawReason(st.drawReason || reason || ""),
+                }),
+                0,
+                "draw",
+            );
+            return;
+        }
+        if (/out\s*of\s*time/i.test(reason)) {
+            const loser = /black/i.test(reason) ? "black" : "white";
+            showTimeoutStatus(loser);
+            return;
+        }
+        showStatus(reason || t("play.status.gameOver"), 0, "info");
     }
 
     async function beginOnlineGame(info) {
@@ -6542,6 +6614,25 @@
         ensurePlayGameSession();
         syncPrimaryGameButtonLabel();
         updateActionButtons();
+        const finished =
+            (info && info.status === "game over") || !!(game && game.GameOver);
+        if (finished) {
+            alertMode = true;
+            Clocks.stop();
+            if (Board.setHumanPlayEnabled) {
+                Board.setHumanPlayEnabled(false);
+            }
+            if (Board.applyCheckedHighlight && game && game.Checkmate) {
+                Board.applyCheckedHighlight();
+            } else if (Board.applyDrawHighlight && game && game.Draw) {
+                Board.applyDrawHighlight();
+            } else if (Board.applyResignedKingTilt && game && game.GameState && game.GameState.resigned) {
+                Board.applyResignedKingTilt(game.GameState.resigned);
+            }
+            showFinishedOnlineStatus(info);
+            tryLogCompletedGame();
+            return;
+        }
         if (!game.GameOver) {
             switchClocks();
             if (isWatcher) {

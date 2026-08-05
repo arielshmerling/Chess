@@ -25,7 +25,7 @@
             rename: "Renombrar",
             save: "Guardar",
             aPlayer: "Un jugador",
-            pleaseEnterValue: "Introduce un valor.",
+            pleaseEnterValue: "Introduce un valor."
         },
         play: {
             appTitle: "Shmerling Chess",
@@ -49,6 +49,7 @@
                 games: "Partidas",
                 expandGamesPanel: "Expandir panel de partidas",
                 expandGames: "Expandir partidas",
+                expandGamesLocked: "Panel de juegos no disponible durante un juego",
                 collapseGamesPanel: "Contraer panel de partidas",
                 chat: "Chat",
                 expandChatPanel: "Expandir el panel de chat",
@@ -59,7 +60,7 @@
                 savedListFilter: "Filtro de lista guardada",
                 positions: "Posiciones",
                 gameStatus: "Estado de la partida",
-                capturedPieces: "Piezas capturadas",
+                capturedPieces: "Piezas capturadas"
             },
             sessionMode: {
                 play: "Modo de juego",
@@ -68,50 +69,38 @@
                 playback: "Modo de reproducción",
                 review: "Modo de revisión",
                 watch: "Modo de observación",
-                practice: "Modo de práctica",
+                practice: "Modo de práctica"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "Elige Nueva partida o Configuración de posición en la barra lateral",
+                chooseNewGameOrSetup: "Elige Nueva partida o Configuración de posición en la barra lateral",
                 chooseNewGame: "Elige Nueva partida en la barra lateral",
-                setMoveColorEngineThinkTime:
-                    "Configura jugada, color, motor y tiempo de reflexión en la cabecera y pulsa Jugar",
+                setMoveColorEngineThinkTime: "Configura jugada, color, motor y tiempo de reflexión en la cabecera y pulsa Jugar",
                 gameOver: "Partida terminada",
                 gameInProgress: "Partida en curso",
                 boardLoading: "El tablero aún se está cargando…",
                 boardNotReady: "El tablero aún no está listo. Espera e inténtalo de nuevo.",
-                leaveOnlineBeforeConfiguration:
-                    "Abandona la partida en línea antes de abrir Configuración",
-                configurationNotInPractice:
-                    "La configuración no está disponible en el modo Práctica",
-                configurationModeEdit:
-                    "Modo de configuración — edita los valores y guarda",
-                selectSavedOrSetup:
-                    "Selecciona una partida guardada o configura una posición en el tablero primero",
+                leaveOnlineBeforeConfiguration: "Abandona la partida en línea antes de abrir Configuración",
+                configurationNotInPractice: "La configuración no está disponible en el modo Práctica",
+                configurationModeEdit: "Modo de configuración — edita los valores y guarda",
+                selectSavedOrSetup: "Selecciona una partida guardada o configura una posición en el tablero primero",
                 gameAlreadyInProgress: "Ya hay una partida en curso",
                 yourMove: "Tu jugada",
                 engineToMove: "Jugada del motor…",
-                leaveOnlineBeforePositionSetup:
-                    "Abandona la partida en línea antes de abrir Configuración de posición",
-                positionSetupNotInPractice:
-                    "La configuración de posición no está disponible en el modo Práctica",
-                positionSetupPlacePieces:
-                    "Configuración de posición — coloca piezas en el tablero",
+                leaveOnlineBeforePositionSetup: "Abandona la partida en línea antes de abrir Configuración de posición",
+                positionSetupNotInPractice: "La configuración de posición no está disponible en el modo Práctica",
+                positionSetupPlacePieces: "Configuración de posición — coloca piezas en el tablero",
                 drawWithReason: "Tablas — {{reason}}",
                 checkmateWins: "Jaque mate — ganan las {{winner}}",
                 check: "Jaque",
-                waitBeforeEvaluate:
-                    "Espera a que termine la jugada actual antes de evaluar",
-                evaluationUnavailable:
-                    "La evaluación no está disponible. Reinicia la aplicación Shmerling Chess.",
+                waitBeforeEvaluate: "Espera a que termine la jugada actual antes de evaluar",
+                evaluationUnavailable: "La evaluación no está disponible. Reinicia la aplicación Shmerling Chess.",
                 evaluatingPosition: "Evaluando posición…",
                 evaluationFailed: "Error en la evaluación",
                 evaluationLine: "Evaluación (juegan {{side}}): {{score}}",
                 checkmate: "Jaque mate",
                 drawZero: "Tablas (0)",
                 totalLabel: "Total: {{value}}",
-                openFolderDesktopOnly:
-                    "Abrir carpeta solo está disponible en la aplicación de escritorio",
+                openFolderDesktopOnly: "Abrir carpeta solo está disponible en la aplicación de escritorio",
                 couldNotOpenGamesLogFolder: "No se pudo abrir la carpeta del registro de partidas",
                 positionValid: "La posición es válida",
                 playingFromCustomPosition: "Jugando desde posición personalizada",
@@ -127,10 +116,8 @@
                 deletedCount: "Se eliminaron {{count}} elemento(s)",
                 couldNotDeleteSelected: "No se pudieron eliminar los elementos seleccionados",
                 couldNotLoadSavedGame: "No se pudo cargar la partida guardada",
-                editingPositionSaveBookmark:
-                    "Editando posición — Guarda para actualizar este marcador",
-                couldNotOpenPositionForEditing:
-                    "No se pudo abrir la posición para editar",
+                editingPositionSaveBookmark: "Editando posición — Guarda para actualizar este marcador",
+                couldNotOpenPositionForEditing: "No se pudo abrir la posición para editar",
                 gameSaved: "Partida guardada",
                 couldNotSaveGame: "No se pudo guardar la partida",
                 engineMoveNotApplied: "No se pudo aplicar la jugada del motor",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "Oferta de tablas",
                 drawOfferMessage: "El oponente envió una oferta de tablas. ¿Aceptar?",
                 rematchTitle: "Revancha",
-                playerDisconnectedWaiting:
-                    "{{who}} se desconectó — esperando reconexión ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "Oponente desconectado — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "Partida cancelada — Tiempo de reconexión agotado sin jugadas realizadas.",
-                playerFailedToReconnectWins:
-                    "{{loser}} no pudo reconectarse — ganan las {{winner}}",
-                gameOverOpponentFailedReconnect:
-                    "Partida terminada — el oponente no pudo reconectarse.",
+                playerDisconnectedWaiting: "{{who}} se desconectó — esperando reconexión ({{countdown}})",
+                opponentDisconnectedCountdown: "Oponente desconectado — {{countdown}}",
+                gameCancelledReconnectTimeout: "Partida cancelada — Tiempo de reconexión agotado sin jugadas realizadas.",
+                playerFailedToReconnectWins: "{{loser}} no pudo reconectarse — ganan las {{winner}}",
+                gameOverOpponentFailedReconnect: "Partida terminada — el oponente no pudo reconectarse.",
                 couldNotStartRematch: "No se pudo iniciar la revancha",
                 rematchStarted: "Revancha iniciada",
                 gameCancelled: "Partida cancelada",
                 gameCancelledWithDetail: "Partida cancelada — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "Juego cancelado: el oponente se fue antes del primer movimiento.",
                 resignFailed: "Error al rendirse",
                 gameResumedYourMove: "Partida reanudada — tu jugada",
                 practiceNotAvailable: "El modo Práctica no está disponible",
                 couldNotJoinOnPlay: "No se pudo unir a esta partida en /play",
-                practiceDebugNotAvailable:
-                    "Práctica / Depuración no está disponible para esta cuenta",
+                practiceDebugNotAvailable: "Práctica / Depuración no está disponible para esta cuenta",
                 reviewRequiresWebApi: "La revisión requiere la API web",
                 couldNotLoadReviewGame: "No se pudo cargar la partida de revisión",
                 notReviewGameLink: "Este enlace no es una partida de revisión",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} elementos eliminados",
                 choosePromotionPiece: "Elige la pieza de promoción",
                 invalidPromotionPiece: "Pieza de promoción no válida",
-                drawOfferNotAvailable: "La oferta de tablas no está disponible ahora",
+                drawOfferNotAvailable: "La oferta de tablas no está disponible ahora"
             },
             drawReasons: {
                 stalemate: "Rey ahogado",
                 fiftyMoves: "50 jugadas",
                 insufficientMaterial: "Material insuficiente",
                 threefoldRepetition: "Triple repetición",
-                drawOfferAccepted: "Oferta de tablas de {{by}} aceptada",
+                drawOfferAccepted: "Oferta de tablas de {{by}} aceptada"
             },
             actions: {
                 newGame: "Nueva partida",
@@ -197,8 +179,11 @@
                 flip: "Girar",
                 save: "Guardar",
                 exit: "Salir",
+                backToLobby: "Volver al vestíbulo",
                 loadToStart: "Cargar para iniciar",
                 editPosition: "Editar posición",
+                loadGame: "Cargar partida",
+                loadPosition: "Cargar posición"
             },
             savedGames: {
                 defaultName: "Partida guardada",
@@ -216,6 +201,8 @@
                 savedAt: "Guardado: {{when}}",
                 gameId: "ID de partida: {{id}}",
                 playersVs: "{{white}} vs. {{black}}",
+                defaultPositionName: "Posición guardada",
+                itemsSelected: "{{count}} elementos seleccionados"
             },
             reviewNav: {
                 start: "Inicio",
@@ -223,7 +210,7 @@
                 play: "Reproducir",
                 pause: "Pausa",
                 forward: "Adelante",
-                end: "Final",
+                end: "Final"
             },
             newGameDialog: {
                 title: "Nueva partida contra IA",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "Tiempo por bando (minutos)",
                 allowUndo: "Permitir deshacer",
                 private: "Privada",
-                privateHint:
-                    "Las partidas privadas no se muestran en las listas de partidas activas de otros miembros.",
+                privateHint: "Las partidas privadas no se muestran en las listas de partidas activas de otros miembros."
             },
             prompts: {
                 positionName: "Nombre de la posición",
-                savePositionAs: "Guardar posición como",
+                savePositionAs: "Guardar posición como"
             },
             dialogs: {
                 resignTitle: "¿Rendirse en esta partida?",
@@ -249,8 +236,7 @@
                 leaveTitle: "¿Abandonar la partida?",
                 leaveBody: "Tu partida se dará por perdida.",
                 areYouSure: "¿Estás seguro?",
-                discardUnsavedBrainConfig:
-                    "¿Descartar los cambios no guardados en la configuración del motor?",
+                discardUnsavedBrainConfig: "¿Descartar los cambios no guardados en la configuración del motor?",
                 accept: "Aceptar",
                 decline: "Rechazar",
                 saveAs: "Guardar como",
@@ -258,9 +244,10 @@
                 invalidPosition: "Posición no válida",
                 rematchChooseColor: "Elige tu color para la revancha:",
                 rematchOfferAgree: "El oponente ofreció una revancha. ¿Aceptar?",
-                rematchColorPreference:
-                    "El oponente quiere jugar con {{offerer}}. Tú jugarías con {{you}}. ¿Aceptar?",
-            },
+                rematchOfferAgreeWithTime: "El oponente ofreció una revancha ({{minutes}} min por lado). ¿Aceptar?",
+                rematchColorPreference: "El oponente quiere jugar con {{offerer}}. Tú jugarías con {{you}}. ¿Aceptar?",
+                rematchColorPreferenceWithTime: "El oponente quiere jugar como {{offerer}} ({{minutes}} min por lado). Jugarías como {{you}}. ¿Aceptar?"
+            }
         },
         session: {
             engineThinking: "El motor está pensando…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "Oferta de tablas rechazada",
             rematchOfferSent: "Oferta de revancha enviada",
             rematchOfferDeclined: "Oferta de revancha rechazada",
+            rematchUnavailable: "El oponente ya no está disponible para una revancha.",
             drawAgreed: "Tablas acordadas",
             rematchAcceptedNoGameId: "Revancha aceptada pero sin nuevo ID de partida",
             rematchOfferAccepted: "Oferta de revancha aceptada",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "El oponente no pudo reconectarse",
             gameCancelled: "Partida cancelada",
             gameCancelledWithDetail: "Partida cancelada — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "Juego cancelado: el oponente se fue antes del primer movimiento.",
+            gameCancelledReconnectTimeout: "Juego cancelado: se agotó el tiempo de reconexión sin realizar ningún movimiento.",
             waitingForOpponent: "Esperando al oponente…",
             couldNotResolveWebSocketUrl: "No se pudo resolver la URL de WebSocket",
             opponentJoined: "{{name}} se unió",
             opponentDefault: "Oponente",
             connectionError: "Error de conexión",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} se desconectó — esperando reconexión",
-            playerFailedToReconnectWins:
-                "{{loser}} no pudo reconectarse — ganan las {{winner}}",
-            watcherWaitingForReconnect: "Esperando a que un jugador se reconecte…",
+            connectionLost: "Conexión perdida: los movimientos no llegan al servidor",
+            reconnecting: "Reconectando…",
+            connectionRestored: "Conexión restaurada",
+            flagReported: "Bandera: confirmando con el servidor…",
+            playerDisconnectedWaitingRejoin: "{{name}} se desconectó — esperando reconexión",
+            playerFailedToReconnectWins: "{{loser}} no pudo reconectarse — ganan las {{winner}}",
+            watcherWaitingForReconnect: "Esperando a que un jugador se reconecte…"
         },
         site: {
             confirm: "Confirmar",
@@ -313,7 +305,7 @@
             logOut: "Cerrar sesión",
             logIn: "Iniciar sesión",
             admin: "Admin",
-            homeAria: "Inicio",
+            homeAria: "Inicio"
         },
         validation: {
             validEmail: "Introduce un correo electrónico válido",
@@ -321,8 +313,8 @@
             chooseUsername: "Elige un nombre de usuario",
             usernameNotAvailable: "Este nombre de usuario no está disponible",
             passwordNoWhitespace: "La contraseña no debe contener espacios en blanco.",
-            passwordUppercase: "La contraseña debe tener al menos una letra mayúscula.",
-        },
+            passwordUppercase: "La contraseña debe tener al menos una letra mayúscula."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {

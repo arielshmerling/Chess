@@ -334,7 +334,15 @@ async function syncReconnectTimeoutFromServer() {
             clearOpponentDisconnectGrace();
             hideDisconnectionCountdown();
             const detail = t("classic.reconnectTimeoutNoMoves");
-            const shown = t("play.status.gameCancelledWithDetail", { detail: detail });
+            const shown =
+                window.ShmerlingOnlineProtocol &&
+                typeof window.ShmerlingOnlineProtocol.formatGameCancelledMessage === "function"
+                    ? window.ShmerlingOnlineProtocol.formatGameCancelledMessage(
+                          "reconnectTimedOutNoMoves",
+                          t,
+                          "play.status",
+                      )
+                    : t("play.status.gameCancelledReconnectTimeout");
             displayMessage(shown);
             log("System", shown);
             hideMessageBox();
@@ -2191,6 +2199,13 @@ function createSquares() {
     const squares = document.createElement("div");
     squares.setAttribute("class", "squares");
     squares.setAttribute("id", "innerBoard");
+    squares.setAttribute("role", "grid");
+    const boardLabel =
+        (typeof ShmerlingT === "function" && ShmerlingT("site.accessibility.boardRegion")) ||
+        (typeof ShmerlingStrings !== "undefined" && ShmerlingStrings.t
+            ? ShmerlingStrings.t("site.accessibility.boardRegion")
+            : "Chessboard");
+    squares.setAttribute("aria-label", boardLabel);
 
     for (let i = 0; i < game.BOARD_ROWS; i++) {
         for (let j = 0; j < game.BOARD_COLUMNS; j++) {
@@ -2199,6 +2214,7 @@ function createSquares() {
             square.setAttribute("class", className);
             square.setAttribute("data-row", i);
             square.setAttribute("data-col", j);
+            square.setAttribute("role", "gridcell");
             squares.appendChild(square);
             guiBoard[i][j] = square;
         }
@@ -2269,6 +2285,7 @@ function createPiece(url) {
     img.setAttribute("class", "draggable");
     // Native HTML5 image drag would fight our pointer-based dragging (Firefox ignores -webkit-user-drag).
     img.draggable = false;
+    img.alt = describePieceFromUrl(url);
 
     if (!researchMode && gameType != "PracticeGame") {
         if (currentPlayerIsWhite && img.src.indexOf("black") != -1 ||
@@ -2279,6 +2296,46 @@ function createPiece(url) {
     if (!researchMode && gameInfo.mode == "review") { img.setAttribute("class", "nondraggable"); }
 
     return img;
+}
+
+function describePieceFromUrl(url) {
+    const path = String(url || "").toLowerCase();
+    const colorKey = path.indexOf("black") !== -1 ? "common.black" : "common.white";
+    let pieceKey = "pawn";
+    if (path.indexOf("king") !== -1) pieceKey = "king";
+    else if (path.indexOf("queen") !== -1) pieceKey = "queen";
+    else if (path.indexOf("rook") !== -1) pieceKey = "rook";
+    else if (path.indexOf("bishop") !== -1) pieceKey = "bishop";
+    else if (path.indexOf("knight") !== -1) pieceKey = "knight";
+    else if (path.indexOf("pawn") !== -1) pieceKey = "pawn";
+    const color =
+        (typeof ShmerlingT === "function" && ShmerlingT(colorKey)) ||
+        (colorKey === "common.black" ? "Black" : "White");
+    const pieceName = pieceKey.charAt(0).toUpperCase() + pieceKey.slice(1);
+    if (typeof ShmerlingT === "function") {
+        return ShmerlingT("site.accessibility.pieceAlt", { color: color, piece: pieceName });
+    }
+    return color + " " + pieceName;
+}
+
+function announceForScreenReader(message) {
+    const text = String(message || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) {
+        return;
+    }
+    let live = document.getElementById("a11yBoardAnnounce");
+    if (!live) {
+        live = document.createElement("div");
+        live.id = "a11yBoardAnnounce";
+        live.className = "a11y-sr-only";
+        live.setAttribute("aria-live", "polite");
+        live.setAttribute("aria-atomic", "true");
+        document.body.appendChild(live);
+    }
+    live.textContent = "";
+    window.setTimeout(function () {
+        live.textContent = text;
+    }, 20);
 }
 
 /**
@@ -2585,6 +2642,8 @@ function displayMessage(message, durationMs) {
         return;
     }
 
+    announceForScreenReader(message);
+
     const chessboardDiv = document.getElementById("chessboard");
     if (isMobileGameShell() && chessboardDiv) {
         const duration = (typeof durationMs === "number" && durationMs > 0)
@@ -2611,7 +2670,14 @@ function displayMessage(message, durationMs) {
     div.id = "flash";
     div.classList.add("topbarMessages");
     div.classList.add("flash-message");
-    div.innerHTML = message;
+    div.setAttribute("role", "status");
+    div.setAttribute("aria-live", "polite");
+    /* Prefer plain text; only allow simple markup when callers pass trusted HTML. */
+    if (/[<>]/.test(String(message))) {
+        div.textContent = String(message).replace(/<[^>]+>/g, " ");
+    } else {
+        div.textContent = message;
+    }
     document.body.appendChild(div);
 }
 
@@ -3468,9 +3534,17 @@ function startWebSockets(username, isWhite, isWatcher) {
                 clearOpponentDisconnectGrace();
                 hideDisconnectionCountdown();
                 const detail = message.data && String(message.data).trim() ? String(message.data).trim() : "";
-                const shown = detail
-                    ? t("play.status.gameCancelledWithDetail", { detail: detail })
-                    : t("classic.gameCancelled");
+                const shown =
+                    window.ShmerlingOnlineProtocol &&
+                    typeof window.ShmerlingOnlineProtocol.formatGameCancelledMessage === "function"
+                        ? window.ShmerlingOnlineProtocol.formatGameCancelledMessage(
+                              detail,
+                              t,
+                              "play.status",
+                          )
+                        : detail
+                          ? t("play.status.gameCancelledWithDetail", { detail: detail })
+                          : t("classic.gameCancelled");
                 displayMessage(shown);
                 log("System", shown);
                 if (gameInfo.gameType === "OnlineGame" && !gameInfo.watcher) {

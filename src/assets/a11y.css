@@ -1,0 +1,141 @@
+/**
+ * Site-wide accessibility baseline styles (WCAG 2.1 AA focus / motion).
+ */
+
+.skip-link {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    top: 0.75rem;
+    z-index: 10000;
+    padding: 0.55rem 0.9rem;
+    border-radius: 0.35rem;
+    background: #111;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-200%);
+    transition: transform 0.15s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 3px solid #ffd54f;
+    outline-offset: 2px;
+}
+
+:root {
+    --a11y-focus-ring: #1a73e8;
+    --a11y-focus-ring-on-dark: #ffd54f;
+}
+
+/* Restore visible keyboard focus site-wide (overrides bare outline:none). */
+:where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="link"],
+    [tabindex]:not([tabindex="-1"])
+):focus-visible {
+    outline: 3px solid var(--a11y-focus-ring) !important;
+    outline-offset: 2px !important;
+}
+
+body.dark-theme :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="link"],
+    [tabindex]:not([tabindex="-1"])
+):focus-visible,
+html[data-theme="dark"] :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="link"],
+    [tabindex]:not([tabindex="-1"])
+):focus-visible {
+    outline-color: var(--a11y-focus-ring-on-dark) !important;
+}
+
+.a11y-sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+#a11yBoardAnnounce {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.selectionBox[role="radiogroup"] .selectionOption {
+    cursor: pointer;
+}
+
+.selectionBox[role="radiogroup"] .selectionOption:focus-visible {
+    outline: 3px solid var(--a11y-focus-ring);
+    outline-offset: 2px;
+}
+
+.chatSendLine .sendButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.chatSendLine .sendButton img {
+    display: block;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .skip-link {
+        transition: none;
+    }
+}

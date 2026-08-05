@@ -6,6 +6,7 @@
   <base href="/">
   <title>Shmerling Chess</title>
   <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/a11y.css">
   <link rel="stylesheet" href="/app/ui/app.css">
   <link rel="stylesheet" href="/app/ui/desktop-play.css">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -33,6 +34,10 @@
   <script src="/app/strings/uk-extra.js"></script>
   <script src="/app/strings/no.js"></script>
   <script src="/app/strings/no-extra.js"></script>
+  <script src="/app/strings/bn.js"></script>
+  <script src="/app/strings/bn-extra.js"></script>
+  <script src="/app/strings/pt.js"></script>
+  <script src="/app/strings/pt-extra.js"></script>
   <script src="/app/strings/index.js"></script>
   <script src="/app/strings/t-bridge.js"></script>
   <script src="/app/strings/applyPlayShell.js"></script>
@@ -87,6 +92,8 @@
   <script src="/app/adapters/createEnginePort.js"></script>
   <script src="/app/ui/desktop-engine.js"></script>
   <script src="/app/ui/desktop-game-log.js"></script>
+  <script src="/a11y/focusTrap.js"></script>
+  <script src="/a11y/enhanceClickables.js"></script>
   <script src="/app/ui/desktop-dialog.js"></script>
   <script src="/app/ui/desktop-context-menu.js"></script>
   <script src="/app/ui/desktop-start-menu.js"></script>
@@ -101,6 +108,7 @@
   <script src="/app/ui/desktop-play.js"></script>
 </head>
 <body class="desktop-shell desktop-play-page desktop-has-topbar">
+  <a class="skip-link" href="#main-content" data-i18n="site.accessibility.skipToMain">Skip to main content</a>
   <div class="desktop-play-shell">
     <nav id="desktopPlayActions" class="desktop-play-actions" data-i18n="play.shell.gameActions" data-i18n-attr="aria-label"></nav>
 
@@ -219,9 +227,9 @@
           </div>
         </aside>
 
-        <main class="desktop-play-main">
+        <main id="main-content" class="desktop-play-main" tabindex="-1">
           <div class="desktop-play-board-area">
-            <div id="chessboard" class="desktop-play-board" dir="ltr"></div>
+            <div id="chessboard" class="desktop-play-board" dir="ltr" data-i18n="site.accessibility.boardRegion" data-i18n-attr="aria-label"></div>
           </div>
         </main>
 
@@ -326,5 +334,6 @@
       </footer>
     </div>
   </div>
+  <div id="a11yBoardAnnounce" class="a11y-sr-only" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

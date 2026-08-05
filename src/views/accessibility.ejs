@@ -1,0 +1,22 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
+
+<div class="welcome-container legal-page board-geometry">
+  <div class="legal-page-content">
+    <h1 class="legal-page-title"><%= pageTitle %></h1>
+    <p class="legal-page-lead"><%= pageLead %></p>
+    <% if (typeof pageSections !== 'undefined' && pageSections && pageSections.length) { %>
+      <% pageSections.forEach(function (section) { %>
+        <h2 class="legal-page-subtitle"><%= section.heading %></h2>
+        <p class="legal-page-body"><%= section.body %></p>
+      <% }) %>
+    <% } else { %>
+      <p class="legal-page-body"><%= pageBody %></p>
+    <% } %>
+    <p class="legal-page-updated"><%= t('site.footer.lastUpdated', { date: lastUpdated }) %></p>
+  </div>
+
+  <%- include('partials/site-page-footer') %>
+</div>

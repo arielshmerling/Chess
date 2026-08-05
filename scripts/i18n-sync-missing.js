@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..", "src", "strings");
-const LOCALES = ["he", "fr", "de", "es", "ar", "zh", "ja", "hi", "ru", "uk", "no"];
+const LOCALES = ["he", "fr", "de", "es", "ar", "zh", "ja", "hi", "ru", "uk", "no", "bn", "pt"];
 
 /** @type {Record<string, object>} */
 const BY_LOCALE = {

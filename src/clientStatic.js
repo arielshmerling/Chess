@@ -34,6 +34,7 @@ function mountClientStatic(app, srcRoot) {
     app.use("/images", express.static(path.join(assetsRoot, "images")));
     app.use("/strings", express.static(path.join(srcRoot, "strings")));
     app.use("/validation", express.static(path.join(srcRoot, "validation")));
+    app.use("/a11y", express.static(path.join(srcRoot, "a11y")));
 
     for (const name of ROOT_CLIENT_FILES) {
         const filePath = path.join(srcRoot, name);

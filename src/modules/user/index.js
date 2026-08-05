@@ -17,6 +17,7 @@ router.get("/validateUsername", userController.validateUsername);
 router.get("/privacy", userController.showPrivacyPage);
 router.get("/terms", userController.showTermsPage);
 router.get("/contact", userController.showContactPage);
+router.get("/accessibility", userController.showAccessibilityPage);
 
 
 router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGenerateState);

@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/mobile-game.css">
+  <link rel="stylesheet" href="/a11y.css">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <script src="/strings/en.js"></script>
   <script src="/strings/en-extra.js"></script>
@@ -34,6 +35,10 @@
   <script src="/strings/uk-extra.js"></script>
   <script src="/strings/no.js"></script>
   <script src="/strings/no-extra.js"></script>
+  <script src="/strings/bn.js"></script>
+  <script src="/strings/bn-extra.js"></script>
+  <script src="/strings/pt.js"></script>
+  <script src="/strings/pt-extra.js"></script>
   <script src="/strings/index.js"></script>
   <script src="/strings/t-bridge.js"></script>
   <script src="/validation/positionValidation.js"></script>
@@ -45,6 +50,8 @@
   <script src="/mobile-game-ui.js"></script>
   <script src="/lobby.js"></script>
   <script src="/customValidation.js"></script>
+  <script src="/a11y/focusTrap.js"></script>
+  <script src="/a11y/enhanceClickables.js"></script>
   <script src="/siteDialogs.js"></script>
   <% if (typeof username !== 'undefined' && username) { %>
   <script src="/lobbyPresence.js"></script>
@@ -54,15 +61,17 @@
 </head>
 
 <body class="mobile-game-shell<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> hide-topbar<% } %>">
+  <%- include('../partials/skip-link') %>
   <% if(username) { %>
   <%- include('../partials/topbar', { showWebPreferences: false }) %>
   <% }%>
 
   <%- include("../partials/flash") %>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <%-body %>
   </main>
+  <div id="a11yBoardAnnounce" class="a11y-sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="paletteSelctor" class="palettes">
   </div>
 

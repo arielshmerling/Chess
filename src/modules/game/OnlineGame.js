@@ -1,6 +1,7 @@
 const { GameBase } = require("./GameBase");
 const { OnlineGameMessageProcessor } = require("./OnlineGameMessageProcessor");
 const gameClocks = require("./gameClocks");
+const { resolvePlayerSeat } = require("./gameSeat");
 
 /** True when no piece has been placed (constructor default before startNewGame). */
 function isChessBoardEmpty(board) {
@@ -31,8 +32,50 @@ class OnlineGame extends GameBase {
 
     init(ws, userId) {
 
+        /*
+         * Cancelled games must stay dead. Refresh/WS reconnect used to call init and
+         * force "in progress" (especially the Black seat path), resurrecting the match.
+         */
+        if (this.status === "cancelled") {
+            const seat = resolvePlayerSeat(this, userId);
+            if (seat && ws && typeof ws.send === "function") {
+                try {
+                    const open =
+                        typeof ws.OPEN === "number" ? ws.OPEN : 1;
+                    if (ws.readyState === open) {
+                        ws.send(
+                            JSON.stringify({
+                                type: "info",
+                                info: "Game cancelled",
+                                gameId: this.gameId,
+                                data: "opponentLeftBeforeFirstMove",
+                            }),
+                        );
+                    }
+                } catch (err) {
+                    console.error(
+                        "OnlineGame.init cancelled notify:",
+                        err && err.message ? err.message : err,
+                    );
+                }
+            }
+            try {
+                if (ws && typeof ws.close === "function") {
+                    ws.close();
+                }
+            } catch {
+                /* ignore */
+            }
+            return false;
+        }
+
         if (super.init(ws, userId) === false) {
             return false;
+        }
+
+        /* Game over: keep the channel for rematch; do not flip status back to live. */
+        if (this.status === "game over") {
+            return true;
         }
 
         const uid = userId != null ? String(userId) : "";
@@ -96,10 +139,11 @@ class OnlineGame extends GameBase {
 
     /**
      * Cancel an online game with no moves yet; notify the other player (if any).
-     * @param {string} detail Client-facing reason (shown after "Game cancelled — ")
+     * @param {string} detail Stable cancel reason code (or legacy English prose) for clients to localize
      * @param {boolean} notifyPlayerIsWhite If true, send to White's channel; if false, to Black's.
+     * @returns {Promise<void>}
      */
-    applyCancelledNoMoves(detail, notifyPlayerIsWhite) {
+    async applyCancelledNoMoves(detail, notifyPlayerIsWhite) {
         if (this.status === "game over" || this.status === "cancelled") {
             return;
         }
@@ -117,7 +161,7 @@ class OnlineGame extends GameBase {
         this.sendInfoToWatchers(cancelMsg);
         this.lastStatus = this.status;
         this.status = "cancelled";
-        this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
+        await this.raiseEvent(this.OnGameStateChanged, { game: this, newState: this.status });
         this.closeGame();
     }
 
@@ -333,7 +377,7 @@ class OnlineGame extends GameBase {
                 const moveCount = this.moves ? this.moves.length : 0;
                 /** No moves on the board yet — cancel after reconnect deadline; any move played → forfeit below. */
                 if (moveCount === 0) {
-                    this.applyCancelledNoMoves("Reconnect timed out with no moves played.", !isWhite);
+                    void this.applyCancelledNoMoves("reconnectTimedOutNoMoves", !isWhite);
                     return;
                 }
                 await this.resign(isWhite ? "white" : "black");

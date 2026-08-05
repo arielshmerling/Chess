@@ -11,7 +11,7 @@
     <div class="menuBarMenuItem topBarMenu-home"><a href="/home"><%= t('site.home') %></a></div>
     <div class="menuBarMenuItem"><a href="/search"><%= t('site.search') %></a></div>
     <div class="menuBarMenuItem"><a href="/friends"><%= t('site.friends') %></a></div>
-    <div class="menuBarMenuItem topBarMenu-groups"><a href="#"><%= t('site.groups') %></a></div>
+    <div class="menuBarMenuItem topBarMenu-groups"><span aria-disabled="true"><%= t('site.groups') %></span></div>
     <% if (typeof canDebug !== 'undefined' && canDebug) { %>
     <div class="menuBarMenuItem"><a href="/play?mode=practice"><%= t('site.debug') %></a></div>
     <% } %>
@@ -57,8 +57,8 @@
     <span class="topbar-username"><%= username %></span>
     <% } %>
     <label class="switch">
-      <input type="checkbox" id="themeSwitch">
-      <span class="slider round"></span>
+      <input type="checkbox" id="themeSwitch" aria-label="<%= t('site.accessibility.themeToggle') %>">
+      <span class="slider round" aria-hidden="true"></span>
     </label>
     <% if (!minimalTopbar) { %>
     <% if (username) { %>

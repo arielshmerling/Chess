@@ -1,6 +1,7 @@
 /**
  * Site-wide confirm / alert dialogs (same look as admin + research validation).
  * Requires partial site-dialogs.ejs in the page and app.css admin-confirm styles.
+ * Focus is trapped while open (WCAG 2.4.3).
  */
 (function () {
     "use strict";
@@ -12,6 +13,16 @@
         return key;
     }
 
+    function trap(container, initialFocus) {
+        if (window.ShmerlingFocusTrap && typeof window.ShmerlingFocusTrap.trapFocus === "function") {
+            return window.ShmerlingFocusTrap.trapFocus(container, { initialFocus: initialFocus });
+        }
+        if (initialFocus && initialFocus.focus) {
+            initialFocus.focus();
+        }
+        return { release: function () {} };
+    }
+
     function getConfirmEls() {
         var overlay = document.getElementById("site-confirm-overlay");
         if (!overlay) {
@@ -19,6 +30,7 @@
         }
         return {
             overlay: overlay,
+            dialog: overlay.querySelector(".admin-confirm-dialog"),
             titleEl: document.getElementById("site-confirm-title"),
             msgEl: document.getElementById("site-confirm-message"),
             btnOk: overlay.querySelector(".site-confirm-ok"),
@@ -33,6 +45,7 @@
         }
         return {
             overlay: overlay,
+            dialog: overlay.querySelector(".admin-confirm-dialog"),
             titleEl: document.getElementById("site-alert-title"),
             msgEl: document.getElementById("site-alert-message"),
             btnOk: overlay.querySelector(".site-alert-ok"),
@@ -61,6 +74,7 @@
             document.body.style.overflow = "hidden";
             els.overlay.classList.add("admin-confirm-overlay--open");
             els.overlay.setAttribute("aria-hidden", "false");
+            var focusSession = trap(els.dialog || els.overlay, els.btnOk);
 
             function cleanup() {
                 document.body.style.overflow = prevOverflow;
@@ -70,6 +84,9 @@
                 els.overlay.removeEventListener("click", onOverlayClick);
                 els.btnOk.removeEventListener("click", onOk);
                 els.btnCancel.removeEventListener("click", onCancel);
+                if (focusSession && focusSession.release) {
+                    focusSession.release();
+                }
             }
 
             function onOk() {
@@ -96,7 +113,6 @@
             els.btnCancel.addEventListener("click", onCancel);
             document.addEventListener("keydown", onKey);
             els.overlay.addEventListener("click", onOverlayClick);
-            els.btnOk.focus();
         });
     }
 
@@ -120,6 +136,7 @@
             document.body.style.overflow = "hidden";
             els.overlay.classList.add("admin-confirm-overlay--open");
             els.overlay.setAttribute("aria-hidden", "false");
+            var focusSession = trap(els.dialog || els.overlay, els.btnOk);
 
             function cleanup() {
                 document.body.style.overflow = prevOverflow;
@@ -128,6 +145,9 @@
                 document.removeEventListener("keydown", onKey);
                 els.overlay.removeEventListener("click", onOverlayClick);
                 els.btnOk.removeEventListener("click", onOk);
+                if (focusSession && focusSession.release) {
+                    focusSession.release();
+                }
             }
 
             function onOk() {
@@ -149,7 +169,6 @@
             els.btnOk.addEventListener("click", onOk);
             document.addEventListener("keydown", onKey);
             els.overlay.addEventListener("click", onOverlayClick);
-            els.btnOk.focus();
         });
     }
 

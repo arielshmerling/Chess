@@ -2482,6 +2482,13 @@ li {
     color: var(--topbar-link-forecolor, #aaaaaa);
 }
 
+.menuBarMenuItem span[aria-disabled="true"] {
+    font-weight: 100;
+    color: var(--topbar-link-forecolor, #aaaaaa);
+    opacity: 0.55;
+    cursor: default;
+}
+
 .menuBarMenuItem A:hover,
 .menuBarMenuItem A:active {
     text-decoration: none;
@@ -3117,6 +3124,15 @@ input:checked+.slider:before {
     top: 3px;
     inset-inline-end: -20px;
     cursor: pointer;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.sendButton img {
+    display: block;
+    width: 14px;
+    height: 14px;
 }
 
 html[dir="rtl"] .sendButton {

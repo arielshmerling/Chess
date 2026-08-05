@@ -162,6 +162,52 @@ describe("strings catalog", function () {
         assert.strictEqual(strings.t("desktop.prefs.languageNorwegian", null, "en"), "Norsk");
     });
 
+    it("registers Bengali and Portuguese as LTR locales", function () {
+        ["bn", "pt"].forEach(function (code) {
+            assert.ok(strings.LOCALES.includes(code), "missing locale " + code);
+            assert.strictEqual(strings.normalizeLocale(code), code);
+            assert.strictEqual(strings.isRtl(code), false);
+            assert.strictEqual(strings.getHtmlDir(code), "ltr");
+            assert.notStrictEqual(strings.t("common.white", null, code), "common.white");
+            assert.notStrictEqual(strings.t("play.status.gameOver", null, code), "play.status.gameOver");
+            assert.ok(strings.t("play.shell.chat", null, code).length > 0);
+        });
+        assert.strictEqual(strings.t("desktop.prefs.languageBengali", null, "en"), "বাংলা");
+        assert.strictEqual(strings.t("desktop.prefs.languagePortuguese", null, "en"), "Português");
+        assert.match(strings.t("play.status.timesUpLost", { loser: "X" }, "pt"), /X/);
+        assert.match(strings.t("play.status.timesUpLost", { loser: "X" }, "bn"), /X/);
+    });
+
+    it("ships every English key in every non-English locale", function () {
+        const en = strings.getStrings("en");
+        function flatten(obj, prefix, out) {
+            out = out || {};
+            prefix = prefix || "";
+            Object.keys(obj || {}).forEach(function (key) {
+                const next = prefix ? prefix + "." + key : key;
+                if (typeof obj[key] === "string") {
+                    out[next] = obj[key];
+                } else if (obj[key] && typeof obj[key] === "object") {
+                    flatten(obj[key], next, out);
+                }
+            });
+            return out;
+        }
+        const enFlat = flatten(en);
+        strings.LOCALES.forEach(function (code) {
+            if (code === "en") {
+                return;
+            }
+            const flat = flatten(strings.getStrings(code));
+            Object.keys(enFlat).forEach(function (key) {
+                assert.ok(key in flat, code + " missing " + key);
+                const enPh = (enFlat[key].match(/\{\{[a-zA-Z0-9_]+\}\}/g) || []).sort().join(",");
+                const locPh = (String(flat[key]).match(/\{\{[a-zA-Z0-9_]+\}\}/g) || []).sort().join(",");
+                assert.strictEqual(locPh, enPh, code + " placeholder drift on " + key);
+            });
+        });
+    });
+
     it("ships chat, footer, and errorPage keys in every locale", function () {
         const keys = [
             "play.shell.chat",

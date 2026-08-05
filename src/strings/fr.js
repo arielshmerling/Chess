@@ -25,7 +25,7 @@
             rename: "Renommer",
             save: "Enregistrer",
             aPlayer: "Un joueur",
-            pleaseEnterValue: "Veuillez saisir une valeur.",
+            pleaseEnterValue: "Veuillez saisir une valeur."
         },
         play: {
             appTitle: "Échecs Shmerling",
@@ -49,6 +49,7 @@
                 games: "Parties",
                 expandGamesPanel: "Développer le panneau des parties",
                 expandGames: "Développer les parties",
+                expandGamesLocked: "Panneau de jeux indisponible pendant une partie",
                 collapseGamesPanel: "Réduire le panneau des parties",
                 chat: "Discussion",
                 expandChatPanel: "Développer le panneau de discussion",
@@ -59,7 +60,7 @@
                 savedListFilter: "Filtre de la liste enregistrée",
                 positions: "Positions",
                 gameStatus: "État de la partie",
-                capturedPieces: "Pièces capturées",
+                capturedPieces: "Pièces capturées"
             },
             sessionMode: {
                 play: "Mode jeu",
@@ -68,50 +69,38 @@
                 playback: "Mode lecture",
                 review: "Mode relecture",
                 watch: "Mode spectateur",
-                practice: "Mode entraînement",
+                practice: "Mode entraînement"
             },
             status: {
-                chooseNewGameOrSetup:
-                    "Choisissez Nouvelle partie ou Configuration de position dans la barre latérale",
+                chooseNewGameOrSetup: "Choisissez Nouvelle partie ou Configuration de position dans la barre latérale",
                 chooseNewGame: "Choisissez Nouvelle partie dans la barre latérale",
-                setMoveColorEngineThinkTime:
-                    "Définissez le coup, la couleur, le moteur et le temps de réflexion dans l'en-tête, puis appuyez sur Jouer",
+                setMoveColorEngineThinkTime: "Définissez le coup, la couleur, le moteur et le temps de réflexion dans l'en-tête, puis appuyez sur Jouer",
                 gameOver: "Partie terminée",
                 gameInProgress: "Partie en cours",
                 boardLoading: "L'échiquier est encore en cours de chargement…",
                 boardNotReady: "L'échiquier n'est pas encore prêt. Veuillez patienter et réessayer.",
-                leaveOnlineBeforeConfiguration:
-                    "Quittez la partie en ligne avant d'ouvrir la Configuration",
-                configurationNotInPractice:
-                    "La configuration n'est pas disponible en mode Entraînement",
-                configurationModeEdit:
-                    "Mode configuration — modifiez les valeurs et enregistrez",
-                selectSavedOrSetup:
-                    "Sélectionnez d'abord une partie enregistrée ou configurez une position sur l'échiquier",
+                leaveOnlineBeforeConfiguration: "Quittez la partie en ligne avant d'ouvrir la Configuration",
+                configurationNotInPractice: "La configuration n'est pas disponible en mode Entraînement",
+                configurationModeEdit: "Mode configuration — modifiez les valeurs et enregistrez",
+                selectSavedOrSetup: "Sélectionnez d'abord une partie enregistrée ou configurez une position sur l'échiquier",
                 gameAlreadyInProgress: "Une partie est déjà en cours",
                 yourMove: "À vous de jouer",
                 engineToMove: "Le moteur réfléchit…",
-                leaveOnlineBeforePositionSetup:
-                    "Quittez la partie en ligne avant d'ouvrir la Configuration de position",
-                positionSetupNotInPractice:
-                    "La configuration de position n'est pas disponible en mode Entraînement",
-                positionSetupPlacePieces:
-                    "Configuration de position — placez les pièces sur l'échiquier",
+                leaveOnlineBeforePositionSetup: "Quittez la partie en ligne avant d'ouvrir la Configuration de position",
+                positionSetupNotInPractice: "La configuration de position n'est pas disponible en mode Entraînement",
+                positionSetupPlacePieces: "Configuration de position — placez les pièces sur l'échiquier",
                 drawWithReason: "Nulle — {{reason}}",
                 checkmateWins: "Échec et mat — {{winner}} gagne",
                 check: "Échec",
-                waitBeforeEvaluate:
-                    "Attendez la fin du coup en cours avant d'évaluer",
-                evaluationUnavailable:
-                    "L'évaluation n'est pas disponible. Redémarrez l'application Échecs Shmerling.",
+                waitBeforeEvaluate: "Attendez la fin du coup en cours avant d'évaluer",
+                evaluationUnavailable: "L'évaluation n'est pas disponible. Redémarrez l'application Échecs Shmerling.",
                 evaluatingPosition: "Évaluation de la position…",
                 evaluationFailed: "Évaluation échouée",
                 evaluationLine: "Évaluation ({{side}} au trait) : {{score}}",
                 checkmate: "Échec et mat",
                 drawZero: "Nulle (0)",
                 totalLabel: "Total : {{value}}",
-                openFolderDesktopOnly:
-                    "Ouvrir le dossier n'est disponible que dans l'application de bureau",
+                openFolderDesktopOnly: "Ouvrir le dossier n'est disponible que dans l'application de bureau",
                 couldNotOpenGamesLogFolder: "Impossible d'ouvrir le dossier du journal des parties",
                 positionValid: "La position est valide",
                 playingFromCustomPosition: "Partie depuis une position personnalisée",
@@ -127,10 +116,8 @@
                 deletedCount: "{{count}} élément(s) supprimé(s)",
                 couldNotDeleteSelected: "Impossible de supprimer les éléments sélectionnés",
                 couldNotLoadSavedGame: "Impossible de charger la partie enregistrée",
-                editingPositionSaveBookmark:
-                    "Modification de position — Enregistrez pour mettre à jour ce signet",
-                couldNotOpenPositionForEditing:
-                    "Impossible d'ouvrir la position pour modification",
+                editingPositionSaveBookmark: "Modification de position — Enregistrez pour mettre à jour ce signet",
+                couldNotOpenPositionForEditing: "Impossible d'ouvrir la position pour modification",
                 gameSaved: "Partie enregistrée",
                 couldNotSaveGame: "Impossible d'enregistrer la partie",
                 engineMoveNotApplied: "Le coup du moteur n'a pas pu être appliqué",
@@ -142,26 +129,21 @@
                 drawOfferTitle: "Proposition de nulle",
                 drawOfferMessage: "L'adversaire propose la nulle. Accepter ?",
                 rematchTitle: "Revanche",
-                playerDisconnectedWaiting:
-                    "{{who}} s'est déconnecté — en attente de reconnexion ({{countdown}})",
-                opponentDisconnectedCountdown:
-                    "Adversaire déconnecté — {{countdown}}",
-                gameCancelledReconnectTimeout:
-                    "Partie annulée — délai de reconnexion dépassé sans coup joué.",
-                playerFailedToReconnectWins:
-                    "{{loser}} n'a pas pu se reconnecter — {{winner}} gagne",
-                gameOverOpponentFailedReconnect:
-                    "Partie terminée — l'adversaire n'a pas pu se reconnecter.",
+                playerDisconnectedWaiting: "{{who}} s'est déconnecté — en attente de reconnexion ({{countdown}})",
+                opponentDisconnectedCountdown: "Adversaire déconnecté — {{countdown}}",
+                gameCancelledReconnectTimeout: "Partie annulée — délai de reconnexion dépassé sans coup joué.",
+                playerFailedToReconnectWins: "{{loser}} n'a pas pu se reconnecter — {{winner}} gagne",
+                gameOverOpponentFailedReconnect: "Partie terminée — l'adversaire n'a pas pu se reconnecter.",
                 couldNotStartRematch: "Impossible de lancer la revanche",
                 rematchStarted: "Revanche lancée",
                 gameCancelled: "Partie annulée",
                 gameCancelledWithDetail: "Partie annulée — {{detail}}",
+                gameCancelledOpponentLeftBeforeFirstMove: "Partie annulée — L'adversaire est parti avant le premier coup.",
                 resignFailed: "Abandon échoué",
                 gameResumedYourMove: "Partie reprise — à vous de jouer",
                 practiceNotAvailable: "Le mode Entraînement n'est pas disponible",
                 couldNotJoinOnPlay: "Impossible de rejoindre cette partie sur /play",
-                practiceDebugNotAvailable:
-                    "Entraînement / Débogage n'est pas disponible pour ce compte",
+                practiceDebugNotAvailable: "Entraînement / Débogage n'est pas disponible pour ce compte",
                 reviewRequiresWebApi: "La relecture nécessite l'API web",
                 couldNotLoadReviewGame: "Impossible de charger la partie en relecture",
                 notReviewGameLink: "Ce lien n'est pas une partie en relecture",
@@ -176,14 +158,14 @@
                 itemsDeleted: "{{count}} éléments supprimés",
                 choosePromotionPiece: "Choisissez la pièce de promotion",
                 invalidPromotionPiece: "Pièce de promotion invalide",
-                drawOfferNotAvailable: "La proposition de nulle n'est pas disponible pour le moment",
+                drawOfferNotAvailable: "La proposition de nulle n'est pas disponible pour le moment"
             },
             drawReasons: {
                 stalemate: "Pat",
                 fiftyMoves: "50 coups",
                 insufficientMaterial: "Matériel insuffisant",
                 threefoldRepetition: "Triple répétition",
-                drawOfferAccepted: "Proposition de nulle des {{by}} acceptée",
+                drawOfferAccepted: "Proposition de nulle des {{by}} acceptée"
             },
             actions: {
                 newGame: "Nouvelle partie",
@@ -197,8 +179,11 @@
                 flip: "Retourner",
                 save: "Enregistrer",
                 exit: "Quitter",
+                backToLobby: "Retour au hall",
                 loadToStart: "Charger pour commencer",
                 editPosition: "Modifier la position",
+                loadGame: "Charger la partie",
+                loadPosition: "Charger la position"
             },
             savedGames: {
                 defaultName: "Partie enregistrée",
@@ -216,6 +201,8 @@
                 savedAt: "Enregistré : {{when}}",
                 gameId: "ID de partie : {{id}}",
                 playersVs: "{{white}} contre {{black}}",
+                defaultPositionName: "Position enregistrée",
+                itemsSelected: "{{count}} éléments sélectionnés"
             },
             reviewNav: {
                 start: "Début",
@@ -223,7 +210,7 @@
                 play: "Lecture",
                 pause: "Pause",
                 forward: "Avancer",
-                end: "Fin",
+                end: "Fin"
             },
             newGameDialog: {
                 title: "Nouvelle partie contre l'IA",
@@ -233,15 +220,15 @@
                 brain42: "Brain 4.2",
                 brain41: "Brain 4.1",
                 brain4: "Brain 4.0",
+                stockfish: "Stockfish",
                 timePerSideMinutes: "Temps par camp (minutes)",
                 allowUndo: "Autoriser l'annulation du coup",
                 private: "Privée",
-                privateHint:
-                    "Les parties privées n’apparaissent pas dans les listes de parties actives des autres membres.",
+                privateHint: "Les parties privées n’apparaissent pas dans les listes de parties actives des autres membres."
             },
             prompts: {
                 positionName: "Nom de la position",
-                savePositionAs: "Enregistrer la position sous",
+                savePositionAs: "Enregistrer la position sous"
             },
             dialogs: {
                 resignTitle: "Abandonner cette partie ?",
@@ -249,8 +236,7 @@
                 leaveTitle: "Quitter la partie ?",
                 leaveBody: "Votre partie sera abandonnée.",
                 areYouSure: "Êtes-vous sûr ?",
-                discardUnsavedBrainConfig:
-                    "Abandonner les modifications non enregistrées de la configuration du Brain ?",
+                discardUnsavedBrainConfig: "Abandonner les modifications non enregistrées de la configuration du Brain ?",
                 accept: "Accepter",
                 decline: "Refuser",
                 saveAs: "Enregistrer sous",
@@ -258,9 +244,10 @@
                 invalidPosition: "Position invalide",
                 rematchChooseColor: "Choisissez votre couleur pour la revanche :",
                 rematchOfferAgree: "L'adversaire propose une revanche. Accepter ?",
-                rematchColorPreference:
-                    "L'adversaire souhaite jouer les {{offerer}}. Vous joueriez les {{you}}. Accepter ?",
-            },
+                rematchOfferAgreeWithTime: "L'adversaire a proposé une revanche ({{minutes}} min par camp). Accepter?",
+                rematchColorPreference: "L'adversaire souhaite jouer les {{offerer}}. Vous joueriez les {{you}}. Accepter ?",
+                rematchColorPreferenceWithTime: "L'adversaire veut jouer avec {{offerer}} ({{minutes}} min par côté). Vous incarneriez {{you}}. Accepter?"
+            }
         },
         session: {
             engineThinking: "Le moteur réfléchit…",
@@ -276,6 +263,7 @@
             drawOfferDeclined: "Proposition de nulle refusée",
             rematchOfferSent: "Proposition de revanche envoyée",
             rematchOfferDeclined: "Proposition de revanche refusée",
+            rematchUnavailable: "L'adversaire n'est plus disponible pour une revanche",
             drawAgreed: "Nulle convenue",
             rematchAcceptedNoGameId: "Revanche acceptée mais aucun nouvel identifiant de partie",
             rematchOfferAccepted: "Proposition de revanche acceptée",
@@ -286,16 +274,20 @@
             opponentFailedToReconnect: "L'adversaire n'a pas pu se reconnecter",
             gameCancelled: "Partie annulée",
             gameCancelledWithDetail: "Partie annulée — {{detail}}",
+            gameCancelledOpponentLeftBeforeFirstMove: "Partie annulée — L'adversaire est parti avant le premier coup.",
+            gameCancelledReconnectTimeout: "Jeu annulé – Le délai de reconnexion a expiré sans qu'aucun mouvement ne soit joué.",
             waitingForOpponent: "En attente de l'adversaire…",
             couldNotResolveWebSocketUrl: "Impossible de résoudre l'URL WebSocket",
             opponentJoined: "{{name}} a rejoint la partie",
             opponentDefault: "Adversaire",
             connectionError: "Erreur de connexion",
-            playerDisconnectedWaitingRejoin:
-                "{{name}} s'est déconnecté — en attente de reconnexion",
-            playerFailedToReconnectWins:
-                "{{loser}} n'a pas pu se reconnecter — {{winner}} gagne",
-            watcherWaitingForReconnect: "En attente de la reconnexion d'un joueur…",
+            connectionLost: "Connexion perdue : les mouvements n'atteignent pas le serveur",
+            reconnecting: "Reconnexion…",
+            connectionRestored: "Connexion rétablie",
+            flagReported: "Flag — confirmation avec le serveur…",
+            playerDisconnectedWaitingRejoin: "{{name}} s'est déconnecté — en attente de reconnexion",
+            playerFailedToReconnectWins: "{{loser}} n'a pas pu se reconnecter — {{winner}} gagne",
+            watcherWaitingForReconnect: "En attente de la reconnexion d'un joueur…"
         },
         site: {
             confirm: "Confirmer",
@@ -313,7 +305,7 @@
             logOut: "Se déconnecter",
             logIn: "Se connecter",
             admin: "Admin",
-            homeAria: "Accueil",
+            homeAria: "Accueil"
         },
         validation: {
             validEmail: "Veuillez saisir une adresse e-mail valide",
@@ -321,8 +313,8 @@
             chooseUsername: "Veuillez choisir un nom d'utilisateur",
             usernameNotAvailable: "Ce nom d'utilisateur n'est pas disponible",
             passwordNoWhitespace: "Le mot de passe ne doit pas contenir d'espaces.",
-            passwordUppercase: "Le mot de passe doit contenir au moins une majuscule.",
-        },
+            passwordUppercase: "Le mot de passe doit contenir au moins une majuscule."
+        }
     };
 
     if (typeof module === "object" && module && module.exports) {
