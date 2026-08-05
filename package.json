@@ -15,6 +15,7 @@
     "test:coverage": "nyc --concurrency=1 --reporter=html --reporter=text-summary mocha --exit --require ./test/_teardownWorkers.js \"./test/**/*.test.js\"",
     "coverage": "npm run test:coverage",
     "analysis": "npx eslint ./src/**/*.js",
+    "jira": "node scripts/jira.js",
     "i18n:build": "node scripts/i18n-build-en-extra.js && node scripts/i18n-build-he-extra.js",
     "i18n:finish": "node scripts/i18n-finish.js",
     "start": "node ./server.js",
