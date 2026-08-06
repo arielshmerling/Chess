@@ -4906,6 +4906,10 @@
     }
 
     async function beginOnlineRematch(newGameId) {
+        if (newGameId == null || String(newGameId).trim() === "") {
+            showStatus(t("play.status.couldNotStartRematch"), 0, "error");
+            return;
+        }
         if (!Api || typeof Api.post !== "function") {
             showStatus(t("play.status.couldNotStartRematch"), 0, "error");
             return;
@@ -4914,6 +4918,18 @@
             await Api.post("/rematch", { id: newGameId });
         } catch (err) {
             console.warn("[Play] rematch session sync failed:", err);
+        }
+        /*
+         * Prefer a full navigation (same as mobile + manual refresh). In-place
+         * teardown closed the socket while the finished board was still mounted,
+         * so acceptors often kept seeing the previous game until reload.
+         */
+        if (isWebPlayPage() && window.location && typeof window.location.assign === "function") {
+            showStatus(t("play.status.rematchStarted"), 0, "info");
+            window.location.assign(
+                "/play?id=" + encodeURIComponent(String(newGameId)),
+            );
+            return;
         }
         if (playOnlineMode && typeof playOnlineMode.detach === "function") {
             try {
@@ -4925,10 +4941,21 @@
         playOnlineMode = null;
         onlineGameInfo = null;
         disposePlayGameSession();
-        const started = await beginOnlineFromServerId(newGameId);
-        if (started) {
-            clearWebLaunchQueryString({ keepId: true });
-            showStatus(t("play.status.rematchStarted"), 2000, "info");
+        try {
+            const started = await beginOnlineFromServerId(newGameId);
+            if (started) {
+                clearWebLaunchQueryString({ keepId: true });
+                showStatus(t("play.status.rematchStarted"), 2000, "info");
+            } else {
+                showStatus(t("play.status.couldNotStartRematch"), 0, "error");
+            }
+        } catch (err) {
+            console.warn("[Play] rematch reload failed:", err);
+            showStatus(
+                (err && err.message) || t("play.status.couldNotStartRematch"),
+                0,
+                "error",
+            );
         }
     }
 
@@ -6566,14 +6593,15 @@
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
         clearLoadedBookmarkDisplayMoves();
+        /* Always clear the previous match first so a failed/partial load cannot
+           leave the finished board on screen (rematch accept handoff). */
+        game.startNewGame(currentPlayerIsWhite);
         if (info.gameState) {
             const stateStr =
                 typeof info.gameState === "string"
                     ? info.gameState
                     : JSON.stringify(info.gameState);
             game.loadGame(stateStr);
-        } else {
-            game.startNewGame(currentPlayerIsWhite);
         }
         try {
             const movesObj = await Api.get(
@@ -6610,6 +6638,9 @@
         lastCheckNotifySide = null;
         alertMode = false;
         Board.clearArrows();
+        if (Board.resetSquareColors) {
+            Board.resetSquareColors();
+        }
         Board.syncFromGameState();
         if (Board.updateCaptureLists && game.GameState && game.GameState.capturedPiecesList) {
             Board.updateCaptureLists(game.GameState.capturedPiecesList);

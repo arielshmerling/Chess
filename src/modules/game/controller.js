@@ -1407,6 +1407,10 @@ const onRematch = async (e) => {
     });
     newGame.whitePlayer = seats.whitePlayer;
     newGame.blackPlayer = seats.blackPlayer;
+    /* So /gameInfo during rematch handoff always has a real starting position. */
+    if (newGame.chessGame && typeof newGame.chessGame.startNewGame === "function") {
+        newGame.chessGame.startNewGame();
+    }
 
     const gameDoc = await gamesManagerService.storeGameInDB(newGame);
     newGame.gameId = gameDoc.id;
