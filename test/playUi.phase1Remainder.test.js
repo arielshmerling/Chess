@@ -81,6 +81,25 @@ describe("play-ui action buttons policy", function () {
         assert.strictEqual(map.drawBtn, false);
         assert.strictEqual(map.undoBtn, false);
         assert.strictEqual(map.redoBtn, true);
+        assert.strictEqual(map.rematchBtn, true);
+    });
+
+    it("re-enables New game after the active game is over", function () {
+        const map = ActionButtonsPolicy.disabledMap({
+            hasGame: true,
+            playSessionReady: true,
+            gameActive: true,
+            gameOver: true,
+            humanTurn: false,
+            allowUndo: false,
+            canUndoMovePair: false,
+            redoPairAvailable: false,
+            hasMoves: true,
+            canUsePositionSetup: true,
+            canUseBrainConfig: true,
+        });
+        assert.strictEqual(map.rematchBtn, false);
+        assert.strictEqual(map.resignBtn, true);
     });
 
     it("does not disable resign while the board is animating", function () {

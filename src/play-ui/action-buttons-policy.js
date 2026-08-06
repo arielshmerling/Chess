@@ -99,7 +99,9 @@
         out.lastMoveBtn = !s.hasMoves;
         out.flipBtn = !!s.animating;
         out.saveBtn = !s.hasGame || !!s.animating || !!s.dialogOn;
-        out.rematchBtn = !!s.animating || !!s.dialogOn;
+        /* New game / rematch rail slot: never start a fresh game while one is in progress. */
+        out.rematchBtn =
+            (!over && !!s.gameActive) || !!s.animating || !!s.dialogOn;
 
         if (caps) {
             if (caps.resign === false) {

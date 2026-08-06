@@ -7130,6 +7130,10 @@
         if ($("rematchBtn") && $("rematchBtn").disabled) {
             return;
         }
+        if (gameActive && game && !game.GameOver) {
+            showStatus(t("play.status.gameAlreadyInProgress"), 2500, "info");
+            return;
+        }
         if (practiceMode && canDebug) {
             beginPracticeGame();
             return;
