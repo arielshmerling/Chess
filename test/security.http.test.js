@@ -12,6 +12,7 @@ const request = require("supertest");
 const { ensureWebE2EUsers } = require("./helpers/webE2EUser");
 const { loadWebApp, resetWebRateLimits } = require("./helpers/webApp");
 const { Game } = require("../src/modules/game/model");
+const { resolveOnlineWatchHref } = require("../src/play/playPaths");
 
 describe("security HTTP remediations", function () {
     this.timeout(30000);
@@ -239,6 +240,33 @@ describe("security HTTP remediations", function () {
         assert.ok(res.status === 302 || res.status === 401);
         if (res.status === 302) {
             assert.match(String(res.headers.location || ""), /login/i);
+        }
+    });
+
+    it("redirects strangers away from private live /watch without binding session", async function () {
+        const gamesManagerService = require("../src/modules/gamesManager/service");
+        const privateId = "sec02-private-live";
+        const orig = gamesManagerService.getGameById;
+        gamesManagerService.getGameById = function (id) {
+            if (String(id) === privateId) {
+                return {
+                    gameId: privateId,
+                    isPrivate: true,
+                    whitePlayer: { userId: String(primary.id), userName: primary.username },
+                    blackPlayer: { userId: "other-seat", userName: "Opp" },
+                    createdBy: { userId: String(primary.id) },
+                };
+            }
+            return orig.call(this, id);
+        };
+        try {
+            const stranger = await loginAgent(other);
+            const res = await stranger.get("/watch").query({ id: privateId }).redirects(0);
+            assert.strictEqual(res.status, 302);
+            assert.match(String(res.headers.location || ""), /home/i);
+            assert.notStrictEqual(res.headers.location, resolveOnlineWatchHref(privateId));
+        } finally {
+            gamesManagerService.getGameById = orig;
         }
     });
 });

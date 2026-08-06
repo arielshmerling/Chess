@@ -2,7 +2,7 @@
  * Shared Helmet options for web + desktop.
  * Important: do not enable upgrade-insecure-requests on plain HTTP (breaks localhost).
  * Do not put a CSP nonce alone in script-src — it disables 'unsafe-inline' and blocks
- * legacy onclick= handlers used across site pages.
+ * legacy onclick= handlers used across site pages (NFR-SEC-003 / ON-39 SEC-05).
  */
 function buildHelmetOptions(options = {}) {
     const isProd = options.isProd === true;

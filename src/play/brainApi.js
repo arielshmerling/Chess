@@ -25,16 +25,16 @@ function respondEngineError(res, err) {
     }
     if (code === gate.BUSY_KEY) {
         res.set("Retry-After", "2");
-        res.status(429).json({ ok: false, message: err.message });
+        res.status(429).json({ ok: false, code: code, message: err.message });
         return true;
     }
     if (code === gate.BUSY_GLOBAL) {
         res.set("Retry-After", "5");
-        res.status(503).json({ ok: false, message: err.message });
+        res.status(503).json({ ok: false, code: code, message: err.message });
         return true;
     }
     if (code === gate.TIMEOUT) {
-        res.status(504).json({ ok: false, message: err.message });
+        res.status(504).json({ ok: false, code: code, message: err.message });
         return true;
     }
     return false;

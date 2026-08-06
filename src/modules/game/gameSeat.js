@@ -52,7 +52,7 @@ function seatForChannel(game, ws) {
 }
 
 /**
- * Overwrite client identity fields from the socket seat (C3).
+ * Overwrite client identity fields from the socket seat (C3 / SEC-07).
  * Practice may keep client-chosen isWhite (one human plays both colors).
  * @returns {boolean} false if the message must be rejected
  */
@@ -61,6 +61,15 @@ function applySocketMessageIdentity(game, msg, seat) {
         return false;
     }
     const isWhiteSeat = seat === "white";
+    const player = isWhiteSeat ? game.whitePlayer : game.blackPlayer;
+    if (player) {
+        if (player.userId != null) {
+            msg.userId = player.userId;
+        }
+        if (player.userName != null) {
+            msg.username = player.userName;
+        }
+    }
 
     if (typeof game.allowsClientChosenSide === "function" && game.allowsClientChosenSide()) {
         return true;

@@ -7,7 +7,7 @@ const {
     canDeletePersistedGame,
     isLiveGameParticipant,
 } = require("../src/security/gameAccess");
-const { isSameOriginMutatingRequest } = require("../src/security/csrfOrigin");
+const { isSameOriginMutatingRequest, requestHost } = require("../src/security/csrfOrigin");
 const { ROOT_CLIENT_FILES } = require("../src/clientStatic");
 const { buildHelmetOptions } = require("../src/security/helmetOptions");
 
@@ -118,6 +118,27 @@ describe("security helpers", function () {
                     },
                 };
                 assert.strictEqual(isSameOriginMutatingRequest(req), false);
+            } finally {
+                process.env.NODE_ENV = prev;
+            }
+        });
+
+        it("ignores spoofed X-Forwarded-Host that matches a forged Origin", function () {
+            const prev = process.env.NODE_ENV;
+            process.env.NODE_ENV = "production";
+            try {
+                const req = {
+                    method: "POST",
+                    hostname: "example.com",
+                    get: (h) => {
+                        if (h === "x-forwarded-host") return "evil.test";
+                        if (h === "host") return "example.com";
+                        if (h === "origin") return "http://evil.test";
+                        return null;
+                    },
+                };
+                assert.strictEqual(isSameOriginMutatingRequest(req), false);
+                assert.strictEqual(requestHost(req), "example.com");
             } finally {
                 process.env.NODE_ENV = prev;
             }

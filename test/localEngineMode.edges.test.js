@@ -114,4 +114,58 @@ describe("LocalEngineMode edge branches", function () {
         assert.ok(statuses.some((s) => s.kind === "error"));
         session.dispose();
     });
+
+    it("treats session-busy as thinking and retries after abort", async function () {
+        const statuses = [];
+        let computeCalls = 0;
+        let aborted = 0;
+        const fakeEngine = {
+            computeMove: async function () {
+                computeCalls += 1;
+                if (computeCalls === 1) {
+                    const err = new Error(
+                        "An engine search is already running for your session.",
+                    );
+                    err.code = "CONCURRENCY_BUSY_KEY";
+                    throw err;
+                }
+                return {
+                    source: { row: 1, col: 4 },
+                    target: { row: 3, col: 4 },
+                };
+            },
+            abortSearch() {
+                aborted += 1;
+            },
+        };
+        const session = GameSession.create({
+            game: silentGame(),
+            humanIsWhite: true,
+            engine: fakeEngine,
+            meta: { engine: "brain43" },
+        });
+        const mode = LocalEngineMode.create({
+            autoRunOnAttach: false,
+            onStatus(msg, kind) {
+                statuses.push({ msg, kind });
+            },
+        });
+        session.attachMode(mode);
+        session.start();
+        session.playMove({ source: { row: 6, col: 4 }, target: { row: 4, col: 4 } });
+        await new Promise((r) => setTimeout(r, 500));
+        assert.ok(aborted >= 1);
+        assert.ok(computeCalls >= 2);
+        assert.ok(
+            !statuses.some(
+                (s) =>
+                    s.kind === "error" &&
+                    String(s.msg).indexOf("already running") !== -1,
+            ),
+            "busy message should not surface as an error",
+        );
+        assert.ok(statuses.some((s) => s.kind === "info"));
+        mode.detach();
+        session.dispose();
+    });
 });

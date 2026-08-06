@@ -1,6 +1,21 @@
-
 const { MessageProcessor } = require("./MessageProcessor");
 const gameClocks = require("./gameClocks");
+
+/**
+ * Classic load-game / review may push board state; live in-progress play must not.
+ * @param {{ mode?: string, status?: string }} game
+ * @returns {boolean}
+ */
+function allowsClientSetState(game) {
+    if (!game) {
+        return false;
+    }
+    if (game.mode === "review") {
+        return true;
+    }
+    const status = String(game.status || "").toLowerCase();
+    return status !== "in progress" && status !== "game over";
+}
 
 class SinglePlayerMessageProcessor extends MessageProcessor {
     async onInfoReceived(game, msg) {
@@ -62,7 +77,11 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
                 }
                 break;
             case "clockSync":
-                if (typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number") {
+                /* SEC-08: prefer authoritative server clocks when present. */
+                if (typeof game.clockWhiteSec === "number" && typeof game.clockBlackSec === "number"
+                    && Number.isFinite(game.clockWhiteSec) && Number.isFinite(game.clockBlackSec)) {
+                    game.sendClockSyncToWatchers(game.clockWhiteSec, game.clockBlackSec);
+                } else if (typeof msg.whiteTimer === "number" && typeof msg.blackTimer === "number") {
                     game.sendClockSyncToWatchers(msg.whiteTimer, msg.blackTimer);
                 }
                 break;
@@ -86,6 +105,10 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
 
     onCommandReceived(game, msg) {
         if (msg.info == "setState") {
+            /* SEC-08: do not rewrite an in-progress watched SP game via client setState. */
+            if (!allowsClientSetState(game)) {
+                return;
+            }
             const state = msg.data;
             game.load(state);
             return;
@@ -157,4 +180,4 @@ class SinglePlayerMessageProcessor extends MessageProcessor {
 }
 
 
-module.exports = { SinglePlayerMessageProcessor };
+module.exports = { SinglePlayerMessageProcessor, allowsClientSetState };

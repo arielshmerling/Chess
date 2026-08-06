@@ -1,11 +1,77 @@
 /**
  * CSRF mitigation for cookie-session apps: require same-origin Origin or Referer
  * on state-changing requests. Complements SameSite=lax cookies.
+ *
+ * SEC-04: Never trust a client-supplied X-Forwarded-Host as the expected host.
+ * Prefer Express req.hostname (respects trust proxy) and optional ALLOWED_HOST(S).
  */
 
+/**
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
 function requestHost(req) {
-    const raw = req.get("x-forwarded-host") || req.get("host") || "";
-    return String(raw).split(",")[0].trim().toLowerCase();
+    const allowed = allowedHostsFromEnv();
+    if (allowed.length === 1) {
+        return allowed[0];
+    }
+
+    const hostname = req && typeof req.hostname === "string" ? req.hostname.trim().toLowerCase() : "";
+    if (hostname) {
+        if (allowed.length && !hostMatchesAllowlist(hostname, allowed)) {
+            return "";
+        }
+        const port = requestPort(req);
+        return port ? hostname + ":" + port : hostname;
+    }
+
+    /* Last resort: Host header only — never X-Forwarded-Host alone. */
+    const raw = (req && req.get && req.get("host")) || "";
+    const host = String(raw).split(",")[0].trim().toLowerCase();
+    if (allowed.length && host && !hostMatchesAllowlist(host.split(":")[0], allowed)) {
+        return "";
+    }
+    return host;
+}
+
+/**
+ * @returns {string[]}
+ */
+function allowedHostsFromEnv() {
+    const raw = process.env.ALLOWED_HOSTS || process.env.ALLOWED_HOST || "";
+    return String(raw)
+        .split(",")
+        .map(function (h) {
+            return h.trim().toLowerCase();
+        })
+        .filter(Boolean);
+}
+
+/**
+ * @param {string} hostname Host without port, or host:port.
+ * @param {string[]} allowed
+ * @returns {boolean}
+ */
+function hostMatchesAllowlist(hostname, allowed) {
+    const bare = String(hostname).split(":")[0].toLowerCase();
+    return allowed.some(function (entry) {
+        const entryBare = entry.split(":")[0];
+        return entry === hostname || entryBare === bare || entry === bare;
+    });
+}
+
+/**
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
+function requestPort(req) {
+    const hostHeader = (req && req.get && req.get("host")) || "";
+    const fromHeader = String(hostHeader).split(",")[0].trim();
+    const colon = fromHeader.lastIndexOf(":");
+    if (colon > 0 && fromHeader.indexOf("]") < colon) {
+        return fromHeader.slice(colon + 1);
+    }
+    return "";
 }
 
 function originHost(originHeader) {
@@ -71,4 +137,5 @@ function csrfSameOrigin(req, res, next) {
 module.exports = {
     csrfSameOrigin,
     isSameOriginMutatingRequest,
+    requestHost,
 };

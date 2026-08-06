@@ -17,6 +17,26 @@
     }
 
     /**
+     * True when this session already has an engine search in flight (e.g. page
+     * refreshed while the previous request was still thinking).
+     *
+     * @param {*} err
+     * @returns {boolean}
+     */
+    function isEngineSessionBusyError(err) {
+        if (!err) {
+            return false;
+        }
+        if (err.code === "CONCURRENCY_BUSY_KEY") {
+            return true;
+        }
+        return (
+            String(err.message || "") ===
+            "An engine search is already running for your session."
+        );
+    }
+
+    /**
      * Whether the shell may start an engine turn right now.
      *
      * @param {object} state
@@ -151,6 +171,7 @@
 
     const EngineTurn = {
         isSearchAbortedError: isSearchAbortedError,
+        isEngineSessionBusyError: isEngineSessionBusyError,
         canStartTurn: canStartTurn,
         buildComputeArgs: buildComputeArgs,
         decideAfterCompute: decideAfterCompute,

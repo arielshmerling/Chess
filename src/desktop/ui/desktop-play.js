@@ -5383,7 +5383,7 @@
         tryLogCompletedGame();
     }
 
-    async function runEngineMove() {
+    async function runEngineMove(busyRetriesLeft) {
         const gs = ensurePlayGameSession();
         if (gs && playLocalEngineMode && typeof playLocalEngineMode.maybeRunEngine === "function") {
             if (
@@ -5496,6 +5496,26 @@
             }
         } catch (err) {
             if (EngineTurn.isSearchAbortedError(err) || game.GameOver) {
+                return;
+            }
+            if (EngineTurn.isEngineSessionBusyError(err)) {
+                showStatus(t("play.status.engineThinking"), 0, "info");
+                if (Engine && typeof Engine.abortSearch === "function") {
+                    try {
+                        await Engine.abortSearch();
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                const retriesLeft =
+                    typeof busyRetriesLeft === "number" ? busyRetriesLeft : 3;
+                if (retriesLeft > 0) {
+                    setTimeout(function () {
+                        if (!game.GameOver && isAiTurn()) {
+                            runEngineMove(retriesLeft - 1);
+                        }
+                    }, 300);
+                }
                 return;
             }
             console.error(err);

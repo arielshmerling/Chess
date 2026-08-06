@@ -51,4 +51,32 @@ describe("adapters brainHttp", function () {
         });
         assert.strictEqual(await port.computeMove({}), null);
     });
+
+    it("preserves status and code on failed responses", async function () {
+        const originalFetch = global.fetch;
+        global.fetch = async function () {
+            return {
+                ok: false,
+                status: 429,
+                statusText: "Too Many Requests",
+                json: async function () {
+                    return {
+                        ok: false,
+                        code: "CONCURRENCY_BUSY_KEY",
+                        message: "An engine search is already running for your session.",
+                    };
+                },
+            };
+        };
+        try {
+            await BrainHttp.defaultPostJson("/api/brain/compute-move", {});
+            assert.fail("expected throw");
+        } catch (err) {
+            assert.strictEqual(err.status, 429);
+            assert.strictEqual(err.code, "CONCURRENCY_BUSY_KEY");
+            assert.ok(String(err.message).indexOf("already running") !== -1);
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
 });

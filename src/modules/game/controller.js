@@ -199,24 +199,27 @@ exports.reviewMobile = catchAsync(async (req, res) => {
 exports.watchGame = catchAsync(async (req, res) => {
     //validate(req.query, "review");
     const { id } = req.query;
-    req.session.gameId = id;
     const game = gamesManagerService.getGameById(id);
-    if (game != null) {
-        req.session.gameId = game.gameId;
-        if (!userAgentLooksMobile(req) || req.query.desktop === "1") {
-            return res.redirect(302, resolveOnlineWatchHref(game.gameId));
+    if (game == null) {
+        return res.redirect("/home");
+    }
+    /* NFR-SEC-010 / SEC-02: do not bind session or redirect before access check. */
+    if (!canReadLiveGame(game, req.session)) {
+        if (req.session) {
+            req.session.gameId = null;
         }
-        setGamePageNoCache(res);
-        /* Mobile watch uses the mobile-game shell + OnlineMode (watcher). */
-        return res.render(PLAY_VIEW_MOBILE, {
-            gameId: game.gameId,
-            hideTopbar: true,
-        });
-
+        return res.redirect("/home");
     }
-    else {
-        res.redirect("Home");
+    req.session.gameId = game.gameId;
+    if (!userAgentLooksMobile(req) || req.query.desktop === "1") {
+        return res.redirect(302, resolveOnlineWatchHref(game.gameId));
     }
+    setGamePageNoCache(res);
+    /* Mobile watch uses the mobile-game shell + OnlineMode (watcher). */
+    return res.render(PLAY_VIEW_MOBILE, {
+        gameId: game.gameId,
+        hideTopbar: true,
+    });
 });
 
 exports.getGameInfo = catchAsync(async (req, res) => {

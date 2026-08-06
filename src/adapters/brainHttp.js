@@ -19,7 +19,12 @@
         if (!response.ok) {
             const message =
                 (body && body.message) || response.statusText || "Engine request failed";
-            throw new Error(message);
+            const err = new Error(message);
+            err.status = response.status;
+            if (body && body.code) {
+                err.code = body.code;
+            }
+            throw err;
         }
         return body;
     }

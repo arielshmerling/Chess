@@ -225,6 +225,16 @@ app.ws("/ws", async (ws, req) => {
         return;
     }
 
+    /* SEC-06 / NFR-SEC-010: reject unauthenticated sockets at upgrade. */
+    if (!(req.session && req.session.user_id)) {
+        try {
+            ws.close();
+        } catch {
+            /* ignore */
+        }
+        return;
+    }
+
     ws.on("message", async (recivedData) => {
         try {
             const msg = JSON.parse(recivedData);

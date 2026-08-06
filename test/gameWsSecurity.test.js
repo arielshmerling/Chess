@@ -46,6 +46,25 @@ describe("gameSeat (C1/C2 helpers)", function () {
         assert.strictEqual(msg.isWhite, false);
     });
 
+    it("overwrites chat userId and username from the seated player", function () {
+        const game = {
+            whitePlayer: { userId: "uid-w", userName: "WhitePlayer" },
+            blackPlayer: { userId: "uid-b", userName: "BlackPlayer" },
+        };
+        const msg = {
+            type: "info",
+            info: "chat",
+            userId: "forged-id",
+            username: "Impostor",
+            isWhite: true,
+            data: "hi",
+        };
+        assert.strictEqual(applySocketMessageIdentity(game, msg, "black"), true);
+        assert.strictEqual(msg.isWhite, false);
+        assert.strictEqual(msg.userId, "uid-b");
+        assert.strictEqual(msg.username, "BlackPlayer");
+    });
+
     it("maps clientEngineMove to the AI side", function () {
         const game = {};
         const msg = { type: "cmd", info: "clientEngineMove", isWhite: false, data: {} };

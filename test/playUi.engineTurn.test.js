@@ -12,6 +12,27 @@ describe("play-ui engine turn policy", function () {
         });
     });
 
+    describe("isEngineSessionBusyError", function () {
+        it("recognizes concurrency busy-key by code or message", function () {
+            assert.ok(
+                EngineTurn.isEngineSessionBusyError({ code: "CONCURRENCY_BUSY_KEY" }),
+            );
+            assert.ok(
+                EngineTurn.isEngineSessionBusyError({
+                    message: "An engine search is already running for your session.",
+                }),
+            );
+            assert.ok(
+                !EngineTurn.isEngineSessionBusyError({
+                    code: "CONCURRENCY_BUSY_GLOBAL",
+                    message: "The engine is busy. Try again in a moment.",
+                }),
+            );
+            assert.ok(!EngineTurn.isEngineSessionBusyError({ message: "boom" }));
+            assert.ok(!EngineTurn.isEngineSessionBusyError(null));
+        });
+    });
+
     describe("canStartTurn", function () {
         it("requires game, session, engine, and an AI turn", function () {
             assert.ok(

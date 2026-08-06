@@ -106,6 +106,7 @@ describe("brainApi handlers", function () {
             await brainApi.computeMove(fakeReq({ gameState: {} }), busyRes, rethrow);
             assert.strictEqual(busyRes.statusCode, 429);
             assert.strictEqual(busyRes.payload.ok, false);
+            assert.strictEqual(busyRes.payload.code, "CONCURRENCY_BUSY_KEY");
             assert.strictEqual(busyRes.headers["retry-after"], "2");
 
             pending.resolve({ source: {}, target: {} });

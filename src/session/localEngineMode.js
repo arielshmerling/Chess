@@ -132,7 +132,7 @@
             }
         }
 
-        async function maybeRunEngine(reason) {
+        async function maybeRunEngine(reason, busyRetriesLeft) {
             if (!session || !session.isActive() || !session.isAiTurn()) {
                 return;
             }
@@ -155,6 +155,8 @@
                 return;
             }
 
+            const retriesLeft =
+                typeof busyRetriesLeft === "number" ? busyRetriesLeft : 3;
             const token = ++runToken;
             thinking = true;
             session.emit("statusChanged", "engineThinking");
@@ -219,6 +221,36 @@
                 }
                 if (game.GameOver) {
                     return;
+                }
+                /*
+                 * Refresh mid-search leaves the previous HTTP search holding the
+                 * concurrency gate. Keep the normal thinking status, abort the
+                 * orphan, and retry instead of flashing a raw busy error.
+                 */
+                if (
+                    policy.isEngineSessionBusyError &&
+                    policy.isEngineSessionBusyError(err) &&
+                    retriesLeft > 0
+                ) {
+                    status(t("session.engineThinking"), "info");
+                    try {
+                        if (engine && typeof engine.abortSearch === "function") {
+                            await engine.abortSearch();
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                    if (token !== runToken || !session.isActive()) {
+                        return;
+                    }
+                    thinking = false;
+                    await new Promise(function (resolve) {
+                        setTimeout(resolve, 300);
+                    });
+                    if (token !== runToken || !session.isActive()) {
+                        return;
+                    }
+                    return maybeRunEngine(reason || "retryAfterBusy", retriesLeft - 1);
                 }
                 const message = (err && err.message) || t("session.engineError");
                 status(message, "error");

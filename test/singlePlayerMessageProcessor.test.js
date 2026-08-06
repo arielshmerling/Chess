@@ -134,6 +134,7 @@ describe("SinglePlayerMessageProcessor", function () {
     it("setState and clientEngineMove commands", async function () {
         let loaded = null;
         const game = fakeGame({
+            status: "waiting",
             load(s) {
                 loaded = s;
             },
@@ -153,6 +154,31 @@ describe("SinglePlayerMessageProcessor", function () {
             blackTimer: 8,
         });
         assert.ok(game.startedOn);
+    });
+
+    it("rejects setState while the SP game is in progress", function () {
+        let loaded = null;
+        const game = fakeGame({
+            status: "in progress",
+            load(s) {
+                loaded = s;
+            },
+        });
+        proc.onCommandReceived(game, { info: "setState", data: { turn: "black" } });
+        assert.strictEqual(loaded, null);
+    });
+
+    it("clockSync prefers server clocks when present", async function () {
+        let clockArgs = null;
+        const game = fakeGame({
+            clockWhiteSec: 40,
+            clockBlackSec: 50,
+            sendClockSyncToWatchers(w, b) {
+                clockArgs = [w, b];
+            },
+        });
+        await proc.onInfoReceived(game, { info: "clockSync", whiteTimer: 1, blackTimer: 2 });
+        assert.deepStrictEqual(clockArgs, [40, 50]);
     });
 
     it("onMoveReceived validates and may request brain", async function () {
