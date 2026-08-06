@@ -160,7 +160,7 @@
             if (typeof global.animateMove === "function") {
                 try {
                     await global.animateMove(adjusted, { skipFinalSync: true });
-                } catch (animErr) {
+                } catch {
                     /* Apply move even if animation cannot run (missing img, etc.). */
                 }
             }

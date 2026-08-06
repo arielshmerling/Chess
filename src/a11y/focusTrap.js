@@ -6,8 +6,8 @@
     "use strict";
 
     var FOCUSABLE =
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
-        'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), " +
+        "textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
 
     function isVisible(el) {
         if (!el || el.disabled) {
@@ -94,7 +94,7 @@
             }
             try {
                 initial.focus();
-            } catch (err) {
+            } catch {
                 /* ignore */
             }
         }
@@ -112,7 +112,7 @@
                 ) {
                     try {
                         previouslyFocused.focus();
-                    } catch (err) {
+                    } catch {
                         /* ignore */
                     }
                 }

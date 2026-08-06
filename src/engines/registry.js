@@ -252,7 +252,7 @@ function resolveUciCommand(def, env) {
         // Allow any filename; strip accidental quotes from Windows env editors.
         let cleaned = fromEnv;
         if (
-            (cleaned.charAt(0) === '"' && cleaned.charAt(cleaned.length - 1) === '"')
+            (cleaned.charAt(0) === "\"" && cleaned.charAt(cleaned.length - 1) === "\"")
             || (cleaned.charAt(0) === "'" && cleaned.charAt(cleaned.length - 1) === "'")
         ) {
             cleaned = cleaned.slice(1, -1).trim();

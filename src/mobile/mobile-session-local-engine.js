@@ -190,7 +190,7 @@
         if (typeof global.sendMove === "function") {
             originalSendMove = global.sendMove;
             wrappedSendMove = true;
-            global.sendMove = async function (moveObj) {
+            global.sendMove = async function () {
                 const result = await originalSendMove.apply(this, arguments);
                 Promise.resolve().then(runEngineAfterHumanMove);
                 return result;
@@ -244,7 +244,7 @@
             if (typeof global.animateMove === "function") {
                 try {
                     await global.animateMove(move, { skipFinalSync: true });
-                } catch (animErr) {
+                } catch {
                     /* Apply move even if animation cannot run (missing img, etc.). */
                 }
             }

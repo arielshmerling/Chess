@@ -272,7 +272,7 @@
             });
         }
 
-        function onStarted(sess) {
+        function onStarted() {
             if (opts.autoRunOnAttach === false) {
                 return;
             }
@@ -281,7 +281,7 @@
             });
         }
 
-        function onLoaded(sess) {
+        function onLoaded() {
             if (opts.autoRunOnAttach === false) {
                 return;
             }

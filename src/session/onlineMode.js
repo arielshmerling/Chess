@@ -113,7 +113,7 @@
         /** Serialize async inbound handling so watch/online animations cannot race. */
         let inboundChain = Promise.resolve();
         let humanIsWhite = opts.humanIsWhite !== false;
-        let watcher = opts.watcher === true;
+        const watcher = opts.watcher === true;
         const modeId = watcher
             ? (contracts.MODE_IDS && contracts.MODE_IDS.WATCH) || "watch"
             : (contracts.MODE_IDS && contracts.MODE_IDS.ONLINE) || "online";
@@ -927,7 +927,7 @@
                 status(t("session.reconnecting"), "info");
                 try {
                     ensureConnected();
-                } catch (err) {
+                } catch {
                     scheduleReconnect();
                 }
             }, delayMs);

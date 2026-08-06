@@ -656,7 +656,7 @@
             on: function (event, handler) {
                 return bus.on(event, handler);
             },
-            emit: function (event) {
+            emit: function () {
                 if (disposed) {
                     return;
                 }
