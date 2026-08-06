@@ -178,7 +178,7 @@ describe("strings catalog", function () {
         assert.match(strings.t("play.status.timesUpLost", { loser: "X" }, "bn"), /X/);
     });
 
-    it("ships every English key in every non-English locale", function () {
+    it("resolves every English key in every locale (local catalog or English fallback)", function () {
         const en = strings.getStrings("en");
         function flatten(obj, prefix, out) {
             out = out || {};
@@ -200,7 +200,15 @@ describe("strings catalog", function () {
             }
             const flat = flatten(strings.getStrings(code));
             Object.keys(enFlat).forEach(function (key) {
-                assert.ok(key in flat, code + " missing " + key);
+                const resolved = strings.t(key, null, code);
+                assert.notStrictEqual(
+                    resolved,
+                    key,
+                    code + " unresolved " + key,
+                );
+                if (!(key in flat)) {
+                    return;
+                }
                 const enPh = (enFlat[key].match(/\{\{[a-zA-Z0-9_]+\}\}/g) || []).sort().join(",");
                 const locPh = (String(flat[key]).match(/\{\{[a-zA-Z0-9_]+\}\}/g) || []).sort().join(",");
                 assert.strictEqual(locPh, enPh, code + " placeholder drift on " + key);

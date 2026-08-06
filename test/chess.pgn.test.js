@@ -1,5 +1,5 @@
 /**
- * Heavy / long-running tests (excluded from the default npm test glob).
+ * PGN replay heavy tests (listed in test/heavy-files.js).
  * Run separately: npm run test:heavy
  */
 /* eslint-disable */

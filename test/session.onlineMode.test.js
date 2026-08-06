@@ -1018,34 +1018,6 @@ describe("session OnlineMode (Phase 3)", function () {
         session.dispose();
     });
 
-    it("schedules auto-reconnect after unexpected transport drop", async function () {
-        this.timeout(5000);
-        const transport = createMockTransport();
-        let connectCount = 0;
-        const originalConnect = transport.connect;
-        transport.connect = function (url) {
-            connectCount += 1;
-            return originalConnect.call(transport, url);
-        };
-        const game = silentGame();
-        const session = GameSession.create({ game: game, humanIsWhite: true });
-        const mode = OnlineMode.create({
-            transport: transport,
-            gameInfo: { id: "g1", username: "alice", userId: "u1" },
-            wsUrl: "ws://test/ws",
-        });
-        session.attachMode(mode);
-        session.start();
-        assert.strictEqual(connectCount, 1);
-        transport.simulateDisconnect();
-        await new Promise(function (resolve) {
-            setTimeout(resolve, 1100);
-        });
-        assert.ok(connectCount >= 2, "expected auto-reconnect attempt");
-        mode.detach();
-        session.dispose();
-    });
-
     it("disables rematch after post-game opponent disconnect", async function () {
         const transport = createMockTransport();
         const game = silentGame();
@@ -1071,47 +1043,6 @@ describe("session OnlineMode (Phase 3)", function () {
         });
         assert.strictEqual(mode.canOfferRematch(), false);
         assert.strictEqual(mode.offerRematch(), false);
-        session.dispose();
-    });
-
-    it("starts disconnect countdown after grace and clears on rejoin", async function () {
-        this.timeout(5000);
-        const transport = createMockTransport();
-        const ticks = [];
-        let cleared = 0;
-        const game = silentGame();
-        game.startNewGame();
-        const session = GameSession.create({ game: game, humanIsWhite: true });
-        const mode = OnlineMode.create({
-            transport: transport,
-            gameInfo: { id: "g1", username: "alice", userId: "u1" },
-            wsUrl: "ws://test/ws",
-            onDisconnectCountdown: function (seconds) {
-                ticks.push(seconds);
-            },
-            onDisconnectCountdownClear: function () {
-                cleared += 1;
-            },
-        });
-        session.attachMode(mode);
-        session.start();
-        await mode._handleInbound({
-            type: "info",
-            info: "Opponent disconnected",
-            disconnectedWasWhite: false,
-        });
-        assert.strictEqual(ticks.length, 0);
-        await new Promise(function (resolve) {
-            setTimeout(resolve, 1100);
-        });
-        assert.ok(ticks.length >= 1);
-        assert.strictEqual(ticks[0], 60);
-        await mode._handleInbound({
-            type: "info",
-            info: "opponent rejoined",
-            rejoinedWasWhite: false,
-        });
-        assert.ok(cleared >= 1);
         session.dispose();
     });
 

@@ -1,21 +1,17 @@
 // @ts-check
 const { test, expect } = require("@playwright/test");
+const {
+    loginAsMember,
+    MEMBER_USERNAME,
+    MEMBER_PASSWORD,
+    submitCredentials,
+} = require("./helpers/auth");
 
-const username = process.env.E2E_USERNAME || "e2e_web_member";
-const password = process.env.E2E_PASSWORD || "E2eTestPass!123";
-
-async function submitCredentials(page, pass) {
-    await page.locator("#username").fill(username);
-    await page.locator("#loginNext").click();
-    await expect(page.locator("#password")).toBeVisible();
-    await page.locator("#password").fill(pass);
-    await page.locator("#loginNext").click();
-}
+const username = MEMBER_USERNAME;
+const password = MEMBER_PASSWORD;
 
 async function login(page) {
-    await page.goto("/login");
-    await submitCredentials(page, password);
-    await expect(page).toHaveURL(/\/home/i);
+    await loginAsMember(page);
 }
 
 async function startPlayNowGame(page, { color = "white", engine = null } = {}) {
@@ -56,7 +52,7 @@ test.describe("web smoke", () => {
 
     test("wrong password shows Sorry then returns to Who are you", async ({ page }) => {
         await page.goto("/login");
-        await submitCredentials(page, "wrong-password");
+        await submitCredentials(page, username, "wrong-password");
 
         await expect(page.locator("#loginPrompt")).toHaveText(/Sorry/i, { timeout: 10_000 });
         await expect(page).toHaveURL(/\/login/);
@@ -79,7 +75,7 @@ test.describe("web smoke", () => {
         await page.goto("/friends");
         await expect(page).toHaveURL(/\/login/);
 
-        await submitCredentials(page, password);
+        await submitCredentials(page, username, password);
 
         await expect(page).toHaveURL(/\/friends/);
         await expect(page.locator("#friendSearchInput")).toBeVisible();
@@ -199,7 +195,9 @@ test.describe("web smoke", () => {
 
         const whiteClock = page.locator("#whiteClockTimeText");
         const blackClock = page.locator("#blackClockTimeText");
-        await expect(whiteClock).toHaveText(/^\d{2}:\d{2}:\d{2}$/, { timeout: 15_000 });
+        /* Clocks may briefly show 00:00:00 before the game timer is applied. */
+        await expect(whiteClock).toHaveText(/^01:\d{2}:\d{2}$/, { timeout: 15_000 });
+        await expect(blackClock).toHaveText(/^01:\d{2}:\d{2}$/, { timeout: 15_000 });
         const startWhite = await whiteClock.textContent();
         const startBlack = await blackClock.textContent();
 

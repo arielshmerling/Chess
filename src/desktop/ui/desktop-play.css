@@ -671,6 +671,8 @@ html[dir="rtl"] .desktop-play-workspace {
 .desktop-play-moves-body .desktop-play-moves-list {
   flex: 1;
   min-height: 0;
+  /* Notation columns stay LTR even when the dock is RTL (e.g. Hebrew). */
+  direction: ltr;
 }
 
 .desktop-play-review-nav {
@@ -682,6 +684,8 @@ html[dir="rtl"] .desktop-play-workspace {
   padding: 0.35rem 0.4rem;
   background: var(--moves-dock-title-background, var(--moves-panel-bg, #354c69));
   border-top: 1px solid var(--desktop-play-dock-border);
+  /* Start / prev / next / end stay LTR even when the dock is RTL. */
+  direction: ltr;
 }
 
 .desktop-play-review-nav[hidden] {

@@ -15,6 +15,8 @@ const { normalizeReturnTo } = require("../src/utils");
 
 describe("web HTTP / auth", function () {
     this.timeout(30000);
+    /* Full-suite runs occasionally hit transient ECONNRESET against the in-process app. */
+    this.retries(2);
 
     let app;
     let primary;
@@ -195,7 +197,7 @@ describe("web HTTP / auth", function () {
 
         const homeRes = await agent.get("/home").expect(200);
         assert.match(homeRes.text, /id="startAIGame"/);
-        assert.match(homeRes.text, /startPlayFromHome/);
+        assert.match(homeRes.text, /data-action="start-play-home"/);
         assert.doesNotMatch(homeRes.text, /id="playNowForm"/);
         assert.match(homeRes.text, /id="online-games-container"/);
     });

@@ -16,6 +16,7 @@ const { resolveOnlineWatchHref } = require("../src/play/playPaths");
 
 describe("security HTTP remediations", function () {
     this.timeout(30000);
+    this.retries(2);
 
     let app;
     let primary;

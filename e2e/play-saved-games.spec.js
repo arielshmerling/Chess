@@ -1,19 +1,13 @@
 // @ts-check
 const { test, expect } = require("@playwright/test");
+const { loginAsPartner } = require("./helpers/auth");
 
 /**
  * The saved games sidebar is only shown to Admin and Partner users, so the
  * member-based smoke suite never reaches it.
  */
-const username = process.env.E2E_PARTNER_USERNAME || "e2e_web_partner";
-const password = process.env.E2E_PARTNER_PASSWORD || "E2eTestPass!123";
-
 async function login(page) {
-    await page.goto("/login");
-    await page.locator("#username").fill(username);
-    await page.locator("#password").fill(password);
-    await page.locator('form[action="/login"] button').click();
-    await expect(page).toHaveURL(/\/home/i);
+    await loginAsPartner(page);
 }
 
 async function startGameAsWhite(page) {

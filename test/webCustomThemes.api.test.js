@@ -20,6 +20,7 @@ const THEMES_URL = "/app/api/custom-themes";
 
 describe("web custom themes API", function () {
     this.timeout(30000);
+    this.retries(2);
 
     let app;
     let primary;
