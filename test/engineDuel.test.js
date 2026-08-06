@@ -38,6 +38,28 @@ describe("engine duel", function () {
         assert.strictEqual(game.blackPlayer.userName, "Stockfish");
         assert.strictEqual(game.createdBy.userName, "AdminUser");
         assert.strictEqual(game.init(), false);
+
+        game.startServerClocks = () => {};
+        const events = [];
+        game.raiseEvent = async (ev, payload) => {
+            events.push({ ev, payload });
+        };
+        game.startDuelBoard();
+        assert.strictEqual(game.status, "in progress");
+        assert.ok(events.length >= 1);
+        game.requestAbort();
+        assert.strictEqual(game.isAbortRequested(), true);
+    });
+
+    it("defaults engine seat labels when omitted", function () {
+        const game = new EngineDuelGame({ options: {} }, new Player("a", "A"), "play");
+        assert.strictEqual(game.whitePlayer.userName, "White engine");
+        assert.strictEqual(game.blackPlayer.userName, "Black engine");
+    });
+
+    it("message processor no-ops processMessage", async function () {
+        const game = new EngineDuelGame({ options: {} }, new Player("a", "A"), "play");
+        await game.messageProcessor.processMessage();
     });
 
     it("GameFactory creates EngineDuelGame", function () {

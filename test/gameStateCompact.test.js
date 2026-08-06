@@ -111,4 +111,56 @@ describe("gameStateCompact", function () {
             /missing board array/,
         );
     });
+
+    it("rejects invalid cell color and encoding bytes", function () {
+        assert.throws(() => encodeBoardCell({ color: "green", pieceType: 1 }), /invalid piece color/);
+        assert.throws(() => decodeBoardCell(7), /invalid board cell/);
+        assert.throws(() => decodeBoardCell(15), /invalid board cell/);
+    });
+
+    it("rejects bad magic and truncated buffers", function () {
+        const {
+            decodeBufferToSavedGameStateString,
+        } = require("../src/gameStateCompact");
+        assert.throws(() => decodeBufferToSavedGameStateString(Buffer.from([1, 2])), /too small/);
+        assert.throws(() => decodeBufferToSavedGameStateString(Buffer.from([0, 0, 0])), /bad magic/);
+        assert.throws(
+            () => encodeSavedGameStateStringToBuffer(JSON.stringify({ board: [[]] })),
+            /board must have 8 rows/,
+        );
+    });
+
+    it("decodes legacy v1 compact buffers", function () {
+        const {
+            encodeBoardCell,
+            decodeBufferToSavedGameStateString,
+        } = require("../src/gameStateCompact");
+        const parts = [Buffer.from([0x53, 0x43, 0x01])];
+        const boardBuf = Buffer.alloc(64);
+        for (let i = 0; i < 64; i++) {
+            boardBuf[i] = 0;
+        }
+        boardBuf[4] = encodeBoardCell({ color: "black", pieceType: 1 });
+        boardBuf[60] = encodeBoardCell({ color: "white", pieceType: 1 });
+        parts.push(boardBuf);
+        parts.push(Buffer.from([0x03, 0x05])); /* turn black + whitePlayerView; some castling */
+        function u32str(s) {
+            const b = Buffer.from(s, "utf8");
+            const len = Buffer.alloc(4);
+            len.writeUInt32BE(b.length);
+            return Buffer.concat([len, b]);
+        }
+        parts.push(u32str("stalemate"));
+        parts.push(u32str(""));
+        parts.push(u32str(""));
+        const extLen = Buffer.alloc(4);
+        extLen.writeUInt32BE(0);
+        parts.push(extLen);
+        const buf = Buffer.concat(parts);
+        const decoded = JSON.parse(decodeBufferToSavedGameStateString(buf));
+        assert.strictEqual(decoded.turn, "black");
+        assert.strictEqual(decoded.drawReason, "stalemate");
+        assert.strictEqual(decoded.whitePlayerView, true);
+        assert.deepStrictEqual(decoded.board[0][4], { color: "black", pieceType: 1 });
+    });
 });
