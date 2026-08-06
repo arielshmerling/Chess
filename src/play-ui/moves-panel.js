@@ -258,11 +258,9 @@
 
     const MovesPanel = {
         moveColor: moveColor,
-        isResultMoveString: isResultMoveString,
         normalizeMoves: normalizeMoves,
         appendResultMove: appendResultMove,
         buildRows: buildRows,
-        highlightSelectedPly: highlightSelectedPly,
         render: render,
     };
 

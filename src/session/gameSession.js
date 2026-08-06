@@ -7,41 +7,15 @@
 (function (global) {
     "use strict";
 
-    function loadEventBus() {
+    function loadLoaders() {
         if (typeof module === "object" && module && module.exports) {
             try {
-                return require("./eventBus");
+                return require("./sessionLoaders");
             } catch {
                 /* fall through */
             }
         }
-        return global.ShmerlingSessionEventBus;
-    }
-
-    function loadCapabilities() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("./capabilities");
-            } catch {
-                /* fall through */
-            }
-        }
-        return null;
-    }
-
-    function loadT() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("../strings/t-bridge").t;
-            } catch {
-                /* fall through */
-            }
-        }
-        return typeof global.ShmerlingT === "function"
-            ? global.ShmerlingT
-            : function (key) {
-                  return key;
-              };
+        return global.ShmerlingSessionLoaders || null;
     }
 
     /**
@@ -60,10 +34,19 @@
             throw new Error("GameSession requires a ChessGame instance");
         }
 
-        const EventBus = opts.eventBus || loadEventBus();
+        const loaders = loadLoaders();
+        const EventBus =
+            opts.eventBus ||
+            (loaders && loaders.loadEventBus && loaders.loadEventBus()) ||
+            global.ShmerlingSessionEventBus;
         const bus = EventBus.create();
-        const capsApi = loadCapabilities();
-        const t = loadT();
+        const capsApi = loaders && loaders.loadCapabilities ? loaders.loadCapabilities() : null;
+        const t =
+            loaders && loaders.loadT
+                ? loaders.loadT()
+                : function (key) {
+                      return key;
+                  };
         let clocks = opts.clocks || null;
 
         let humanIsWhite = opts.humanIsWhite !== false;

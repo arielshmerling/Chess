@@ -19,45 +19,15 @@
         return global.PlayEngineTurn;
     }
 
-    function loadT() {
+    function loadLoaders() {
         if (typeof module === "object" && module && module.exports) {
             try {
-                return require("../strings/t-bridge").t;
+                return require("./sessionLoaders");
             } catch {
                 /* fall through */
             }
         }
-        return typeof global.ShmerlingT === "function" ? global.ShmerlingT : function (key) {
-            return key;
-        };
-    }
-
-    const t = loadT();
-
-    function loadCapabilities() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("./capabilities");
-            } catch {
-                /* fall through */
-            }
-        }
-        return global.ShmerlingSessionCapabilities || null;
-    }
-
-    function loadContracts() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("./contracts");
-            } catch {
-                /* fall through */
-            }
-        }
-        return (
-            global.ShmerlingSessionContracts || {
-                MODE_IDS: { LOCAL_ENGINE: "localEngine" },
-            }
-        );
+        return global.ShmerlingSessionLoaders || null;
     }
 
     /**
@@ -72,8 +42,18 @@
     function create(options) {
         const opts = options || {};
         const policy = opts.policy || loadPolicy();
-        const capsApi = loadCapabilities();
-        const contracts = loadContracts();
+        const loaders = loadLoaders();
+        const t =
+            loaders && loaders.loadT
+                ? loaders.loadT()
+                : function (key) {
+                      return key;
+                  };
+        const capsApi = loaders && loaders.loadCapabilities ? loaders.loadCapabilities() : null;
+        const contracts =
+            loaders && loaders.loadContracts
+                ? loaders.loadContracts({ MODE_IDS: { LOCAL_ENGINE: "localEngine" } })
+                : { MODE_IDS: { LOCAL_ENGINE: "localEngine" } };
         const modeId =
             (contracts.MODE_IDS && contracts.MODE_IDS.LOCAL_ENGINE) || "localEngine";
 

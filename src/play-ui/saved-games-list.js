@@ -301,9 +301,6 @@
     }
 
     const SavedGamesList = {
-        ACTION_ICONS: ACTION_ICONS,
-        createIconButton: createIconButton,
-        createItem: createItem,
         render: render,
         toggleExpanded: toggleExpanded,
         syncSelection: syncSelection,

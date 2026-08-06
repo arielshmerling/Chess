@@ -89,7 +89,6 @@
     }
 
     const ActionRail = {
-        ICONS: ICONS,
         mount: mount,
         setDisabled: setDisabled,
     };

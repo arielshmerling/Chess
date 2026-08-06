@@ -25,8 +25,8 @@
 | Friend invite (join) | `/game?gameType=2&joinGame=` then redirect | `/play?id=` (Play UI) or classic `/game` |
 | Active game reopen | `/play?id=` or `/game?id=` | Play shell OnlineMode or classic |
 | Debug | `/play?mode=practice` (Play Admin/Partner) or `/game?gameType=3` | PracticeMode on Play shell, or classic `/game` |
-| Review | `/review?id=` → Play redirects to `/play?mode=review&id=&type=` | Play shell ReviewMode; classic `game.ejs` / mobile-review fallback |
-| Watch | `/watch?id=` → Play redirects to `/play?id=&mode=watch` | Play shell (watch) or classic `game.ejs` |
+| Review | `/review?id=` → `/play?mode=review&id=&type=` (desktop); `/mobile-review` (mobile) | Play shell ReviewMode; mobile-review shell |
+| Watch | `/watch?id=` → `/play?id=&mode=watch` (desktop); `mobile-game` watcher shell (mobile) | Play shell (watch) or mobile-game watcher |
 | Desktop Electron | `/app/play` | Play shell (local SP) |
 
 **Phase 3 (done for core):** online invite/join/`?id=` for Play UI users → `/play` with `OnlineMode` + `WsTransport`. Classic `/game` remains.

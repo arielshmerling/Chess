@@ -292,29 +292,14 @@
     }
 
     function movePayloadForSpServer(move, source) {
-        if (!move || !game) {
+        if (!move || !game || !SpServerSyncApi || typeof SpServerSyncApi.toServerMovePayload !== "function") {
             return move;
         }
-        const toPayload =
-            SpServerSyncApi && typeof SpServerSyncApi.toServerMovePayload === "function"
-                ? SpServerSyncApi.toServerMovePayload
-                : null;
-        if (toPayload) {
-            return toPayload(move, {
-                source: source || "",
-                whitePlayerView: game.WhitePlayerView,
-                flipMove: typeof game.flipMove === "function" ? game.flipMove.bind(game) : null,
-            });
-        }
-        /* Fallback if older spServerSync bundle is cached without helper. */
-        if (
-            (source || "") === "engine" &&
-            game.WhitePlayerView === false &&
-            typeof game.flipMove === "function"
-        ) {
-            return game.flipMove(Object.assign({}, move, { valid: move.valid !== false }));
-        }
-        return Object.assign({}, move, { valid: move.valid !== false });
+        return SpServerSyncApi.toServerMovePayload(move, {
+            source: source || "",
+            whitePlayerView: game.WhitePlayerView,
+            flipMove: typeof game.flipMove === "function" ? game.flipMove.bind(game) : null,
+        });
     }
 
     function syncSpMoveToServer(executed, source) {
@@ -856,11 +841,6 @@
             thinkingTimeSeconds: next,
             difficulty: next,
         });
-    }
-
-    /** @deprecated */
-    function applySetupDepth(depth) {
-        applySetupThinkingTime(depth);
     }
 
     function applySetupEngine(engine) {

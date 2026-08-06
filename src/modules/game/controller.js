@@ -59,13 +59,9 @@ function setGamePageNoCache(res) {
     res.set("Expires", "0");
 }
 
-/** Desktop play template (unchanged). */
-const PLAY_VIEW_DESKTOP = "game";
-/** Mobile-only play UI — separate EJS + CSS; does not use `game.ejs` or `app.css` game rules. */
+/** Mobile play UI — separate EJS + CSS (`mobile-game.ejs`). */
 const PLAY_VIEW_MOBILE = "mobile-game";
-/** Desktop review uses `game.ejs` (unchanged). */
-const REVIEW_VIEW_DESKTOP = "game";
-/** Mobile-only review — separate EJS like `mobile-game.ejs`. */
+/** Mobile review — separate EJS (`mobile-review.ejs`). */
 const REVIEW_VIEW_MOBILE = "mobile-review";
 
 function userAgentLooksMobile(req) {
@@ -73,34 +69,22 @@ function userAgentLooksMobile(req) {
     return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
 }
 
-function playGameView(req) {
-    return req.playGameView === PLAY_VIEW_MOBILE ? PLAY_VIEW_MOBILE : PLAY_VIEW_DESKTOP;
+function playGameView() {
+    return PLAY_VIEW_MOBILE;
 }
 
 function playGamePath(req) {
-    return req.playGameView === PLAY_VIEW_MOBILE ? "/mobile-game" : "/game";
+    /* Desktop classic `/game` is retired; only mobile still renders via executeStartGame. */
+    return req.playGameView === PLAY_VIEW_MOBILE ? "/mobile-game" : "/play";
 }
 
 /**
- * Renders the active play page (desktop `game` or isolated `mobile-game`).
- * Desktop OnlineGame always redirects to `/play?id=` (classic `/game` UI retired).
+ * Renders the mobile play page (`mobile-game`).
+ * Desktop `/game` never reaches here — it redirects to `/play` in `startGame`.
  */
 function renderPlayGame(req, res, locals) {
     setGamePageNoCache(res);
-    if (
-        req.playGameView !== PLAY_VIEW_MOBILE &&
-        locals &&
-        locals.gameId != null
-    ) {
-        const live = gamesManagerService.getGameById(locals.gameId);
-        if (live && live.constructor && live.constructor.name === "OnlineGame") {
-            return res.redirect(
-                302,
-                "/play?id=" + encodeURIComponent(String(locals.gameId)),
-            );
-        }
-    }
-    res.render(playGameView(req), locals);
+    res.render(playGameView(), locals);
 }
 
 /**
@@ -151,7 +135,7 @@ async function ensureReviewGameLoaded(req) {
 }
 
 /**
- * Loads or creates the review game in session and renders the given view (`game` or `mobile-review`).
+ * Loads or creates the review game in session and renders the given view (`mobile-review`).
  */
 async function executeReview(req, res, viewName) {
     const game = await ensureReviewGameLoaded(req);
@@ -165,30 +149,27 @@ async function executeReview(req, res, viewName) {
 }
 
 /**
- * Review game (desktop `game.ejs`). Mobile user-agents are redirected to `/mobile-review` unless `desktop=1`.
- * Play desktop users are redirected to `/play?mode=review&id=…`.
+ * Review game: desktop → `/play?mode=review`; mobile → `/mobile-review`.
+ * Classic `game.ejs` review UI is retired.
  */
 exports.review = catchAsync(async (req, res) => {
-    if (userAgentLooksMobile(req) && req.query.desktop !== "1") {
+    if (userAgentLooksMobile(req)) {
         const q = req.originalUrl.indexOf("?") >= 0 ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
         return res.redirect(302, "/mobile-review" + q);
     }
-    if (!userAgentLooksMobile(req)) {
-        const game = await ensureReviewGameLoaded(req);
-        if (!game) {
-            return res.redirect("/home");
-        }
-        const qType = req.query.type === "pgn" || req.query.type === "history"
-            ? req.query.type
-            : (game.reviewType === "pgn" || game.reviewType === "history" ? game.reviewType : null);
-        return res.redirect(
-            302,
-            resolveReviewHref(game.gameId != null ? game.gameId : req.query.id, {
-                type: qType,
-            }),
-        );
+    const game = await ensureReviewGameLoaded(req);
+    if (!game) {
+        return res.redirect("/home");
     }
-    await executeReview(req, res, REVIEW_VIEW_DESKTOP);
+    const qType = req.query.type === "pgn" || req.query.type === "history"
+        ? req.query.type
+        : (game.reviewType === "pgn" || game.reviewType === "history" ? game.reviewType : null);
+    return res.redirect(
+        302,
+        resolveReviewHref(game.gameId != null ? game.gameId : req.query.id, {
+            type: qType,
+        }),
+    );
 });
 
 /** Same as `review` but always renders the mobile-only template (no redirect loop). */
@@ -503,8 +484,6 @@ exports.startGame = catchAsync(async (req, res) => {
         }
         return res.redirect(302, resolveGameToPlayHref(req.query));
     }
-    req.playGameView = PLAY_VIEW_DESKTOP;
-    return executeStartGame(req, res);
 });
 
 exports.startGameMobile = catchAsync(async (req, res) => {

@@ -1,8 +1,5 @@
 /**
- * PracticeMode — local self-play / Debug (Phase 6).
- *
- * Both sides are human; no engine and no network. Undo/redo are single-ply
- * (classic PracticeGame), unlike LocalEngineMode's human+engine pairs.
+ * Shared factory for PositionSetupMode / ConfigurationMode (Phase 7 tool docks).
  */
 (function (global) {
     "use strict";
@@ -19,10 +16,16 @@
     }
 
     /**
+     * @param {object} spec
+     * @param {string} spec.modeIdKey - MODE_IDS key (e.g. "POSITION_SETUP")
+     * @param {string} spec.fallbackModeId
+     * @param {string} spec.statusKey - i18n key shown on attach
+     * @param {object} spec.fallbackCaps - caps when capabilities API is missing
      * @param {object} [options]
      * @param {(msg: string, kind?: string) => void} [options.onStatus]
      */
-    function create(options) {
+    function create(spec, options) {
+        const cfg = spec || {};
         const opts = options || {};
         const loaders = loadLoaders();
         const capsApi = loaders && loaders.loadCapabilities ? loaders.loadCapabilities() : null;
@@ -32,12 +35,15 @@
                 : function (key) {
                       return key;
                   };
+        const fallbackContracts = { MODE_IDS: {} };
+        fallbackContracts.MODE_IDS[cfg.modeIdKey] = cfg.fallbackModeId;
         const contracts =
             loaders && loaders.loadContracts
-                ? loaders.loadContracts({ MODE_IDS: { PRACTICE: "practice" } })
-                : { MODE_IDS: { PRACTICE: "practice" } };
+                ? loaders.loadContracts(fallbackContracts)
+                : fallbackContracts;
         const modeId =
-            (contracts.MODE_IDS && contracts.MODE_IDS.PRACTICE) || "practice";
+            (contracts.MODE_IDS && contracts.MODE_IDS[cfg.modeIdKey]) ||
+            cfg.fallbackModeId;
 
         let session = null;
 
@@ -45,19 +51,7 @@
             if (capsApi && typeof capsApi.getModeCapabilities === "function") {
                 return capsApi.getModeCapabilities(modeId);
             }
-            return {
-                undo: true,
-                redo: true,
-                resign: true,
-                draw: false,
-                rematch: true,
-                engine: false,
-                network: false,
-                reviewNav: false,
-                positionSetup: false,
-                watchers: false,
-                chat: false,
-            };
+            return Object.assign({}, cfg.fallbackCaps || {});
         }
 
         function status(message, kind) {
@@ -69,7 +63,7 @@
         }
 
         function afterMove() {
-            /* no engine reply */
+            /* tool docks do not apply play moves */
         }
 
         function attach(sess) {
@@ -80,7 +74,9 @@
             if (session && typeof session.emit === "function") {
                 session.emit("capabilitiesChanged", capabilities());
             }
-            status(t("session.practiceBothSides"), "info");
+            if (cfg.statusKey) {
+                status(t(cfg.statusKey), "info");
+            }
         }
 
         function detach() {
@@ -93,17 +89,14 @@
             attach: attach,
             detach: detach,
             afterMove: afterMove,
-            /** Single-ply undo (Practice / Debug). */
-            undoPly: true,
-            redoPly: true,
         };
     }
 
-    const PracticeMode = { create: create };
+    const ToolDockMode = { create: create };
 
-    global.ShmerlingPracticeMode = PracticeMode;
+    global.ShmerlingToolDockMode = ToolDockMode;
 
     if (typeof module === "object" && module && module.exports) {
-        module.exports = PracticeMode;
+        module.exports = ToolDockMode;
     }
 })(typeof window !== "undefined" ? window : globalThis);

@@ -6,10 +6,11 @@
 
 const { ChessGame } = require("../../ChessGame");
 const brainConfigService = require("../../modules/game/brainConfigService");
+const { collectLegalMoves } = require("../../desktop/forcedMateDetection");
 const {
-    detectForcedLossMate,
-    collectLegalMoves,
-} = require("../../desktop/forcedMateDetection");
+    detectForcedLossMateAsync,
+    abortForcedMateDetection,
+} = require("../../desktop/forcedMateDetectionAsync");
 const { gameStateToFen, uciToMove } = require("../fenCodec");
 const { getEngine, resolveUciCommand } = require("../registry");
 const { createUciProcess, SearchAbortedError, normalizeSkillLevel } = require("./uciProcess");
@@ -32,6 +33,7 @@ const AVAILABILITY_TTL_MS = 60 * 1000;
 
 function abortSearch() {
     searchAbortRequested = true;
+    abortForcedMateDetection();
     for (const proc of processesByEngineId.values()) {
         try {
             proc.stop();
@@ -164,7 +166,10 @@ async function computeMove(opts) {
         throw new SearchAbortedError();
     }
 
-    const forcedLoss = detectForcedLossMate(chessGame);
+    const forcedLoss = await detectForcedLossMateAsync(chessGame);
+    if (abortSignal.aborted) {
+        throw new SearchAbortedError();
+    }
     if (forcedLoss.detected && immediateResign === true) {
         const turnBefore = chessGame.Turn;
         const escapeMoves = collectLegalMoves(chessGame);

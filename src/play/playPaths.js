@@ -3,34 +3,7 @@
  * Desktop uses `/play`; mobile uses `/mobile-game` (and `/watch` / `/review` shells).
  */
 
-const {
-    canAccessPlayPage: sessionCanAccessPlayPage,
-    canUsePlayAdvancedTools: sessionCanUsePlayAdvancedTools,
-    canAccessDebug: sessionCanAccessDebug,
-    isAdminSession,
-    resolveSessionUserType,
-} = require("../modules/user/roles");
-
-/**
- * @param {{ isMobile?: boolean, desktopQuery?: boolean }} opts
- * @returns {"/mobile-game"|"/play"}
- */
-function resolvePlayGamePath(opts) {
-    const options = opts || {};
-    if (options.isMobile && !options.desktopQuery) {
-        return "/mobile-game";
-    }
-    return "/play";
-}
-
-/**
- * Participant reopen URL for an online game id.
- * @param {string|number} gameId
- * @returns {string}
- */
-function resolveOnlineParticipantHref(gameId) {
-    return "/play?id=" + encodeURIComponent(String(gameId));
-}
+const { canAccessPlayPage: sessionCanAccessPlayPage } = require("../modules/user/roles");
 
 /**
  * Spectator watch URL for an online game id.
@@ -50,35 +23,20 @@ function resolveOnlineWatchHref(gameId, opts) {
 }
 
 /**
- * History / PGN review URL.
+ * History / PGN review URL (Play shell).
  * @param {string|number} gameId
- * @param {{ usePlayPage?: boolean, type?: "history"|"pgn"|string|null }} [opts]
+ * @param {{ type?: "history"|"pgn"|string|null }} [opts]
  * @returns {string}
  */
 function resolveReviewHref(gameId, opts) {
     const type =
         opts && (opts.type === "history" || opts.type === "pgn") ? opts.type : null;
-    if (opts && opts.usePlayPage === false) {
-        let url = "/review?id=" + encodeURIComponent(String(gameId));
-        if (type) {
-            url += "&type=" + encodeURIComponent(type);
-        }
-        return url;
-    }
     let url =
         "/play?mode=review&id=" + encodeURIComponent(String(gameId));
     if (type) {
         url += "&type=" + encodeURIComponent(type);
     }
     return url;
-}
-
-/**
- * Practice / Debug entry URL.
- * @returns {string}
- */
-function resolvePracticeHref() {
-    return "/play?mode=practice";
 }
 
 /**
@@ -145,24 +103,9 @@ function canAccessPlayPage(req) {
     return sessionCanAccessPlayPage(req && req.session);
 }
 
-function canUsePlayAdvancedTools(req) {
-    return sessionCanUsePlayAdvancedTools(req && req.session);
-}
-
-function canAccessDebug(req) {
-    return sessionCanAccessDebug(req && req.session);
-}
-
 module.exports = {
-    resolvePlayGamePath,
-    resolveOnlineParticipantHref,
     resolveOnlineWatchHref,
     resolveReviewHref,
-    resolvePracticeHref,
     resolveGameToPlayHref,
     canAccessPlayPage,
-    canUsePlayAdvancedTools,
-    canAccessDebug,
-    isAdminSession,
-    resolveSessionUserType,
 };

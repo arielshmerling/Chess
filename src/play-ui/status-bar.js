@@ -227,7 +227,6 @@
     }
 
     const StatusBar = {
-        STATUS_BAR_CLASSES: STATUS_BAR_CLASSES,
         defaultStatusText: defaultStatusText,
         renderStatus: renderStatus,
         applyClockHighlight: applyClockHighlight,

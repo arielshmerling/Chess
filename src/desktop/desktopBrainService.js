@@ -15,7 +15,11 @@ const {
     setSearchProgressReporter,
     clearSearchProgressReporter,
 } = require("../brainSearchProgress");
-const { detectForcedLossMate, collectLegalMoves } = require("./forcedMateDetection");
+const { collectLegalMoves } = require("./forcedMateDetection");
+const {
+    detectForcedLossMateAsync,
+    abortForcedMateDetection,
+} = require("./forcedMateDetectionAsync");
 const {
     isProvenMateLossScore,
     opponentMateInFromLossScore,
@@ -42,6 +46,7 @@ function isSearchAbortedError(err) {
 
 function abortSearch() {
     searchAbortRequested = true;
+    abortForcedMateDetection();
     for (let i = 0; i < ALLOWED_ENGINES.length; i++) {
         const engineName = ALLOWED_ENGINES[i];
         try {
@@ -160,7 +165,8 @@ async function computeMove(opts, onProgress) {
 
     throwIfSearchAborted();
 
-    const forcedLoss = detectForcedLossMate(chessGame);
+    const forcedLoss = await detectForcedLossMateAsync(chessGame);
+    throwIfSearchAborted();
     if (forcedLoss.detected && immediateResign === true) {
         const turnBefore = chessGame.Turn;
         const escapeMoves = collectLegalMoves(chessGame);

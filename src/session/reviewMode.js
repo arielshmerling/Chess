@@ -18,26 +18,15 @@
         return global.PlayReviewModel;
     }
 
-    function loadCapabilities() {
+    function loadLoaders() {
         if (typeof module === "object" && module && module.exports) {
             try {
-                return require("./capabilities");
+                return require("./sessionLoaders");
             } catch {
                 /* fall through */
             }
         }
-        return null;
-    }
-
-    function loadContracts() {
-        if (typeof module === "object" && module && module.exports) {
-            try {
-                return require("./contracts");
-            } catch {
-                /* fall through */
-            }
-        }
-        return { MODE_IDS: { REVIEW: "review" } };
+        return global.ShmerlingSessionLoaders || null;
     }
 
     /**
@@ -47,8 +36,12 @@
     function create(options) {
         const opts = options || {};
         const ReviewModel = opts.reviewModel || loadReviewModel();
-        const capsApi = loadCapabilities();
-        const contracts = loadContracts();
+        const loaders = loadLoaders();
+        const capsApi = loaders && loaders.loadCapabilities ? loaders.loadCapabilities() : null;
+        const contracts =
+            loaders && loaders.loadContracts
+                ? loaders.loadContracts({ MODE_IDS: { REVIEW: "review" } })
+                : { MODE_IDS: { REVIEW: "review" } };
         const modeId = (contracts.MODE_IDS && contracts.MODE_IDS.REVIEW) || "review";
 
         let session = null;

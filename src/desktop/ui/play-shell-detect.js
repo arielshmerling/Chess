@@ -36,7 +36,6 @@
 
     global.ShmerlingPlayShell = {
         isWebPlayPage,
-        isDesktopPlayPage,
         isPlayShellPage,
         isElectronPlayPage,
         shouldPersistPlayPrefsToServer,

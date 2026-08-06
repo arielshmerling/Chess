@@ -11,6 +11,10 @@ const {
     opponentDeliversImmediateMate,
     shouldRunForcedMateDetection,
 } = require("../src/desktop/forcedMateDetection");
+const {
+    detectForcedLossMateAsync,
+    abortForcedMateDetection,
+} = require("../src/desktop/forcedMateDetectionAsync");
 
 function baseState(overrides) {
     return {
@@ -80,6 +84,10 @@ const KING_VS_KING = baseState({
 });
 
 describe("forcedMateDetection", () => {
+    afterEach(() => {
+        abortForcedMateDetection();
+    });
+
     it("detects immediate mate when opponent can deliver checkmate", () => {
         const game = loadState(IMMEDIATE_MATE_WHITE);
         assert.strictEqual(opponentDeliversImmediateMate(game, "black"), true);
@@ -101,5 +109,37 @@ describe("forcedMateDetection", () => {
         const game = new ChessGame(true);
         assert.strictEqual(shouldRunForcedMateDetection(game), false);
         assert.strictEqual(detectForcedLossMate(game).detected, false);
+    });
+
+    it("async worker matches sync results for endgame positions", async function () {
+        this.timeout(10000);
+        const cases = [ESCAPE_AVAILABLE, KING_VS_KING, IMMEDIATE_MATE_WHITE];
+        for (const state of cases) {
+            const game = loadState(state);
+            const sync = detectForcedLossMate(game);
+            const asyncResult = await detectForcedLossMateAsync(game);
+            assert.deepStrictEqual(asyncResult, sync);
+        }
+        const start = new ChessGame(true);
+        assert.deepStrictEqual(
+            await detectForcedLossMateAsync(start),
+            detectForcedLossMate(start),
+        );
+    });
+
+    it("async path yields to the event loop while detection runs", async function () {
+        this.timeout(10000);
+        const game = loadState(ESCAPE_AVAILABLE);
+        let tick = 0;
+        const ticker = setInterval(() => {
+            tick += 1;
+        }, 5);
+        try {
+            await detectForcedLossMateAsync(game);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            assert.ok(tick >= 1, `expected event-loop ticks during/after async detection, got ${tick}`);
+        } finally {
+            clearInterval(ticker);
+        }
     });
 });

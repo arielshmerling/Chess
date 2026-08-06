@@ -194,7 +194,7 @@ function patchRemainingEjs() {
         ['value="brain2">Brain 2</option>', 'value="brain2"><%= t(\'site.playNow.brain2\') %></option>'],
     ];
 
-    for (const rel of ["src/views/game.ejs", "src/views/mobile-welcome.ejs", "src/views/mobile-game.ejs"]) {
+    for (const rel of ["src/views/mobile-welcome.ejs", "src/views/mobile-game.ejs"]) {
         patch(rel, playNow);
     }
 

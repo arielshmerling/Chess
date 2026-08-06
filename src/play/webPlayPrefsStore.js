@@ -232,8 +232,4 @@ module.exports = {
     readCustomThemes,
     writeCustomThemes,
     writeActiveThemeOnly,
-    readSiteThemeCatalog,
-    writeSiteThemeCatalog,
-    readBundledThemesStore,
-    BUNDLED_THEMES_PATH,
 };

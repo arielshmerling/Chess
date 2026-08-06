@@ -1,53 +1,14 @@
 const assert = require("assert");
-const {
-    resolvePlayGamePath,
-    canAccessPlayPage,
-    canUsePlayAdvancedTools,
-    canAccessDebug,
-} = require("../src/play/playPaths");
+const { canAccessPlayPage } = require("../src/play/playPaths");
 const {
     resolveSessionUserType,
     isAdminSession,
+    canUsePlayAdvancedTools,
+    canAccessDebug,
+    canCustomizeThemes,
 } = require("../src/modules/user/roles");
 
 describe("playPaths", function () {
-    describe("resolvePlayGamePath", function () {
-        it("defaults desktop to /play", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({ isMobile: false }),
-                "/play",
-            );
-        });
-
-        it("uses /mobile-game for mobile user agents", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({ isMobile: true }),
-                "/mobile-game",
-            );
-        });
-
-        it("honors desktop=1 query for mobile → /play", function () {
-            assert.strictEqual(
-                resolvePlayGamePath({
-                    isMobile: true,
-                    desktopQuery: true,
-                }),
-                "/play",
-            );
-        });
-    });
-
-    describe("resolveOnlineParticipantHref", function () {
-        const { resolveOnlineParticipantHref } = require("../src/play/playPaths");
-
-        it("uses /play?id=", function () {
-            assert.strictEqual(
-                resolveOnlineParticipantHref("abc123"),
-                "/play?id=abc123",
-            );
-        });
-    });
-
     describe("resolveOnlineWatchHref", function () {
         const { resolveOnlineWatchHref } = require("../src/play/playPaths");
 
@@ -69,7 +30,7 @@ describe("playPaths", function () {
     describe("resolveReviewHref", function () {
         const { resolveReviewHref } = require("../src/play/playPaths");
 
-        it("uses /play?mode=review by default", function () {
+        it("uses /play?mode=review", function () {
             assert.strictEqual(
                 resolveReviewHref("abc123", { type: "history" }),
                 "/play?mode=review&id=abc123&type=history",
@@ -78,21 +39,6 @@ describe("playPaths", function () {
                 resolveReviewHref("abc123", { type: "pgn" }),
                 "/play?mode=review&id=abc123&type=pgn",
             );
-        });
-
-        it("uses /review when usePlayPage is explicitly false", function () {
-            assert.strictEqual(
-                resolveReviewHref("abc123", { usePlayPage: false, type: "history" }),
-                "/review?id=abc123&type=history",
-            );
-        });
-    });
-
-    describe("resolvePracticeHref", function () {
-        const { resolvePracticeHref } = require("../src/play/playPaths");
-
-        it("uses /play?mode=practice", function () {
-            assert.strictEqual(resolvePracticeHref(), "/play?mode=practice");
         });
     });
 
@@ -112,56 +58,6 @@ describe("playPaths", function () {
             );
             assert.strictEqual(canAccessPlayPage({ session: { admin: false } }), false);
             assert.strictEqual(canAccessPlayPage({}), false);
-        });
-    });
-
-    describe("canUsePlayAdvancedTools", function () {
-        it("allows Admin and Partner only", function () {
-            assert.strictEqual(
-                canUsePlayAdvancedTools({ session: { admin: true, userType: "Admin" } }),
-                true,
-            );
-            assert.strictEqual(
-                canUsePlayAdvancedTools({ session: { admin: false, userType: "Partner" } }),
-                true,
-            );
-            assert.strictEqual(
-                canUsePlayAdvancedTools({ session: { admin: false, userType: "Member" } }),
-                false,
-            );
-        });
-
-        it("canCustomizeThemes allows Admin only", function () {
-            const { canCustomizeThemes } = require("../src/modules/user/roles");
-            assert.strictEqual(
-                canCustomizeThemes({ admin: true, userType: "Admin" }),
-                true,
-            );
-            assert.strictEqual(
-                canCustomizeThemes({ admin: false, userType: "Partner" }),
-                false,
-            );
-            assert.strictEqual(
-                canCustomizeThemes({ admin: false, userType: "Member" }),
-                false,
-            );
-        });
-    });
-
-    describe("canAccessDebug", function () {
-        it("allows Admin and Partner only", function () {
-            assert.strictEqual(
-                canAccessDebug({ session: { admin: true, userType: "Admin" } }),
-                true,
-            );
-            assert.strictEqual(
-                canAccessDebug({ session: { admin: false, userType: "Partner" } }),
-                true,
-            );
-            assert.strictEqual(
-                canAccessDebug({ session: { admin: false, userType: "Member" } }),
-                false,
-            );
         });
     });
 
@@ -226,5 +122,50 @@ describe("user roles", function () {
         assert.strictEqual(resolveSessionUserType({ admin: false }), "Member");
         assert.strictEqual(isAdminSession({ admin: true }), true);
         assert.strictEqual(isAdminSession({ admin: false, userType: "Partner" }), false);
+    });
+
+    it("canUsePlayAdvancedTools allows Admin and Partner only", function () {
+        assert.strictEqual(
+            canUsePlayAdvancedTools({ admin: true, userType: "Admin" }),
+            true,
+        );
+        assert.strictEqual(
+            canUsePlayAdvancedTools({ admin: false, userType: "Partner" }),
+            true,
+        );
+        assert.strictEqual(
+            canUsePlayAdvancedTools({ admin: false, userType: "Member" }),
+            false,
+        );
+    });
+
+    it("canCustomizeThemes allows Admin only", function () {
+        assert.strictEqual(
+            canCustomizeThemes({ admin: true, userType: "Admin" }),
+            true,
+        );
+        assert.strictEqual(
+            canCustomizeThemes({ admin: false, userType: "Partner" }),
+            false,
+        );
+        assert.strictEqual(
+            canCustomizeThemes({ admin: false, userType: "Member" }),
+            false,
+        );
+    });
+
+    it("canAccessDebug allows Admin and Partner only", function () {
+        assert.strictEqual(
+            canAccessDebug({ admin: true, userType: "Admin" }),
+            true,
+        );
+        assert.strictEqual(
+            canAccessDebug({ admin: false, userType: "Partner" }),
+            true,
+        );
+        assert.strictEqual(
+            canAccessDebug({ admin: false, userType: "Member" }),
+            false,
+        );
     });
 });
