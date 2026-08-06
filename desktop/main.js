@@ -486,13 +486,24 @@ function initDesktopBrainIpc() {
     });
 
     ipcMain.handle("app:quit", () => {
-        app.quit();
+        stopLocalServer();
+        if (logWindow && !logWindow.isDestroyed()) {
+            logWindow.destroy();
+            logWindow = null;
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.removeAllListeners("close");
+            mainWindow.destroy();
+            mainWindow = null;
+        }
+        app.exit(0);
         return { ok: true };
     });
 }
 
 function createWindow() {
     const icon = resolveAppIcon();
+    const preloadPath = resolvePreloadPath();
     mainWindow = new BrowserWindow({
         width: 1440,
         height: 960,
@@ -504,8 +515,32 @@ function createWindow() {
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
-            preload: resolvePreloadPath(),
+            sandbox: false,
+            preload: preloadPath,
         },
+    });
+
+    mainWindow.webContents.on("preload-error", (_event, pathFailed, err) => {
+        console.error("[desktop] Preload failed:", pathFailed, err && err.message ? err.message : err);
+    });
+
+    mainWindow.webContents.on("did-finish-load", () => {
+        mainWindow.webContents
+            .executeJavaScript(
+                "!!(window.shmerling && typeof window.shmerling.invoke === 'function')",
+            )
+            .then((ok) => {
+                if (!ok) {
+                    console.error(
+                        "[desktop] window.shmerling bridge missing after load — Exit/engines/brain IPC will not work",
+                    );
+                } else {
+                    console.log("[desktop] window.shmerling bridge ready");
+                }
+            })
+            .catch((err) => {
+                console.warn("[desktop] Could not verify shmerling bridge:", err);
+            });
     });
 
     mainWindow.once("ready-to-show", () => {

@@ -88,14 +88,61 @@ function isExecutableFile(filePath) {
             return false;
         }
         fs.accessSync(filePath, fs.constants.X_OK);
-        return true;
+        return isCompatibleNativeBinary(filePath);
     } catch {
         // Windows often reports X_OK oddly; existence as a file is enough for .exe
         try {
-            return fs.statSync(filePath).isFile();
+            if (!fs.statSync(filePath).isFile()) {
+                return false;
+            }
+            return isCompatibleNativeBinary(filePath);
         } catch {
             return false;
         }
+    }
+}
+
+/**
+ * Reject binaries built for another OS (e.g. Linux ELF left in ./bin on macOS),
+ * so discovery can fall through to Homebrew / PATH Stockfish.
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function isCompatibleNativeBinary(filePath) {
+    try {
+        const fd = fs.openSync(filePath, "r");
+        const buf = Buffer.alloc(4);
+        const n = fs.readSync(fd, buf, 0, 4, 0);
+        fs.closeSync(fd);
+        if (n < 4) {
+            return true;
+        }
+        const isElf =
+            buf[0] === 0x7f && buf[1] === 0x45 && buf[2] === 0x4c && buf[3] === 0x46;
+        const be = buf.readUInt32BE(0);
+        const le = buf.readUInt32LE(0);
+        const isMachO =
+            be === 0xfeedface ||
+            be === 0xfeedfacf ||
+            be === 0xcafebabe ||
+            be === 0xcafebabf ||
+            le === 0xfeedface ||
+            le === 0xfeedfacf ||
+            le === 0xcafebabe ||
+            le === 0xcafebabf;
+        const isPe = buf[0] === 0x4d && buf[1] === 0x5a; // MZ
+        if (process.platform === "darwin") {
+            return !(isElf || isPe);
+        }
+        if (process.platform === "linux") {
+            return !(isMachO || isPe);
+        }
+        if (process.platform === "win32") {
+            return !(isElf || isMachO);
+        }
+        return true;
+    } catch {
+        return true;
     }
 }
 
@@ -256,4 +303,5 @@ module.exports = {
     playEngineIds,
     stockfishCandidatePaths,
     findExistingCandidate,
+    isCompatibleNativeBinary,
 };

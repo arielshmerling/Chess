@@ -6,17 +6,46 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
+    function localizeStoredPlayerName(raw, fallbackKey) {
+        if (raw == null || String(raw).trim() === "") {
+            return t(fallbackKey);
+        }
+        const name = String(raw).trim();
+        if (name === "Player") {
+            return t("play.savedGames.player");
+        }
+        if (name === "White") {
+            return t("common.white");
+        }
+        if (name === "Black") {
+            return t("common.black");
+        }
+        if (name === "Engine") {
+            return t("common.engine");
+        }
+        return name;
+    }
+
     /**
      * @param {object|null|undefined} source
      * @returns {{ white: string, black: string }}
      */
     function sessionPlayerNames(source) {
         if (!source) {
-            return { white: "White", black: "Black" };
+            return { white: t("common.white"), black: t("common.black") };
         }
         return {
-            white: source.whitePlayerName || "White",
-            black: source.blackPlayerName || "Black",
+            white: localizeStoredPlayerName(source.whitePlayerName, "common.white"),
+            black: localizeStoredPlayerName(source.blackPlayerName, "common.black"),
         };
     }
 
@@ -26,7 +55,10 @@
      */
     function formatPlayersVsTitle(source) {
         const names = sessionPlayerNames(source);
-        return names.white + " vs. " + names.black;
+        return t("play.savedGames.playersVs", {
+            white: names.white,
+            black: names.black,
+        });
     }
 
     /**
@@ -42,12 +74,15 @@
      * @returns {string}
      */
     function formatManualSaveGameName(session) {
-        return "Saved — " + formatPlayersVsTitle(session);
+        const names = sessionPlayerNames(session);
+        return t("play.savedGames.manualSaveName", {
+            white: names.white,
+            black: names.black,
+        });
     }
 
     /**
      * @param {Date} [now]
-     * @param {{ toLocaleString?: Function }} [dateLike]
      * @returns {string}
      */
     function formatPositionSetupSaveName(now) {
@@ -56,7 +91,7 @@
             dateStyle: "short",
             timeStyle: "short",
         });
-        return "Position — " + stamp;
+        return t("play.savedGames.positionSaveName", { when: stamp });
     }
 
     /**

@@ -397,7 +397,7 @@
             return;
         }
         if (currentGameId) {
-            titleEl.title = "Game ID: " + currentGameId;
+            titleEl.title = t("play.savedGames.gameId", { id: currentGameId });
         } else {
             titleEl.removeAttribute("title");
         }
@@ -1882,36 +1882,64 @@
     function formatReviewOutcomeStatus() {
         const str = reviewResultMoveStr;
         if (!str) {
-            return "Review mode";
+            return t("play.status.reviewMode");
         }
         if (str === "1/2-1/2") {
-            return "Result: Draw (1/2-1/2)";
+            return t("play.status.reviewResultDraw");
         }
         if (str === "1-0") {
             if (reviewEndKind === "resign" || reviewResignedColor === "black") {
-                return "Result: Black resigned — White wins (1-0)";
+                return t("play.status.reviewResultResigned", {
+                    loser: t("common.black"),
+                    winner: t("common.white"),
+                    score: "1-0",
+                });
             }
             if (reviewEndKind === "timeout") {
-                return "Result: Black lost on time — White wins (1-0)";
+                return t("play.status.reviewResultTimeout", {
+                    loser: t("common.black"),
+                    winner: t("common.white"),
+                    score: "1-0",
+                });
             }
             if (reviewEndKind === "checkmate") {
-                return "Result: Checkmate — White wins (1-0)";
+                return t("play.status.reviewResultCheckmate", {
+                    winner: t("common.white"),
+                    score: "1-0",
+                });
             }
-            return "Result: White wins (1-0)";
+            return t("play.status.reviewResultWin", {
+                winner: t("common.white"),
+                score: "1-0",
+            });
         }
         if (str === "0-1") {
             if (reviewEndKind === "resign" || reviewResignedColor === "white") {
-                return "Result: White resigned — Black wins (0-1)";
+                return t("play.status.reviewResultResigned", {
+                    loser: t("common.white"),
+                    winner: t("common.black"),
+                    score: "0-1",
+                });
             }
             if (reviewEndKind === "timeout") {
-                return "Result: White lost on time — Black wins (0-1)";
+                return t("play.status.reviewResultTimeout", {
+                    loser: t("common.white"),
+                    winner: t("common.black"),
+                    score: "0-1",
+                });
             }
             if (reviewEndKind === "checkmate") {
-                return "Result: Checkmate — Black wins (0-1)";
+                return t("play.status.reviewResultCheckmate", {
+                    winner: t("common.black"),
+                    score: "0-1",
+                });
             }
-            return "Result: Black wins (0-1)";
+            return t("play.status.reviewResultWin", {
+                winner: t("common.black"),
+                score: "0-1",
+            });
         }
-        return "Result: " + str;
+        return t("play.status.reviewResultGeneric", { result: str });
     }
 
     function reviewOutcomeStatusKind() {
@@ -2845,7 +2873,7 @@
         if (Settings && typeof Settings.brainLabel === "function") {
             return Settings.brainLabel(engineId);
         }
-        return "Engine";
+        return t("common.engine");
     }
 
     function formatSavedGamePlayers(entry) {
@@ -2941,7 +2969,7 @@
         try {
             await Api.post("/updateBookmark", {
                 id: entry._id || entry.id,
-                name: entry.name || "Saved game",
+                name: entry.name || t("play.savedGames.defaultName"),
                 gameType: entry.gameType || "SinglePlayerGame",
                 gameState: game.GameState,
                 moves: [],
@@ -2997,7 +3025,7 @@
             function (name) {
                 saveSetupPositionWithName(name, {
                     switchToNew: true,
-                    statusMessage: "Position saved as new bookmark",
+                    statusMessage: t("play.status.positionSavedAsBookmark"),
                 });
             },
             {
@@ -3803,15 +3831,15 @@
         const hasSavedMoves = parseSavedGameMoves(entry).length > 0;
         if (hasSavedMoves) {
             return when
-                ? label + " — " + when + " (double-click to load from start)"
-                : label + " (double-click to load from start)";
+                ? t("play.savedGames.nameWithDateLoadHint", { name: label, when: when })
+                : t("play.savedGames.nameLoadHint", { name: label });
         }
-        return when ? label + " — " + when : label;
+        return when ? t("play.savedGames.nameWithDate", { name: label, when: when }) : label;
     }
 
     function savedGameListView(entry) {
         const id = savedGameId(entry);
-        const label = entry.name || "Saved game";
+        const label = entry.name || t("play.savedGames.defaultName");
         return {
             id: id,
             isPosition: isSavedPositionEntry(entry),
@@ -4639,7 +4667,7 @@
                     return;
                 }
                 const label =
-                    name && String(name).trim() ? String(name).trim() : "Opponent";
+                    name && String(name).trim() ? String(name).trim() : t("play.status.opponent");
                 if (currentPlayerIsWhite) {
                     session.blackPlayerName = label;
                 } else {
@@ -5674,6 +5702,56 @@
         );
     }
 
+    /**
+     * Load available Play engines for desktop (IPC preferred, HTTP fallback).
+     * Main-process probe can succeed while the renderer still has no engine list.
+     * @returns {Promise<object[]|null>}
+     */
+    async function loadDesktopEngineCatalog() {
+        if (isWebPlayPage()) {
+            return null;
+        }
+        if (window.shmerling && typeof window.shmerling.invoke === "function") {
+            try {
+                const engines = await window.shmerling.invoke("engines:listPlay");
+                if (Array.isArray(engines) && engines.length) {
+                    return engines;
+                }
+            } catch (err) {
+                console.warn("[Play] engines:listPlay IPC failed:", err);
+            }
+        }
+        try {
+            const response = await fetch("/app/api/play-engines", {
+                method: "GET",
+                credentials: "same-origin",
+                headers: { Accept: "application/json" },
+            });
+            if (!response.ok) {
+                return null;
+            }
+            const body = await response.json().catch(function () {
+                return null;
+            });
+            if (body && Array.isArray(body.engines)) {
+                return body.engines;
+            }
+        } catch (err) {
+            console.warn("[Play] /app/api/play-engines failed:", err);
+        }
+        return null;
+    }
+
+    async function refreshDesktopEngineOptions() {
+        if (!Settings || typeof Settings.applyLaunchEngines !== "function") {
+            return;
+        }
+        const engines = await loadDesktopEngineCatalog();
+        if (engines) {
+            Settings.applyLaunchEngines(engines, t);
+        }
+    }
+
     async function fetchLaunchContext() {
         if (launchContextPromise) {
             return launchContextPromise;
@@ -5683,17 +5761,7 @@
                 canPlayAdvancedTools = true;
                 canDebug = true;
                 try {
-                    if (
-                        window.shmerling
-                        && typeof window.shmerling.invoke === "function"
-                        && Settings
-                        && typeof Settings.applyLaunchEngines === "function"
-                    ) {
-                        const engines = await window.shmerling.invoke("engines:listPlay");
-                        if (Array.isArray(engines)) {
-                            Settings.applyLaunchEngines(engines, t);
-                        }
-                    }
+                    await refreshDesktopEngineOptions();
                 } catch (err) {
                     console.warn("[Play] Could not load desktop engine list:", err);
                 }
@@ -5800,20 +5868,38 @@
             window.location.href = getWebHomeHref();
             return;
         }
-        if (
-            window.ShmerlingPlayShell
-            && typeof window.ShmerlingPlayShell.isElectronPlayPage === "function"
-            && window.ShmerlingPlayShell.isElectronPlayPage()
-            && window.shmerling
-            && typeof window.shmerling.invoke === "function"
-        ) {
-            window.shmerling.invoke("app:quit").catch(function (err) {
-                console.warn("[desktop-play] Could not quit app:", err);
-                resetToIdleScreen();
-            });
+
+        function forceCloseWindow() {
+            try {
+                window.close();
+            } catch (err) {
+                console.warn("[desktop-play] window.close failed:", err);
+            }
+        }
+
+        const ipc = window.shmerling;
+        if (ipc && typeof ipc.invoke === "function") {
+            Promise.resolve(ipc.invoke("app:quit"))
+                .then(function () {
+                    /* Main should exit; close as a belt-and-suspenders if it did not. */
+                    forceCloseWindow();
+                })
+                .catch(function (err) {
+                    console.warn("[desktop-play] Could not quit app via IPC:", err);
+                    forceCloseWindow();
+                    setTimeout(function () {
+                        resetToIdleScreen();
+                    }, 250);
+                });
             return;
         }
-        resetToIdleScreen();
+
+        /* Preload bridge missing — still try to close the Electron window. */
+        console.warn("[desktop-play] shmerling IPC missing; closing window directly");
+        forceCloseWindow();
+        setTimeout(function () {
+            resetToIdleScreen();
+        }, 250);
     }
 
     function wantsNewGameDialogFromUrl() {
@@ -6039,9 +6125,7 @@
             clearWebLaunchQueryString();
             /* Prefetch last options so the compact dialog defaults match saved prefs. */
             await resolveWebAutoStartOptions();
-            if (NewGameDialog && typeof NewGameDialog.show === "function") {
-                NewGameDialog.show(beginNewGame);
-            }
+            await openNewGameDialog();
             return;
         }
         const joinId =
@@ -6871,7 +6955,7 @@
                     }
                 } catch (err) {
                     console.error(err);
-                    showStatus(err.message || "Promotion failed", 0, "error");
+                    showStatus(err.message || t("play.status.promotionFailed"), 0, "error");
                 } finally {
                     dialogOn = false;
                     animating = false;
@@ -7254,9 +7338,20 @@
             });
             return;
         }
-        if (NewGameDialog && typeof NewGameDialog.show === "function") {
-            NewGameDialog.show(beginNewGame);
+        openNewGameDialog();
+    }
+
+    function openNewGameDialog() {
+        if (!NewGameDialog || typeof NewGameDialog.show !== "function") {
+            return Promise.resolve();
         }
+        return refreshDesktopEngineOptions()
+            .catch(function (err) {
+                console.warn("[Play] Could not refresh engines before New Game:", err);
+            })
+            .then(function () {
+                NewGameDialog.show(beginNewGame);
+            });
     }
 
     function onHome() {
@@ -7505,7 +7600,7 @@
                 return startSession();
             })
             .catch(function (err) {
-                showStatus(err.message || "Could not load game", 0, "error");
+                showStatus(err.message || t("play.status.couldNotLoadGame"), 0, "error");
                 console.error(err);
             });
     });

@@ -564,7 +564,7 @@
                 opts.onRematchAccepted({ gameId: newId, message: message });
             }
             if (session) {
-                session.emit("info", "Rematch offer accepted", "info");
+                session.emit("info", t("session.rematchOfferAccepted"), "info");
             }
             status(t("session.rematchOfferAccepted"), "info");
         }

@@ -29,6 +29,21 @@
         return null;
     }
 
+    function loadT() {
+        if (typeof module === "object" && module && module.exports) {
+            try {
+                return require("../strings/t-bridge").t;
+            } catch {
+                /* fall through */
+            }
+        }
+        return typeof global.ShmerlingT === "function"
+            ? global.ShmerlingT
+            : function (key) {
+                  return key;
+              };
+    }
+
     /**
      * @param {object} options
      * @param {object} options.game - ChessGame instance
@@ -48,6 +63,7 @@
         const EventBus = opts.eventBus || loadEventBus();
         const bus = EventBus.create();
         const capsApi = loadCapabilities();
+        const t = loadT();
         let clocks = opts.clocks || null;
 
         let humanIsWhite = opts.humanIsWhite !== false;
@@ -192,7 +208,7 @@
                 game.startNewGame(humanIsWhite);
             }
             active = true;
-            bus.emit("info", "Game started", "info");
+            bus.emit("info", t("play.status.gameStarted"), "info");
             emitBoardAndTurn({ reason: "start" });
             bus.emit("statusChanged", "inProgress");
             if (mode && typeof mode.onStarted === "function") {
@@ -284,7 +300,7 @@
                 /* Engine/promotion path: makeMove then completePromotion when needed. */
             }
             if (!move.source || !move.target || typeof game.makeMove !== "function") {
-                bus.emit("error", "Invalid move");
+                bus.emit("error", t("play.status.invalidMove"));
                 return null;
             }
             let executed;
@@ -304,7 +320,7 @@
                 executed = game.makeMove(move.source, move.target);
             }
             if (!executed || executed.valid === false) {
-                bus.emit("error", "Move could not be applied");
+                bus.emit("error", t("play.status.moveNotApplied"));
                 return null;
             }
             bus.emit("moveApplied", executed, info);
@@ -363,7 +379,7 @@
             }
             const pending = game.LastMove;
             if (!pending || !pending.promotion) {
-                bus.emit("error", "No pending promotion");
+                bus.emit("error", t("play.status.noPendingPromotion"));
                 return false;
             }
             const knight = game.KNIGHT;
@@ -373,12 +389,12 @@
                 (knight != null && piece < knight) ||
                 (queen != null && piece > queen)
             ) {
-                bus.emit("error", "Invalid promotion piece");
+                bus.emit("error", t("play.status.invalidPromotionPiece"));
                 return false;
             }
             pending.selectedPiece = piece;
             if (typeof game.completePromotion !== "function") {
-                bus.emit("error", "Promotion is not available");
+                bus.emit("error", t("play.status.promotionUnavailable"));
                 return false;
             }
             game.completePromotion(pending);

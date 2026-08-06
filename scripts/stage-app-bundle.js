@@ -38,7 +38,12 @@ const DESKTOP_SRC_FILES = [
     "modules/user/userTypes.js",
     "modules/user/roles.js",
     "play/bookmarkShape.js",
+    "play/brainApi.js",
+    "play/brainGuards.js",
+    "desktop/playEnginesApi.js",
     "security/helmetOptions.js",
+    "security/rateLimit.js",
+    "security/concurrencyGate.js",
     "utils/catchAsync.js",
     "utils/ExpressError.js",
 ];
@@ -61,6 +66,7 @@ const DESKTOP_SERVER_EXCLUDE = new Set([
 
 const DESKTOP_ASSETS = [
     "app.css",
+    "a11y.css",
     "images/logo.png",
     "images/shmerling.png",
 ];
@@ -176,6 +182,10 @@ function main() {
     copyDirFiltered(
         path.join(ROOT, "src", "adapters"),
         path.join(BUNDLE, "src", "adapters"),
+    );
+    copyDirFiltered(
+        path.join(ROOT, "src", "a11y"),
+        path.join(BUNDLE, "src", "a11y"),
     );
 
     // Optional static dir referenced by routes (404s are fine if empty).

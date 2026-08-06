@@ -52,6 +52,26 @@ describe("engines registry", function () {
         }
     });
 
+    it("skips wrong-platform ./bin stockfish so Homebrew can win", function () {
+        if (process.platform !== "darwin") {
+            this.skip();
+        }
+        const def = registry.getEngine("stockfish");
+        const cmd = registry.resolveUciCommand(def, {});
+        assert.ok(cmd, "expected a Stockfish command on macOS");
+        // Must not pick the Linux ELF checked into ./bin (if present).
+        if (cmd.indexOf(`${path.sep}bin${path.sep}stockfish`) !== -1) {
+            assert.strictEqual(registry.isCompatibleNativeBinary(cmd), true);
+        }
+        assert.notStrictEqual(
+            registry.isCompatibleNativeBinary(
+                path.join(__dirname, "..", "bin", "stockfish"),
+            ),
+            true,
+            "repo ./bin/stockfish is a Linux ELF and must be rejected on macOS",
+        );
+    });
+
     it("discovers stockfish under SHMERLING_USER_DATA/engines", function () {
         const dir = path.join(__dirname, "fixtures", "fake-stockfish-home", "engines");
         fs.mkdirSync(dir, { recursive: true });

@@ -8,6 +8,15 @@
 (function (global) {
     "use strict";
 
+    const t =
+        typeof module === "object" && module && module.exports
+            ? require("../strings/t-bridge").t
+            : typeof global.ShmerlingT === "function"
+              ? global.ShmerlingT
+              : function (key) {
+                    return key;
+                };
+
     /**
      * @param {*} err
      * @returns {boolean}
@@ -133,7 +142,7 @@
         if (!move) {
             return {
                 action: "error",
-                message: "Engine could not find a move",
+                message: t("play.status.engineCouldNotFindMove"),
             };
         }
         const next = Object.assign({}, move);
@@ -160,13 +169,27 @@
      * @param {{ white?: string, black?: string }|null} [names]
      * @returns {string}
      */
+    function localizePlayerDisplayName(raw, isWhite) {
+        const fallback = isWhite ? t("common.white") : t("common.black");
+        if (raw == null || String(raw).trim() === "") {
+            return fallback;
+        }
+        const name = String(raw).trim();
+        if (name === "Player" || name === "White" || name === "Black") {
+            if (name === "Player") {
+                return t("play.savedGames.player");
+            }
+            return name === "White" ? t("common.white") : t("common.black");
+        }
+        return name;
+    }
+
     function resignStatusMessage(resignedColor, names) {
         const isWhite = String(resignedColor).toLowerCase() === "white";
-        const fallback = isWhite ? "White" : "Black";
-        const name = names
-            ? (isWhite ? names.white : names.black) || fallback
-            : fallback;
-        return "Game over. " + name + " resign.";
+        const raw = names ? (isWhite ? names.white : names.black) : null;
+        return t("play.status.sideResigned", {
+            name: localizePlayerDisplayName(raw, isWhite),
+        });
     }
 
     const EngineTurn = {

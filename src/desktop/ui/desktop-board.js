@@ -4,6 +4,16 @@
 (function (global) {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        if (typeof global.ShmerlingT === "function") {
+            return global.ShmerlingT(key, params);
+        }
+        return key;
+    }
+
     let WHITE_PIECES = [];
     let BLACK_PIECES = [];
 
@@ -105,7 +115,7 @@
         const lines = (breakdown || []).map(function (item) {
             return item.label + ": " + formatEvalOverlayScore(item.value);
         });
-        lines.push("Square total: " + formatEvalOverlayScore(score));
+        lines.push(t("play.status.squareTotal", { score: formatEvalOverlayScore(score) }));
         return lines.join("\n");
     }
 

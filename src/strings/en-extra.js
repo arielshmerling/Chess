@@ -638,7 +638,9 @@
             "resetPreset": "Reset changes",
             "couldNotSave": "Could not save theme. Try again.",
             "untitled": "Untitled",
-            "defaultName": "New theme"
+            "defaultName": "New theme",
+            "resetToOriginal": "Reset to original",
+            "resetPropertyAria": "Reset {{label}} to original"
         },
         "positionSetup": {
             "clearBoard": "Clear board",

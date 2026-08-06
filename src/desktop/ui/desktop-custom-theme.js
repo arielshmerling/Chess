@@ -142,12 +142,12 @@
                     parsed.themes.length > 0 &&
                     (!data.themes || data.themes.length === 0)
                 ) {
-                    data.themes = parsed.themes.map(function (t) {
+                    data.themes = parsed.themes.map(function (theme) {
                         return {
-                            id: t.id,
-                            name: t.name || "New theme",
-                            vars: completeThemeVarsClient(t.vars, "blue"),
-                            updatedAt: t.updatedAt || Date.now(),
+                            id: theme.id,
+                            name: theme.name || t("desktop.customTheme.defaultName"),
+                            vars: completeThemeVarsClient(theme.vars, "blue"),
+                            updatedAt: theme.updatedAt || Date.now(),
                         };
                     });
                     changed = true;
@@ -682,8 +682,11 @@
         var swatch = document.createElement("button");
         swatch.type = "button";
         swatch.className = "desktop-custom-theme-swatch";
-        swatch.title = "Reset to original";
-        swatch.setAttribute("aria-label", "Reset " + labelForKey(key) + " to original");
+        swatch.title = t("desktop.customTheme.resetToOriginal");
+        swatch.setAttribute(
+            "aria-label",
+            t("desktop.customTheme.resetPropertyAria", { label: labelForKey(key) }),
+        );
         if (isColorLike(refValue)) {
             swatch.style.background = refValue;
         } else if (key === "--turnClock") {

@@ -6,6 +6,9 @@ const bookmarkApi = require("./bookmarkApi");
 const brainConfigApi = require("./brainConfigApi");
 const customThemeApi = require("./customThemeApi");
 const uiSettingsApi = require("./uiSettingsApi");
+const brainApi = require("../play/brainApi");
+const { brainRateLimit } = require("../play/brainGuards");
+const playEnginesApi = require("./playEnginesApi");
 
 const UI_DIR = path.join(__dirname, "ui");
 const PLAY_UI_DIR = path.join(__dirname, "../play-ui");
@@ -20,7 +23,9 @@ function sendUiPage(filename) {
 }
 
 /**
- * Desktop-only UI and JSON API. Game play is in-process (Electron IPC), not HTTP/WS.
+ * Desktop-only UI and JSON API. Preferred engine path is Electron IPC; HTTP
+ * /api/brain/* remains mounted so the shared BrainHttp adapter works when the
+ * Play shell is opened outside a preload context (or IPC detection fails).
  * @param {import("express").Application} app
  */
 function mountDesktopRoutes(app) {
@@ -33,6 +38,12 @@ function mountDesktopRoutes(app) {
     app.post("/bookmark", requireLogin, bookmarkApi.create);
     app.post("/updateBookmark", requireLogin, bookmarkApi.update);
     app.post("/deleteBookmark", requireLogin, bookmarkApi.remove);
+
+    app.post("/api/brain/compute-move", requireLogin, brainRateLimit, brainApi.computeMove);
+    app.post("/api/brain/evaluate-position", requireLogin, brainRateLimit, brainApi.evaluatePosition);
+    app.post("/api/brain/abort-search", requireLogin, brainRateLimit, brainApi.abortSearch);
+
+    app.get("/app/api/play-engines", requireLogin, playEnginesApi.listPlay);
 
     app.use("/app/ui", express.static(UI_DIR));
     app.use("/app/strings", express.static(STRINGS_DIR));

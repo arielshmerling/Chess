@@ -1,5 +1,6 @@
 /**
- * Desktop IPC channel allowlists shared by preload (SEC-03).
+ * Desktop IPC channel allowlists (SEC-03).
+ * Keep in sync with the inlined lists in desktop/preload.js.
  */
 "use strict";
 

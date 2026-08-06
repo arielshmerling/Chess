@@ -152,16 +152,26 @@ describe("play-ui engine turn policy", function () {
         it("uses player names when provided", function () {
             assert.strictEqual(
                 EngineTurn.resignStatusMessage("white", { white: "Alice", black: "Bob" }),
-                "Game over. Alice resign.",
+                "Game over. Alice resigns.",
             );
             assert.strictEqual(
                 EngineTurn.resignStatusMessage("Black", { white: "Alice", black: "Bob" }),
-                "Game over. Bob resign.",
+                "Game over. Bob resigns.",
             );
         });
 
         it("falls back to White/Black", function () {
-            assert.strictEqual(EngineTurn.resignStatusMessage("white"), "Game over. White resign.");
+            assert.strictEqual(
+                EngineTurn.resignStatusMessage("white"),
+                "Game over. White resigns.",
+            );
+        });
+
+        it("localizes the Player sentinel name", function () {
+            assert.strictEqual(
+                EngineTurn.resignStatusMessage("white", { white: "Player", black: "Brain" }),
+                "Game over. Player resigns.",
+            );
         });
     });
 });

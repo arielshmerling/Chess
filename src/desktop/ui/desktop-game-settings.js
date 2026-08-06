@@ -4,25 +4,43 @@
 (function () {
     "use strict";
 
+    function t(key, params) {
+        if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+            return window.ShmerlingStrings.t(key, params);
+        }
+        return key;
+    }
+
     const STORAGE_KEY = "shmerling.desktop.lastGameOptions";
     const GUEST_NAME = "Player";
 
-    const ENGINE_LABELS = {
-        brain43: "Brain 4.3",
-        brain42: "Brain 4.2",
-        brain41: "Brain 4.1",
-        stockfish: "Stockfish",
-    };
+    function engineLabelForId(id) {
+        if (id === "brain43") {
+            return t("play.newGameDialog.brain43");
+        }
+        if (id === "brain42") {
+            return t("play.newGameDialog.brain42");
+        }
+        if (id === "brain41") {
+            return t("play.newGameDialog.brain41");
+        }
+        if (id === "stockfish") {
+            return t("play.newGameDialog.stockfish");
+        }
+        return t("common.engine");
+    }
 
     /** Brains only until launch/probe adds available UCI engines (e.g. Stockfish). */
-    const DEFAULT_ENGINE_OPTIONS = [
-        { value: "brain43", label: ENGINE_LABELS.brain43 },
-        { value: "brain42", label: ENGINE_LABELS.brain42 },
-        { value: "brain41", label: ENGINE_LABELS.brain41 },
-    ];
+    function defaultEngineOptions() {
+        return [
+            { value: "brain43", label: engineLabelForId("brain43") },
+            { value: "brain42", label: engineLabelForId("brain42") },
+            { value: "brain41", label: engineLabelForId("brain41") },
+        ];
+    }
 
     /** Mutable Play list; may be filtered by launch-context availability. */
-    let ENGINE_OPTIONS = DEFAULT_ENGINE_OPTIONS.slice();
+    let ENGINE_OPTIONS = defaultEngineOptions();
 
     const DEFAULTS = {
         color: "white",
@@ -279,7 +297,7 @@
         if (fromList && fromList.label) {
             return fromList.label;
         }
-        return ENGINE_LABELS[engine] || "Engine";
+        return engineLabelForId(engine);
     }
 
     /**
@@ -292,7 +310,7 @@
         if (!Array.isArray(engines) || engines.length === 0) {
             return ENGINE_OPTIONS.slice();
         }
-        const t = typeof tFn === "function" ? tFn : null;
+        const translate = typeof tFn === "function" ? tFn : t;
         const next = [];
         for (let i = 0; i < engines.length; i += 1) {
             const e = engines[i];
@@ -302,9 +320,12 @@
             if (e.available === false) {
                 continue;
             }
-            let label = ENGINE_LABELS[e.id] || e.fallbackLabel || e.id;
-            if (t && e.labelKey) {
-                const translated = t(e.labelKey);
+            let label = engineLabelForId(e.id);
+            if (label === t("common.engine") && e.fallbackLabel) {
+                label = e.fallbackLabel;
+            }
+            if (e.labelKey) {
+                const translated = translate(e.labelKey);
                 if (translated && translated !== e.labelKey) {
                     label = translated;
                 }
