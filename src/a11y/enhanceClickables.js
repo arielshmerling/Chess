@@ -1,5 +1,6 @@
 /**
  * Make click-activated rows/controls keyboard operable (Enter / Space).
+ * Prefers data-nav-href / data-a11y-activate over legacy onclick attributes (CSP).
  */
 (function () {
     "use strict";
@@ -31,7 +32,7 @@
     function scan(root) {
         var scope = root || document;
         var nodes = scope.querySelectorAll(
-            "tr[onclick], .selectionOption[onclick], [data-a11y-activate='click']",
+            "tr[data-nav-href], [data-a11y-activate='click'], tr[onclick], .selectionOption[onclick]",
         );
         for (var i = 0; i < nodes.length; i++) {
             enhance(nodes[i]);

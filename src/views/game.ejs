@@ -14,7 +14,7 @@
 <div id="main" data-initial-game-id="<%= typeof gameId !== 'undefined' && gameId != null ? gameId : '' %>" data-research-mode="<%= typeof researchMode !== 'undefined' && researchMode ? 'true' : '' %>">
   <div id="bookmarksPanel" class="bookmarksPanel">
     <div class="panelHeader bookmarksPanel-header"><%= t('classic.bookmarks') %></div>
-    <button id="addBookmarkBtn" class="button" onclick="addBookmark()"><%= t('classic.bookmarkAlertTitle') %></button>
+    <button id="addBookmarkBtn" class="button" data-action="add-bookmark"><%= t('classic.bookmarkAlertTitle') %></button>
     <div class="bookmarksSeperator"></div>
     <div id="bookmarksList" class="bookmarksList">
       <!--   <div class="bookmark">
@@ -96,7 +96,7 @@
       <div class="chatSendLine">
         <label class="a11y-sr-only" for="chatline"><%= t('site.accessibility.chatInput') %></label>
         <input type="text" class="chatline" id="chatline" maxlength="30" aria-label="<%= t('site.accessibility.chatInput') %>" />
-        <button type="button" class="sendButton" aria-label="<%= t('site.accessibility.sendChat') %>" onclick="onSendChatButtonClick(event)">
+        <button type="button" class="sendButton" aria-label="<%= t('site.accessibility.sendChat') %>" data-action="send-chat">
           <img src="/images/whiteSend.png" alt="" />
         </button>
       </div>
@@ -112,10 +112,10 @@
 
   <!-- New game options modal (for Rematch on single player) -->
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
-    <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
+    <div class="play-now-modal-overlay" data-action="close-play-now"></div>
     <div class="play-now-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="playNowModalTitle">
       <h2 id="playNowModalTitle" class="play-now-modal-title"><%= t('site.playNow.title') %></h2>
-      <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
+      <form id="playNowForm" class="play-now-form" data-action="play-now-submit">
         <div class="play-now-field">
           <label class="play-now-label"><%= t('site.playNow.playingColor') %></label>
           <div class="play-now-radio-group">
@@ -181,7 +181,7 @@
           </label>
         </div>
         <div class="play-now-modal-actions">
-          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()"><%= t('site.cancel') %></button>
+          <button type="button" class="play-now-btn-cancel" data-action="close-play-now"><%= t('site.cancel') %></button>
           <button type="submit" class="play-now-btn-start"><%= t('common.start') %></button>
         </div>
       </form>

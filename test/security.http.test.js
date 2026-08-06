@@ -55,10 +55,12 @@ describe("security HTTP remediations", function () {
         return agent;
     }
 
-    it("Helmet CSP allows unsafe-inline and skips upgrade-insecure-requests outside production", async function () {
+    it("Helmet CSP uses script nonces and skips upgrade-insecure-requests outside production", async function () {
         const res = await request(app).get("/login").expect(200);
         const csp = String(res.headers["content-security-policy"] || "");
-        assert.match(csp, /script-src[^;]*'unsafe-inline'/);
+        assert.match(csp, /script-src[^;]*'nonce-[^']+'/);
+        assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/);
+        assert.match(csp, /script-src-attr[^;]*'none'/);
         assert.doesNotMatch(csp, /upgrade-insecure-requests/i);
         assert.ok(!res.headers["strict-transport-security"], "HSTS must not be set outside production");
         assert.match(

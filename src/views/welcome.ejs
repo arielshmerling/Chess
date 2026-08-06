@@ -16,7 +16,7 @@
         <h1 class="hero-username"><%= username %></h1>
       </div>
       <div class="hero-play-now">
-        <button type="button" class="play-now-btn" id="startAIGame" onclick="startPlayFromHome()">
+        <button type="button" class="play-now-btn" id="startAIGame" data-action="start-play-home">
           <span class="play-now-btn-text"><%= t('site.welcome.playNow') %></span>
         </button>
       </div>
@@ -96,12 +96,12 @@
             </thead>
             <tbody>
               <% rowIndex = 0; for(const obj of playerGames) { %>
-              <tr data-row-index="<%= rowIndex %>" onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+              <tr data-row-index="<%= rowIndex %>" data-nav-href="/review?type=history&id=<%= obj.Id %>">
                 <td class="row-number sortable-td" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>"><%= rowIndex + 1 %></td>
                 <% for(const key in obj) { %>
                   <% if(key !== 'Id' && !key.startsWith('_')) { %>
                     <% sortVal = key === 'Date' ? (obj._sortableDate != null ? obj._sortableDate : 0) : (key === 'Moves' ? (obj.Moves != null ? obj.Moves : 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
-                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %> onclick=<%-`"window.location='/review?type=history&id=${obj.Id}'"`%>>
+                <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %>>
                   <%= obj[key] %>
                 </td>
                   <% } %>

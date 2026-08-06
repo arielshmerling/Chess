@@ -60,11 +60,11 @@
   </div>
 
   <div id="mobileMovesPanel" class="mobile-moves-panel" aria-hidden="true">
-    <div class="mobile-moves-panel__backdrop" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-hidden="true"></div>
+    <div class="mobile-moves-panel__backdrop" data-action="close-mobile-moves" aria-hidden="true"></div>
     <div class="mobile-moves-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="mobileMovesPanelTitle">
       <div class="mobile-moves-panel__header">
         <h2 id="mobileMovesPanelTitle" class="mobile-moves-panel__title"><%= t('site.mobileGame.moves') %></h2>
-        <button type="button" class="mobile-moves-panel__header-btn mobile-moves-panel__header-btn--close" onclick="if (window.closeMobileMovesListPanel) window.closeMobileMovesListPanel()" aria-label="Close moves list">&times;</button>
+        <button type="button" class="mobile-moves-panel__header-btn mobile-moves-panel__header-btn--close" data-action="close-mobile-moves" aria-label="Close moves list">&times;</button>
       </div>
       <div class="mobile-moves-panel__body">
         <div id="movesDivContainer" class="movesDivContainer mobile-moves-panel__moves-wrap">
@@ -92,7 +92,7 @@
       <div class="chatSendLine">
         <label class="a11y-sr-only" for="chatline"><%= t('site.accessibility.chatInput') %></label>
         <input type="text" class="chatline" id="chatline" maxlength="30" aria-label="<%= t('site.accessibility.chatInput') %>" />
-        <button type="button" class="sendButton" aria-label="<%= t('site.accessibility.sendChat') %>" onclick="onSendChatButtonClick(event)">
+        <button type="button" class="sendButton" aria-label="<%= t('site.accessibility.sendChat') %>" data-action="send-chat">
           <img src="/images/whiteSend.png" alt="" />
         </button>
       </div>
@@ -117,10 +117,10 @@
 </section>
 
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
-    <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
+    <div class="play-now-modal-overlay" data-action="close-play-now"></div>
     <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
       <h2 id="playNowModalTitle" class="play-now-modal-title"><%= t('site.playNow.title') %></h2>
-      <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
+      <form id="playNowForm" class="play-now-form" data-action="play-now-submit">
         <div class="play-now-field">
           <label class="play-now-label"><%= t('site.playNow.playingColor') %></label>
           <div class="play-now-radio-group">
@@ -186,7 +186,7 @@
           </label>
         </div>
         <div class="play-now-modal-actions">
-          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()"><%= t('site.cancel') %></button>
+          <button type="button" class="play-now-btn-cancel" data-action="close-play-now"><%= t('site.cancel') %></button>
           <button type="submit" class="play-now-btn-start"><%= t('common.start') %></button>
         </div>
       </form>

@@ -13,10 +13,16 @@ const { buildHelmetOptions } = require("../src/security/helmetOptions");
 
 describe("security helpers", function () {
     describe("helmetOptions", function () {
-        it("allows inline scripts and skips HSTS/upgrade on non-prod", function () {
+        it("uses script nonces and bans unsafe-inline / event-handler attrs", function () {
             const opts = buildHelmetOptions({ isProd: false, scriptSrcUrl: ["https://cdn.jsdelivr.net"] });
             assert.strictEqual(opts.hsts, false);
-            assert.ok(opts.contentSecurityPolicy.directives.scriptSrc.includes("'unsafe-inline'"));
+            const scriptSrc = opts.contentSecurityPolicy.directives.scriptSrc;
+            assert.ok(!scriptSrc.includes("'unsafe-inline'"));
+            assert.ok(scriptSrc.includes("'self'"));
+            assert.ok(scriptSrc.some(function (entry) {
+                return typeof entry === "function";
+            }));
+            assert.deepStrictEqual(opts.contentSecurityPolicy.directives.scriptSrcAttr, ["'none'"]);
             assert.strictEqual(
                 opts.contentSecurityPolicy.directives.upgradeInsecureRequests,
                 undefined,

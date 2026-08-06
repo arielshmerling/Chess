@@ -6,7 +6,7 @@
 <div id="main" class="mobile-home-main">
   <div class="mobile-home-hero">
     <p class="mobile-home-greeting"><span class="mobile-home-greeting-strong">Hi <%= typeof username !== "undefined" && username ? username : "there" %></span>, let's play some chess.</p>
-    <button type="button" class="mobile-home-play-computer" id="startAIGame" onclick="openPlayNowModal()">
+    <button type="button" class="mobile-home-play-computer" id="startAIGame" data-action="open-play-now">
       <span class="mobile-home-play-computer-label"><%= t('site.playNow.playComputer') %></span>
     </button>
   </div>
@@ -73,12 +73,12 @@
               </thead>
               <tbody>
                 <% rowIndex = 0; for(const obj of playerGames) { %>
-                <tr data-row-index="<%= rowIndex %>" onclick=<%-`"window.location='/mobile-review?type=history&id=${obj.Id}'"`%>>
+                <tr data-row-index="<%= rowIndex %>" data-nav-href="/mobile-review?type=history&id=<%= obj.Id %>">
                   <td class="row-number sortable-td" data-sort-key="rowIndex" data-sort-value="<%= rowIndex %>"><%= rowIndex + 1 %></td>
                   <% for(const key in obj) { %>
                     <% if(key !== 'Id' && !key.startsWith('_')) { %>
                       <% sortVal = key === 'Date' ? (obj._sortableDate != null ? obj._sortableDate : 0) : (key === 'Moves' ? (obj.Moves != null ? obj.Moves : 0) : (obj[key] != null ? String(obj[key]).replace(/"/g, '&quot;') : '')); %>
-                  <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %> onclick=<%-`"window.location='/mobile-review?type=history&id=${obj.Id}'"`%>>
+                  <td class="<%= key.trim() === 'Reason' ? 'align-left ' : '' %>sortable-td" data-sort-key="<%= key.trim() %>" data-sort-value="<%= sortVal %>"<% if (key.trim() === 'Result' && obj._resultReason) { %> title="<%= String(obj._resultReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') %>"<% } %>>
                     <%= obj[key] %>
                   </td>
                     <% } %>
@@ -158,10 +158,10 @@
   </div>
 
   <div id="playNowModal" class="play-now-modal" aria-hidden="true">
-    <div class="play-now-modal-overlay" onclick="closePlayNowModal()"></div>
+    <div class="play-now-modal-overlay" data-action="close-play-now"></div>
     <div class="play-now-modal-dialog" role="dialog" aria-labelledby="playNowModalTitle">
       <h2 id="playNowModalTitle" class="play-now-modal-title"><%= t('site.playNow.startTitle') %></h2>
-      <form id="playNowForm" class="play-now-form" onsubmit="startNewGameFromModal(event)">
+      <form id="playNowForm" class="play-now-form" data-action="play-now-submit">
         <div class="play-now-field">
           <label class="play-now-label"><%= t('site.playNow.playingColor') %></label>
           <div class="play-now-radio-group">
@@ -227,7 +227,7 @@
           </label>
         </div>
         <div class="play-now-modal-actions">
-          <button type="button" class="play-now-btn-cancel" onclick="closePlayNowModal()"><%= t('site.cancel') %></button>
+          <button type="button" class="play-now-btn-cancel" data-action="close-play-now"><%= t('site.cancel') %></button>
           <button type="submit" class="play-now-btn-start"><%= t('common.start') %></button>
         </div>
       </form>

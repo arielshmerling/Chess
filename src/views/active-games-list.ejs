@@ -42,7 +42,7 @@
               <% var gameUrl = (obj.IsParticipant && (obj.StatusKey === 'inProgress' || obj.StatusKey === 'onHold' || obj.Status === 'In progress' || obj.Status === 'On hold'))
                 ? playBase + '?id=' + obj.Id
                 : '/play?id=' + obj.Id + '&mode=watch'; %>
-              <tr data-game-id="<%= obj.Id %>" onclick="window.location='<%= gameUrl %>'">
+              <tr data-game-id="<%= obj.Id %>" data-nav-href="<%= gameUrl %>">
                 <td class="row-number"><%= rowNum++ %></td>
                 <td class="Game"><%= obj.Game %></td>
                 <td class="Started" title="<%= obj.StartedTooltip || '' %>"><%= obj.Started %></td>
@@ -150,12 +150,12 @@
         statusCell.textContent = statusInfo.label;
         if (statusInfo.key) statusCell.setAttribute("data-status-key", statusInfo.key);
       }
-      tr.onclick = function() { window.location = url; };
+      tr.setAttribute("data-nav-href", url);
       return;
     }
     tr = document.createElement("tr");
     tr.setAttribute("data-game-id", id);
-    tr.onclick = function() { window.location = url; };
+    tr.setAttribute("data-nav-href", url);
     var tt = (data.StartedTooltip || "").replace(/"/g, "&quot;");
     tr.innerHTML = "<td class=\"row-number\">0</td><td class=\"Game\">" + escHtml(data.Game) + "</td><td class=\"Started\" title=\"" + tt + "\">" + escHtml(startedLabel) + "</td><td class=\"Moves\">" + (data.Moves != null ? data.Moves : "0") + "</td><td class=\"Status\" data-status-key=\"" + escHtml(statusInfo.key) + "\">" + escHtml(statusInfo.label) + "</td>";
     tbody.appendChild(tr);

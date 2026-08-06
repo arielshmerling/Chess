@@ -1,15 +1,31 @@
 /**
  * Shared Helmet options for web + desktop.
  * Important: do not enable upgrade-insecure-requests on plain HTTP (breaks localhost).
- * Do not put a CSP nonce alone in script-src — it disables 'unsafe-inline' and blocks
- * legacy onclick= handlers used across site pages (NFR-SEC-003 / ON-39 SEC-05).
+ *
+ * Script CSP (NFR-SEC-003 / ON-39): allow 'self', optional CDNs, and a per-response nonce.
+ * Do not include 'unsafe-inline' in script-src — that re-enables XSS via injected
+ * <script> / onclick= attributes. Inline <script> tags in EJS must carry nonce="…".
+ * style-src may still use 'unsafe-inline' for legacy CSS patterns (separate from SEC-05).
  */
 function buildHelmetOptions(options = {}) {
     const isProd = options.isProd === true;
     const scriptSrcUrl = options.scriptSrcUrl || [];
+    const useScriptNonce = options.useScriptNonce !== false;
+
+    const scriptSrc = ["'self'", ...scriptSrcUrl];
+    if (useScriptNonce) {
+        /* Helmet invokes this per request; nonce must already be on res.locals. */
+        scriptSrc.push(function (req, res) {
+            const nonce = res && res.locals && res.locals.cspNonce;
+            return nonce ? "'nonce-" + nonce + "'" : null;
+        });
+    }
+
     const directives = {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", ...scriptSrcUrl],
+        scriptSrc: scriptSrc,
+        /* Explicitly ban HTML event-handler attributes (CSP3). */
+        scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:"],
