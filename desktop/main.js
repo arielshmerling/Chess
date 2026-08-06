@@ -14,6 +14,36 @@ installConsoleCapture();
 
 const APP_NAME = "Shmerling Chess";
 
+/** Ignore broken-pipe noise so Windows does not show the main-process error dialog. */
+function isBrokenPipeError(err) {
+    return Boolean(
+        err
+        && (err.code === "EPIPE" || err.code === "ECONNRESET" || err.code === "ERR_STREAM_DESTROYED"),
+    );
+}
+
+process.on("uncaughtException", (err) => {
+    if (isBrokenPipeError(err)) {
+        return;
+    }
+    console.error("[desktop] Uncaught exception:", err);
+    try {
+        dialog.showErrorBox(
+            APP_NAME,
+            `A JavaScript error occurred in the main process:\n\n${err && err.stack ? err.stack : String(err)}`,
+        );
+    } catch {
+        /* dialog may be unavailable very early */
+    }
+});
+
+process.on("unhandledRejection", (reason) => {
+    if (isBrokenPipeError(reason)) {
+        return;
+    }
+    console.error("[desktop] Unhandled rejection:", reason);
+});
+
 /** Real filesystem path for files unpacked from app.asar (required for workers). */
 function toUnpackedPath(filePath) {
     if (!app.isPackaged || !filePath.includes(".asar")) {
@@ -252,7 +282,20 @@ function setupApplicationMenu() {
     setApplicationMenuVisible(false);
 }
 
+function disposeDesktopEngines() {
+    try {
+        const bundleRoot = resolveBundleRoot();
+        const engineService = require(path.join(bundleRoot, "src/engines/engineService"));
+        if (typeof engineService.disposeEngines === "function") {
+            engineService.disposeEngines();
+        }
+    } catch (err) {
+        console.warn("[desktop] Engine dispose skipped:", err && err.message ? err.message : err);
+    }
+}
+
 function stopLocalServer() {
+    disposeDesktopEngines();
     if (httpServer) {
         httpServer.close();
         httpServer = null;

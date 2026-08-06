@@ -82,4 +82,32 @@ describe("engines uciProcess", function () {
         }, 30);
         await assert.rejects(pending, (err) => err instanceof SearchAbortedError);
     });
+
+    it("dispose after child exit does not raise uncaught EPIPE", async function () {
+        const uncaught = [];
+        const onUncaught = (err) => {
+            uncaught.push(err);
+        };
+        process.on("uncaughtException", onUncaught);
+        try {
+            proc = createUciProcess(process.execPath, ["-e", "process.exit(0)"]);
+            await proc.ensureStarted();
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            assert.doesNotThrow(() => {
+                try {
+                    proc.write("uci");
+                } catch {
+                    /* expected if pipe already closed */
+                }
+                proc.dispose();
+            });
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            const pipes = uncaught.filter(
+                (err) => err && (err.code === "EPIPE" || err.code === "ECONNRESET"),
+            );
+            assert.strictEqual(pipes.length, 0, `unexpected broken-pipe errors: ${pipes}`);
+        } finally {
+            process.removeListener("uncaughtException", onUncaught);
+        }
+    });
 });

@@ -156,10 +156,18 @@ function abortSearch() {
     desktopBrainService.abortSearch();
 }
 
+function disposeEngines() {
+    abortSearch();
+    if (typeof uciBackend.disposeAll === "function") {
+        uciBackend.disposeAll();
+    }
+}
+
 module.exports = {
     computeMove,
     evaluatePosition,
     abortSearch,
+    disposeEngines,
     listPlayEnginesForClient,
     listPlayEnginesForAdmin,
     setPlayEngineEnabled,

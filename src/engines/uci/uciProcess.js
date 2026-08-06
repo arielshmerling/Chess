@@ -100,6 +100,7 @@ function createUciProcess(command, args, options) {
             try {
                 child = spawnFn(command, args || [], {
                     stdio: ["pipe", "pipe", "pipe"],
+                    windowsHide: true,
                 });
             } catch (err) {
                 starting = null;
@@ -111,6 +112,8 @@ function createUciProcess(command, args, options) {
             child.stderr.setEncoding("utf8");
             child.stdout.on("data", onData);
             child.stderr.on("data", onStderr);
+            // Without listeners, stdin EPIPE becomes an uncaught main-process exception (Windows Electron dialog).
+            attachPipeErrorHandlers(child);
             child.on("error", (err) => {
                 emitter.emit("error", err);
             });
@@ -128,11 +131,43 @@ function createUciProcess(command, args, options) {
         return starting;
     }
 
+    function isBrokenPipeError(err) {
+        return Boolean(
+            err
+            && (err.code === "EPIPE" || err.code === "ECONNRESET" || err.code === "ERR_STREAM_DESTROYED"),
+        );
+    }
+
+    function attachPipeErrorHandlers(proc) {
+        const onPipeError = (err) => {
+            if (isBrokenPipeError(err)) {
+                return;
+            }
+            emitter.emit("error", err);
+        };
+        if (proc.stdin) {
+            proc.stdin.on("error", onPipeError);
+        }
+        if (proc.stdout) {
+            proc.stdout.on("error", onPipeError);
+        }
+        if (proc.stderr) {
+            proc.stderr.on("error", onPipeError);
+        }
+    }
+
     function write(cmd) {
-        if (!child || !child.stdin || child.stdin.destroyed) {
+        if (!child || !child.stdin || child.stdin.destroyed || !child.stdin.writable) {
             throw new Error("UCI process not running");
         }
-        child.stdin.write(String(cmd) + "\n");
+        try {
+            child.stdin.write(String(cmd) + "\n");
+        } catch (err) {
+            if (isBrokenPipeError(err)) {
+                throw new Error("UCI process pipe closed");
+            }
+            throw err;
+        }
     }
 
     /**

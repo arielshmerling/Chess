@@ -53,16 +53,53 @@ function appendLog(level, args) {
     }
 }
 
+function isBrokenPipeError(err) {
+    return Boolean(
+        err
+        && (err.code === "EPIPE" || err.code === "ECONNRESET" || err.code === "ERR_STREAM_DESTROYED"),
+    );
+}
+
+/**
+ * Windows GUI Electron often has no console; writing to a closed stdout/stderr pipe
+ * throws EPIPE and shows the main-process "JavaScript error" dialog.
+ */
+function ignoreBrokenPipeOnStream(stream) {
+    if (!stream || typeof stream.on !== "function") {
+        return;
+    }
+    stream.on("error", (err) => {
+        if (isBrokenPipeError(err)) {
+            return;
+        }
+        // Avoid re-entering console capture for unexpected stream errors.
+        try {
+            process.emitWarning(err);
+        } catch {
+            /* ignore */
+        }
+    });
+}
+
 function installConsoleCapture() {
     if (installed) {
         return;
     }
     installed = true;
+    ignoreBrokenPipeOnStream(process.stdout);
+    ignoreBrokenPipeOnStream(process.stderr);
     for (const level of ["log", "info", "warn", "error", "debug"]) {
         const original = console[level].bind(console);
         console[level] = (...args) => {
             appendLog(level === "log" ? "info" : level, args);
-            original(...args);
+            try {
+                original(...args);
+            } catch (err) {
+                if (isBrokenPipeError(err)) {
+                    return;
+                }
+                throw err;
+            }
         };
     }
 }
