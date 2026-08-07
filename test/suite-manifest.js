@@ -2,7 +2,8 @@
  * Central lists for npm test scripts (see package.json + scripts/run-mocha.js).
  *
  * - pgn: only `npm run test:pgn` (excluded from every other mocha suite)
- * - heavy: slow suites (`npm run test:heavy`); also included in `test:all`
+ * - heavy: slow suites (`npm run test:heavy`); also included in `test:all` mocha phase
+ * - test:all = mocha (except pgn, including heavy) then `test:web` (API + e2e)
  * - brainFast / brainHeavy: `test:brain` vs `test:brain:all`
  * - light: quick unit subset aimed at finishing under ~1 minute
  */

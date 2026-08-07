@@ -1,0 +1,27 @@
+<%#
+  Minified site shell scripts. Expects res.locals.siteBundles
+  ({ shell, chrome, social }) from app middleware.
+%>
+<% var bundles = typeof siteBundles !== "undefined" && siteBundles ? siteBundles : {}; %>
+<script src="<%= bundles.shell || '/bundles/site-shell.js' %>" defer></script>
+<% if (typeof needsClassicBoard !== 'undefined' && needsClassicBoard) { %>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/ChessGame.js"></script>
+<script src="/validation/positionValidation.js"></script>
+<script src="/chessboard.js"></script>
+<script src="/customValidation.js"></script>
+<% } else if (typeof needsAxios !== 'undefined' && needsAxios) { %>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<% } %>
+<% if (typeof username !== 'undefined' && username) { %>
+<% if (typeof siteChrome !== 'undefined' ? siteChrome : true) { %>
+<script src="<%= bundles.chrome || '/bundles/site-chrome.js' %>" defer></script>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+  window.__SHMERLING_USER_TYPE__ = <%- JSON.stringify(typeof userType !== 'undefined' && userType ? userType : 'Member') %>;
+  window.__SHMERLING_PLAY_ADVANCED__ = <%= (typeof canPlayAdvanced !== 'undefined' && canPlayAdvanced) ? 'true' : 'false' %>;
+  window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = <%= (typeof canCustomizeThemes !== 'undefined' && canCustomizeThemes) ? 'true' : 'false' %>;
+  window.__SHMERLING_CAN_DEBUG__ = <%= (typeof canDebug !== 'undefined' && canDebug) ? 'true' : 'false' %>;
+</script>
+<% } %>
+<script src="<%= bundles.social || '/bundles/site-social.js' %>" defer></script>
+<% } %>

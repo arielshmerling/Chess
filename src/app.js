@@ -175,6 +175,7 @@ const {
     DEFAULT_LOCALE,
     resolveRequestLocale,
 } = require("./strings");
+const { getSiteBundleUrls } = require("./site/siteBundleUrls");
 
 // Available to every EJS view (including error pages / includes).
 app.locals.t = t;
@@ -202,6 +203,7 @@ app.use((req, res, next) => {
     res.locals.t = function (key, params) {
         return t(key, params, locale);
     };
+    res.locals.siteBundles = getSiteBundleUrls();
     next();
 });
 

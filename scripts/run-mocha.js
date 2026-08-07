@@ -38,7 +38,7 @@ switch (mode) {
         pushIgnore(manifest.ignoreDefault);
         break;
     case "all":
-        /* All mocha tests except PGN (includes heavy). */
+        /* All mocha tests except PGN (includes heavy). npm run test:all then adds test:web. */
         args.push("./test/**/*.test.js");
         pushIgnore(manifest.ignoreAll);
         break;

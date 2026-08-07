@@ -15,44 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=EB+Garamond:wght@600;700&family=Libre+Baskerville:wght@700&family=Merriweather:wght@700;900&family=Oswald:wght@600;700&family=Raleway:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <%- include('../partials/locale-scripts') %>
-  <script src="/themes.js" defer></script>
-  <script src="/pieceSets.js" defer></script>
-  <% if (typeof needsClassicBoard !== 'undefined' && needsClassicBoard) { %>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="/ChessGame.js"></script>
-  <script src="/validation/positionValidation.js"></script>
-  <script src="/chessboard.js"></script>
-  <script src="/customValidation.js"></script>
-  <% } else if (typeof needsAxios !== 'undefined' && needsAxios) { %>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <% } %>
-  <script src="/lobby.js" defer></script>
-  <script src="/a11y/focusTrap.js" defer></script>
-  <script src="/a11y/bindUiActions.js" defer></script>
-  <script src="/a11y/enhanceClickables.js" defer></script>
-  <script src="/siteDialogs.js" defer></script>
-  <% if (typeof username !== 'undefined' && username) { %>
-  <script src="/app/ui/play-shell-detect.js" defer></script>
-  <script src="/app/ui/desktop-theme-keys.js" defer></script>
-  <script src="/app/ui/desktop-custom-theme.js" defer></script>
-  <script src="/app/ui/desktop-theme.js" defer></script>
-  <script src="/app/ui/desktop-api.js" defer></script>
-  <script src="/app/ui/desktop-game-settings.js" defer></script>
-  <script src="/app/ui/desktop-prefs-gameplay.js" defer></script>
-  <script src="/app/ui/desktop-fullscreen.js" defer></script>
-  <script src="/app/ui/desktop-prefs-display.js" defer></script>
-  <script src="/app/ui/desktop-prefs-language.js" defer></script>
-  <script src="/app/ui/desktop-chrome.js" defer></script>
-  <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
-    window.__SHMERLING_USER_TYPE__ = <%- JSON.stringify(typeof userType !== 'undefined' && userType ? userType : 'Member') %>;
-    window.__SHMERLING_PLAY_ADVANCED__ = <%= (typeof canPlayAdvanced !== 'undefined' && canPlayAdvanced) ? 'true' : 'false' %>;
-    window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = <%= (typeof canCustomizeThemes !== 'undefined' && canCustomizeThemes) ? 'true' : 'false' %>;
-    window.__SHMERLING_CAN_DEBUG__ = <%= (typeof canDebug !== 'undefined' && canDebug) ? 'true' : 'false' %>;
-  </script>
-  <script src="/lobbyPresence.js" defer></script>
-  <script src="/friendInviteOptions.js" defer></script>
-  <script src="/friendGameInvite.js" defer></script>
-  <% } %>
+  <%- include('../partials/site-shell-scripts') %>
 </head>
 
 <body<% if (typeof hideTopbar !== 'undefined' && hideTopbar) { %> class="hide-topbar"<% } %>>
