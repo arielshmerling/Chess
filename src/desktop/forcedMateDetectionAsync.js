@@ -118,7 +118,7 @@ async function detectForcedLossMateAsync(game, opts) {
     let gameStateJson;
     try {
         gameStateJson = JSON.stringify(game.GameState);
-    } catch (err) {
+    } catch {
         // Fall back to sync if serialization fails (should be rare).
         return detectForcedLossMate(game, options);
     }
@@ -134,7 +134,7 @@ async function detectForcedLossMateAsync(game, opts) {
                     maxPlies: options.maxPlies,
                 },
             });
-        } catch (err) {
+        } catch {
             pending.delete(requestId);
             // Worker spawn failed (e.g. restricted env) — keep behavior correct sync.
             try {
