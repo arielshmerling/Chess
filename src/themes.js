@@ -44,6 +44,13 @@ function setDefaultTheme(theme) {
     Object.entries(theme).forEach(([key, value]) => {
         r.style.setProperty(key, value);
     });
+    try {
+        if (typeof localStorage !== "undefined") {
+            localStorage.setItem("shmerling.themeVars", JSON.stringify(theme));
+        }
+    } catch {
+        /* ignore quota / private mode */
+    }
 }
 
 
@@ -256,8 +263,8 @@ const themes = {
 
 
 (function () {
-    populatePaletteSelctor();
-    window.addEventListener("load", () => {
+    function applyStoredClassicTheme() {
+        populatePaletteSelctor();
         const themeSwitch = document.getElementById("themeSwitch");
 
         const theme = localStorage.getItem("theme");
@@ -265,17 +272,12 @@ const themes = {
             setDefaultTheme(themes.blueTheme);
             if (themeSwitch) {
                 themeSwitch.checked = true;
-            };
-        }
-
-        else if (theme == "dark") {
-
+            }
+        } else if (theme == "dark") {
             setDefaultTheme(themes.darkTheme);
-        }
-        else if (theme && theme.indexOf("custom:") === 0) {
-            /* Desktop custom themes: applied by desktop-theme.js */
-        }
-        else {
+        } else if (theme && theme.indexOf("custom:") === 0) {
+            /* Desktop custom themes: applied by desktop-theme.js / play-early-boot.js */
+        } else {
             setDefaultTheme(themes.darkTheme);
         }
 
@@ -284,14 +286,17 @@ const themes = {
                 if (themeSwitch.checked) {
                     setDefaultTheme(themes.blueTheme);
                     localStorage.setItem("theme", "blue");
-                }
-                else {
+                } else {
                     setDefaultTheme(themes.darkTheme);
                     localStorage.setItem("theme", "dark");
                 }
             };
         }
-    });
+    }
 
-}
-)();
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", applyStoredClassicTheme);
+    } else {
+        applyStoredClassicTheme();
+    }
+})();

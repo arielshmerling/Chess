@@ -166,6 +166,40 @@
         return changed;
     }
 
+    function hydrateFromLocalCache() {
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            var localActive = localStorage.getItem("theme");
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.themes) && parsed.themes.length > 0) {
+                    cachedStore.themes = parsed.themes.map(function (theme) {
+                        return {
+                            id: theme.id,
+                            name: theme.name || t("desktop.customTheme.defaultName"),
+                            vars: completeThemeVarsClient(theme.vars, "blue"),
+                            updatedAt: theme.updatedAt || Date.now(),
+                        };
+                    });
+                }
+            }
+            if (localActive === "blue" || localActive === "dark") {
+                cachedStore.activeTheme = "custom:" + localActive;
+            } else if (localActive && localActive.indexOf("custom:") === 0) {
+                cachedStore.activeTheme = localActive;
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    function resolveReady(store) {
+        if (readyResolve) {
+            readyResolve(store || cachedStore);
+            readyResolve = null;
+        }
+    }
+
     function loadFromServer() {
         return fetch("/app/api/custom-themes", {
             method: "GET",
@@ -213,10 +247,7 @@
                 cachedStore = store;
                 storeLoaded = true;
                 syncLocalStorageCache();
-                if (readyResolve) {
-                    readyResolve(store);
-                    readyResolve = null;
-                }
+                resolveReady(store);
                 document.dispatchEvent(new CustomEvent("shmerling-custom-themes-changed"));
                 return store;
             });
@@ -1056,5 +1087,8 @@
         setActiveTheme: setActiveTheme,
     };
 
+    /* Resolve whenReady from local cache first so theme paint is not gated on Mongo. */
+    hydrateFromLocalCache();
+    resolveReady(cachedStore);
     loadFromServer();
 })();

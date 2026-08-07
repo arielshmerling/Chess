@@ -10,108 +10,29 @@
   <link rel="stylesheet" href="/app/ui/app.css">
   <link rel="stylesheet" href="/app/ui/desktop-play.css">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <script src="/app/strings/en.js"></script>
-  <script src="/app/strings/en-extra.js"></script>
-  <script src="/app/strings/he.js"></script>
-  <script src="/app/strings/he-extra.js"></script>
-  <script src="/app/strings/ja.js"></script>
-  <script src="/app/strings/ja-extra.js"></script>
-  <script src="/app/strings/fr.js"></script>
-  <script src="/app/strings/fr-extra.js"></script>
-  <script src="/app/strings/de.js"></script>
-  <script src="/app/strings/de-extra.js"></script>
-  <script src="/app/strings/zh.js"></script>
-  <script src="/app/strings/zh-extra.js"></script>
-  <script src="/app/strings/ar.js"></script>
-  <script src="/app/strings/ar-extra.js"></script>
-  <script src="/app/strings/hi.js"></script>
-  <script src="/app/strings/hi-extra.js"></script>
-  <script src="/app/strings/es.js"></script>
-  <script src="/app/strings/es-extra.js"></script>
-  <script src="/app/strings/ru.js"></script>
-  <script src="/app/strings/ru-extra.js"></script>
-  <script src="/app/strings/uk.js"></script>
-  <script src="/app/strings/uk-extra.js"></script>
-  <script src="/app/strings/no.js"></script>
-  <script src="/app/strings/no-extra.js"></script>
-  <script src="/app/strings/bn.js"></script>
-  <script src="/app/strings/bn-extra.js"></script>
-  <script src="/app/strings/pt.js"></script>
-  <script src="/app/strings/pt-extra.js"></script>
-  <script src="/app/strings/index.js"></script>
-  <script src="/app/strings/t-bridge.js"></script>
-  <script src="/app/strings/applyPlayShell.js"></script>
-  <script src="/validation/positionValidation.js"></script>
-  <script src="/ChessGame.js"></script>
-  <script src="/themes.js"></script>
-  <script src="/pieceSets.js"></script>
-  <script src="/app/play-ui/moves-panel.js"></script>
-  <script src="/app/play-ui/clocks-controller.js"></script>
-  <script src="/app/play-ui/saved-games-model.js"></script>
-  <script src="/app/play-ui/saved-games-list.js"></script>
-  <script src="/app/play-ui/review-model.js"></script>
-  <script src="/app/play-ui/review-nav.js"></script>
-  <script src="/app/play-ui/session-mode.js"></script>
-  <script src="/app/play-ui/dock-mode-chrome.js"></script>
-  <script src="/app/play-ui/action-rail.js"></script>
-  <script src="/app/play-ui/status-bar.js"></script>
-  <script src="/app/play-ui/engine-turn.js"></script>
-  <script src="/app/play-ui/evaluation-display.js"></script>
-  <script src="/app/play-ui/action-buttons-policy.js"></script>
-  <script src="/app/play-ui/launch-options.js"></script>
-  <script src="/app/play-ui/keyboard-shortcuts.js"></script>
-  <script src="/app/play-ui/bookmark-helpers.js"></script>
-  <script src="/app/play-ui/play-chat-panel.js"></script>
-  <script src="/app/play-ui/right-dock-mode.js"></script>
-  <script src="/app/session/eventBus.js"></script>
-  <script src="/app/session/contracts.js"></script>
-  <script src="/app/session/capabilities.js"></script>
-  <script src="/app/session/sessionLoaders.js"></script>
-  <script src="/app/session/gameSession.js"></script>
-  <script src="/app/session/localEngineMode.js"></script>
-  <script src="/app/session/reviewMode.js"></script>
-  <script src="/app/session/practiceMode.js"></script>
-  <script src="/app/session/toolDockMode.js"></script>
-  <script src="/app/session/positionSetupMode.js"></script>
-  <script src="/app/session/configurationMode.js"></script>
-  <script src="/app/session/onlineProtocol.js"></script>
-  <script src="/app/session/wsTransport.js"></script>
-  <script src="/app/session/onlineMode.js"></script>
-  <script src="/app/session/spServerSync.js"></script>
-  <script src="/app/ui/play-shell-detect.js"></script>
-  <script src="/app/ui/desktop-theme-keys.js"></script>
-  <script src="/app/ui/desktop-custom-theme.js"></script>
-  <script src="/app/ui/desktop-theme.js"></script>
-  <script src="/app/ui/desktop-chrome.js"></script>
-  <script src="/app/ui/desktop-api.js"></script>
-  <script src="/app/ui/desktop-game-settings.js"></script>
-  <script src="/app/ui/desktop-prefs-gameplay.js"></script>
-  <script src="/app/ui/desktop-fullscreen.js"></script>
-  <script src="/app/ui/desktop-prefs-display.js"></script>
-  <script src="/app/ui/desktop-prefs-language.js"></script>
-  <script src="/app/adapters/brainHttp.js"></script>
-  <script src="/app/adapters/brainIpc.js"></script>
-  <script src="/app/adapters/createEnginePort.js"></script>
-  <script src="/app/ui/desktop-engine.js"></script>
-  <script src="/app/ui/desktop-game-log.js"></script>
-  <script src="/a11y/focusTrap.js"></script>
-  <script src="/a11y/bindUiActions.js"></script>
-  <script src="/a11y/enhanceClickables.js"></script>
-  <script src="/app/ui/desktop-dialog.js"></script>
-  <script src="/app/ui/desktop-context-menu.js"></script>
-  <script src="/app/ui/desktop-start-menu.js"></script>
-  <script src="/app/ui/desktop-board.js"></script>
-  <script src="/app/ui/desktop-board-scale.js"></script>
-  <script src="/app/ui/desktop-dock-panels.js"></script>
-  <script src="/app/ui/desktop-position-setup.js"></script>
-  <script src="/app/ui/desktop-brain-config.js"></script>
-  <script src="/app/ui/desktop-game-run.js"></script>
-  <script src="/app/ui/desktop-position-validation.js"></script>
-  <script src="/app/ui/desktop-play-resume.js"></script>
-  <script src="/app/ui/desktop-play.js"></script>
+  <!-- Early theme + boot timeline (sync, before deferred bundles) -->
+  <script src="/app/ui/play-early-boot.js"></script>
+  <!--PLAY_STRINGS-->
+  <script src="/app/ui/bundles/play-core.js" defer></script>
+  <script src="/app/ui/bundles/play-session.js" defer></script>
+  <script src="/app/ui/bundles/play-shell.js" defer></script>
 </head>
 <body class="desktop-shell desktop-play-page desktop-has-topbar">
   <a class="skip-link" href="#main-content" data-i18n="site.accessibility.skipToMain">Skip to main content</a>
+  <div
+    id="playBootOverlay"
+    class="play-boot-overlay"
+    role="status"
+    aria-live="polite"
+    aria-hidden="false"
+  >
+    <div class="play-boot-overlay__card">
+      <p id="playBootMessage" class="play-boot-overlay__message" data-i18n="play.status.booting">Loading Play…</p>
+      <div class="play-boot-overlay__track" aria-hidden="true">
+        <div id="playBootBar" class="play-boot-overlay__bar" style="width: 8%"></div>
+      </div>
+    </div>
+  </div>
   <div class="desktop-play-shell">
     <nav id="desktopPlayActions" class="desktop-play-actions" data-i18n="play.shell.gameActions" data-i18n-attr="aria-label"></nav>
 

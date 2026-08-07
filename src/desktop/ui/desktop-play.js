@@ -6101,6 +6101,7 @@
         if (!isWebPlayPage()) {
             return;
         }
+        try {
         if (wantsNewGameDialogFromUrl()) {
             clearWebLaunchQueryString();
             /* Prefetch last options so the compact dialog defaults match saved prefs. */
@@ -6168,6 +6169,12 @@
         const opts = await resolveWebAutoStartOptions();
         await beginNewGame(opts);
         clearWebLaunchQueryString();
+        } finally {
+            /* beginNewGame dismisses the overlay; other launch paths need it too. */
+            if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
+                window.PlayBoot.done();
+            }
+        }
     }
 
     /**
@@ -6802,21 +6809,11 @@
                 showAvailableMoves: launchOpts.showAvailableMoves,
             });
         }
-        const serverSp = await createPublicSpServerGame(launchOpts);
-        if (serverSp && serverSp.gameId) {
-            setCurrentGameId(serverSp.gameId);
-            await attachSpServerSync(
-                {
-                    gameId: serverSp.gameId,
-                    username: username,
-                    userId: serverSp.userId,
-                    creatorId: serverSp.creatorId,
-                },
-                launchOpts.color !== "black",
-            );
-        } else {
-            assignNewGameId();
+        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+            window.PlayBoot.set(t("play.status.startingGame"), 55);
         }
+        /* Paint the starting position immediately; server register/WS can finish after. */
+        assignNewGameId();
         gameHistoryLogged = false;
         gameAutoBookmarked = false;
         clearLoadedBookmarkDisplayMoves();
@@ -6836,18 +6833,44 @@
         setPlayOriginState(game.GameState);
         document.body.classList.add("desktop-play-has-active-game");
         if (Board.setHumanPlayEnabled) {
-            Board.setHumanPlayEnabled(true);
+            Board.setHumanPlayEnabled(false);
         }
         lastLoadedSavedGameId = null;
         editingSavedGameId = null;
         updateActionButtons();
         syncGameRunPanelOptions();
         updateGameRunPanelVisibility();
+        syncPrimaryGameButtonLabel();
+        if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+            window.PlayBoot.mark("pieces-painted");
+        }
+        showStatus(t("play.status.connectingToServer"), 0, "info");
+        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+            window.PlayBoot.set(t("play.status.connectingToServer"), 75);
+        }
+        const serverSp = await createPublicSpServerGame(launchOpts);
+        if (serverSp && serverSp.gameId) {
+            setCurrentGameId(serverSp.gameId);
+            await attachSpServerSync(
+                {
+                    gameId: serverSp.gameId,
+                    username: username,
+                    userId: serverSp.userId,
+                    creatorId: serverSp.creatorId,
+                },
+                launchOpts.color !== "black",
+            );
+        }
+        if (Board.setHumanPlayEnabled) {
+            Board.setHumanPlayEnabled(true);
+        }
         persistActiveGame();
         ensurePlayGameSession();
-        syncPrimaryGameButtonLabel();
         if (isWebPlayPage() && currentGameId) {
             clearWebLaunchQueryString({ keepId: true });
+        }
+        if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
+            window.PlayBoot.done();
         }
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
@@ -7506,7 +7529,10 @@
     async function startSession() {
         playSessionReady = false;
         ensureSavedListFilterControls();
-        await loadSavedGames();
+        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+            window.PlayBoot.set(t("play.status.loadingBoard"), 30);
+        }
+        const savedPromise = loadSavedGames();
 
         game = new ChessGame();
         ensureGameRunPanel();
@@ -7541,6 +7567,9 @@
         updateMovesTable([]);
         updateHeaderTurn();
         updateMatchHeader();
+        if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+            window.PlayBoot.mark("board-mounted");
+        }
         if (!isWebPlayPage()) {
             showStatus(
                 canPlayAdvancedTools
@@ -7550,14 +7579,27 @@
                 "info",
             );
         }
+        await savedPromise;
         playSessionReady = true;
         updateActionButtons();
         if (isWebPlayPage()) {
+            if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+                window.PlayBoot.set(t("play.status.startingGame"), 50);
+            }
             await maybeAutoStartWebGame();
+        } else if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
+            window.PlayBoot.done();
         }
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+            window.PlayBoot.set(
+                (typeof t === "function" && t("play.status.booting")) || "Loading Play…",
+                12,
+            );
+            window.PlayBoot.mark("dom-ready");
+        }
         document.addEventListener("contextmenu", function (ev) {
             ev.preventDefault();
         });
@@ -7571,15 +7613,24 @@
                 dialogOn = locked;
             });
         }
+        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
+            window.PlayBoot.set(t("play.status.loadingPreferences"), 20);
+        }
         fetchLaunchContext()
             .then(function () {
                 ensureChatPanelWired();
                 applyAdvancedToolsVisibility();
                 buildActionRail();
                 ensureReviewNavBar();
+                if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+                    window.PlayBoot.mark("launch-context");
+                }
                 return startSession();
             })
             .catch(function (err) {
+                if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
+                    window.PlayBoot.done();
+                }
                 showStatus(err.message || t("play.status.couldNotLoadGame"), 0, "error");
                 console.error(err);
             });

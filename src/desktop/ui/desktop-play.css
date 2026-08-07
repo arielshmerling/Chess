@@ -29,6 +29,68 @@ body.desktop-play-page {
   --promotion-width: var(--board-height);
 }
 
+/* First-paint boot status (visible while scripts/API catch up on slow hosts) */
+.play-boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--body-background, #242424) 82%, transparent);
+  backdrop-filter: blur(2px);
+  transition: opacity 160ms ease;
+}
+
+.play-boot-overlay[hidden] {
+  display: none !important;
+}
+
+.play-boot-overlay--done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.play-boot-overlay__card {
+  width: min(22rem, 100%);
+  padding: 1rem 1.15rem 1.1rem;
+  border-radius: 10px;
+  background: var(--panel-background, #2d3134);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.play-boot-overlay__message {
+  margin: 0 0 0.75rem;
+  color: var(--frame-forecolor, #eee);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.play-boot-overlay__track {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.play-boot-overlay__bar {
+  height: 100%;
+  width: 8%;
+  border-radius: inherit;
+  background: var(--play-now-btn-background, #5cb37d);
+  transition: width 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play-boot-overlay,
+  .play-boot-overlay__bar {
+    transition: none;
+  }
+}
+
 body.desktop-play-page .desktop-play-main {
   margin-top: 0;
 }
@@ -248,9 +310,6 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   cursor: pointer;
 }
 
-.desktop-play-header-run .desktop-play-game-run-depth {
-  min-width: 2.35rem;
-}
 
 .desktop-play-header-run .desktop-play-game-run-engine {
   min-width: 4.75rem;
@@ -271,19 +330,13 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
   flex-shrink: 0;
 }
 
-.desktop-play-header-run .desktop-play-game-run-eval {
-  width: 2.15rem;
-  height: 2.15rem;
-  min-width: 2.15rem;
-  min-height: 2.15rem;
-  flex-shrink: 0;
-}
-
-.desktop-play-header-run .desktop-play-game-run-eval svg,
 .desktop-play-header-run .desktop-play-game-run-play svg {
   width: 1rem;
   height: 1rem;
 }
+
+
+
 
 .desktop-play-header-clock {
   display: flex;
@@ -1402,12 +1455,6 @@ html[dir="rtl"] .desktop-play-chat-line {
   flex-shrink: 0;
 }
 
-.desktop-play-setup-separator {
-  flex-shrink: 0;
-  height: 0;
-  margin: 0.45rem 0 0.4rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
 
 .desktop-play-setup-turn {
   flex-shrink: 0;
@@ -1518,32 +1565,8 @@ html[dir="rtl"] .desktop-play-chat-line {
   flex-shrink: 0;
 }
 
-.desktop-play-game-run-eval {
-  flex-shrink: 0;
-  width: 2.35rem;
-  height: 2.35rem;
-  min-width: 2.35rem;
-  min-height: 2.35rem;
-  padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  background: rgba(120, 150, 210, 0.22);
-  color: var(--semiLight, #98c1d9);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.desktop-play-game-run-eval svg {
-  width: 1.15rem;
-  height: 1.15rem;
-  pointer-events: none;
-}
 
-.desktop-play-game-run-eval:hover {
-  background: rgba(120, 150, 210, 0.35);
-}
 
 .desktop-play-game-run-play {
   flex-shrink: 0;
@@ -1612,9 +1635,6 @@ html[dir="rtl"] .desktop-play-chat-line {
   cursor: pointer;
 }
 
-.desktop-play-game-run-depth {
-  min-width: 2.75rem;
-}
 
 .desktop-play-game-run-engine {
   min-width: 5.5rem;

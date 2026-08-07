@@ -103,6 +103,11 @@
                 gameInProgress: "Game in progress",
                 boardLoading: "Board is still loading…",
                 boardNotReady: "Board is not ready yet. Please wait and try again.",
+                booting: "Loading Play…",
+                loadingPreferences: "Loading preferences…",
+                loadingBoard: "Preparing the board…",
+                startingGame: "Starting game…",
+                connectingToServer: "Connecting to server…",
                 leaveOnlineBeforeConfiguration:
                     "Leave the online game before opening Configuration",
                 configurationNotInPractice:

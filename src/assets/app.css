@@ -35,12 +35,12 @@
     --selection-highlight: #838383;
     --selection-border: rgb(0 91 255);
 
-    --darkSquare: #98c1d9;
-    --lightSquare: #e0fbfc;
+    --darkSquare: #bbbbbb;
+    --lightSquare: #d9d9d9;
     --optionSquare: rgb(92, 171, 125);
-    --frame: #293241;
-    --frame-forecolor: #e0fbfc;
-    --body-background: #3d5a80;
+    --frame: #545454;
+    --frame-forecolor: #bbbbbb;
+    --body-background: #242424;
 
     --table-header-bg: rgb(174, 185, 200);
     --table-header-text: rgb(44, 70, 104);

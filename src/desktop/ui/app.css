@@ -31,6 +31,8 @@ body.desktop-has-topbar {
   background: #0d0d0d;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: #e8e8e8;
+  /* Prefs panel opens below the bar; do not clip it (Play body uses overflow:hidden). */
+  overflow: visible;
 }
 
 .desktop-topbar-logo {
@@ -102,10 +104,12 @@ body.desktop-has-topbar {
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
+  overflow: visible;
 }
 
 .desktop-prefs {
   position: relative;
+  overflow: visible;
 }
 
 .desktop-prefs-trigger {
@@ -141,12 +145,13 @@ body.desktop-has-topbar {
 }
 
 .desktop-prefs-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
+  position: fixed;
+  top: calc(var(--desktop-topbar-height, 51px) + 10px);
+  right: 1rem;
   min-width: min(440px, calc(100vw - 1.5rem));
   max-width: min(480px, calc(100vw - 1.5rem));
   max-height: calc(100vh - var(--desktop-topbar-height, 51px) - 16px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.95rem 1rem 1.05rem;
@@ -157,13 +162,13 @@ body.desktop-has-topbar {
     0 18px 48px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   color: #e8e8e8;
-  z-index: 1001;
+  z-index: 1200;
 }
 
 /* In RTL the prefs control sits on the left; open the panel into the viewport. */
 html[dir="rtl"] .desktop-prefs-panel {
   right: auto;
-  left: 0;
+  left: 1rem;
 }
 
 .desktop-prefs-panel[hidden] {

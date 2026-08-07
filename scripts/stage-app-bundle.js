@@ -40,6 +40,7 @@ const DESKTOP_SRC_FILES = [
     "play/bookmarkShape.js",
     "play/brainApi.js",
     "play/brainGuards.js",
+    "play/servePlayHtml.js",
     "desktop/playEnginesApi.js",
     "security/helmetOptions.js",
     "security/rateLimit.js",
@@ -128,6 +129,12 @@ function copyIntoBundle(relativePath) {
 }
 
 function main() {
+    console.log("[stage-app-bundle] Building Play shell bundles…");
+    execSync("node ./scripts/build-play-shell.js", {
+        cwd: ROOT,
+        stdio: "inherit",
+    });
+
     console.log("[stage-app-bundle] Staging slim desktop bundle…");
 
     removeDir(BUNDLE);

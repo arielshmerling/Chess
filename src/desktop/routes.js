@@ -9,6 +9,8 @@ const uiSettingsApi = require("./uiSettingsApi");
 const brainApi = require("../play/brainApi");
 const { brainRateLimit } = require("../play/brainGuards");
 const playEnginesApi = require("./playEnginesApi");
+const { sendPlayHtml } = require("../play/servePlayHtml");
+const { staticCacheOptions } = require("../clientStatic");
 
 const UI_DIR = path.join(__dirname, "ui");
 const PLAY_UI_DIR = path.join(__dirname, "../play-ui");
@@ -29,6 +31,7 @@ function sendUiPage(filename) {
  * @param {import("express").Application} app
  */
 function mountDesktopRoutes(app) {
+    const cache = staticCacheOptions();
     app.use(ensureGuestSession);
 
     app.get("/brain-config", requireLogin, brainConfigApi.get);
@@ -45,12 +48,12 @@ function mountDesktopRoutes(app) {
 
     app.get("/app/api/play-engines", requireLogin, playEnginesApi.listPlay);
 
-    app.use("/app/ui", express.static(UI_DIR));
-    app.use("/app/strings", express.static(STRINGS_DIR));
-    app.use("/app/play-ui", express.static(PLAY_UI_DIR));
-    app.use("/app/session", express.static(SESSION_DIR));
-    app.use("/app/mobile", express.static(MOBILE_DIR));
-    app.use("/app/adapters", express.static(path.join(__dirname, "../adapters")));
+    app.use("/app/ui", express.static(UI_DIR, cache));
+    app.use("/app/strings", express.static(STRINGS_DIR, cache));
+    app.use("/app/play-ui", express.static(PLAY_UI_DIR, cache));
+    app.use("/app/session", express.static(SESSION_DIR, cache));
+    app.use("/app/mobile", express.static(MOBILE_DIR, cache));
+    app.use("/app/adapters", express.static(path.join(__dirname, "../adapters"), cache));
 
     app.get("/", (_req, res) => {
         res.redirect("/app/play");
@@ -60,7 +63,7 @@ function mountDesktopRoutes(app) {
         res.redirect(302, "/app/play");
     });
     app.get("/app/new-game", (_req, res) => res.redirect(302, "/app/play"));
-    app.get("/app/play", sendUiPage("play.html"));
+    app.get("/app/play", (req, res) => sendPlayHtml(req, res));
     app.get("/app/error", sendUiPage("error.html"));
 
     app.get("/research", (_req, res) => res.redirect(302, "/app/play"));

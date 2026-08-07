@@ -1,5 +1,6 @@
 /**
  * Desktop theme picker (uses global setDefaultTheme / themes from /themes.js).
+ * Applies cached theme immediately; refreshes again when custom-theme store is ready.
  */
 (function () {
     "use strict";
@@ -12,18 +13,22 @@
         );
     }
 
-    function rememberActiveTheme(themeId) {
+    function rememberActiveTheme(themeId, persist) {
         try {
             localStorage.setItem("theme", themeId);
         } catch {
             /* ignore */
         }
-        if (window.DesktopCustomTheme && typeof window.DesktopCustomTheme.setActiveTheme === "function") {
+        if (
+            persist &&
+            window.DesktopCustomTheme &&
+            typeof window.DesktopCustomTheme.setActiveTheme === "function"
+        ) {
             window.DesktopCustomTheme.setActiveTheme(themeId);
         }
     }
 
-    function applyCustomThemeById(customId) {
+    function applyCustomThemeById(customId, persist) {
         if (!window.DesktopCustomTheme) {
             return false;
         }
@@ -34,19 +39,20 @@
         if (typeof setDefaultTheme === "function") {
             setDefaultTheme(entry.vars);
         }
-        rememberActiveTheme("custom:" + customId);
+        rememberActiveTheme("custom:" + customId, !!persist);
         dispatchThemeChanged("custom:" + customId);
         return true;
     }
 
     function applyEmergencyTheme() {
         if (typeof setDefaultTheme === "function" && typeof themes !== "undefined") {
-            setDefaultTheme(themes.blueTheme);
+            setDefaultTheme(themes.darkTheme);
         }
         dispatchThemeChanged(null);
     }
 
-    function applyThemeById(themeId) {
+    function applyThemeById(themeId, options) {
+        var persist = !!(options && options.persist);
         if (typeof setDefaultTheme !== "function" || typeof themes === "undefined") {
             return;
         }
@@ -54,7 +60,12 @@
             themeId = "custom:" + themeId;
         }
         if (themeId && themeId.indexOf("custom:") === 0) {
-            if (!applyCustomThemeById(themeId.slice(7))) {
+            if (!applyCustomThemeById(themeId.slice(7), persist)) {
+                if (window.PlayBoot && typeof window.PlayBoot.applyCachedTheme === "function") {
+                    if (window.PlayBoot.applyCachedTheme()) {
+                        return;
+                    }
+                }
                 applyEmergencyTheme();
             }
             return;
@@ -67,17 +78,21 @@
             window.DesktopCustomTheme && window.DesktopCustomTheme.getActiveTheme
                 ? window.DesktopCustomTheme.getActiveTheme()
                 : localStorage.getItem("theme") || "custom:custom-mr45iwvr";
-        applyThemeById(theme);
+        applyThemeById(theme, { persist: false });
+        if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+            window.PlayBoot.mark("theme-applied");
+        }
     }
 
-    window.applyDesktopTheme = applyThemeById;
+    window.applyDesktopTheme = function (themeId) {
+        applyThemeById(themeId, { persist: true });
+    };
 
     function start() {
+        bootTheme();
         if (window.DesktopCustomTheme && typeof window.DesktopCustomTheme.whenReady === "function") {
             window.DesktopCustomTheme.whenReady().then(bootTheme);
-            return;
         }
-        bootTheme();
     }
 
     if (document.readyState === "loading") {

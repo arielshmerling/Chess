@@ -30,6 +30,7 @@ const ENTRY_MODULES = [
     "src/play/bookmarkShape.js",
     "src/play/brainApi.js",
     "src/play/brainGuards.js",
+    "src/play/servePlayHtml.js",
     "server-desktop.js",
 ];
 

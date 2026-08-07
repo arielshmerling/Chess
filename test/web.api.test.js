@@ -256,11 +256,11 @@ describe("web HTTP / auth", function () {
         // Follow the static 301 /play → /play/ (directory), then the Play route.
         const res = await agent.get("/play/").expect(200);
         assert.match(res.text, /desktopPlayWhiteName|desktop-play|id="chessboard"/i);
-        assert.match(res.text, /onlineMode\.js/);
-        assert.match(res.text, /wsTransport\.js/);
-        assert.match(res.text, /onlineProtocol\.js/);
-        assert.match(res.text, /play-chat-panel\.js/);
-        assert.match(res.text, /right-dock-mode\.js/);
+        assert.match(res.text, /play-early-boot\.js/);
+        assert.match(res.text, /bundles\/play-core\.js/);
+        assert.match(res.text, /bundles\/play-session\.js/);
+        assert.match(res.text, /bundles\/play-shell\.js/);
+        assert.match(res.text, /playBootOverlay/);
         assert.match(res.text, /desktopPlayChatDock/);
     });
 
