@@ -45,10 +45,11 @@
 
     const Api = window.DesktopApi;
     const Board = window.DesktopBoard;
-    const Setup = window.DesktopPositionSetup;
-    const BrainConfig = window.DesktopBrainConfig;
+    /* Chrome-deferred UIs — refreshed after play-chrome.js loads. */
+    let Setup = window.DesktopPositionSetup;
+    let BrainConfig = window.DesktopBrainConfig;
     const GameRun = window.DesktopGameRun;
-    const PositionValidation = window.DesktopPositionValidation;
+    let PositionValidation = window.DesktopPositionValidation;
     const MovesPanel = window.PlayMovesPanel;
     const SavedGames = window.PlaySavedGamesModel;
     const SavedGamesList = window.PlaySavedGamesList;
@@ -117,10 +118,76 @@
     let game = null;
     const Settings = window.DesktopGameSettings;
     const Engine = window.DesktopEngine;
-    const GameLog = window.DesktopGameLog;
+    let GameLog = window.DesktopGameLog;
     const Dialog = window.DesktopDialog;
     const NewGameDialog = window.DesktopNewGameDialog;
     const Resume = window.DesktopPlayResume;
+
+    let playChromeLoadPromise = null;
+
+    function refreshChromeApis() {
+        if (window.DesktopPositionSetup) {
+            Setup = window.DesktopPositionSetup;
+        }
+        if (window.DesktopBrainConfig) {
+            BrainConfig = window.DesktopBrainConfig;
+        }
+        if (window.DesktopPositionValidation) {
+            PositionValidation = window.DesktopPositionValidation;
+        }
+        if (window.DesktopGameLog) {
+            GameLog = window.DesktopGameLog;
+        }
+    }
+
+    /**
+     * Prefs / setup / brain-config / topbar chrome — loaded after first paint.
+     * @returns {Promise<void>}
+     */
+    function ensurePlayChromeLoaded() {
+        refreshChromeApis();
+        if (window.DesktopChrome && window.DesktopBrainConfig && window.DesktopPositionSetup) {
+            return Promise.resolve();
+        }
+        if (playChromeLoadPromise) {
+            return playChromeLoadPromise;
+        }
+        playChromeLoadPromise = new Promise(function (resolve, reject) {
+            const src =
+                (document.documentElement &&
+                    document.documentElement.getAttribute("data-play-chrome")) ||
+                "/app/ui/bundles/play-chrome.js";
+            const existing = document.querySelector('script[data-play-chrome-bundle="1"]');
+            if (existing) {
+                existing.addEventListener("load", function () {
+                    refreshChromeApis();
+                    resolve();
+                });
+                existing.addEventListener("error", function () {
+                    playChromeLoadPromise = null;
+                    reject(new Error("play-chrome load failed"));
+                });
+                return;
+            }
+            const script = document.createElement("script");
+            script.src = src;
+            script.async = true;
+            script.setAttribute("data-play-chrome-bundle", "1");
+            script.onload = function () {
+                refreshChromeApis();
+                if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+                    window.PlayBoot.mark("play-chrome-loaded");
+                }
+                resolve();
+            };
+            script.onerror = function () {
+                playChromeLoadPromise = null;
+                reject(new Error("play-chrome load failed"));
+            };
+            document.head.appendChild(script);
+        });
+        return playChromeLoadPromise;
+    }
 
     let session = null;
     let gameActive = false;
@@ -1059,22 +1126,29 @@
             }
             return;
         }
-        exitReviewMode();
-        if (positionSetupMode) {
-            exitPositionSetupMode(false);
-        }
-        clearOnlineSessionForLocalTools();
-        setConfigurationUi(true);
-        expandMovesSidebar();
-        ensureConfigurationPanel();
-        if (BrainConfig && BrainConfig.syncEngine) {
-            const engine = session && session.engine ? session.engine : "brain43";
-            BrainConfig.syncEngine(engine);
-        }
-        ensurePlayGameSession();
-        attachPlayConfigurationMode();
-        showStatus(t("play.status.configurationModeEdit"), 0, "info");
-        updateActionButtons();
+        void ensurePlayChromeLoaded()
+            .then(function () {
+                exitReviewMode();
+                if (positionSetupMode) {
+                    exitPositionSetupMode(false);
+                }
+                clearOnlineSessionForLocalTools();
+                setConfigurationUi(true);
+                expandMovesSidebar();
+                ensureConfigurationPanel();
+                if (BrainConfig && BrainConfig.syncEngine) {
+                    const engine = session && session.engine ? session.engine : "brain43";
+                    BrainConfig.syncEngine(engine);
+                }
+                ensurePlayGameSession();
+                attachPlayConfigurationMode();
+                showStatus(t("play.status.configurationModeEdit"), 0, "info");
+                updateActionButtons();
+            })
+            .catch(function (err) {
+                console.warn("[Play] Could not load configuration UI:", err);
+                showStatus(t("play.status.boardLoading"), 2500, "info");
+            });
     }
 
     function ensureConfigurationPanel() {
@@ -1367,6 +1441,17 @@
             }
             return;
         }
+        void ensurePlayChromeLoaded()
+            .then(function () {
+                enterPositionSetupModeAfterChrome();
+            })
+            .catch(function (err) {
+                console.warn("[Play] Could not load position setup UI:", err);
+                showStatus(t("play.status.boardLoading"), 2500, "info");
+            });
+    }
+
+    function enterPositionSetupModeAfterChrome() {
         if (configurationMode) {
             if (!exitConfigurationMode()) {
                 return;
@@ -1526,6 +1611,11 @@
     }
 
     async function openSavedGamesPgnFolder() {
+        try {
+            await ensurePlayChromeLoaded();
+        } catch (err) {
+            console.warn("[Play] Could not load game log UI:", err);
+        }
         if (!GameLog || typeof GameLog.openGamesLogFolder !== "function") {
             showStatus(t("play.status.openFolderDesktopOnly"), 3000, "info");
             return;
@@ -6944,12 +7034,8 @@
         if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
             window.PlayBoot.done();
         }
-        /*
-         * Defer public SP register + /ws until after boot dismiss and the opening
-         * brain HTTP call has usually started — avoids overlay stalls and WS 500s
-         * while the host is saturated by /api/brain/*.
-         */
-        window.setTimeout(function () {
+
+        function runPublicSpSync() {
             void (async function syncPublicSpInBackground() {
                 if (!isWebPlayPage()) {
                     return;
@@ -6984,16 +7070,53 @@
                     showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
                 }
             });
-        }, 2500);
+        }
+
+        /*
+         * Register public SP + /ws only after the opening brain HTTP call finishes
+         * (or shortly when it is the human's turn). Avoids handshake 500s while
+         * Render is saturated by /api/brain/*.
+         */
+        let publicSpStarted = false;
+        function schedulePublicSpSync(trigger) {
+            if (publicSpStarted) {
+                return;
+            }
+            publicSpStarted = true;
+            if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+                window.PlayBoot.mark("sp-sync-scheduled:" + (trigger || "ok"));
+            }
+            runPublicSpSync();
+        }
+
+        /* Prefetch prefs/topbar/setup tools without blocking play. */
+        void ensurePlayChromeLoaded().catch(function (err) {
+            console.warn("[Play] play-chrome prefetch failed:", err);
+        });
+
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
             showStatus(t("play.status.engineToMove"), 0, "info");
-            void runEngineMove().catch(function (err) {
+            const openingEngine = runEngineMove().catch(function (err) {
                 console.warn("[Play] Opening engine move failed:", err);
             });
+            void openingEngine.then(function () {
+                schedulePublicSpSync("engine-done");
+            });
+            /* Safety net if the search never settles. */
+            window.setTimeout(function () {
+                schedulePublicSpSync("engine-timeout");
+            }, 90000);
         } else if (!game.GameOver) {
             switchClocks();
             showStatus(t("play.status.yourMove"), 2000, "info");
+            window.setTimeout(function () {
+                schedulePublicSpSync("human-turn");
+            }, 1500);
+        } else {
+            window.setTimeout(function () {
+                schedulePublicSpSync("game-over");
+            }, 1500);
         }
     }
 
@@ -7701,6 +7824,10 @@
         }
         playSessionReady = true;
         updateActionButtons();
+        /* Prefetch chrome tools in the background on every Play entry. */
+        void ensurePlayChromeLoaded().catch(function (err) {
+            console.warn("[Play] play-chrome prefetch failed:", err);
+        });
         /* Fill saved list in the background; do not gate auto-start on /bookmark. */
         void savedPromise.catch(function (err) {
             console.warn("[Play] Could not load bookmarks:", err);

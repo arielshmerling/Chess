@@ -48,6 +48,7 @@ describe("servePlayHtml", function () {
         assert.match(html, /\/app\/ui\/bundles\/play-core\.js\?v=\d+/);
         assert.match(html, /\/app\/ui\/bundles\/play-session\.js\?v=\d+/);
         assert.match(html, /\/app\/ui\/bundles\/play-shell\.js\?v=\d+/);
+        assert.match(html, /data-play-chrome="\/app\/ui\/bundles\/play-chrome\.js\?v=\d+"/);
     });
 
     it("minifyPlayHtml collapses whitespace outside scripts", function () {

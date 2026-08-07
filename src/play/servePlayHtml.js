@@ -126,6 +126,9 @@ function applyPlayAssetCacheBust(html) {
         "/app/ui/bundles/play-shell.js": fileMtimeVersion(
             path.join(PLAY_UI_DIR, "bundles/play-shell.js"),
         ),
+        "/app/ui/bundles/play-chrome.js": fileMtimeVersion(
+            path.join(PLAY_UI_DIR, "bundles/play-chrome.js"),
+        ),
         "/app/ui/desktop-play.css": fileMtimeVersion(
             path.join(PLAY_UI_DIR, "desktop-play.css"),
         ),
@@ -218,8 +221,19 @@ function buildPlayHtml(options) {
     }
     html = html.replace(STRINGS_MARKER, buildLocaleScriptTags(locale));
     html = applyPlayAssetCacheBust(html);
+    const chromeSrc =
+        "/app/ui/bundles/play-chrome.js?v=" +
+        fileMtimeVersion(path.join(PLAY_UI_DIR, "bundles/play-chrome.js"));
     html = html.replace(/<html\b([^>]*)>/i, function (full, attrs) {
         let next = attrs;
+        if (/\bdata-play-chrome=/.test(next)) {
+            next = next.replace(
+                /\bdata-play-chrome=(["']).*?\1/,
+                "data-play-chrome=\"" + chromeSrc + "\"",
+            );
+        } else {
+            next += " data-play-chrome=\"" + chromeSrc + "\"";
+        }
         if (/\blang=/.test(next)) {
             next = next.replace(/\blang=(["']).*?\1/, "lang=\"" + locale + "\"");
         } else {

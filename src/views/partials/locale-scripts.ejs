@@ -1,0 +1,20 @@
+<%#
+  Locale-on-demand: English always, plus the active locale when it differs.
+  Expects `locale` on locals (set in app.js from resolveRequestLocale).
+%>
+<%
+  var activeLocale = (typeof locale !== "undefined" && locale) ? String(locale).toLowerCase() : "en";
+  var base = activeLocale.split("-")[0];
+  var codes = ["en"];
+  if (base && base !== "en") {
+    codes.push(base);
+  }
+  codes.forEach(function (code) {
+%>
+  <script src="/strings/<%= code %>.js"></script>
+  <script src="/strings/<%= code %>-extra.js"></script>
+<%
+  });
+%>
+  <script src="/strings/index.js"></script>
+  <script src="/strings/t-bridge.js"></script>

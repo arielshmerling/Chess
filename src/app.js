@@ -92,14 +92,29 @@ app.use(cookieSession({
     secure: cookieSecure,
     sameSite: "lax",
 }));
-app.use(flash());
 
 mountClientStatic(app, __dirname);
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(methodOverride("_method"));
-app.use(csrfSameOrigin);
+function skipForWebSocketUpgrade(middleware) {
+    return function skipWsUpgrade(req, res, next) {
+        if (
+            req &&
+            req.headers &&
+            String(req.headers.upgrade || "").toLowerCase() === "websocket"
+        ) {
+            return next();
+        }
+        return middleware(req, res, next);
+    };
+}
+
+/* Skip body parsers / flash / CSRF on WS upgrades — they can stall or 500 when
+ * the event loop is busy with /api/brain/* search work. */
+app.use(skipForWebSocketUpgrade(flash()));
+app.use(skipForWebSocketUpgrade(express.urlencoded({ extended: true })));
+app.use(skipForWebSocketUpgrade(express.json()));
+app.use(skipForWebSocketUpgrade(methodOverride("_method")));
+app.use(skipForWebSocketUpgrade(csrfSameOrigin));
 
 const loginRateLimitMax = Math.max(
     1,
@@ -176,7 +191,8 @@ app.use((req, res, next) => {
     res.locals.canDebug = canAccessDebug(req.session);
     res.locals.canPlayAdvanced = canUsePlayAdvancedTools(req.session);
     res.locals.canCustomizeThemes = canCustomizeThemes(req.session);
-    res.locals.messages = req.flash("messages");
+    res.locals.messages =
+        typeof req.flash === "function" ? req.flash("messages") : [];
     if (!res.locals.cspNonce) {
         res.locals.cspNonce = crypto.randomBytes(32).toString("hex");
     }

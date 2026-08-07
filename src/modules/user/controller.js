@@ -385,6 +385,7 @@ exports.showAdminPage = catchAsync(async (req, res) => {
         adminGames,
         openingBookStatus,
         openingBookEntryCount: openingBookStatus.entryCount,
+        needsAxios: true,
     });
 });
 
@@ -557,7 +558,7 @@ exports.updateUserAdmin = async (req, res, next) => {
 };
 
 exports.showRegistrationPage = async (req, res) => {
-    res.render("register");
+    res.render("register", { needsAxios: true });
 };
 
 exports.register = catchAsync(async (req, res) => {

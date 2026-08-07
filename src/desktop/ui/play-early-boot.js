@@ -134,6 +134,32 @@
     applyCachedTheme();
     mark("early-boot");
 
+    /* Warm piece PNGs for the active set before deferred bundles parse. */
+    try {
+        var pieceSet =
+            (typeof localStorage !== "undefined" && localStorage.getItem("shmerling.pieceSet")) ||
+            "storm-ivory";
+        var pieceFiles = ["pawn", "king", "knight", "bishop", "rook", "queen"];
+        var pieceColors = ["white", "black"];
+        for (var ci = 0; ci < pieceColors.length; ci++) {
+            for (var pi = 0; pi < pieceFiles.length; pi++) {
+                var img = new Image();
+                img.decoding = "async";
+                img.src =
+                    "/images/pieces/" +
+                    pieceSet +
+                    "/" +
+                    pieceColors[ci] +
+                    "-" +
+                    pieceFiles[pi] +
+                    ".png";
+            }
+        }
+        mark("pieces-preload");
+    } catch {
+        /* ignore */
+    }
+
     /*
      * Web /play only: overlap Mongo launch-context with deferred shell download.
      * Desktop (/app/play) has no /api/play/* routes — desktop-play resolves context locally.

@@ -14,69 +14,44 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=EB+Garamond:wght@600;700&family=Libre+Baskerville:wght@700&family=Merriweather:wght@700;900&family=Oswald:wght@600;700&family=Raleway:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <%- include('../partials/locale-scripts') %>
+  <script src="/themes.js" defer></script>
+  <script src="/pieceSets.js" defer></script>
+  <% if (typeof needsClassicBoard !== 'undefined' && needsClassicBoard) { %>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="/ChessGame.js"></script>
-  <script src="/themes.js"></script>
-  <script src="/pieceSets.js"></script>
-  <script src="/strings/en.js"></script>
-  <script src="/strings/en-extra.js"></script>
-  <script src="/strings/he.js"></script>
-  <script src="/strings/he-extra.js"></script>
-  <script src="/strings/ja.js"></script>
-  <script src="/strings/ja-extra.js"></script>
-  <script src="/strings/fr.js"></script>
-  <script src="/strings/fr-extra.js"></script>
-  <script src="/strings/de.js"></script>
-  <script src="/strings/de-extra.js"></script>
-  <script src="/strings/zh.js"></script>
-  <script src="/strings/zh-extra.js"></script>
-  <script src="/strings/ar.js"></script>
-  <script src="/strings/ar-extra.js"></script>
-  <script src="/strings/hi.js"></script>
-  <script src="/strings/hi-extra.js"></script>
-  <script src="/strings/es.js"></script>
-  <script src="/strings/es-extra.js"></script>
-  <script src="/strings/ru.js"></script>
-  <script src="/strings/ru-extra.js"></script>
-  <script src="/strings/uk.js"></script>
-  <script src="/strings/uk-extra.js"></script>
-  <script src="/strings/no.js"></script>
-  <script src="/strings/no-extra.js"></script>
-  <script src="/strings/bn.js"></script>
-  <script src="/strings/bn-extra.js"></script>
-  <script src="/strings/pt.js"></script>
-  <script src="/strings/pt-extra.js"></script>
-  <script src="/strings/index.js"></script>
-  <script src="/strings/t-bridge.js"></script>
   <script src="/validation/positionValidation.js"></script>
   <script src="/chessboard.js"></script>
-  <script src="/lobby.js"></script>
   <script src="/customValidation.js"></script>
-  <script src="/a11y/focusTrap.js"></script>
-  <script src="/a11y/bindUiActions.js"></script>
-  <script src="/a11y/enhanceClickables.js"></script>
-  <script src="/siteDialogs.js"></script>
+  <% } else if (typeof needsAxios !== 'undefined' && needsAxios) { %>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <% } %>
+  <script src="/lobby.js" defer></script>
+  <script src="/a11y/focusTrap.js" defer></script>
+  <script src="/a11y/bindUiActions.js" defer></script>
+  <script src="/a11y/enhanceClickables.js" defer></script>
+  <script src="/siteDialogs.js" defer></script>
   <% if (typeof username !== 'undefined' && username) { %>
-  <script src="/app/ui/play-shell-detect.js"></script>
-  <script src="/app/ui/desktop-theme-keys.js"></script>
-  <script src="/app/ui/desktop-custom-theme.js"></script>
-  <script src="/app/ui/desktop-theme.js"></script>
-  <script src="/app/ui/desktop-api.js"></script>
-  <script src="/app/ui/desktop-game-settings.js"></script>
-  <script src="/app/ui/desktop-prefs-gameplay.js"></script>
-  <script src="/app/ui/desktop-fullscreen.js"></script>
-  <script src="/app/ui/desktop-prefs-display.js"></script>
-  <script src="/app/ui/desktop-prefs-language.js"></script>
-  <script src="/app/ui/desktop-chrome.js"></script>
+  <script src="/app/ui/play-shell-detect.js" defer></script>
+  <script src="/app/ui/desktop-theme-keys.js" defer></script>
+  <script src="/app/ui/desktop-custom-theme.js" defer></script>
+  <script src="/app/ui/desktop-theme.js" defer></script>
+  <script src="/app/ui/desktop-api.js" defer></script>
+  <script src="/app/ui/desktop-game-settings.js" defer></script>
+  <script src="/app/ui/desktop-prefs-gameplay.js" defer></script>
+  <script src="/app/ui/desktop-fullscreen.js" defer></script>
+  <script src="/app/ui/desktop-prefs-display.js" defer></script>
+  <script src="/app/ui/desktop-prefs-language.js" defer></script>
+  <script src="/app/ui/desktop-chrome.js" defer></script>
   <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     window.__SHMERLING_USER_TYPE__ = <%- JSON.stringify(typeof userType !== 'undefined' && userType ? userType : 'Member') %>;
     window.__SHMERLING_PLAY_ADVANCED__ = <%= (typeof canPlayAdvanced !== 'undefined' && canPlayAdvanced) ? 'true' : 'false' %>;
     window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = <%= (typeof canCustomizeThemes !== 'undefined' && canCustomizeThemes) ? 'true' : 'false' %>;
     window.__SHMERLING_CAN_DEBUG__ = <%= (typeof canDebug !== 'undefined' && canDebug) ? 'true' : 'false' %>;
   </script>
-  <script src="/lobbyPresence.js"></script>
-  <script src="/friendInviteOptions.js"></script>
-  <script src="/friendGameInvite.js"></script>
+  <script src="/lobbyPresence.js" defer></script>
+  <script src="/friendInviteOptions.js" defer></script>
+  <script src="/friendGameInvite.js" defer></script>
   <% } %>
 </head>
 
