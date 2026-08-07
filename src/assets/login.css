@@ -1,15 +1,11 @@
 /* Minimal dark two-step login screen (Who are you? → password). */
 
 .login-screen {
-    --login-bg: #0e0f11;
+    --login-bg: #0a0b0d;
     --login-text: #e9e9ea;
     --login-muted: #6a6d73;
     --login-line: #2c2f34;
     --login-accent: #d8d8da;
-    --login-square-dark: #0e0f11;
-    --login-square-light: #101214;
-    --login-square-border: rgb(44 47 52 / 0%);
-    --login-square-size: clamp(96px, 14vw, 140px);
 
     position: fixed;
     inset: 0;
@@ -24,44 +20,6 @@
     background-color: var(--login-bg);
     color: var(--login-text);
     overflow: hidden;
-}
-
-/* Soft chessboard wash — large gentle squares behind the form. */
-.login-screen::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background-color: var(--login-square-dark);
-    background-image:
-        /* Vertical grid: one line on the left edge of every square */
-        repeating-linear-gradient(
-            to right,
-            var(--login-square-border) 0,
-            var(--login-square-border) 1px,
-            transparent 1px,
-            transparent var(--login-square-size)
-        ),
-        /* Horizontal grid: one line on the top edge of every square */
-        repeating-linear-gradient(
-            to bottom,
-            var(--login-square-border) 0,
-            var(--login-square-border) 1px,
-            transparent 1px,
-            transparent var(--login-square-size)
-        ),
-        repeating-conic-gradient(
-            var(--login-square-dark) 0deg 90deg,
-            var(--login-square-light) 90deg 180deg,
-            var(--login-square-dark) 180deg 270deg,
-            var(--login-square-light) 270deg 360deg
-        );
-    background-size:
-        var(--login-square-size) 100%,
-        100% var(--login-square-size),
-        calc(var(--login-square-size) * 2) calc(var(--login-square-size) * 2);
-    background-position: 0 0;
 }
 
 .login-form,
