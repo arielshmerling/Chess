@@ -20,12 +20,18 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
+          cache: npm
+
+      # Root deps are required: stage runs build-play-shell.js (esbuild).
+      - name: Install root dependencies
+        run: npm ci
 
       - name: Verify desktop build scripts
         shell: bash
         run: |
           test -f scripts/stage-app-bundle.js
           test -f scripts/verify-desktop-bundle.js
+          node -e "require('esbuild')"
 
       - name: Build Windows NSIS installer
         run: npm run desktop:dist:win

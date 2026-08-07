@@ -129,6 +129,16 @@ function copyIntoBundle(relativePath) {
 }
 
 function main() {
+    try {
+        require("esbuild");
+    } catch (err) {
+        throw new Error(
+            "[stage-app-bundle] Missing root dependency esbuild (needed to build Play shell bundles). "
+                + "From the repo root run: npm ci\n"
+                + (err && err.message ? err.message : err),
+        );
+    }
+
     console.log("[stage-app-bundle] Building Play shell bundles…");
     execSync("node ./scripts/build-play-shell.js", {
         cwd: ROOT,
