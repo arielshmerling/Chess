@@ -93,6 +93,10 @@
         if (window.DesktopCustomTheme && typeof window.DesktopCustomTheme.whenReady === "function") {
             window.DesktopCustomTheme.whenReady().then(bootTheme);
         }
+        /* Catalog often arrives after whenReady's early local-cache resolve — re-apply then. */
+        document.addEventListener("shmerling-custom-themes-changed", function () {
+            bootTheme();
+        });
     }
 
     if (document.readyState === "loading") {

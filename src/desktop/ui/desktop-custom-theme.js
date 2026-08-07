@@ -249,6 +249,30 @@
                 syncLocalStorageCache();
                 resolveReady(store);
                 document.dispatchEvent(new CustomEvent("shmerling-custom-themes-changed"));
+                /*
+                 * whenReady may have already resolved from the empty local cache. Paint the
+                 * selected theme now that catalog vars are available (without persisting).
+                 */
+                if (
+                    store &&
+                    store.activeTheme &&
+                    typeof window.applyDesktopTheme === "function" &&
+                    window.DesktopCustomTheme &&
+                    typeof window.DesktopCustomTheme.applyVars === "function"
+                ) {
+                    var active = store.activeTheme;
+                    if (active.indexOf("custom:") === 0) {
+                        var entry = getThemeById(active.slice(7));
+                        if (entry && entry.vars) {
+                            applyVars(entry.vars);
+                            try {
+                                localStorage.setItem("theme", active);
+                            } catch {
+                                /* ignore */
+                            }
+                        }
+                    }
+                }
                 return store;
             });
     }
