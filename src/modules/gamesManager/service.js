@@ -73,7 +73,11 @@ exports.getOpeningBookStatus = async () => {
 const NON_TERMINAL_GAME_STATES = ["new", "pending", "establishing", "on hold", "in progress"];
 
 const games = [];
-let pgnGames = [];
+/**
+ * Headers-only PGN library catalog for /search (no move objects).
+ * Full games are loaded on demand for review via sourceFile + gameIndex.
+ */
+let pgnCatalog = [];
 let lobbyBroadcast = null;
 
 exports.setLobbyBroadcast = (fn) => {
@@ -375,17 +379,43 @@ exports.renameUsernameInGames = async (oldUsername, newUsername) => {
 };
 
 /**
- * Retrieves an array of games in PGN (Portable Game Notation) format.
+ * Headers-only PGN catalog for the web Search page (stable Ids, no move lists).
+ * Avoids keeping the full corpus (~hundreds of MB) in the Node heap.
  *
- * @returns {Promise<Object[]>} A promise resolving to an array of game objects, each containing information about a game played according to PGN notation rules.
+ * @returns {Promise<Object[]>}
  */
 exports.getPGNGames = catchAsync(async () => {
-    if (pgnGames.length == 0) {
+    if (pgnCatalog.length === 0) {
         const files = await this.getPGNFiles();
-        pgnGames = await this.readPGNGames(files);
+        pgnCatalog = await this.readPGNGames(files, { headersOnly: true });
     }
-    return pgnGames;
+    return pgnCatalog;
 });
+
+/**
+ * Clear the in-memory search catalog (tests / after corpus changes).
+ */
+exports.clearPGNCatalog = () => {
+    pgnCatalog = [];
+};
+
+/**
+ * Resolve a catalog entry to a full PGN game (with moves) for review.
+ * @param {string} id - Catalog Id (`basename:index`)
+ * @returns {Promise<Object|null>}
+ */
+async function loadFullPgnGameById(id) {
+    const idStr = String(id || "");
+    let meta = pgnCatalog.find((g) => g && String(g.Id) === idStr);
+    if (!meta) {
+        await exports.getPGNGames();
+        meta = pgnCatalog.find((g) => g && String(g.Id) === idStr);
+    }
+    if (!meta || !meta.sourceFile || meta.gameIndex == null) {
+        return null;
+    }
+    return pgnReader.readGameAtIndex(meta.sourceFile, meta.gameIndex);
+}
 
 
 /**
@@ -726,7 +756,7 @@ exports.findReviewGame = catchAsync(async (id, userName) => {
         return gameInfo;
     }
     else {
-        const pgnGame = pgnGames.filter(g => g.Id == id)[0];
+        const pgnGame = await loadFullPgnGameById(id);
         if (pgnGame) {
             const gameInfo = {
                 id,
@@ -966,29 +996,40 @@ exports.getOpeningBookPGNFiles = catchAsync(async () => {
 exports.readPGNGames = catchAsync(async (files, readOptions = {}) => {
     const onProgress = typeof readOptions.onProgress === "function" ? readOptions.onProgress : null;
     const checkAbort = typeof readOptions.checkAbort === "function" ? readOptions.checkAbort : null;
+    const headersOnly = !!readOptions.headersOnly;
     lastPgnReadInterrupted = false;
     let fileList = files.slice().filter((filePath) => /\.pgn$/i.test(path.basename(filePath)));
     if (fileList.length === 0) {
         console.warn("[PGN] No .pgn files in file list");
-        pgnGames = [];
-        return pgnGames;
+        return [];
     }
     if (readOptions.firstFileOnly && fileList.length > 1) {
         fileList = fileList.sort().slice(0, 1);
         console.log(`[PGN] firstFileOnly: using ${path.basename(fileList[0])} only`);
     }
     const fileTotal = fileList.length;
-    let local = [];
+    const local = [];
     for (let i = 0; i < fileTotal; i++) {
         if (checkAbort && checkAbort()) {
             lastPgnReadInterrupted = true;
             break;
         }
-        console.log("Adding games from:" + fileList[i]);
-        const games = await pgnReader.readFile(fileList[i]);
-        local = local.concat(games);
+        const filePath = fileList[i];
+        console.log("Adding games from:" + filePath);
+        const games = (await pgnReader.readFile(filePath, { headersOnly: headersOnly })) || [];
+        const base = path.basename(filePath);
+        for (let gi = 0; gi < games.length; gi++) {
+            const g = games[gi];
+            g.sourceFile = filePath;
+            g.gameIndex = gi;
+            if (headersOnly) {
+                g.Id = base + ":" + gi;
+                g.moves = [];
+            }
+            local.push(g);
+        }
         if (typeof readOptions.maxGames === "number" && readOptions.maxGames > 0 && local.length >= readOptions.maxGames) {
-            local = local.slice(0, readOptions.maxGames);
+            local.length = readOptions.maxGames;
             console.log(`[PGN] maxGames=${readOptions.maxGames}: stopping after ${local.length} games`);
             if (onProgress) {
                 onProgress({ phase: "reading", fileIndex: i + 1, fileTotal, gamesLoaded: local.length });
@@ -1001,8 +1042,7 @@ exports.readPGNGames = catchAsync(async (files, readOptions = {}) => {
             onProgress({ phase: "reading", fileIndex: i + 1, fileTotal, gamesLoaded: local.length });
         }
     }
-    pgnGames = local;
-    return pgnGames;
+    return local;
 });
 
 

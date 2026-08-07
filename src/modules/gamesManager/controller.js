@@ -214,22 +214,41 @@ exports.search = async (req, res) => {
         q = "";
     }
     const username = req.session.user_name;
-    let pgnGames = await gamesManagerService.getPGNGames();
+    let list = await gamesManagerService.getPGNGames();
     if (q) {
-        pgnGames = pgnGames.filter(g => {
-            return g.site.toLowerCase().indexOf(q.toLowerCase()) != -1 ||
-                g.white.toLowerCase().indexOf(q.toLowerCase()) != -1 ||
-                g.black.toLowerCase().indexOf(q.toLowerCase()) != -1 ||
-                g.event.toLowerCase().indexOf(q.toLowerCase()) != -1 ||
-                g.date.indexOf(q) != -1;
+        const qLower = String(q).toLowerCase();
+        list = list.filter((g) => {
+            return (g.site && g.site.toLowerCase().indexOf(qLower) !== -1) ||
+                (g.white && g.white.toLowerCase().indexOf(qLower) !== -1) ||
+                (g.black && g.black.toLowerCase().indexOf(qLower) !== -1) ||
+                (g.event && g.event.toLowerCase().indexOf(qLower) !== -1) ||
+                (g.date && String(g.date).indexOf(q) !== -1);
         });
     }
-    pgnGames = pgnGames.slice(0, 200000);
-    const pgn = pgnGames.map(({ moves, ...rest }) => rest);
-    res.locals.username = username;
     const recordsPerPage = 20;
-    const totalPages = Math.ceil(pgnGames.length / recordsPerPage);
-    res.render("search", { pgn, recordsPerPage, totalPages, page, q, sortKey: sortKey || null, sortOrder: sortOrder || null });
+    const pgnTotal = Math.min(list.length, 200000);
+    list = list.slice(0, pgnTotal);
+    const totalPages = Math.max(1, Math.ceil(pgnTotal / recordsPerPage));
+    const pageNum = Math.max(1, Math.min(parseInt(page, 10) || 1, totalPages));
+    const start = (pageNum - 1) * recordsPerPage;
+    const pgn = list.slice(start, start + recordsPerPage).map((g) => {
+        const row = Object.assign({}, g);
+        delete row.moves;
+        delete row.sourceFile;
+        delete row.gameIndex;
+        return row;
+    });
+    res.locals.username = username;
+    res.render("search", {
+        pgn,
+        pgnTotal,
+        recordsPerPage,
+        totalPages,
+        page: pageNum,
+        q,
+        sortKey: sortKey || null,
+        sortOrder: sortOrder || null,
+    });
 };
 
 // exports.filter = async (req, res) => {
