@@ -25,16 +25,27 @@ const extention = (joi) => ({
 
 const Joi = BaseJoi.extend(extention);
 
+/** Search/review PGN catalog id: `Basename.pgn:123` (no path separators). */
+const pgnCatalogIdPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.pgn:\d{1,8}$/i;
+
+const pgnCatalogIdString = Joi.string()
+    .pattern(pgnCatalogIdPattern)
+    .required()
+    .escapeHTML();
+
 const gameTypeSchema = Joi.object({ gameType: Joi.number().min(1).max(3).required() });
 const gameIdSchema = Joi.alternatives().try(
     Joi.object({ id: Joi.string().hex().length(24).required().escapeHTML() }),
     Joi.object({ id: Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML() }),
+    Joi.object({ id: pgnCatalogIdString }),
 );
 const reviewSchema = Joi.object({
     id: Joi.alternatives().try(
         Joi.string().hex().length(24).required().escapeHTML(),
-        Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML()),
-    type: Joi.string().valid("pgn", "history")
+        Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML(),
+        pgnCatalogIdString,
+    ),
+    type: Joi.string().valid("pgn", "history"),
 });
 
 const credentialsSchema = Joi.object({
@@ -47,10 +58,11 @@ const credentialsSchema = Joi.object({
 
 const searchScheme = Joi.string().escapeHTML();
 
-// gameId: ObjectId (24 hex) for stored games, or UUID for practice (no DB)
+// gameId: ObjectId (24 hex) for stored games, UUID for practice, or PGN catalog id for library review
 const wsGameId = Joi.alternatives().try(
     Joi.string().hex().length(24).required().escapeHTML(),
-    Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML()
+    Joi.string().uuid({ version: ["uuidv4"] }).required().escapeHTML(),
+    pgnCatalogIdString,
 );
 
 const wsPieceSchema = Joi.object({

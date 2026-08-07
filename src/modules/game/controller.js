@@ -88,7 +88,7 @@ function renderPlayGame(req, res, locals) {
 }
 
 /**
- * Loads or creates the review game in memory (history Mongo id or PGN UUID).
+ * Loads or creates the review game in memory (history Mongo id or PGN catalog id).
  * @returns {Promise<object|null>}
  */
 async function ensureReviewGameLoaded(req) {
