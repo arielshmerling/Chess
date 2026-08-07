@@ -6,7 +6,7 @@
     "use strict";
 
     const STORAGE_KEY = "shmerling.pieceSet";
-    const DEFAULT_SET_ID = "storm-ivory";
+    const DEFAULT_SET_ID = "imperishable-army";
 
     const PIECE_FILES = ["pawn", "king", "knight", "bishop", "rook", "queen"];
 

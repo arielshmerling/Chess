@@ -138,7 +138,7 @@
     try {
         var pieceSet =
             (typeof localStorage !== "undefined" && localStorage.getItem("shmerling.pieceSet")) ||
-            "storm-ivory";
+            "imperishable-army";
         var pieceFiles = ["pawn", "king", "knight", "bishop", "rook", "queen"];
         var pieceColors = ["white", "black"];
         for (var ci = 0; ci < pieceColors.length; ci++) {

@@ -8,7 +8,7 @@ const runtime = require("./runtime");
 const THINKING_TIME_OPTIONS = [2, 5, 10, 15, 20, 30, 60, 120];
 
 const DEFAULT_SETTINGS = {
-    pieceSet: "storm-ivory",
+    pieceSet: "imperishable-army",
     dockPanels: {
         leftCollapsed: true,
         rightCollapsed: true,
