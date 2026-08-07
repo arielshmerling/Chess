@@ -247,33 +247,6 @@
         return btn;
     }
 
-    function positionHasBothKings(state, game) {
-        if (!state || !state.board || !game) {
-            return false;
-        }
-        let whiteKing = false;
-        let blackKing = false;
-        const kingType = game.KING;
-        for (let row = 0; row < game.BOARD_ROWS; row++) {
-            const line = state.board[row];
-            if (!line) {
-                continue;
-            }
-            for (let col = 0; col < game.BOARD_COLUMNS; col++) {
-                const piece = line[col];
-                if (!piece || piece.pieceType !== kingType) {
-                    continue;
-                }
-                if (piece.color === "white") {
-                    whiteKing = true;
-                } else if (piece.color === "black") {
-                    blackKing = true;
-                }
-            }
-        }
-        return whiteKing && blackKing;
-    }
-
     function clearStatusFlagsOnState(state) {
         if (!state) {
             return;
@@ -282,15 +255,6 @@
         state.checkmate = false;
         state.draw = false;
         state.drawReason = "";
-    }
-
-    /** Position setup is not a continuation of a game — don't inherit halfmove clock. */
-    function prepareStateForSetupEval(state) {
-        if (!state) {
-            return;
-        }
-        state.fiftyMovesCounter = 0;
-        state.promoting = false;
     }
 
     function refreshFlagCheckboxes() {
@@ -340,6 +304,11 @@
         });
     }
 
+    /**
+     * Keep check/checkmate/draw flags cleared while editing.
+     * Terminal rules are enforced on Validate / Play via positionValidation —
+     * live evaluate() (e.g. K vs K insufficient material) is noise mid-setup.
+     */
     function syncStatusFlagsFromGame() {
         if (
             global.DesktopBoard &&
@@ -353,18 +322,7 @@
         if (!chessGame || !chessGame.GameState) {
             return;
         }
-        if (typeof chessGame.evaluate !== "function") {
-            refreshFlagCheckboxes();
-            return;
-        }
-        const state = chessGame.GameState;
-        if (!positionHasBothKings(state, chessGame)) {
-            clearStatusFlagsOnState(state);
-            refreshFlagCheckboxes();
-            return;
-        }
-        prepareStateForSetupEval(state);
-        chessGame.evaluate();
+        clearStatusFlagsOnState(chessGame.GameState);
         refreshFlagCheckboxes();
     }
 

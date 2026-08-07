@@ -1508,20 +1508,8 @@
         if (!positionSetupMode || !game || !game.GameState) {
             return;
         }
-        const gameState = game.GameState;
-        if (gameState.draw) {
-            showStatus(t("play.status.drawWithReason", { reason: localizeDrawReason(gameState.drawReason) }), 0, "draw");
-            return;
-        }
-        if (gameState.checkmate) {
-            const winner = game.opponent(game.Turn);
-            showStatus(t("play.status.checkmateWins", { winner: localizeColorName(winner) }), 0, "checkmate");
-            return;
-        }
-        if (gameState.check) {
-            showStatus(t("play.status.check"), 0, "check");
-            return;
-        }
+        /* Do not mirror draw/checkmate/check from the engine while editing —
+         * Validate / Play own those rules. */
         showStatus(t("play.status.positionSetupPlacePieces"), 0, "info");
     }
 
@@ -4231,14 +4219,11 @@
         }
 
         function onDraw(reason) {
-        const localized = localizeDrawReason(reason);
         if (positionSetupMode) {
-            showStatus(t("play.status.drawWithReason", { reason: localized }), 0, "draw");
-            if (Board.applyDrawHighlight) {
-                Board.applyDrawHighlight();
-            }
+            /* Setup edits must not treat insufficient material / stalemate as a finished game. */
             return;
         }
+        const localized = localizeDrawReason(reason);
         alertMode = true;
         showStatus(t("play.status.drawWithReason", { reason: localized }), 0, "draw");
         Board.applyDrawHighlight();
