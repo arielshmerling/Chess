@@ -381,6 +381,33 @@ describe("web HTTP / auth", function () {
         );
     });
 
+    it("GET /search paints a shell before PGN results load", async function () {
+        const agent = await loginAgent();
+        const res = await agent.get("/search").expect(200);
+        assert.match(res.text, /__SEARCH_BOOT__/);
+        assert.match(res.text, /searchPage\.js/);
+        assert.match(res.text, /Loading games|Opening the library/);
+        assert.doesNotMatch(res.text, /id="searchResultsBody">[\s\S]*?<tr/);
+    });
+
+    it("authenticated GET /api/search/pgn returns a page of results", async function () {
+        this.timeout(120000);
+        const agent = await loginAgent();
+        const res = await agent
+            .get("/api/search/pgn")
+            .query({ q: "", page: 1 })
+            .expect(200);
+        assert.strictEqual(res.body.ok, true);
+        assert.ok(Array.isArray(res.body.pgn));
+        assert.strictEqual(typeof res.body.pgnTotal, "number");
+        assert.ok(res.body.totalPages >= 1);
+        assert.ok(res.body.pgn.length <= 20);
+        if (res.body.pgn.length > 0) {
+            assert.ok(res.body.pgn[0].Id);
+            assert.strictEqual(res.body.pgn[0].moves, undefined);
+        }
+    });
+
     it("friend invite without targetUserId returns 400", async function () {
         const agent = await loginAgent();
         const res = await agent.post("/api/friends/invite").send({}).expect(400);

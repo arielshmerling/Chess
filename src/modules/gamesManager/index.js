@@ -12,5 +12,6 @@ router.delete("/list/:id", requireLogin, gameManagerController.delete);
 router.get("/generateState", requiresAdmin, gameManagerController.generateState);
 router.get("/generateOpeningBook", requiresAdmin, gameManagerController.generateOpeningBook);
 router.get("/search", requireLogin, gameManagerController.search);
+router.get("/api/search/pgn", requireLogin, gameManagerController.searchPgnJson);
 
 module.exports = router;

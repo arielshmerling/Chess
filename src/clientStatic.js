@@ -17,6 +17,7 @@ const ROOT_CLIENT_FILES = [
     "friendInviteOptions.js",
     "friendGameInvite.js",
     "activeGamesHome.js",
+    "searchPage.js",
     "loginFlow.js",
     "formValidations.js",
     "mobile-game-ui.js",

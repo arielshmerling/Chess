@@ -155,6 +155,7 @@ describe("security helpers", function () {
         it("includes classic board scripts and excludes app.js", function () {
             assert.ok(ROOT_CLIENT_FILES.includes("ChessGame.js"));
             assert.ok(ROOT_CLIENT_FILES.includes("chessboard.js"));
+            assert.ok(ROOT_CLIENT_FILES.includes("searchPage.js"));
             assert.ok(!ROOT_CLIENT_FILES.includes("app.js"));
             assert.ok(!ROOT_CLIENT_FILES.includes("brain43.js"));
         });

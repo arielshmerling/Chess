@@ -205,15 +205,71 @@ exports.search = async (req, res) => {
     let { page, q } = req.query;
     const { sort: sortKey, order: sortOrder } = req.query;
     if (!page) {
-        page = 1; // default
+        page = 1;
     }
     try {
         validate(q, "search");
-    }
-    catch {
+    } catch {
         q = "";
     }
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const username = req.session.user_name;
+    /* Warm catalog in the background — do not block first HTML paint. */
+    void gamesManagerService.getPGNGames().catch(function (err) {
+        console.warn(
+            "[search] PGN catalog warm failed:",
+            err && err.message ? err.message : err,
+        );
+    });
+    res.locals.username = username;
+    res.render("search", {
+        pgn: [],
+        pgnTotal: 0,
+        recordsPerPage: 20,
+        totalPages: 1,
+        page: pageNum,
+        q: q || "",
+        sortKey: sortKey || null,
+        sortOrder: sortOrder || null,
+        deferResults: true,
+    });
+};
+
+/**
+ * JSON page of PGN library search results (progressive /search UI).
+ */
+exports.searchPgnJson = catchAsync(async (req, res) => {
+    let { page, q } = req.query;
+    if (!page) {
+        page = 1;
+    }
+    try {
+        validate(q, "search");
+    } catch {
+        q = "";
+    }
+    const result = await queryPgnSearchPage({
+        q: q || "",
+        page,
+        recordsPerPage: 20,
+    });
+    res.json({
+        ok: true,
+        q: result.q,
+        page: result.page,
+        recordsPerPage: result.recordsPerPage,
+        pgnTotal: result.pgnTotal,
+        totalPages: result.totalPages,
+        pgn: result.pgn,
+    });
+});
+
+/**
+ * @param {{ q: string, page: string|number, recordsPerPage?: number }} opts
+ */
+async function queryPgnSearchPage(opts) {
+    const q = opts.q || "";
+    const recordsPerPage = opts.recordsPerPage || 20;
     let list = await gamesManagerService.getPGNGames();
     if (q) {
         const qLower = String(q).toLowerCase();
@@ -225,11 +281,10 @@ exports.search = async (req, res) => {
                 (g.date && String(g.date).indexOf(q) !== -1);
         });
     }
-    const recordsPerPage = 20;
     const pgnTotal = Math.min(list.length, 200000);
     list = list.slice(0, pgnTotal);
-    const totalPages = Math.max(1, Math.ceil(pgnTotal / recordsPerPage));
-    const pageNum = Math.max(1, Math.min(parseInt(page, 10) || 1, totalPages));
+    const totalPages = Math.max(1, Math.ceil(pgnTotal / recordsPerPage) || 1);
+    const pageNum = Math.max(1, Math.min(parseInt(String(opts.page), 10) || 1, totalPages));
     const start = (pageNum - 1) * recordsPerPage;
     const pgn = list.slice(start, start + recordsPerPage).map((g) => {
         const row = Object.assign({}, g);
@@ -238,18 +293,15 @@ exports.search = async (req, res) => {
         delete row.gameIndex;
         return row;
     });
-    res.locals.username = username;
-    res.render("search", {
-        pgn,
-        pgnTotal,
-        recordsPerPage,
-        totalPages,
-        page: pageNum,
+    return {
         q,
-        sortKey: sortKey || null,
-        sortOrder: sortOrder || null,
-    });
-};
+        page: pageNum,
+        recordsPerPage,
+        pgnTotal,
+        totalPages,
+        pgn,
+    };
+}
 
 // exports.filter = async (req, res) => {
 //     const { searchText } = req.body;
