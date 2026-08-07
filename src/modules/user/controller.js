@@ -24,37 +24,121 @@ exports.showLoginPage = (req, res) => {
     res.render("login", { appVersion, errorMessage, game });
 };
 
-function renderLegalPage(res, keys) {
+function resolvePublicContactEmail() {
+    const candidates = [
+        process.env.SITE_CONTACT_EMAIL,
+        process.env.SMTP_FROM,
+        process.env.SMTP_USER,
+    ];
+    for (let i = 0; i < candidates.length; i += 1) {
+        const value = candidates[i] != null ? String(candidates[i]).trim() : "";
+        if (value && value.indexOf("@") > 0) {
+            return value;
+        }
+    }
+    return null;
+}
+
+function renderLegalPage(res, keys, sections) {
     res.render("legal", {
         pageTitle: t(keys.title),
         pageLead: t(keys.lead),
-        pageBody: t(keys.body),
-        lastUpdated: "July 30, 2026",
+        pageBody: keys.body ? t(keys.body) : "",
+        pageSections: sections || [],
+        lastUpdated: "August 6, 2026",
     });
 }
 
+function privacySections() {
+    return [
+        { heading: t("site.privacy.controllerHeading"), body: t("site.privacy.controllerBody") },
+        { heading: t("site.privacy.dataHeading"), body: t("site.privacy.dataBody") },
+        { heading: t("site.privacy.purposesHeading"), body: t("site.privacy.purposesBody") },
+        { heading: t("site.privacy.basesHeading"), body: t("site.privacy.basesBody") },
+        { heading: t("site.privacy.retentionHeading"), body: t("site.privacy.retentionBody") },
+        { heading: t("site.privacy.sharingHeading"), body: t("site.privacy.sharingBody") },
+        { heading: t("site.privacy.transfersHeading"), body: t("site.privacy.transfersBody") },
+        { heading: t("site.privacy.rightsHeading"), body: t("site.privacy.rightsBody") },
+        { heading: t("site.privacy.securityHeading"), body: t("site.privacy.securityBody") },
+        { heading: t("site.privacy.cookiesHeading"), body: t("site.privacy.cookiesBody") },
+        { heading: t("site.privacy.childrenHeading"), body: t("site.privacy.childrenBody") },
+        { heading: t("site.privacy.changesHeading"), body: t("site.privacy.changesBody") },
+    ];
+}
+
+function termsSections() {
+    return [
+        { heading: t("site.terms.acceptanceHeading"), body: t("site.terms.acceptanceBody") },
+        { heading: t("site.terms.accountHeading"), body: t("site.terms.accountBody") },
+        { heading: t("site.terms.fairPlayHeading"), body: t("site.terms.fairPlayBody") },
+        { heading: t("site.terms.acceptableUseHeading"), body: t("site.terms.acceptableUseBody") },
+        { heading: t("site.terms.contentHeading"), body: t("site.terms.contentBody") },
+        { heading: t("site.terms.availabilityHeading"), body: t("site.terms.availabilityBody") },
+        { heading: t("site.terms.disclaimerHeading"), body: t("site.terms.disclaimerBody") },
+        { heading: t("site.terms.liabilityHeading"), body: t("site.terms.liabilityBody") },
+        { heading: t("site.terms.terminationHeading"), body: t("site.terms.terminationBody") },
+        { heading: t("site.terms.lawHeading"), body: t("site.terms.lawBody") },
+        { heading: t("site.terms.contactHeading"), body: t("site.terms.contactBody") },
+    ];
+}
+
+function contactSections() {
+    const email = resolvePublicContactEmail();
+    const sections = [
+        {
+            heading: t("site.contactPage.controllerHeading"),
+            body: t("site.contactPage.controllerBody"),
+        },
+        {
+            heading: t("site.contactPage.emailHeading"),
+            body: email
+                ? t("site.contactPage.emailBody")
+                : t("site.contactPage.emailMissingBody"),
+            mailto: email || undefined,
+        },
+        {
+            heading: t("site.contactPage.whatToIncludeHeading"),
+            body: t("site.contactPage.whatToIncludeBody"),
+        },
+        {
+            heading: t("site.contactPage.securityHeading"),
+            body: t("site.contactPage.securityBody"),
+        },
+    ];
+    return sections;
+}
+
 exports.showPrivacyPage = (req, res) => {
-    renderLegalPage(res, {
-        title: "site.footer.privacyTitle",
-        lead: "site.footer.privacyLead",
-        body: "site.footer.privacyBody",
-    });
+    renderLegalPage(
+        res,
+        {
+            title: "site.footer.privacyTitle",
+            lead: "site.footer.privacyLead",
+        },
+        privacySections(),
+    );
 };
 
 exports.showTermsPage = (req, res) => {
-    renderLegalPage(res, {
-        title: "site.footer.termsTitle",
-        lead: "site.footer.termsLead",
-        body: "site.footer.termsBody",
-    });
+    renderLegalPage(
+        res,
+        {
+            title: "site.footer.termsTitle",
+            lead: "site.footer.termsLead",
+        },
+        termsSections(),
+    );
 };
 
 exports.showContactPage = (req, res) => {
-    renderLegalPage(res, {
-        title: "site.footer.contactTitle",
-        lead: "site.footer.contactLead",
-        body: "site.footer.contactBody",
-    });
+    renderLegalPage(
+        res,
+        {
+            title: "site.footer.contactTitle",
+            lead: "site.footer.contactLead",
+        },
+        contactSections(),
+    );
 };
 
 exports.showAccessibilityPage = (req, res) => {

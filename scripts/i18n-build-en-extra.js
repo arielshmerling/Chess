@@ -166,17 +166,132 @@ const extra = {
             copyright: "© {{year}} Shmerling Chess. All rights reserved.",
             lastUpdated: "Last updated: {{date}}",
             privacyTitle: "Privacy Policy",
-            privacyLead: "How Shmerling Chess handles account and gameplay information.",
+            privacyLead:
+                "This policy explains how Shmerling Chess collects, uses, stores, and shares personal data when you use the web service and related desktop software.",
             privacyBody:
-                "We use your account details to operate the service, keep games and preferences, and improve the product. We do not sell personal information. Full policy text will be published here.",
+                "See the sections below for controller identity, purposes, legal bases, retention, rights, and international transfers.",
             termsTitle: "Terms of Use",
-            termsLead: "The rules for using Shmerling Chess.",
+            termsLead:
+                "These terms govern your use of Shmerling Chess. By creating an account or using the service, you agree to them.",
             termsBody:
-                "By using Shmerling Chess you agree to play fairly, respect other players, and use the service only for personal chess play. Full terms will be published here.",
+                "See the sections below for account rules, fair play, acceptable use, and liability.",
             contactTitle: "Contact",
-            contactLead: "Get in touch with the Shmerling Chess team.",
-            contactBody:
-                "Contact details for support and privacy questions will be published here.",
+            contactLead: "How to reach the Shmerling Chess controller for support and privacy requests.",
+            contactBody: "Use the contact details below for support and data-protection requests.",
+            accessibilityTitle: "Accessibility statement",
+            accessibilityLead:
+                "Shmerling Chess aims to meet WCAG 2.1 Level AA for web chrome used in the United States (ADA / Section 508), Israel (IS 5568), and the European Union (European Accessibility Act / EN 301 549).",
+        },
+        privacy: {
+            controllerHeading: "Who is the controller",
+            controllerBody:
+                "The data controller for Shmerling Chess is Ariel Shmerling, operating the Shmerling Chess service. For privacy requests, use the email address shown on the Contact page.",
+            dataHeading: "What we collect",
+            dataBody:
+                "Account data: username, email address, hashed password, account type/level, and timestamps such as joined date and last login. Gameplay data: games you play or watch (moves, clocks, results, privacy flags), friends and invites, bookmarks/saved positions, and Play preferences (themes, docks, mouse mode, and similar UI settings). Technical data: session cookies needed to keep you signed in, and routine server logs (for example approximate timing and error diagnostics) used to operate and secure the service.",
+            purposesHeading: "Why we use your data",
+            purposesBody:
+                "We process personal data to create and authenticate accounts, provide single-player and online chess, save and review games, sync preferences, enable friends and messaging related to play, send operational notices (such as admin privilege alerts when configured), prevent abuse and secure the service, and improve reliability and features.",
+            basesHeading: "Legal bases",
+            basesBody:
+                "Where GDPR (or similar laws) apply, we rely on: performance of a contract (providing the chess service you request); legitimate interests (securing the service, preventing abuse, basic product improvement) balanced against your rights; and consent where required for optional communications or non-essential processing. You may withdraw consent for optional processing without affecting the lawfulness of processing before withdrawal.",
+            retentionHeading: "How long we keep data",
+            retentionBody:
+                "Account and game records are kept while your account remains active and as needed to provide history, review, and fair-play records. Session cookies last for the configured session lifetime (typically up to about one day of inactivity for the signed-in session cookie). Server logs are retained only as long as reasonably needed for security and operations. You may request deletion of your account data as described under Your rights; some residual backups or legal holds may persist for a limited period.",
+            sharingHeading: "Who we share data with",
+            sharingBody:
+                "We do not sell personal information. We use service providers that process data on our behalf, such as database hosting (for example MongoDB Atlas), application hosting, and email delivery (SMTP) when notification features are enabled. Other players may see your username and public game information when you play online or appear on public lists; private games remain restricted according to product rules.",
+            transfersHeading: "International transfers",
+            transfersBody:
+                "Infrastructure may be located in more than one country (for example database or hosting regions). When personal data is transferred internationally, we rely on appropriate safeguards available from our providers (such as standard contractual clauses or equivalent mechanisms) and process only what is needed to run the service.",
+            rightsHeading: "Your rights",
+            rightsBody:
+                "Depending on your location, you may have the right to access, rectify, erase, restrict, or port your personal data, to object to certain processing, and to lodge a complaint with a supervisory authority. To exercise these rights, contact us using the Contact page. We may need to verify your identity before fulfilling a request.",
+            securityHeading: "Security",
+            securityBody:
+                "Passwords are stored hashed. We use HTTPS in production deployments, session cookies marked HttpOnly, and application controls such as CSRF protections and content security policies. No method of transmission or storage is perfectly secure; please choose a strong unique password.",
+            cookiesHeading: "Cookies and local storage",
+            cookiesBody:
+                "We use an essential session cookie to keep you signed in. The Play client may also store preferences and similar settings in browser local storage on your device. These are used to operate the service and remember your choices—not for third-party advertising.",
+            childrenHeading: "Children",
+            childrenBody:
+                "Shmerling Chess is not directed at children under 16 (or the digital consent age in your country). If you believe a child has provided personal data, contact us so we can delete it.",
+            changesHeading: "Changes to this policy",
+            changesBody:
+                "We may update this Privacy Policy from time to time. The “Last updated” date on this page will change when we do. Continued use of the service after an update means you acknowledge the revised policy.",
+        },
+        terms: {
+            acceptanceHeading: "Agreement",
+            acceptanceBody:
+                "By registering for or using Shmerling Chess (the website, APIs used by the site, and the desktop app that connects to it), you agree to these Terms of Use and our Privacy Policy. If you do not agree, do not use the service.",
+            accountHeading: "Accounts",
+            accountBody:
+                "You must provide accurate registration information and keep your credentials confidential. You are responsible for activity under your account. We may suspend or close accounts that are abusive, compromised, or create risk for other users or the service.",
+            fairPlayHeading: "Fair play",
+            fairPlayBody:
+                "Play honestly. Do not cheat, harass other players, exploit bugs for unfair advantage, or attempt to disrupt matches. Engine assistance in online human vs human play is prohibited unless a mode explicitly allows it.",
+            acceptableUseHeading: "Acceptable use",
+            acceptableUseBody:
+                "Do not attempt unauthorized access, probe or overload the service, scrape in a way that harms availability, upload malware, or use the service for anything unlawful. Do not reverse engineer the service except where applicable law allows.",
+            contentHeading: "Games and content",
+            contentBody:
+                "You retain rights in content you submit to the extent the law provides. You grant us a license to host, display, and process that content as needed to operate Shmerling Chess (including showing games to opponents, spectators where allowed, and history/review features). Public PGN libraries and opening-book materials we ship are for use within the product.",
+            availabilityHeading: "Availability and changes",
+            availabilityBody:
+                "We provide the service on an “as available” basis. Features may change, and we may modify or discontinue parts of the service with or without notice when reasonably needed for maintenance, security, or product evolution.",
+            disclaimerHeading: "Disclaimers",
+            disclaimerBody:
+                "Shmerling Chess is provided “as is” without warranties of any kind to the fullest extent permitted by law, including merchantability, fitness for a particular purpose, and non-infringement. Engine evaluations and opening-book suggestions are informational and may be imperfect.",
+            liabilityHeading: "Limitation of liability",
+            liabilityBody:
+                "To the fullest extent permitted by law, the controller and operators of Shmerling Chess are not liable for indirect, incidental, special, consequential, or punitive damages, or for loss of data, ratings, or gameplay opportunities arising from your use of the service.",
+            terminationHeading: "Termination",
+            terminationBody:
+                "You may stop using the service at any time. We may terminate or suspend access if you breach these terms or if we must do so for legal or security reasons. Provisions that by nature should survive (including disclaimers and liability limits) survive termination.",
+            lawHeading: "Governing law",
+            lawBody:
+                "These terms are governed by the laws of the State of Israel, without regard to conflict-of-law rules, unless mandatory consumer protections in your country of residence require otherwise.",
+            contactHeading: "Contact",
+            contactBody: "Questions about these terms can be sent using the details on the Contact page.",
+        },
+        contactPage: {
+            controllerHeading: "Controller",
+            controllerBody: "Ariel Shmerling, operating Shmerling Chess.",
+            emailHeading: "Email",
+            emailBody: "For support and privacy (GDPR and similar) requests, email:",
+            emailMissingBody:
+                "Set SITE_CONTACT_EMAIL (or SMTP_FROM) on the server so a public contact address appears here. Until then, use the operator email configured for service notifications.",
+            whatToIncludeHeading: "What to include",
+            whatToIncludeBody:
+                "Please include your username (if any), the page or feature involved, and whether your message is about support, accessibility, or a privacy rights request. We aim to respond within a reasonable time.",
+            securityHeading: "Security reports",
+            securityBody:
+                "If you believe you found a security vulnerability, email the same address with a responsible description. Do not include passwords or session cookies in your report.",
+        },
+        accessibility: {
+            skipToMain: "Skip to main content",
+            themeToggle: "Toggle color theme",
+            chatInput: "Chat message",
+            sendChat: "Send chat message",
+            boardRegion: "Chessboard",
+            pieceAlt: "{{color}} {{piece}}",
+            squareLabel: "{{square}}{{piece}}",
+            emptySquare: "empty",
+            statementCommitmentHeading: "Our commitment",
+            statementCommitmentBody:
+                "We design Shmerling Chess so people can navigate accounts, friends, preferences, and game chrome with a keyboard and assistive technologies. We treat accessibility as an ongoing program aligned with WCAG 2.1 Level AA.",
+            statementScopeHeading: "What this covers",
+            statementScopeBody:
+                "Covered today: document language and text direction, skip links, visible keyboard focus, labeled forms and dialogs with focus trapping, reduced-motion support, status live regions, and an accessibility statement. Play shell controls expose accessible names where implemented.",
+            statementLimitsHeading: "Known limitations",
+            statementLimitsBody:
+                "The interactive chessboard is still progressing toward full keyboard and screen-reader parity (square-by-square navigation and complete spoken move alternatives). Some legacy click-only patterns may remain outside the Play shell. We document these limits while we close them.",
+            statementContactHeading: "Feedback and requests",
+            statementContactBody:
+                "If you encounter an accessibility barrier, contact us through the Contact page and include the page URL, your browser or assistive technology, and a short description of the issue. We aim to respond and provide a reasonable alternative where needed.",
+            statementStandardsHeading: "Standards reference",
+            statementStandardsBody:
+                "Target standard: Web Content Accessibility Guidelines (WCAG) 2.1 Level AA, which informs U.S. ADA / Section 508 expectations, Israeli Standard 5568, and EU EN 301 549 under the European Accessibility Act for applicable consumer services.",
         },
         username: "Username:",
         password: "Password:",

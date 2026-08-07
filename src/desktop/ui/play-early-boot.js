@@ -12,6 +12,7 @@
             ? performance.now()
             : Date.now();
     var marks = {};
+    var finished = false;
 
     function mark(name) {
         var now =
@@ -84,7 +85,21 @@
         return false;
     }
 
+    function hideOverlay() {
+        var overlay = document.getElementById("playBootOverlay");
+        if (!overlay) {
+            return;
+        }
+        overlay.hidden = true;
+        overlay.setAttribute("aria-hidden", "true");
+        overlay.classList.remove("play-boot-overlay--done");
+    }
+
     function setBootMessage(message, percent) {
+        /* Never bring the progress overlay back after the board is playable. */
+        if (finished) {
+            return;
+        }
         var msgEl = document.getElementById("playBootMessage");
         var barEl = document.getElementById("playBootBar");
         var overlay = document.getElementById("playBootOverlay");
@@ -102,27 +117,18 @@
     }
 
     function doneBoot() {
-        if (marks["boot-done"] != null) {
-            /* Already dismissed — ignore duplicate done() from finally/engine paths. */
-            var overlayEarly = document.getElementById("playBootOverlay");
-            if (overlayEarly && !overlayEarly.hidden) {
-                overlayEarly.hidden = true;
-                overlayEarly.setAttribute("aria-hidden", "true");
-                overlayEarly.classList.remove("play-boot-overlay--done");
-            }
+        if (finished) {
+            hideOverlay();
             return;
         }
+        finished = true;
         mark("boot-done");
         var overlay = document.getElementById("playBootOverlay");
         if (!overlay) {
             return;
         }
         overlay.classList.add("play-boot-overlay--done");
-        window.setTimeout(function () {
-            overlay.hidden = true;
-            overlay.setAttribute("aria-hidden", "true");
-            overlay.classList.remove("play-boot-overlay--done");
-        }, 180);
+        window.setTimeout(hideOverlay, 180);
     }
 
     applyCachedTheme();
@@ -170,6 +176,9 @@
         t0: t0,
         set: setBootMessage,
         done: doneBoot,
+        isDone: function () {
+            return finished;
+        },
         applyCachedTheme: applyCachedTheme,
     };
 })();

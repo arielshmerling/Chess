@@ -6903,9 +6903,6 @@
                 showAvailableMoves: launchOpts.showAvailableMoves,
             });
         }
-        if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
-            window.PlayBoot.set(t("play.status.startingGame"), 55);
-        }
         /* Paint the starting position immediately; server register/WS can finish after. */
         assignNewGameId();
         gameHistoryLogged = false;
@@ -6947,41 +6944,47 @@
         if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
             window.PlayBoot.done();
         }
-        /* Public Active Games + watch sync in parallel with the first engine move. */
-        void (async function syncPublicSpInBackground() {
-            if (!isWebPlayPage()) {
-                return;
-            }
-            const serverSp = await createPublicSpServerGame(launchOpts);
-            if (!serverSp || !serverSp.gameId) {
+        /*
+         * Defer public SP register + /ws until after boot dismiss and the opening
+         * brain HTTP call has usually started — avoids overlay stalls and WS 500s
+         * while the host is saturated by /api/brain/*.
+         */
+        window.setTimeout(function () {
+            void (async function syncPublicSpInBackground() {
+                if (!isWebPlayPage()) {
+                    return;
+                }
+                const serverSp = await createPublicSpServerGame(launchOpts);
+                if (!serverSp || !serverSp.gameId) {
+                    if (!game.GameOver && !isAiTurn()) {
+                        showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
+                    }
+                    return;
+                }
+                setCurrentGameId(serverSp.gameId);
+                updateGameModeTooltip();
+                const attached = await attachSpServerSync(
+                    {
+                        gameId: serverSp.gameId,
+                        username: username,
+                        userId: serverSp.userId,
+                        creatorId: serverSp.creatorId,
+                    },
+                    launchOpts.color !== "black",
+                );
+                if (isWebPlayPage() && currentGameId) {
+                    clearWebLaunchQueryString({ keepId: true });
+                }
+                if (!attached && !game.GameOver && !isAiTurn()) {
+                    showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
+                }
+            })().catch(function (err) {
+                console.warn("[Play] Background SP sync failed:", err);
                 if (!game.GameOver && !isAiTurn()) {
                     showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
                 }
-                return;
-            }
-            setCurrentGameId(serverSp.gameId);
-            updateGameModeTooltip();
-            const attached = await attachSpServerSync(
-                {
-                    gameId: serverSp.gameId,
-                    username: username,
-                    userId: serverSp.userId,
-                    creatorId: serverSp.creatorId,
-                },
-                launchOpts.color !== "black",
-            );
-            if (isWebPlayPage() && currentGameId) {
-                clearWebLaunchQueryString({ keepId: true });
-            }
-            if (!attached && !game.GameOver && !isAiTurn()) {
-                showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
-            }
-        })().catch(function (err) {
-            console.warn("[Play] Background SP sync failed:", err);
-            if (!game.GameOver && !isAiTurn()) {
-                showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
-            }
-        });
+            });
+        }, 2500);
         if (!game.GameOver && isAiTurn()) {
             switchClocks();
             showStatus(t("play.status.engineToMove"), 0, "info");

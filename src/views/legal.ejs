@@ -7,7 +7,17 @@
   <div class="legal-page-content">
     <h1 class="legal-page-title"><%= pageTitle %></h1>
     <p class="legal-page-lead"><%= pageLead %></p>
-    <p class="legal-page-body"><%= pageBody %></p>
+    <% if (typeof pageSections !== 'undefined' && pageSections && pageSections.length) { %>
+      <% pageSections.forEach(function (section) { %>
+        <h2 class="legal-page-subtitle"><%= section.heading %></h2>
+        <p class="legal-page-body"><%= section.body %></p>
+        <% if (section.mailto) { %>
+        <p class="legal-page-body"><a href="mailto:<%= section.mailto %>"><%= section.mailto %></a></p>
+        <% } %>
+      <% }) %>
+    <% } else if (typeof pageBody !== 'undefined' && pageBody) { %>
+      <p class="legal-page-body"><%= pageBody %></p>
+    <% } %>
     <p class="legal-page-updated"><%= t('site.footer.lastUpdated', { date: lastUpdated }) %></p>
   </div>
 
