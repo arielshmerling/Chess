@@ -34,6 +34,18 @@ describe("web custom themes API", function () {
         admin = await ensureWebE2EAdmin();
         app = loadWebApp();
         resetWebRateLimits(app);
+
+        /*
+         * Prior runs can leave Dark (and other seeds) in themeCatalog.hiddenThemeIds,
+         * which yields a one-theme catalog and breaks activeTheme switch coverage.
+         * Republish Blue + Dark so this suite is independent of leftover E2E DB state.
+         */
+        const adminAgent = await loginAgent(admin);
+        const seeds = createSeedThemeEntries();
+        await adminAgent
+            .post(THEMES_URL)
+            .send({ activeTheme: "custom:blue", themes: seeds })
+            .expect(200);
     });
 
     async function loginAgent(creds) {

@@ -1,6 +1,6 @@
 /**
  * OnlineMode cases that wait on real reconnect/grace timers (>1s).
- * Run via: npm run test:heavy
+ * Run via: npm run test:heavy (or npm run test:all)
  */
 /* eslint-disable */
 

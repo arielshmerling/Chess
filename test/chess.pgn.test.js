@@ -1,6 +1,7 @@
 /**
- * PGN replay heavy tests (listed in test/heavy-files.js).
- * Run separately: npm run test:heavy
+ * PGN replay tests (full corpus under pgn/).
+ * Run only via: npm run test:pgn
+ * Excluded from test / test:all / test:heavy / coverage suites.
  */
 /* eslint-disable */
 

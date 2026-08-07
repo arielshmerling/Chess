@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * Run mocha with either the heavy suite list or the default glob (heavy files ignored).
+ * Mocha launcher for categorized suites (see test/suite-manifest.js).
  *
  * Usage:
- *   node scripts/run-mocha.js heavy
- *   node scripts/run-mocha.js default
- *   node scripts/run-mocha.js heavy --grep "placeholder"
+ *   node scripts/run-mocha.js default|all|heavy|light|pgn|brain|brain-all [-- mocha-args...]
  *   npm run test:heavy -- --grep "placeholder"
  */
 "use strict";
@@ -14,7 +12,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
-const heavyFiles = require("../test/heavy-files");
+const manifest = require("../test/suite-manifest");
 const mode = process.argv[2] || "default";
 const extra = process.argv.slice(3).filter(function (arg) {
     return arg !== "--";
@@ -23,16 +21,47 @@ const extra = process.argv.slice(3).filter(function (arg) {
 const mochaBin = path.join(root, "node_modules", "mocha", "bin", "mocha.js");
 const args = ["--exit", "--require", "./test/_teardownWorkers.js"];
 
-if (mode === "heavy") {
-    args.push(...heavyFiles);
-} else if (mode === "default") {
-    args.push("./test/**/*.test.js");
-    heavyFiles.forEach(function (file) {
+function pushIgnore(files) {
+    files.forEach(function (file) {
         args.push("--ignore", file);
     });
-} else {
-    console.error("Usage: node scripts/run-mocha.js heavy|default [-- mocha-args...]");
-    process.exit(2);
+}
+
+function pushFiles(files) {
+    args.push(...files);
+}
+
+switch (mode) {
+    case "default":
+        /* All mocha tests except PGN + heavy (used by npm run test). */
+        args.push("./test/**/*.test.js");
+        pushIgnore(manifest.ignoreDefault);
+        break;
+    case "all":
+        /* All mocha tests except PGN (includes heavy). */
+        args.push("./test/**/*.test.js");
+        pushIgnore(manifest.ignoreAll);
+        break;
+    case "heavy":
+        pushFiles(manifest.heavy);
+        break;
+    case "light":
+        pushFiles(manifest.light);
+        break;
+    case "pgn":
+        pushFiles(manifest.pgn);
+        break;
+    case "brain":
+        pushFiles(manifest.brainFast);
+        break;
+    case "brain-all":
+        pushFiles(manifest.brainAll);
+        break;
+    default:
+        console.error(
+            "Usage: node scripts/run-mocha.js default|all|heavy|light|pgn|brain|brain-all [-- mocha-args...]",
+        );
+        process.exit(2);
 }
 
 args.push(...extra);

@@ -141,6 +141,29 @@ describe("spServerSync connect waits for connected ack", function () {
         await connect();
         assert.strictEqual(ready, true);
     });
+
+    it("rejects when connect never opens (hard timeout)", async function () {
+        class HangWebSocket {
+            constructor() {
+                this.readyState = 0;
+            }
+            send() {}
+            close() {
+                this.readyState = 3;
+            }
+        }
+        const sync = SpServerSync.create({
+            gameInfo: {
+                id: "6a6d7ae1b3a538b4f8cbd7d7",
+                username: "tester",
+                userId: "69ac2cc393c4f39bea834f00",
+            },
+            wsUrl: "ws://localhost/ws",
+            connectTimeoutMs: 50,
+            WebSocket: HangWebSocket,
+        });
+        await assert.rejects(() => sync.connect(), /timeout/i);
+    });
 });
 
 describe("GameBase connected ack", function () {

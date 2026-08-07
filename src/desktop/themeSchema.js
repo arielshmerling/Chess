@@ -122,15 +122,23 @@ function pickUserThemes(bundled, store) {
 }
 
 function pickHiddenThemeIds(bundled, store, previouslyHidden) {
+    const bundledIds = new Set(bundled.themes.map((theme) => theme.id));
     const sentIds = new Set(store.themes.map((theme) => theme.id));
-    const hidden = new Set(normalizeHiddenThemeIds(previouslyHidden));
+    const hidden = new Set();
+    /*
+     * Hidden ids only suppress re-injection of bundled/seed themes. Custom theme
+     * deletions are represented by absence from `store.themes` — do not accumulate
+     * unbounded custom ids in hiddenThemeIds across Admin publishes.
+     */
+    for (const id of normalizeHiddenThemeIds(previouslyHidden)) {
+        if (bundledIds.has(id) && !sentIds.has(id)) {
+            hidden.add(id);
+        }
+    }
     for (const theme of bundled.themes) {
         if (!sentIds.has(theme.id)) {
             hidden.add(theme.id);
         }
-    }
-    for (const id of sentIds) {
-        hidden.delete(id);
     }
     return Array.from(hidden);
 }

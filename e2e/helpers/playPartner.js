@@ -22,15 +22,70 @@ async function startGameAsWhite(page) {
     await dialog.locator("button.desktop-btn-gold", { hasText: "Start" }).click();
     await expect(dialog).toBeHidden({ timeout: 15_000 });
     await expect(page.locator("#innerBoard")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#resignBtn")).toBeEnabled({ timeout: 30_000 });
 }
 
+/**
+ * Drag a piece using page.mouse so desktop-board's document-level
+ * mousedown/mousemove handlers update the piece rect before mouseup.
+ * Playwright's locator.dragTo({ force }) is flaky with that custom drag path.
+ */
+async function dragSquareToSquare(page, fromImg, toSquare) {
+    const fromBox = await fromImg.boundingBox();
+    const toBox = await toSquare.boundingBox();
+    if (!fromBox || !toBox) {
+        throw new Error("dragSquareToSquare: missing bounding box");
+    }
+    const fromX = fromBox.x + fromBox.width / 2;
+    const fromY = fromBox.y + fromBox.height / 2;
+    const toX = toBox.x + toBox.width / 2;
+    const toY = toBox.y + toBox.height / 2;
+    await page.mouse.move(fromX, fromY);
+    await page.mouse.down();
+    await page.mouse.move(toX, toY, { steps: 12 });
+    await page.mouse.up();
+}
+
+/**
+ * Play e2-e4 and wait until the engine has answered.
+ * Do not assert on `#movesDiv` visibility — the Moves dock starts collapsed
+ * (`display: none`), so Playwright text assertions on `.tdMove` time out even
+ * when moves were applied.
+ */
 async function playE4AndWaitForReply(page) {
+    await expect(page.locator("#resignBtn")).toBeEnabled({ timeout: 30_000 });
+
+    /* Partner prefs may be click-to-move; e2e always uses drag. */
+    await page.evaluate(() => {
+        const Settings = window.DesktopGameSettings;
+        if (Settings && typeof Settings.saveGamePreferences === "function") {
+            Settings.saveGamePreferences({ mouse: "drag" });
+        }
+    });
+    await expect(page.locator("#innerBoard")).not.toHaveClass(/move-mode-double/, {
+        timeout: 5_000,
+    });
+
     const e2 = page.locator('#innerBoard .square[data-row="6"][data-col="4"] img.draggable');
     const e4 = page.locator('#innerBoard .square[data-row="4"][data-col="4"]');
     await expect(e2).toBeVisible({ timeout: 30_000 });
-    await e2.dragTo(e4);
-    /* Saving is refused while the engine is searching, so wait for black's reply. */
-    await expect(page.locator("#movesDiv .tdMove").nth(1)).not.toHaveText("", { timeout: 60_000 });
+
+    await dragSquareToSquare(page, e2, e4);
+    /* One retry: custom board drag occasionally drops back to the source square. */
+    if ((await e4.locator("img").count()) === 0) {
+        await expect(e2).toBeVisible({ timeout: 5_000 });
+        await dragSquareToSquare(page, e2, e4);
+    }
+
+    /* Confirm white's ply on the board (works whether Moves is expanded or not). */
+    await expect(e4.locator("img")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#innerBoard .square[data-row="6"][data-col="4"] img')).toHaveCount(0);
+
+    /* Engine reply: White's clock becomes active again. */
+    await expect(page.locator("#desktopPlayHeaderWhite")).toHaveClass(
+        /desktop-play-header-clock--active/,
+        { timeout: 60_000 },
+    );
 }
 
 /**

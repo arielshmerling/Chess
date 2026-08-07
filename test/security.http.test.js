@@ -3,7 +3,7 @@
  * IDOR, privacy, CSRF, rate limits).
  *
  * Run: mocha --exit --require ./test/_teardownWorkers.js ./test/security.http.test.js
- * Or via: npm run test:web:api / npm run test:all
+ * Or via: npm run test:web:api / npm run test:web / npm run test
  */
 /* eslint-disable */
 

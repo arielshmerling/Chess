@@ -69,7 +69,9 @@
             throw new Error("SpServerSync requires gameInfo.id");
         }
 
-        const transport = WsTransport.create({});
+        const transport = WsTransport.create({
+            WebSocket: opts.WebSocket,
+        });
         const humanIsWhite = opts.humanIsWhite !== false;
         const gameInfo = Object.assign({}, opts.gameInfo);
         let ready = false;
@@ -102,15 +104,27 @@
                 }
                 let settled = false;
                 let fallbackTimer = null;
+                let hardTimer = null;
+                const CONNECT_TIMEOUT_MS =
+                    typeof opts.connectTimeoutMs === "number" && opts.connectTimeoutMs > 0
+                        ? opts.connectTimeoutMs
+                        : 4000;
+                function clearTimers() {
+                    if (fallbackTimer != null) {
+                        clearTimeout(fallbackTimer);
+                        fallbackTimer = null;
+                    }
+                    if (hardTimer != null) {
+                        clearTimeout(hardTimer);
+                        hardTimer = null;
+                    }
+                }
                 function finishOk() {
                     if (settled) {
                         return;
                     }
                     settled = true;
-                    if (fallbackTimer != null) {
-                        clearTimeout(fallbackTimer);
-                        fallbackTimer = null;
-                    }
+                    clearTimers();
                     ready = true;
                     resolve();
                 }
@@ -119,10 +133,7 @@
                         return;
                     }
                     settled = true;
-                    if (fallbackTimer != null) {
-                        clearTimeout(fallbackTimer);
-                        fallbackTimer = null;
-                    }
+                    clearTimers();
                     reject(err || new Error("SpServerSync WebSocket error"));
                 }
                 transport.onMessage(function (msg) {
@@ -147,6 +158,9 @@
                         finishErr(new Error("SpServerSync WebSocket closed before connected"));
                     }
                 });
+                hardTimer = setTimeout(function () {
+                    finishErr(new Error("SpServerSync WebSocket connect timeout"));
+                }, CONNECT_TIMEOUT_MS);
                 try {
                     transport.connect(url);
                 } catch (err) {

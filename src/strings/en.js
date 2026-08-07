@@ -108,6 +108,8 @@
                 loadingBoard: "Preparing the board…",
                 startingGame: "Starting game…",
                 connectingToServer: "Connecting to server…",
+                serverSyncDeferred: "Playing locally — server sync still connecting…",
+                serverSyncUnavailable: "Playing locally — live listing unavailable right now",
                 leaveOnlineBeforeConfiguration:
                     "Leave the online game before opening Configuration",
                 configurationNotInPractice:

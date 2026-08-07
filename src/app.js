@@ -217,25 +217,29 @@ app.broadcastToLobby = (data) => {
     });
 };
 
-app.ws("/ws", async (ws, req) => {
-
-    if (!gameManagerService) {
-        console.error("gameManagerService not initialized");
-        ws.close();
-        return;
-    }
-
-    /* SEC-06 / NFR-SEC-010: reject unauthenticated sockets at upgrade. */
-    if (!(req.session && req.session.user_id)) {
-        try {
-            ws.close();
-        } catch {
-            /* ignore */
+app.ws("/ws", (ws, req) => {
+    try {
+        if (!gameManagerService) {
+            console.error("gameManagerService not initialized");
+            try {
+                ws.close();
+            } catch {
+                /* ignore */
+            }
+            return;
         }
-        return;
-    }
 
-    ws.on("message", async (recivedData) => {
+        /* SEC-06 / NFR-SEC-010: reject unauthenticated sockets at upgrade. */
+        if (!(req.session && req.session.user_id)) {
+            try {
+                ws.close();
+            } catch {
+                /* ignore */
+            }
+            return;
+        }
+
+        ws.on("message", async (recivedData) => {
         try {
             const msg = JSON.parse(recivedData);
 
@@ -365,7 +369,17 @@ app.ws("/ws", async (ws, req) => {
     ws.on("error", () => {
         /* ignore client socket errors */
     });
-
+    } catch (err) {
+        console.error(
+            "WebSocket /ws setup failed:",
+            err && err.message ? err.message : err,
+        );
+        try {
+            ws.close();
+        } catch {
+            /* ignore */
+        }
+    }
 });
 
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
