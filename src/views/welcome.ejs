@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/welcome.css">
 <link rel="stylesheet" href="/board-geometry.css">
 <link rel="stylesheet" href="/friends.css">
-<script>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
   window.__LAST_GAME_OPTIONS__ = <%- JSON.stringify(typeof lastGameOptions !== "undefined" && lastGameOptions ? lastGameOptions : {}) %>;
 </script>
 
@@ -111,7 +111,7 @@
             </tbody>
           </table>
         </div>
-        <script>
+        <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
     var table = document.querySelector('.my-games-panel table.sortable');
     if (!table) return;

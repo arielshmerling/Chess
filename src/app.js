@@ -29,7 +29,28 @@ if (!process.env.SESSION_SECRET || String(process.env.SESSION_SECRET).trim() ===
 }
 
 // Enable WebSocket support for Express app (must be before routes)
-enableWs(app);
+enableWs(app, undefined, {
+    wsOptions: {
+        handleProtocols: function handleProtocols(protocols) {
+            if (!protocols) {
+                return false;
+            }
+            if (typeof protocols.has === "function") {
+                if (protocols.has("protocolOne")) {
+                    return "protocolOne";
+                }
+                const first = protocols.values().next();
+                return first && !first.done ? first.value : false;
+            }
+            if (Array.isArray(protocols) && protocols.length) {
+                return protocols.indexOf("protocolOne") !== -1
+                    ? "protocolOne"
+                    : protocols[0];
+            }
+            return false;
+        },
+    },
+});
 
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
@@ -410,6 +431,16 @@ app.use((err, req, res, next) => {
     const { statusCode = 500, message = "Sorry, Something went wrong" } = err;
     if (res.headersSent) {
         return next(err);
+    }
+    const isWsUpgrade =
+        req.headers &&
+        String(req.headers.upgrade || "").toLowerCase() === "websocket";
+    if (isWsUpgrade) {
+        console.error(
+            "WebSocket upgrade error:",
+            err && err.message ? err.message : err,
+        );
+        return res.status(statusCode >= 400 ? statusCode : 500).end();
     }
     if (req.path && req.path.startsWith("/api/")) {
         return res.status(statusCode).json({ ok: false, message });

@@ -1,7 +1,7 @@
 <% layout("../views/layouts/mobile-game-boilerplate") %>
 
 <link rel="stylesheet" href="/welcome.css">
-<script>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
   window.__LAST_GAME_OPTIONS__ = window.__LAST_GAME_OPTIONS__ || {};
 </script>
 

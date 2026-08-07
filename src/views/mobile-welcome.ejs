@@ -1,5 +1,5 @@
 <% layout("../views/layouts/mobile-welcome-boilerplate") %>
-<script>
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
   window.__LAST_GAME_OPTIONS__ = <%- JSON.stringify(typeof lastGameOptions !== "undefined" && lastGameOptions ? lastGameOptions : {}) %>;
 </script>
 
@@ -88,7 +88,7 @@
               </tbody>
             </table>
           </div>
-          <script>
+          <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
     var table = document.querySelector('.mobile-home-my-table.sortable');
     if (!table) return;

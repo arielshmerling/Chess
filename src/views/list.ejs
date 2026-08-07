@@ -86,7 +86,7 @@
             </tbody>
           </table>
         </div>
-        <script>
+        <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
 (function() {
     var table = document.querySelector('#PlayerGameList table.sortable');
     if (!table) return;

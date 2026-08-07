@@ -102,6 +102,16 @@
     }
 
     function doneBoot() {
+        if (marks["boot-done"] != null) {
+            /* Already dismissed — ignore duplicate done() from finally/engine paths. */
+            var overlayEarly = document.getElementById("playBootOverlay");
+            if (overlayEarly && !overlayEarly.hidden) {
+                overlayEarly.hidden = true;
+                overlayEarly.setAttribute("aria-hidden", "true");
+                overlayEarly.classList.remove("play-boot-overlay--done");
+            }
+            return;
+        }
         mark("boot-done");
         var overlay = document.getElementById("playBootOverlay");
         if (!overlay) {

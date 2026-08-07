@@ -207,6 +207,7 @@
     const REVIEW_PLAYBACK_STEP_DELAY_MS = 500;
     let positionSetupSnapshot = null;
     let playSessionReady = false;
+    let startSessionPromise = null;
     let positionSetupPanelMounted = false;
     let configurationPanelMounted = false;
     let gameRunPanelMounted = false;
@@ -376,7 +377,30 @@
         } catch (err) {
             console.warn("[Play] SP server sync connect failed:", err);
             detachSpServerSync();
-            return false;
+            /* One quiet retry — origin often returns 500 while busy with brain search. */
+            try {
+                await new Promise(function (resolve) {
+                    setTimeout(resolve, 1200);
+                });
+                spServerSync = SpServerSyncApi.create({
+                    gameInfo: {
+                        id: meta.gameId,
+                        username: username,
+                        userId: meta.userId != null ? meta.userId : undefined,
+                        creatorId: meta.creatorId != null ? meta.creatorId : undefined,
+                    },
+                    humanIsWhite: humanIsWhite !== false,
+                    wsUrl: WsTransportApi && typeof WsTransportApi.defaultWsUrl === "function"
+                        ? WsTransportApi.defaultWsUrl()
+                        : undefined,
+                });
+                await spServerSync.connect();
+                return true;
+            } catch (retryErr) {
+                console.warn("[Play] SP server sync retry failed:", retryErr);
+                detachSpServerSync();
+                return false;
+            }
         }
     }
 
@@ -6055,10 +6079,19 @@
             return false;
         }
         ensurePlayGameSession();
+        if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+            window.PlayBoot.mark("pieces-painted");
+        }
+        if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
+            window.PlayBoot.done();
+        }
+        /* Engine reply must not block boot overlay / later auto-start finally. */
         if (isAiTurn()) {
             switchClocks();
             showStatus(t("play.status.engineToMove"), 0, "info");
-            await runEngineMove();
+            void runEngineMove().catch(function (err) {
+                console.warn("[Play] Resume engine move failed:", err);
+            });
         } else {
             switchClocks();
             showStatus(t("play.status.gameResumedYourMove"), 2000, "info");
@@ -6914,15 +6947,7 @@
         if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
             window.PlayBoot.done();
         }
-        if (!game.GameOver && isAiTurn()) {
-            switchClocks();
-            showStatus(t("play.status.engineToMove"), 0, "info");
-            await runEngineMove();
-        } else if (!game.GameOver) {
-            switchClocks();
-            showStatus(t("play.status.yourMove"), 2000, "info");
-        }
-        /* Background: public Active Games + watch sync (best-effort; never blocks play). */
+        /* Public Active Games + watch sync in parallel with the first engine move. */
         void (async function syncPublicSpInBackground() {
             if (!isWebPlayPage()) {
                 return;
@@ -6957,6 +6982,16 @@
                 showStatus(t("play.status.serverSyncUnavailable"), 4000, "info");
             }
         });
+        if (!game.GameOver && isAiTurn()) {
+            switchClocks();
+            showStatus(t("play.status.engineToMove"), 0, "info");
+            void runEngineMove().catch(function (err) {
+                console.warn("[Play] Opening engine move failed:", err);
+            });
+        } else if (!game.GameOver) {
+            switchClocks();
+            showStatus(t("play.status.yourMove"), 2000, "info");
+        }
     }
 
     function beginPositionSetupFromMenu() {
@@ -7604,6 +7639,10 @@
     }
 
     async function startSession() {
+        if (startSessionPromise) {
+            return startSessionPromise;
+        }
+        startSessionPromise = (async function runStartSession() {
         playSessionReady = false;
         ensureSavedListFilterControls();
         if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
@@ -7671,6 +7710,8 @@
         } else if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
             window.PlayBoot.done();
         }
+        })();
+        return startSessionPromise;
     }
 
     function applyLaunchContextToChrome() {
