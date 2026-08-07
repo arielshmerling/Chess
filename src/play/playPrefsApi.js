@@ -24,7 +24,7 @@ exports.getLaunchContext = catchAsync(async (req, res) => {
     ) {
         lastGameOptions.engine = "brain43";
     }
-    const engines = await engineService.listPlayEnginesForClient();
+    const engines = await engineService.listPlayEnginesForClient({ skipUciProbe: true });
     const defaultEngine = await engineService.resolveEnabledPlayEngine("brain43");
     if (
         lastGameOptions

@@ -49,10 +49,22 @@
         if (source.engine) {
             target.engine = normalizeLaunchEngine(source.engine, engineOptions);
         }
-        const difficulty = Number(source.difficulty);
-        if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
-            target.thinkingTimeSeconds = difficulty;
-            target.difficulty = difficulty;
+        if (source.thinkingTimeSeconds != null) {
+            const thinking = Number(source.thinkingTimeSeconds);
+            if (Number.isFinite(thinking) && thinking > 0) {
+                target.thinkingTimeSeconds = thinking;
+                target.difficulty = thinking;
+            }
+        } else {
+            const difficulty = Number(source.difficulty);
+            if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
+                target.thinkingTimeSeconds = difficulty;
+                target.difficulty = difficulty;
+            } else if (Number.isFinite(difficulty) && difficulty > 0) {
+                /* Newer stores keep seconds in `difficulty` (alias). */
+                target.thinkingTimeSeconds = difficulty;
+                target.difficulty = difficulty;
+            }
         }
         const timeMinutes = Number(source.timeMinutes);
         if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {
@@ -88,10 +100,21 @@
             if (params.get("engine")) {
                 target.engine = normalizeLaunchEngine(params.get("engine"), engineOptions);
             }
-            const difficulty = parseInt(params.get("difficulty"), 10);
-            if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
-                target.thinkingTimeSeconds = difficulty;
-                target.difficulty = difficulty;
+            if (params.get("thinkingTimeSeconds") != null) {
+                const thinking = parseInt(params.get("thinkingTimeSeconds"), 10);
+                if (Number.isFinite(thinking) && thinking > 0) {
+                    target.thinkingTimeSeconds = thinking;
+                    target.difficulty = thinking;
+                }
+            } else {
+                const difficulty = parseInt(params.get("difficulty"), 10);
+                if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 6) {
+                    target.thinkingTimeSeconds = difficulty;
+                    target.difficulty = difficulty;
+                } else if (Number.isFinite(difficulty) && difficulty > 0) {
+                    target.thinkingTimeSeconds = difficulty;
+                    target.difficulty = difficulty;
+                }
             }
             const timeMinutes = parseInt(params.get("timeMinutes"), 10);
             if (Number.isFinite(timeMinutes) && timeMinutes >= 1 && timeMinutes <= 180) {

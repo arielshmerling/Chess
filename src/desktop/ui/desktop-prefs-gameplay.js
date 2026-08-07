@@ -4,9 +4,12 @@
 (function () {
     "use strict";
 
-    var Settings = window.DesktopGameSettings;
     var mounted = false;
     var wired = false;
+
+    function Settings() {
+        return window.DesktopGameSettings;
+    }
 
     function t(key, params) {
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -16,14 +19,18 @@
     }
 
     function thinkingOptions() {
-        return Settings && Array.isArray(Settings.THINKING_TIME_OPTIONS)
-            ? Settings.THINKING_TIME_OPTIONS
+        var s = Settings();
+        return s && Array.isArray(s.THINKING_TIME_OPTIONS)
+            ? s.THINKING_TIME_OPTIONS
             : [2, 5, 10, 15, 20, 30, 60, 120];
     }
 
     function indexForSeconds(seconds) {
         var options = thinkingOptions();
-        var normalized = Settings.normalizeThinkingTimeSeconds(seconds);
+        var s = Settings();
+        var normalized = s && typeof s.normalizeThinkingTimeSeconds === "function"
+            ? s.normalizeThinkingTimeSeconds(seconds)
+            : seconds;
         var idx = options.indexOf(normalized);
         return idx >= 0 ? idx : options.indexOf(10);
     }
@@ -139,7 +146,7 @@
     }
 
     function applyThinkingFromSlider(slider) {
-        if (!slider || !Settings) {
+        if (!slider || !Settings()) {
             return;
         }
         var seconds = secondsForIndex(slider.value);
@@ -149,7 +156,7 @@
         }
         slider.setAttribute("aria-valuenow", String(slider.value));
         slider.setAttribute("aria-valuetext", formatSeconds(seconds));
-        Settings.saveGamePreferences({ thinkingTimeSeconds: seconds });
+        Settings().saveGamePreferences({ thinkingTimeSeconds: seconds });
     }
 
     function wireEvents() {
@@ -163,12 +170,22 @@
                 if (!input.checked) {
                     return;
                 }
-                Settings.saveGamePreferences({ mouse: input.value });
+                Settings().saveGamePreferences({ mouse: input.value });
             });
         });
 
         var slider = document.getElementById("desktopPrefsThinkingTime");
         if (slider) {
+            var thinkingSaveTimer = null;
+            function scheduleThinkingSave() {
+                if (thinkingSaveTimer) {
+                    clearTimeout(thinkingSaveTimer);
+                }
+                thinkingSaveTimer = setTimeout(function () {
+                    thinkingSaveTimer = null;
+                    applyThinkingFromSlider(slider);
+                }, 120);
+            }
             slider.addEventListener("input", function () {
                 var seconds = secondsForIndex(slider.value);
                 var valueEl = document.getElementById("desktopPrefsThinkingTimeValue");
@@ -177,8 +194,14 @@
                 }
                 slider.setAttribute("aria-valuenow", String(slider.value));
                 slider.setAttribute("aria-valuetext", formatSeconds(seconds));
+                /* Persist while dragging — change alone is easy to miss on some platforms. */
+                scheduleThinkingSave();
             });
             slider.addEventListener("change", function () {
+                if (thinkingSaveTimer) {
+                    clearTimeout(thinkingSaveTimer);
+                    thinkingSaveTimer = null;
+                }
                 applyThinkingFromSlider(slider);
             });
         }
@@ -186,20 +209,20 @@
         var showMoves = document.getElementById("desktopPrefsShowMoves");
         if (showMoves) {
             showMoves.addEventListener("change", function () {
-                Settings.saveGamePreferences({ showAvailableMoves: showMoves.checked });
+                Settings().saveGamePreferences({ showAvailableMoves: showMoves.checked });
             });
         }
 
         var immediateResign = document.getElementById("desktopPrefsImmediateResign");
         if (immediateResign) {
             immediateResign.addEventListener("change", function () {
-                Settings.saveGamePreferences({ immediateResign: immediateResign.checked });
+                Settings().saveGamePreferences({ immediateResign: immediateResign.checked });
             });
         }
     }
 
     function mount(container) {
-        if (!container || !Settings) {
+        if (!container || !Settings()) {
             return;
         }
         if (!mounted) {
@@ -207,14 +230,14 @@
             wireEvents();
             mounted = true;
         }
-        syncUi(Settings.loadGamePreferences());
+        syncUi(Settings().loadGamePreferences());
     }
 
     function refresh() {
-        if (!mounted || !Settings) {
+        if (!mounted || !Settings()) {
             return;
         }
-        syncUi(Settings.loadGamePreferences());
+        syncUi(Settings().loadGamePreferences());
     }
 
     window.DesktopPrefsGameplay = {

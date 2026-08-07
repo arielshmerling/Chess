@@ -12,9 +12,16 @@ const enablementStore = require("./engineEnablementStore");
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.includeDisabled] - include admin-disabled engines (admin UI)
+ * @param {boolean} [opts.skipUciProbe] - do not spawn UCI; treat configured command as available
+ * @param {number} [opts.probeTimeoutMs] - UCI handshake timeout (default 800ms)
  */
 async function listPlayEnginesForClient(opts) {
     const includeDisabled = !!(opts && opts.includeDisabled);
+    const skipUciProbe = !!(opts && opts.skipUciProbe);
+    const probeTimeoutMs =
+        opts && typeof opts.probeTimeoutMs === "number" && opts.probeTimeoutMs > 0
+            ? opts.probeTimeoutMs
+            : 800;
     const disabled = await enablementStore.getDisabledSet();
     const defs = registry.listPlayEngines();
     const out = [];
@@ -27,9 +34,21 @@ async function listPlayEnginesForClient(opts) {
         let available = def.alwaysAvailable === true;
         let unavailableReason = null;
         if (def.backend === "uci") {
-            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 25000 });
-            available = !!probe.available;
-            unavailableReason = available ? null : probe.error || "unavailable";
+            const command = registry.resolveUciCommand(def, process.env);
+            if (!command) {
+                available = false;
+                unavailableReason = "command not configured";
+            } else if (skipUciProbe) {
+                /* Launch/boot path: never wait on Stockfish spawn. */
+                available = true;
+                unavailableReason = null;
+            } else {
+                const probe = await uciBackend.probeAvailability(def.id, {
+                    timeoutMs: probeTimeoutMs,
+                });
+                available = !!probe.available;
+                unavailableReason = available ? null : probe.error || "unavailable";
+            }
         }
         out.push({
             id: def.id,
@@ -59,7 +78,7 @@ async function listPlayEnginesForAdmin() {
         let command = null;
         if (def.backend === "uci") {
             command = registry.resolveUciCommand(def, process.env);
-            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 25000 });
+            const probe = await uciBackend.probeAvailability(def.id, { timeoutMs: 2000 });
             available = !!probe.available;
             unavailableReason = available ? null : probe.error || "unavailable";
         }

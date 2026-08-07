@@ -409,9 +409,19 @@
         initPreferencesMenu: initPreferencesMenu,
     };
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", mountTopbar);
-    } else {
-        mountTopbar();
+    /*
+     * Deferred/bundled shells often run after readyState is already "interactive".
+     * Mounting synchronously here would run before later IIFEs in the same bundle
+     * (prefs language/gameplay/display) attach to window. Always defer to a macrotask
+     * (or DOMContentLoaded) so the rest of the bundle can finish first.
+     */
+    function scheduleMountTopbar() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", mountTopbar);
+            return;
+        }
+        setTimeout(mountTopbar, 0);
     }
+
+    scheduleMountTopbar();
 })();

@@ -118,6 +118,31 @@
     applyCachedTheme();
     mark("early-boot");
 
+    /* Overlap Mongo prefs fetch with deferred shell download. */
+    try {
+        window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = fetch("/api/play/launch-context", {
+            method: "GET",
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+        })
+            .then(function (res) {
+                if (!res.ok) {
+                    throw new Error("launch-context " + res.status);
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                mark("launch-context-prefetch");
+                return data;
+            })
+            .catch(function (err) {
+                mark("launch-context-prefetch-failed");
+                return null;
+            });
+    } catch {
+        window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = Promise.resolve(null);
+    }
+
     window.PlayBoot = {
         mark: mark,
         marks: marks,

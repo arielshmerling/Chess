@@ -227,6 +227,9 @@ describe("play-ui launch options", function () {
         assert.strictEqual(opts.thinkingTimeSeconds, 4);
         assert.strictEqual(opts.mouse, "double");
 
+        LaunchOptions.mergeStored(opts, { thinkingTimeSeconds: 60, difficulty: 60 }, engineOpts);
+        assert.strictEqual(opts.thinkingTimeSeconds, 60);
+
         LaunchOptions.applyUrlSearch(opts, "?engine=brain42&showMoves=0", engineOpts);
         assert.strictEqual(opts.engine, "brain42");
         assert.strictEqual(opts.showAvailableMoves, false);

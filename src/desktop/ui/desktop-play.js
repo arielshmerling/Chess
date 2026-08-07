@@ -4344,14 +4344,36 @@
     }
 
     function playSessionMetaFromShell() {
+        const thinking = resolveShellThinkingTimeSeconds();
         return {
             engine: session && session.engine,
-            thinkingTimeSeconds: session && session.thinkingTimeSeconds,
-            difficulty: session && session.difficulty,
+            thinkingTimeSeconds: thinking,
+            difficulty: thinking,
             whitePlayerName: session && session.whitePlayerName,
             blackPlayerName: session && session.blackPlayerName,
             username: session && session.username,
         };
+    }
+
+    function resolveShellThinkingTimeSeconds() {
+        const normalize =
+            Settings && typeof Settings.normalizeThinkingTimeSeconds === "function"
+                ? Settings.normalizeThinkingTimeSeconds
+                : function (v) {
+                      const n = parseInt(v, 10);
+                      return Number.isFinite(n) ? n : 10;
+                  };
+        if (session && session.thinkingTimeSeconds != null) {
+            return normalize(session.thinkingTimeSeconds);
+        }
+        if (session && session.difficulty != null) {
+            return normalize(session.difficulty);
+        }
+        const prefs =
+            Settings && typeof Settings.loadGamePreferences === "function"
+                ? Settings.loadGamePreferences()
+                : null;
+        return normalize(prefs && prefs.thinkingTimeSeconds);
     }
 
     function disposePlayGameSession() {
@@ -5485,8 +5507,8 @@
                     gameState: game.GameState,
                     moves: tableMovesFromGame(),
                     engine: session.engine,
-                    thinkingTimeSeconds: session.thinkingTimeSeconds,
-                    difficulty: session.difficulty,
+                    thinkingTimeSeconds: resolveShellThinkingTimeSeconds(),
+                    difficulty: resolveShellThinkingTimeSeconds(),
                     pliesPlayed: game.Moves ? game.Moves.length : 0,
                     immediateResign: prefs.immediateResign === true,
                 }),
@@ -5592,8 +5614,8 @@
 
     function applyGamePreferences(prefs) {
         const next = prefs || Settings.loadGamePreferences();
+        const thinkingTime = Settings.normalizeThinkingTimeSeconds(next.thinkingTimeSeconds);
         if (session) {
-            const thinkingTime = Settings.normalizeThinkingTimeSeconds(next.thinkingTimeSeconds);
             session = Object.assign({}, session, {
                 mousePreference: next.mouse === "double" ? "double" : "drag",
                 showAvailableMoves: next.showAvailableMoves !== false,
@@ -5601,7 +5623,11 @@
                 difficulty: thinkingTime,
             });
             updateMatchHeader();
-            syncGameRunPanelOptions();
+        }
+        /* Always sync Game Run + live session meta (prefs can change while idle). */
+        syncGameRunPanelOptions();
+        if (playGameSession && typeof playGameSession.setMeta === "function") {
+            playGameSession.setMeta(playSessionMetaFromShell());
         }
         Board.setPreferences({
             mouse: next.mouse === "double" ? "double" : "drag",
@@ -5736,6 +5762,27 @@
         }
     }
 
+    function applyLaunchContextPayload(ctx) {
+        if (!ctx || typeof ctx !== "object") {
+            return;
+        }
+        canPlayAdvancedTools = !!(ctx && ctx.canPlayAdvanced);
+        canDebug = !!(ctx && ctx.canDebug);
+        if (ctx.username) {
+            webLaunchUsername = ctx.username;
+        }
+        if (
+            Array.isArray(ctx.engines)
+            && Settings
+            && typeof Settings.applyLaunchEngines === "function"
+        ) {
+            Settings.applyLaunchEngines(ctx.engines, t);
+        }
+        if (typeof ctx.canCustomizeThemes === "boolean") {
+            window.__SHMERLING_CAN_CUSTOMIZE_THEMES__ = ctx.canCustomizeThemes;
+        }
+    }
+
     async function fetchLaunchContext() {
         if (launchContextPromise) {
             return launchContextPromise;
@@ -5759,24 +5806,20 @@
             }
             canPlayAdvancedTools = false;
             canDebug = false;
-            if (!Api || typeof Api.get !== "function") {
-                return { ok: false, canPlayAdvanced: false, canDebug: false };
-            }
             try {
-                const ctx = await Api.get("/api/play/launch-context");
-                canPlayAdvancedTools = !!(ctx && ctx.canPlayAdvanced);
-                canDebug = !!(ctx && ctx.canDebug);
-                if (ctx && ctx.username) {
-                    webLaunchUsername = ctx.username;
+                let ctx = null;
+                const prefetch = window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__;
+                if (prefetch && typeof prefetch.then === "function") {
+                    ctx = await prefetch;
+                    window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = null;
                 }
-                if (
-                    ctx
-                    && Array.isArray(ctx.engines)
-                    && Settings
-                    && typeof Settings.applyLaunchEngines === "function"
-                ) {
-                    Settings.applyLaunchEngines(ctx.engines, t);
+                if (!ctx) {
+                    if (!Api || typeof Api.get !== "function") {
+                        return { ok: false, canPlayAdvanced: false, canDebug: false };
+                    }
+                    ctx = await Api.get("/api/play/launch-context", 5000);
                 }
+                applyLaunchContextPayload(ctx);
                 return ctx || { ok: false, canPlayAdvanced: false, canDebug: false };
             } catch (err) {
                 console.warn("[Play] Could not load launch context:", err);
@@ -5788,10 +5831,24 @@
         return launchContextPromise;
     }
 
+    function softWait(promise, ms) {
+        return Promise.race([
+            Promise.resolve(promise).catch(function () {
+                return null;
+            }),
+            new Promise(function (resolve) {
+                setTimeout(function () {
+                    resolve(null);
+                }, ms);
+            }),
+        ]);
+    }
+
     async function resolveWebAutoStartOptions() {
         const opts = Settings.loadLastOptions();
         try {
-            const ctx = await fetchLaunchContext();
+            /* Prefer local opts immediately; wait briefly for server prefs if still in flight. */
+            const ctx = await softWait(fetchLaunchContext(), 1200);
             if (ctx && ctx.lastGameOptions) {
                 mergeStoredLaunchOptions(opts, ctx.lastGameOptions);
             }
@@ -7552,6 +7609,7 @@
         if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
             window.PlayBoot.set(t("play.status.loadingBoard"), 30);
         }
+        /* Bookmarks are not required to start a new local game. */
         const savedPromise = loadSavedGames();
 
         game = new ChessGame();
@@ -7599,9 +7657,12 @@
                 "info",
             );
         }
-        await savedPromise;
         playSessionReady = true;
         updateActionButtons();
+        /* Fill saved list in the background; do not gate auto-start on /bookmark. */
+        void savedPromise.catch(function (err) {
+            console.warn("[Play] Could not load bookmarks:", err);
+        });
         if (isWebPlayPage()) {
             if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
                 window.PlayBoot.set(t("play.status.startingGame"), 50);
@@ -7610,6 +7671,14 @@
         } else if (window.PlayBoot && typeof window.PlayBoot.done === "function") {
             window.PlayBoot.done();
         }
+    }
+
+    function applyLaunchContextToChrome() {
+        ensureChatPanelWired();
+        applyAdvancedToolsVisibility();
+        buildActionRail();
+        ensureReviewNavBar();
+        updateActionButtons();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -7636,16 +7705,17 @@
         if (window.PlayBoot && typeof window.PlayBoot.set === "function") {
             window.PlayBoot.set(t("play.status.loadingPreferences"), 20);
         }
-        fetchLaunchContext()
+        /* Start the board immediately; prefs/engines catch up without blocking pieces. */
+        const ctxPromise = fetchLaunchContext().then(function (ctx) {
+            if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
+                window.PlayBoot.mark("launch-context");
+            }
+            applyLaunchContextToChrome();
+            return ctx;
+        });
+        startSession()
             .then(function () {
-                ensureChatPanelWired();
-                applyAdvancedToolsVisibility();
-                buildActionRail();
-                ensureReviewNavBar();
-                if (window.PlayBoot && typeof window.PlayBoot.mark === "function") {
-                    window.PlayBoot.mark("launch-context");
-                }
-                return startSession();
+                return ctxPromise;
             })
             .catch(function (err) {
                 if (window.PlayBoot && typeof window.PlayBoot.done === "function") {

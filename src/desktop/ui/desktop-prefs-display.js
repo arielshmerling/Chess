@@ -4,10 +4,13 @@
 (function () {
     "use strict";
 
-    var Fullscreen = window.DesktopFullscreen;
     var mounted = false;
     var wired = false;
     var unsubscribeFullscreen = null;
+
+    function Fullscreen() {
+        return window.DesktopFullscreen;
+    }
 
     function t(key, params) {
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -17,7 +20,8 @@
     }
 
     function isSupported() {
-        if (!Fullscreen || typeof Fullscreen.toggleFullscreen !== "function") {
+        var fs = Fullscreen();
+        if (!fs || typeof fs.toggleFullscreen !== "function") {
             return false;
         }
         var el = document.documentElement;
@@ -31,10 +35,11 @@
 
     function syncUi() {
         var btn = document.getElementById("desktopPrefsFullscreenBtn");
-        if (!btn || !Fullscreen) {
+        var fs = Fullscreen();
+        if (!btn || !fs) {
             return;
         }
-        var active = Fullscreen.isFullscreen();
+        var active = fs.isFullscreen();
         btn.textContent = active
             ? t("desktop.prefs.exitFullScreen")
             : t("desktop.prefs.enterFullScreen");
@@ -73,7 +78,11 @@
         var btn = document.getElementById("desktopPrefsFullscreenBtn");
         if (btn) {
             btn.addEventListener("click", function () {
-                Fullscreen.toggleFullscreen().catch(function (err) {
+                var fs = Fullscreen();
+                if (!fs) {
+                    return;
+                }
+                fs.toggleFullscreen().catch(function (err) {
                     console.warn("[Shmerling] Full screen toggle failed:", err);
                 });
             });
@@ -82,7 +91,10 @@
         if (unsubscribeFullscreen) {
             unsubscribeFullscreen();
         }
-        unsubscribeFullscreen = Fullscreen.onFullscreenChange(onFullscreenChanged);
+        var fsApi = Fullscreen();
+        unsubscribeFullscreen = fsApi && typeof fsApi.onFullscreenChange === "function"
+            ? fsApi.onFullscreenChange(onFullscreenChanged)
+            : null;
     }
 
     function mount(container) {

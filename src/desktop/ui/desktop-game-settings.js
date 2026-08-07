@@ -58,6 +58,8 @@
 
     let cachedGamePrefs = null;
     let serverBootStarted = false;
+    /** True after the user saves prefs this page load — boot fetch must not clobber. */
+    let localPrefsDirty = false;
 
     function isDesktopApp() {
         if (
@@ -179,9 +181,15 @@
 
     function saveGamePreferences(partial) {
         const next = normalizeGamePreferences(Object.assign({}, loadGamePreferences(), partial || {}));
+        localPrefsDirty = true;
         rememberGamePreferences(next);
         const stored = migrateSavedOptions(readStoredOptions());
-        writeStoredOptions(Object.assign({}, stored, next));
+        /* Keep difficulty alias in sync so stale 1–6 depth values cannot win later. */
+        writeStoredOptions(
+            Object.assign({}, stored, next, {
+                difficulty: next.thinkingTimeSeconds,
+            }),
+        );
         persistGamePreferencesToServer(next);
         notifyGamePreferencesChanged(next);
         return next;
@@ -269,13 +277,22 @@
                 return res.json();
             })
             .then(function (data) {
-                if (data && data.gamePreferences) {
-                    const next = normalizeGamePreferences(data.gamePreferences);
-                    rememberGamePreferences(next);
-                    const stored = migrateSavedOptions(readStoredOptions());
-                    writeStoredOptions(Object.assign({}, stored, next));
-                    notifyGamePreferencesChanged(next);
+                if (!data || !data.gamePreferences) {
+                    return;
                 }
+                /* User already moved the slider (or otherwise saved) while GET was in flight. */
+                if (localPrefsDirty) {
+                    return;
+                }
+                const next = normalizeGamePreferences(data.gamePreferences);
+                rememberGamePreferences(next);
+                const stored = migrateSavedOptions(readStoredOptions());
+                writeStoredOptions(
+                    Object.assign({}, stored, next, {
+                        difficulty: next.thinkingTimeSeconds,
+                    }),
+                );
+                notifyGamePreferencesChanged(next);
             })
             .catch(function () {
                 /* ignore */
