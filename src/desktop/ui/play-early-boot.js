@@ -128,27 +128,38 @@
     applyCachedTheme();
     mark("early-boot");
 
-    /* Overlap Mongo prefs fetch with deferred shell download. */
+    /*
+     * Web /play only: overlap Mongo launch-context with deferred shell download.
+     * Desktop (/app/play) has no /api/play/* routes — desktop-play resolves context locally.
+     */
     try {
-        window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = fetch("/api/play/launch-context", {
-            method: "GET",
-            credentials: "same-origin",
-            headers: { Accept: "application/json" },
-        })
-            .then(function (res) {
-                if (!res.ok) {
-                    throw new Error("launch-context " + res.status);
-                }
-                return res.json();
+        var pathName =
+            (typeof window !== "undefined" && window.location && window.location.pathname) ||
+            "";
+        var isWebPlay = pathName === "/play" || pathName.indexOf("/play/") === 0;
+        if (isWebPlay) {
+            window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = fetch("/api/play/launch-context", {
+                method: "GET",
+                credentials: "same-origin",
+                headers: { Accept: "application/json" },
             })
-            .then(function (data) {
-                mark("launch-context-prefetch");
-                return data;
-            })
-            .catch(function (err) {
-                mark("launch-context-prefetch-failed");
-                return null;
-            });
+                .then(function (res) {
+                    if (!res.ok) {
+                        throw new Error("launch-context " + res.status);
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    mark("launch-context-prefetch");
+                    return data;
+                })
+                .catch(function () {
+                    mark("launch-context-prefetch-failed");
+                    return null;
+                });
+        } else {
+            window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = Promise.resolve(null);
+        }
     } catch {
         window.__SHMERLING_LAUNCH_CONTEXT_PREFETCH__ = Promise.resolve(null);
     }
