@@ -807,6 +807,7 @@ function isCastlingKingMove(game, move) {
     return Math.abs(move.target.col - move.source.col) === 2;
 }
 
+/** Signed config deltas for first king/rook development (values are ≤ 0; castling king jump exempt). */
 function getFirstKingRookMovePenaltyDelta(game, move, se) {
     const kPen = Number(se.firstKingMovePenalty) || 0;
     const rPen = Number(se.firstRookMovePenalty) || 0;
@@ -820,34 +821,31 @@ function getFirstKingRookMovePenaltyDelta(game, move, se) {
     const wpv = state.whitePlayerView !== false;
     const kingsideRookCol = wpv ? 7 : 0;
     const queensideRookCol = wpv ? 0 : 7;
-    let units = 0;
+    let delta = 0;
     if (kPen !== 0 && move.piece.pieceType === game.KING) {
         const isFirst = (move.piece.color === "white" && !state.whiteKingMoved)
             || (move.piece.color === "black" && !state.blackKingMoved);
         if (isFirst && !isCastlingKingMove(game, move)) {
-            units += kPen;
+            delta += kPen;
         }
     }
     if (rPen !== 0 && move.piece.pieceType === game.ROOK) {
         const c = move.piece.color;
         if (c === "white") {
             if (move.source.col === kingsideRookCol && !state.kingsideWhiteRookMoved) {
-                units += rPen;
+                delta += rPen;
             } else if (move.source.col === queensideRookCol && !state.queensideWhiteRookMoved) {
-                units += rPen;
+                delta += rPen;
             }
         } else if (c === "black") {
             if (move.source.col === kingsideRookCol && !state.kingsideBlackRookMoved) {
-                units += rPen;
+                delta += rPen;
             } else if (move.source.col === queensideRookCol && !state.queensideBlackRookMoved) {
-                units += rPen;
+                delta += rPen;
             }
         }
     }
-    if (units === 0) {
-        return 0;
-    }
-    return -units;
+    return delta;
 }
 
 function getCurrentPlayerDoubledPawnCount(game) {
@@ -1001,7 +999,7 @@ function getPawnChainCountEvalDelta(game, se) {
     if (c <= 1) {
         return 0;
     }
-    return -(c - 1) * p;
+    return (c - 1) * p;
 }
 
 function isBoardFileFullyOpen(game, col) {
@@ -1124,11 +1122,11 @@ function getPoorClosedFileRookPenaltyDelta(game, se) {
     return count * deltaPerRook;
 }
 
-/** Doubled pawns: −count × doublePawnPenalty × pawn value; advanced: stacked rank bonus per pawn. */
+/** Doubled pawns: count × doublePawnPenalty × pawn value (penalty ≤ 0); advanced: stacked rank bonus. */
 function getPawnEvalDelta(game, se) {
     const dpp = Number(se.doublePawnPenalty) || 0;
     const pv = pieceValue(game, game.PAWN);
-    return -getCurrentPlayerDoubledPawnCount(game) * dpp * pv
+    return getCurrentPlayerDoubledPawnCount(game) * dpp * pv
         + getAdvancedPawnBonusForColor(game, game.Turn, se);
 }
 
@@ -1341,7 +1339,7 @@ function getPawnEvalDeltaParts(game, se) {
     const dpp = Number(se.doublePawnPenalty) || 0;
     const pv = pieceValue(game, game.PAWN);
     return {
-        doubled: -getCurrentPlayerDoubledPawnCount(game) * dpp * pv,
+        doubled: getCurrentPlayerDoubledPawnCount(game) * dpp * pv,
         advanced: getAdvancedPawnBonusForColor(game, game.Turn, se),
     };
 }
@@ -1375,7 +1373,7 @@ function getSquarePawnPositionalBreakdown(game, row, col, se, perspectiveColor) 
     }
     const dpp = Number(se.doublePawnPenalty) || 0;
     if (dpp !== 0 && countPawnsInFileForColor(game, col, piece.color) >= 2) {
-        const penalty = -dpp * pieceValueOnSquare(game, piece, col);
+        const penalty = dpp * pieceValueOnSquare(game, piece, col);
         breakdown.push({
             label: piece.color === perspectiveColor ? "Doubled pawn penalty" : "Opponent doubled pawn penalty",
             value: roundEvalScore(signedForPerspective(penalty, piece.color, perspectiveColor)),
@@ -1699,29 +1697,32 @@ function scoreTerminalNoMoves(game, ply = 0) {
 
 /**
  * Score a legal move from the current node using standard negamax: apply the move, then return the
- * negated value of the resulting position. All material and positional terms live in the leaf
- * evaluation ({@link evaluateLeafPosition}); no per-move bonus is folded into the backed-up value.
+ * negated value of the resulting position. Material and positional terms live in the leaf
+ * evaluation ({@link evaluateLeafPosition}).
  *
- * Folding a per-move bonus `q` into the returned score (as older revisions did) both double-counted
- * captured material (once in `q`, once in the leaf) and made alpha-beta unsound, because the child
- * was searched with an `[-beta, -alpha]` window that was not shifted by `q`. Once alpha was raised
- * by a strong line, sibling subtrees were pruned at the wrong bounds and returned inflated scores,
- * so an inferior quiet move could outrank a winning capture. Keeping the value as pure
- * `-negamax(child)` makes alpha-beta return exactly the unpruned minimax value.
+ * First king / rook development penalties ({@link getFirstKingRookMovePenaltyDelta}) are move-local
+ * (they depend on castling rights before the move) and are added once here. They must be sampled
+ * before {@link withAppliedMove}. Only these signed penalties (≤ 0) are folded in — not capture
+ * material or other {@link staticMoveBonus} terms — so we do not reintroduce double-counting or the
+ * large move-bonus alpha-beta window skew that made fail-low bounds win root tie-breaks.
  *
- * `staticMoveBonus` is still used for move ordering and root tie-breaking, never for the value here.
+ * `staticMoveBonus` remains for move ordering and root tie-breaking among equal search scores.
  * Mate scores use {@link MATE_SCORE} − ply so shorter mates rank above longer ones.
  */
 function evaluateSearchMove(game, move, depthRemaining, alpha, beta, ply) {
+    applyRuntimeConfigForGame(game);
+    const developmentDelta = getFirstKingRookMovePenaltyDelta(game, move, specialEvaluations());
     return withAppliedMove(game, move, () => {
+        let score;
         if (game.Checkmate) {
-            return MATE_SCORE - ply;
-        }
-        if (game.Draw) {
+            score = MATE_SCORE - ply;
+        } else if (game.Draw) {
             const mover = game.Turn === "white" ? "black" : "white";
-            return getDrawLeafScoreForMover(game, mover, specialEvaluations());
+            score = getDrawLeafScoreForMover(game, mover, specialEvaluations());
+        } else {
+            score = -negamax(game, depthRemaining, -beta, -alpha, ply + 1);
         }
-        return -negamax(game, depthRemaining, -beta, -alpha, ply + 1);
+        return score + developmentDelta;
     });
 }
 
@@ -2180,6 +2181,7 @@ exports.__testHooks = {
     evaluateLeafPosition,
     materialDifferenceForSideToMove,
     positionalBonusesForSideToMove,
+    getFirstKingRookMovePenaltyDelta,
     setSearchPruningEnabled(enabled) {
         searchPruningEnabled = enabled !== false;
     },

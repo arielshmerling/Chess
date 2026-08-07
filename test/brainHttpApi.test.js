@@ -1,6 +1,4 @@
 const assert = require("assert");
-const express = require("express");
-const request = require("supertest");
 const brainApi = require("../src/play/brainApi");
 const brainGuards = require("../src/play/brainGuards");
 const desktopBrainService = require("../src/desktop/desktopBrainService");
@@ -190,33 +188,43 @@ describe("brainApi handlers", function () {
 });
 
 describe("brain rate limiting", function () {
-    it("throttles per session user and answers JSON 429 on /api paths", async function () {
+    it("throttles per session user and answers JSON 429 on /api paths", function () {
         const limiter = createRateLimiter({
             windowMs: 60000,
             max: 2,
             keyFn: brainGuards.brainClientKey,
             message: "Too many engine requests. Try again shortly.",
         });
-        const app = express();
-        let currentUser = "alice";
-        app.use(function (req, _res, next) {
-            req.session = { user_id: currentUser };
-            next();
-        });
-        app.post("/api/brain/compute-move", limiter, function (_req, res) {
-            res.json({ ok: true });
-        });
+        let nextCalls = 0;
+        const next = function () {
+            nextCalls += 1;
+        };
 
-        await request(app).post("/api/brain/compute-move").expect(200);
-        await request(app).post("/api/brain/compute-move").expect(200);
-        const blocked = await request(app).post("/api/brain/compute-move").expect(429);
-        assert.strictEqual(blocked.body.ok, false);
-        assert.match(blocked.body.message, /Too many engine requests/);
+        function runAs(userId) {
+            const req = {
+                path: "/api/brain/compute-move",
+                session: { user_id: userId },
+                ip: "127.0.0.1",
+            };
+            const res = fakeRes();
+            limiter(req, res, next);
+            return res;
+        }
+
+        assert.strictEqual(runAs("alice").statusCode, 200);
+        assert.strictEqual(runAs("alice").statusCode, 200);
+        assert.strictEqual(nextCalls, 2);
+
+        const blocked = runAs("alice");
+        assert.strictEqual(blocked.statusCode, 429);
+        assert.strictEqual(blocked.payload.ok, false);
+        assert.match(blocked.payload.message, /Too many engine requests/);
         assert.ok(blocked.headers["retry-after"], "expected a Retry-After header");
+        assert.strictEqual(nextCalls, 2);
 
         // A different account has its own bucket.
-        currentUser = "bob";
-        await request(app).post("/api/brain/compute-move").expect(200);
+        assert.strictEqual(runAs("bob").statusCode, 200);
+        assert.strictEqual(nextCalls, 3);
     });
 
     it("exposes the brain limiter for test resets", function () {

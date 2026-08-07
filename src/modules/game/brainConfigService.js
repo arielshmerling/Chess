@@ -48,11 +48,11 @@ const DEFAULT_CONFIGS = {
     brain41: {
         pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
         specialEvaluations: {
-            doublePawnPenalty: 0.25,
+            doublePawnPenalty: -0.25,
             pawnAdvancedBonus: 0.2,
-            firstKingMovePenalty: 0.1,
-            firstRookMovePenalty: 0.1,
-            pawnsChainCountPenalty: 0.1,
+            firstKingMovePenalty: -0.1,
+            firstRookMovePenalty: -0.1,
+            pawnsChainCountPenalty: -0.1,
             drawMaterialDiffThreshold: 3,
             drawScoreWhenAhead: -5,
             drawScoreWhenBehind: 5,
@@ -95,11 +95,11 @@ const DEFAULT_CONFIGS = {
         startGame: {
             pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
             specialEvaluations: {
-                doublePawnPenalty: 0.25,
+                doublePawnPenalty: -0.25,
                 pawnAdvancedBonus: 0.2,
-                firstKingMovePenalty: 0.1,
-                firstRookMovePenalty: 0.1,
-                pawnsChainCountPenalty: 0.5,
+                firstKingMovePenalty: -0.1,
+                firstRookMovePenalty: -0.1,
+                pawnsChainCountPenalty: -0.5,
                 drawMaterialDiffThreshold: 3,
                 drawScoreWhenAhead: -5,
                 drawScoreWhenBehind: 5,
@@ -112,11 +112,11 @@ const DEFAULT_CONFIGS = {
         midGame: {
             pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
             specialEvaluations: {
-                doublePawnPenalty: 0.25,
+                doublePawnPenalty: -0.25,
                 pawnAdvancedBonus: 0.2,
-                firstKingMovePenalty: 0.1,
-                firstRookMovePenalty: 0.1,
-                pawnsChainCountPenalty: 0.5,
+                firstKingMovePenalty: -0.1,
+                firstRookMovePenalty: -0.1,
+                pawnsChainCountPenalty: -0.5,
                 drawMaterialDiffThreshold: 3,
                 drawScoreWhenAhead: -5,
                 drawScoreWhenBehind: 5,
@@ -129,11 +129,11 @@ const DEFAULT_CONFIGS = {
         endGame: {
             pieceScores: { pawn: 1, rook: 5, knight: 3, bishop: 3.25, queen: 9, king: 10000 },
             specialEvaluations: {
-                doublePawnPenalty: 0.25,
+                doublePawnPenalty: -0.25,
                 pawnAdvancedBonus: 0.2,
-                firstKingMovePenalty: 0.1,
-                firstRookMovePenalty: 0.1,
-                pawnsChainCountPenalty: 0.5,
+                firstKingMovePenalty: -0.1,
+                firstRookMovePenalty: -0.1,
+                pawnsChainCountPenalty: -0.5,
                 drawMaterialDiffThreshold: 3,
                 drawScoreWhenAhead: -5,
                 drawScoreWhenBehind: 5,
@@ -152,6 +152,24 @@ DEFAULT_CONFIGS.brain43 = JSON.parse(JSON.stringify(DEFAULT_CONFIGS.brain42));
 
 const ALLOWED_BRAINS = Object.keys(DEFAULT_CONFIGS);
 const SCORE_KEYS = ["pawn", "rook", "knight", "bishop", "queen", "king"];
+
+/**
+ * Additive special-eval keys must be ≤ 0 in config (penalties).
+ * Legacy files stored magnitudes as positive; this helper negates those once on load.
+ * @param {number} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+function normalizeSignedPenalty(value, fallback) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    if (parsed > 0) {
+        return -parsed;
+    }
+    return parsed;
+}
 
 function getConfigPath(engineName) {
     return path.join(CONFIG_DIR, `${engineName}.json`);
@@ -181,7 +199,10 @@ function sanitizeBrain41StylePhaseSettings(fallbackPhase, rawPhase) {
     const rawSe = rawPhase && rawPhase.specialEvaluations ? rawPhase.specialEvaluations : {};
     const doublePawnPenalty = Number(rawSe.doublePawnPenalty ?? specialEvaluations.doublePawnPenalty);
     if (Number.isFinite(doublePawnPenalty)) {
-        specialEvaluations.doublePawnPenalty = doublePawnPenalty;
+        specialEvaluations.doublePawnPenalty = normalizeSignedPenalty(
+            doublePawnPenalty,
+            specialEvaluations.doublePawnPenalty,
+        );
     }
     const pawnAdvancedBonus = Number(rawSe.pawnAdvancedBonus ?? specialEvaluations.pawnAdvancedBonus);
     if (Number.isFinite(pawnAdvancedBonus)) {
@@ -189,15 +210,24 @@ function sanitizeBrain41StylePhaseSettings(fallbackPhase, rawPhase) {
     }
     const firstKingMovePenalty = Number(rawSe.firstKingMovePenalty ?? specialEvaluations.firstKingMovePenalty);
     if (Number.isFinite(firstKingMovePenalty)) {
-        specialEvaluations.firstKingMovePenalty = firstKingMovePenalty;
+        specialEvaluations.firstKingMovePenalty = normalizeSignedPenalty(
+            firstKingMovePenalty,
+            specialEvaluations.firstKingMovePenalty,
+        );
     }
     const firstRookMovePenalty = Number(rawSe.firstRookMovePenalty ?? specialEvaluations.firstRookMovePenalty);
     if (Number.isFinite(firstRookMovePenalty)) {
-        specialEvaluations.firstRookMovePenalty = firstRookMovePenalty;
+        specialEvaluations.firstRookMovePenalty = normalizeSignedPenalty(
+            firstRookMovePenalty,
+            specialEvaluations.firstRookMovePenalty,
+        );
     }
     const pawnsChainCountPenalty = Number(rawSe.pawnsChainCountPenalty ?? specialEvaluations.pawnsChainCountPenalty);
     if (Number.isFinite(pawnsChainCountPenalty)) {
-        specialEvaluations.pawnsChainCountPenalty = pawnsChainCountPenalty;
+        specialEvaluations.pawnsChainCountPenalty = normalizeSignedPenalty(
+            pawnsChainCountPenalty,
+            specialEvaluations.pawnsChainCountPenalty,
+        );
     }
     const drawMaterialDiffThreshold = Number(
         rawSe.drawMaterialDiffThreshold ?? specialEvaluations.drawMaterialDiffThreshold,

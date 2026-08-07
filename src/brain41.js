@@ -408,7 +408,7 @@ function isCastlingKingMove(localChess, move) {
     return Math.abs(move.target.col - move.source.col) === 2;
 }
 
-/** Negative adjustment when the side to move “spends” first king or rook development (castling king jump exempt). */
+/** Signed config deltas for first king/rook development (values are ≤ 0; castling king jump exempt). */
 function getFirstKingRookMovePenaltyDelta(localChess, move, specialEvaluations) {
     const kPen = Number(specialEvaluations && specialEvaluations.firstKingMovePenalty) || 0;
     const rPen = Number(specialEvaluations && specialEvaluations.firstRookMovePenalty) || 0;
@@ -422,34 +422,31 @@ function getFirstKingRookMovePenaltyDelta(localChess, move, specialEvaluations) 
     const wpv = state.whitePlayerView !== false;
     const kingsideRookCol = wpv ? 7 : 0;
     const queensideRookCol = wpv ? 0 : 7;
-    let units = 0;
+    let delta = 0;
     if (kPen !== 0 && move.piece.pieceType === localChess.KING) {
         const isFirst = (move.piece.color === "white" && !state.whiteKingMoved)
             || (move.piece.color === "black" && !state.blackKingMoved);
         if (isFirst && !isCastlingKingMove(localChess, move)) {
-            units += kPen;
+            delta += kPen;
         }
     }
     if (rPen !== 0 && move.piece.pieceType === localChess.ROOK) {
         const c = move.piece.color;
         if (c === "white") {
             if (move.source.col === kingsideRookCol && !state.kingsideWhiteRookMoved) {
-                units += rPen;
+                delta += rPen;
             } else if (move.source.col === queensideRookCol && !state.queensideWhiteRookMoved) {
-                units += rPen;
+                delta += rPen;
             }
         } else {
             if (move.source.col === kingsideRookCol && !state.kingsideBlackRookMoved) {
-                units += rPen;
+                delta += rPen;
             } else if (move.source.col === queensideRookCol && !state.queensideBlackRookMoved) {
-                units += rPen;
+                delta += rPen;
             }
         }
     }
-    if (units === 0) {
-        return 0;
-    }
-    return -units;
+    return delta;
 }
 
 function stateScore(localChess, move) {
@@ -555,7 +552,7 @@ function getPawnChainCountEvalDelta(localChess, specialEvaluations) {
     if (c <= 1) {
         return 0;
     }
-    return -(c - 1) * p;
+    return (c - 1) * p;
 }
 
 function isAdvancedPawnRankForColor(row, color) {
@@ -713,12 +710,12 @@ function getPoorClosedFileRookPenaltyDelta(localChess, specialEvaluations) {
     return count * deltaPerRook;
 }
 
-/** Pawn structure adjustment used by {@link stateScore} (config-driven double penalty + advanced bonus). */
+/** Pawn structure adjustment used by {@link stateScore} (signed penalties + advanced bonus). */
 function getPawnEvalDelta(localChess, specialEvaluations, pawnValue) {
     const dpp = Number(specialEvaluations && specialEvaluations.doublePawnPenalty) || 0;
     const pab = Number(specialEvaluations && specialEvaluations.pawnAdvancedBonus) || 0;
     const pv = Number(pawnValue) || 0;
-    return -getCurrentPlayerDoubledPawnCount(localChess) * dpp
+    return getCurrentPlayerDoubledPawnCount(localChess) * dpp
         + getCurrentPlayerAdvancedPawnCount(localChess) * pv * pab;
 }
 

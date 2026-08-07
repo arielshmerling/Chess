@@ -158,7 +158,7 @@ describe("brain41 getCurrentPlayerPawnChainCount (adjacent-file pawn chains)", (
 
 describe("brain41 getPawnChainCountEvalDelta", () => {
     const game = new ChessGame();
-    const se = { pawnsChainCountPenalty: 0.1 };
+    const se = { pawnsChainCountPenalty: -0.1 };
 
     it("is 0 for a single diagonal chain, no pawns, or a lone pawn", () => {
         loadPawnSquares(game, "white", [
@@ -313,8 +313,8 @@ describe("brain41 getPawnEvalDelta", () => {
             board[5][0] = { color: "white", pieceType: P };
             board[2][1] = { color: "white", pieceType: P };
         });
-        const se = { doublePawnPenalty: 0.25, pawnAdvancedBonus: 0.2 };
-        // doubled: 2 * 0.25 = 0.5 penalty => -0.5; 1 advanced * 1 * 0.2 = +0.2
+        const se = { doublePawnPenalty: -0.25, pawnAdvancedBonus: 0.2 };
+        // doubled: 2 * -0.25 = -0.5; 1 advanced * 1 * 0.2 = +0.2
         const delta = getPawnEvalDelta(game, se, 1);
         assert.strictEqual(delta, -0.3);
     });
@@ -356,7 +356,7 @@ describe("brain41 getFirstKingRookMovePenaltyDelta", () => {
     const game = new ChessGame();
     const K = game.KING;
     const R = game.ROOK;
-    const se = { firstKingMovePenalty: 0.1, firstRookMovePenalty: 0.1 };
+    const se = { firstKingMovePenalty: -0.1, firstRookMovePenalty: -0.1 };
 
     it("applies a penalty for the first non-castling king move", () => {
         const s = emptyStateBase("white");
@@ -418,7 +418,7 @@ describe("brain41 getFirstKingRookMovePenaltyDelta", () => {
             target: { row: 6, col: 4 },
         };
         assert.strictEqual(
-            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: 0.15, firstRookMovePenalty: 0 }),
+            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: -0.15, firstRookMovePenalty: 0 }),
             -0.15
         );
     });
@@ -434,31 +434,43 @@ describe("brain41 getFirstKingRookMovePenaltyDelta", () => {
             target: { row: 5, col: 0 },
         };
         assert.strictEqual(
-            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: 0, firstRookMovePenalty: 0.12 }),
+            getFirstKingRookMovePenaltyDelta(game, m, { firstKingMovePenalty: 0, firstRookMovePenalty: -0.12 }),
             -0.12
         );
     });
 });
 
 describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalty", () => {
-    it("getDefaultConfig includes 0.1 for both", () => {
+    it("getDefaultConfig includes -0.1 for both (signed penalties)", () => {
         const c = getDefaultConfig("brain41");
-        assert.strictEqual(c.specialEvaluations.firstKingMovePenalty, 0.1);
-        assert.strictEqual(c.specialEvaluations.firstRookMovePenalty, 0.1);
-        assert.strictEqual(c.specialEvaluations.pawnsChainCountPenalty, 0.1);
+        assert.strictEqual(c.specialEvaluations.firstKingMovePenalty, -0.1);
+        assert.strictEqual(c.specialEvaluations.firstRookMovePenalty, -0.1);
+        assert.strictEqual(c.specialEvaluations.pawnsChainCountPenalty, -0.1);
         assert.strictEqual(c.specialEvaluations.bestOpenRookOnSeventhMultiplier, 1.25);
         assert.strictEqual(c.specialEvaluations.veryGoodOpenRookMultiplier, 1.125);
         assert.strictEqual(c.specialEvaluations.poorClosedFileRookMultiplier, 0.75);
     });
-    it("sanitizeBrainConfig applies numeric overrides for both keys", () => {
+    it("sanitizeBrainConfig applies signed overrides for both keys", () => {
+        const out = sanitizeBrainConfig("brain41", {
+            specialEvaluations: {
+                firstKingMovePenalty: -0.05,
+                firstRookMovePenalty: -0.2,
+            },
+        });
+        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, -0.05);
+        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, -0.2);
+    });
+    it("sanitizeBrainConfig migrates legacy positive penalty magnitudes to negative", () => {
         const out = sanitizeBrainConfig("brain41", {
             specialEvaluations: {
                 firstKingMovePenalty: 0.05,
                 firstRookMovePenalty: 0.2,
+                doublePawnPenalty: 0.25,
             },
         });
-        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, 0.05);
-        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, 0.2);
+        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, -0.05);
+        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, -0.2);
+        assert.strictEqual(out.specialEvaluations.doublePawnPenalty, -0.25);
     });
     it("sanitizeBrainConfig keeps defaults when values are not finite", () => {
         const out = sanitizeBrainConfig("brain41", {
@@ -467,14 +479,14 @@ describe("brain41 brainConfigService: firstKingMovePenalty & firstRookMovePenalt
                 firstRookMovePenalty: Number.NaN,
             },
         });
-        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, 0.1);
-        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, 0.1);
+        assert.strictEqual(out.specialEvaluations.firstKingMovePenalty, -0.1);
+        assert.strictEqual(out.specialEvaluations.firstRookMovePenalty, -0.1);
     });
     it("sanitizeBrainConfig can override pawnsChainCountPenalty", () => {
         const out = sanitizeBrainConfig("brain41", {
-            specialEvaluations: { pawnsChainCountPenalty: 0.05 },
+            specialEvaluations: { pawnsChainCountPenalty: -0.05 },
         });
-        assert.strictEqual(out.specialEvaluations.pawnsChainCountPenalty, 0.05);
+        assert.strictEqual(out.specialEvaluations.pawnsChainCountPenalty, -0.05);
     });
     it("sanitizeBrainConfig can override bestOpenRookOnSeventhMultiplier", () => {
         const out = sanitizeBrainConfig("brain41", {
