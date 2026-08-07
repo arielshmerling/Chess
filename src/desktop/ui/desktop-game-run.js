@@ -15,6 +15,10 @@
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
 
     let panelRoot = null;
+    let floatingShellEl = null;
+    let floatingDragState = null;
+    let floatingBound = false;
+    const FLOATING_POS_KEY = "shmerling.desktop.gameRunPanelPos";
     let runTurn = "white";
     let runComputerIsWhite = false;
     let runThinkingTimeSeconds = 10;
@@ -272,6 +276,120 @@
         return "brain43";
     }
 
+    function saveFloatingPosition() {
+        if (!floatingShellEl) {
+            return;
+        }
+        const rect = floatingShellEl.getBoundingClientRect();
+        try {
+            localStorage.setItem(
+                FLOATING_POS_KEY,
+                JSON.stringify({ left: rect.left, top: rect.top }),
+            );
+        } catch {
+            /* ignore quota / private mode */
+        }
+    }
+
+    function restoreFloatingPosition() {
+        if (!floatingShellEl) {
+            return;
+        }
+        try {
+            const raw = localStorage.getItem(FLOATING_POS_KEY);
+            if (!raw) {
+                return;
+            }
+            const pos = JSON.parse(raw);
+            if (typeof pos.left === "number" && typeof pos.top === "number") {
+                floatingShellEl.style.left = pos.left + "px";
+                floatingShellEl.style.top = pos.top + "px";
+                floatingShellEl.style.right = "auto";
+                floatingShellEl.style.bottom = "auto";
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    function clampFloatingPosition(left, top) {
+        const maxL = Math.max(8, window.innerWidth - floatingShellEl.offsetWidth - 8);
+        const maxT = Math.max(8, window.innerHeight - floatingShellEl.offsetHeight - 8);
+        return {
+            left: Math.max(8, Math.min(maxL, left)),
+            top: Math.max(8, Math.min(maxT, top)),
+        };
+    }
+
+    function startFloatingDrag(e) {
+        if (e.button !== 0 || !floatingShellEl) {
+            return;
+        }
+        const rect = floatingShellEl.getBoundingClientRect();
+        floatingDragState = {
+            startX: e.clientX,
+            startY: e.clientY,
+            left: rect.left,
+            top: rect.top,
+        };
+        floatingShellEl.classList.add("is-dragging");
+        e.preventDefault();
+    }
+
+    function onFloatingDrag(e) {
+        if (!floatingDragState || !floatingShellEl) {
+            return;
+        }
+        const next = clampFloatingPosition(
+            floatingDragState.left + (e.clientX - floatingDragState.startX),
+            floatingDragState.top + (e.clientY - floatingDragState.startY),
+        );
+        floatingShellEl.style.left = next.left + "px";
+        floatingShellEl.style.top = next.top + "px";
+        floatingShellEl.style.right = "auto";
+        floatingShellEl.style.bottom = "auto";
+    }
+
+    function endFloatingDrag() {
+        if (!floatingDragState || !floatingShellEl) {
+            return;
+        }
+        floatingDragState = null;
+        floatingShellEl.classList.remove("is-dragging");
+        saveFloatingPosition();
+    }
+
+    /**
+     * Make the Game Run shell a movable floating panel (drag via [data-drag-handle]).
+     * @param {HTMLElement|null} shellEl
+     */
+    function bindFloatingShell(shellEl) {
+        if (!shellEl || floatingBound) {
+            return;
+        }
+        floatingShellEl = shellEl;
+        floatingBound = true;
+        restoreFloatingPosition();
+
+        const handle = shellEl.querySelector("[data-drag-handle]");
+        if (handle) {
+            handle.addEventListener("mousedown", startFloatingDrag);
+        }
+        document.addEventListener("mousemove", onFloatingDrag);
+        document.addEventListener("mouseup", endFloatingDrag);
+        window.addEventListener("resize", function () {
+            if (!floatingShellEl || floatingShellEl.classList.contains("desktop-play-header-run--hidden")) {
+                return;
+            }
+            const rect = floatingShellEl.getBoundingClientRect();
+            const next = clampFloatingPosition(rect.left, rect.top);
+            floatingShellEl.style.left = next.left + "px";
+            floatingShellEl.style.top = next.top + "px";
+            floatingShellEl.style.right = "auto";
+            floatingShellEl.style.bottom = "auto";
+        });
+    }
+
     function mount(container, options) {
         options = options || {};
         onPlay = options.onPlay || null;
@@ -395,6 +513,7 @@
 
     global.DesktopGameRun = {
         mount: mount,
+        bindFloatingShell: bindFloatingShell,
         getOptions: getOptions,
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,

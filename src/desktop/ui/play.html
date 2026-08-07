@@ -63,10 +63,6 @@
             <span id="blackClockTimeText" class="desktop-play-header-time">00:00:00</span>
           </div>
         </div>
-
-        <div id="desktopPlayHeaderRun" class="desktop-play-header-run desktop-play-header-run--hidden" data-i18n="play.shell.startFromLoadedPosition" data-i18n-attr="aria-label" aria-hidden="true">
-          <div id="desktopPlayGameRun"></div>
-        </div>
       </header>
 
       <div class="desktop-play-content">
@@ -257,6 +253,20 @@
         </div>
       </footer>
     </div>
+  </div>
+  <div
+    id="desktopPlayHeaderRun"
+    class="desktop-play-header-run desktop-play-header-run--hidden"
+    role="dialog"
+    aria-labelledby="desktopPlayGameRunTitle"
+    data-i18n="play.shell.startFromLoadedPosition"
+    data-i18n-attr="aria-label"
+    aria-hidden="true"
+  >
+    <div class="desktop-play-header-run-chrome" data-drag-handle>
+      <h2 id="desktopPlayGameRunTitle" class="desktop-play-header-run-title" data-i18n="desktop.gameRun.panelTitle">Start game</h2>
+    </div>
+    <div id="desktopPlayGameRun"></div>
   </div>
   <div id="a11yBoardAnnounce" class="a11y-sr-only" aria-live="polite" aria-atomic="true"></div>
 </body>

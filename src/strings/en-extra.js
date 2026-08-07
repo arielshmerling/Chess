@@ -664,6 +664,7 @@
             "fullScreenUnavailable": "Full screen is not available in this browser."
         },
         "gameRun": {
+            "panelTitle": "Start game",
             "yourColor": "Your color",
             "engine": "Engine",
             "thinkTime": "Think time (seconds)",

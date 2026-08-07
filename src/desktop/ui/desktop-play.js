@@ -1255,6 +1255,9 @@
             onDepthChange: applySetupThinkingTime,
             onEngineChange: applySetupEngine,
         });
+        if (typeof GameRun.bindFloatingShell === "function") {
+            GameRun.bindFloatingShell($("desktopPlayHeaderRun"));
+        }
         gameRunPanelMounted = true;
         setGameRunPanelVisible(false);
     }
