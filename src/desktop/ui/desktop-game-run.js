@@ -12,13 +12,13 @@
     }
 
     const SVG_PLAY =
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"8 5 19 12 8 19 8 5\"/></svg>";
 
-    let panelRoot = null;
     let floatingShellEl = null;
     let floatingDragState = null;
     let floatingBound = false;
-    const FLOATING_POS_KEY = "shmerling.desktop.gameRunPanelPos";
+    const FLOATING_POS_KEY = "shmerling.desktop.gameRunPanelPos.v4";
+    let floatingUserMoved = false;
     let runTurn = "white";
     let runComputerIsWhite = false;
     let runThinkingTimeSeconds = 10;
@@ -286,35 +286,126 @@
                 FLOATING_POS_KEY,
                 JSON.stringify({ left: rect.left, top: rect.top }),
             );
+            floatingUserMoved = true;
         } catch {
             /* ignore quota / private mode */
         }
+    }
+
+    function defaultFloatingTop() {
+        const topbar = parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue("--desktop-topbar-height"),
+        );
+        const header = parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue("--desktop-play-header-height"),
+        );
+        const topbarPx = Number.isFinite(topbar) ? topbar : 51;
+        const headerPx = Number.isFinite(header) ? header : 64;
+        return topbarPx + headerPx + 12;
+    }
+
+    function readSavedFloatingPosition() {
+        try {
+            const raw = localStorage.getItem(FLOATING_POS_KEY);
+            if (!raw) {
+                return null;
+            }
+            const pos = JSON.parse(raw);
+            if (typeof pos.left === "number" && typeof pos.top === "number") {
+                return pos;
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    }
+
+    /**
+     * Snap so the Start-game panel's right edge meets the Games/Positions
+     * dock's left edge (panel sits just left of that column).
+     */
+    function placeDefaultBesideGamesPanel() {
+        if (!floatingShellEl) {
+            return;
+        }
+        const sidebar = document.getElementById("desktopPlaySidebarGames");
+        let dockLeft = window.innerWidth;
+        if (sidebar) {
+            const rect = sidebar.getBoundingClientRect();
+            if (rect.width > 8) {
+                dockLeft = rect.left;
+            } else {
+                const page = document.querySelector(".desktop-play-page") || document.documentElement;
+                const raw = getComputedStyle(page).getPropertyValue("--desktop-play-sidebar-width");
+                const sidebarW = parseFloat(raw);
+                dockLeft = window.innerWidth - (Number.isFinite(sidebarW) && sidebarW > 0 ? sidebarW : 220);
+            }
+        } else {
+            const page = document.querySelector(".desktop-play-page") || document.documentElement;
+            const raw = getComputedStyle(page).getPropertyValue("--desktop-play-sidebar-width");
+            const sidebarW = parseFloat(raw);
+            dockLeft = window.innerWidth - (Number.isFinite(sidebarW) && sidebarW > 0 ? sidebarW : 220);
+        }
+        const width = Math.max(floatingShellEl.offsetWidth || 0, floatingShellEl.scrollWidth || 0, 216);
+        const next = clampFloatingPosition(dockLeft - width, defaultFloatingTop());
+        floatingShellEl.style.left = next.left + "px";
+        floatingShellEl.style.top = next.top + "px";
+        floatingShellEl.style.right = "auto";
+        floatingShellEl.style.bottom = "auto";
+    }
+
+    function applyFloatingPosition(pos) {
+        if (!floatingShellEl || !pos) {
+            return;
+        }
+        const next = clampFloatingPosition(pos.left, pos.top);
+        floatingShellEl.style.left = next.left + "px";
+        floatingShellEl.style.top = next.top + "px";
+        floatingShellEl.style.right = "auto";
+        floatingShellEl.style.bottom = "auto";
     }
 
     function restoreFloatingPosition() {
         if (!floatingShellEl) {
             return;
         }
-        try {
-            const raw = localStorage.getItem(FLOATING_POS_KEY);
-            if (!raw) {
+        const saved = readSavedFloatingPosition();
+        if (saved) {
+            floatingUserMoved = true;
+            applyFloatingPosition(saved);
+            return;
+        }
+        floatingUserMoved = false;
+        /* Defer until visible so width/sidebar rects are accurate. */
+    }
+
+    /**
+     * After the panel is shown, snap to the Games dock unless the user dragged it.
+     */
+    function ensureFloatingPlacement() {
+        if (!floatingShellEl || floatingShellEl.classList.contains("desktop-play-header-run--hidden")) {
+            return;
+        }
+        const place = function () {
+            if (floatingUserMoved || readSavedFloatingPosition()) {
+                const saved = readSavedFloatingPosition();
+                if (saved) {
+                    applyFloatingPosition(saved);
+                }
                 return;
             }
-            const pos = JSON.parse(raw);
-            if (typeof pos.left === "number" && typeof pos.top === "number") {
-                floatingShellEl.style.left = pos.left + "px";
-                floatingShellEl.style.top = pos.top + "px";
-                floatingShellEl.style.right = "auto";
-                floatingShellEl.style.bottom = "auto";
-            }
-        } catch {
-            /* ignore */
-        }
+            placeDefaultBesideGamesPanel();
+        };
+        requestAnimationFrame(function () {
+            requestAnimationFrame(place);
+        });
     }
 
     function clampFloatingPosition(left, top) {
-        const maxL = Math.max(8, window.innerWidth - floatingShellEl.offsetWidth - 8);
-        const maxT = Math.max(8, window.innerHeight - floatingShellEl.offsetHeight - 8);
+        const width = floatingShellEl.offsetWidth || 216;
+        const height = floatingShellEl.offsetHeight || 200;
+        const maxL = Math.max(8, window.innerWidth - width - 8);
+        const maxT = Math.max(8, window.innerHeight - height - 8);
         return {
             left: Math.max(8, Math.min(maxL, left)),
             top: Math.max(8, Math.min(maxT, top)),
@@ -381,6 +472,10 @@
             if (!floatingShellEl || floatingShellEl.classList.contains("desktop-play-header-run--hidden")) {
                 return;
             }
+            if (!floatingUserMoved && !readSavedFloatingPosition()) {
+                placeDefaultBesideGamesPanel();
+                return;
+            }
             const rect = floatingShellEl.getBoundingClientRect();
             const next = clampFloatingPosition(rect.left, rect.top);
             floatingShellEl.style.left = next.left + "px";
@@ -409,7 +504,6 @@
         engineSelect = null;
 
         container.innerHTML = "";
-        panelRoot = container;
         container.className = "desktop-play-game-run";
 
         const controls = document.createElement("div");
@@ -514,6 +608,7 @@
     global.DesktopGameRun = {
         mount: mount,
         bindFloatingShell: bindFloatingShell,
+        ensureFloatingPlacement: ensureFloatingPlacement,
         getOptions: getOptions,
         syncOptions: syncOptions,
         setTurnSelection: setTurnSelection,

@@ -251,8 +251,11 @@ body.desktop-play-actions--compact .desktop-play-actions-spacer {
 .desktop-play-header-run {
   position: fixed;
   top: calc(var(--desktop-topbar-height, 51px) + var(--desktop-play-header-height, 64px) + 0.75rem);
-  right: 1.25rem;
-  z-index: 950;
+  /* Default: right edge meets left edge of Games / Positions dock */
+  right: var(--desktop-play-sidebar-width, 220px);
+  left: auto;
+  /* Above docks; below context menu (1500) and dialogs (2000) */
+  z-index: 1400;
   min-width: 13.5rem;
   max-width: min(18rem, calc(100vw - 1.5rem));
   display: flex;
@@ -575,14 +578,6 @@ html[dir="rtl"] .desktop-play-workspace {
 
 .desktop-play-sidebar--right {
   border-left: 1px solid var(--desktop-play-dock-border);
-}
-
-/*
- * Expanded Games dock must stack above the floating Start-game panel
- * (fixed z-index 950); otherwise Delete/load clicks are intercepted.
- */
-.desktop-play-sidebar--right:not(.desktop-play-sidebar--collapsed) {
-  z-index: 1000;
 }
 
 .desktop-play-sidebar--collapsed {

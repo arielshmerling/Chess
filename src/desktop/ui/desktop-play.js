@@ -1214,6 +1214,9 @@
 
     function setGameRunPanelVisible(visible) {
         DockModeChrome.setGameRunVisible($("desktopPlayHeaderRun"), visible);
+        if (visible && GameRun && typeof GameRun.ensureFloatingPlacement === "function") {
+            GameRun.ensureFloatingPlacement();
+        }
     }
 
     function updateGameRunPanelVisibility() {

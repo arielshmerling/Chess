@@ -8,11 +8,11 @@
     "king": 10000
   },
   "specialEvaluations": {
-    "doublePawnPenalty": -0.25,
+    "doublePawnPenalty": 0.25,
     "pawnAdvancedBonus": 0.2,
-    "firstKingMovePenalty": -0.1,
-    "firstRookMovePenalty": -0.1,
-    "pawnsChainCountPenalty": -0.05,
+    "firstKingMovePenalty": 0.1,
+    "firstRookMovePenalty": 0.1,
+    "pawnsChainCountPenalty": 0.05,
     "drawMaterialDiffThreshold": 3,
     "drawScoreWhenAhead": -5,
     "drawScoreWhenBehind": 5,

@@ -27,6 +27,7 @@ const brainFast = [
     "test/brain42.adaptiveDepth.test.js",
     "test/brain42.gamePhase.test.js",
     "test/brain43.firstMovePenalty.search.test.js",
+    "test/brain43.fallbackMove.test.js",
     "test/brainConfigService.test.js",
     "test/brainHttpApi.test.js",
     "test/desktopBrainService.test.js",

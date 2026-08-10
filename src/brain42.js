@@ -1489,6 +1489,8 @@ exports.__testHooks = {
     setBrain42SearchContext,
     evaluateSearchMove,
     collectLegalMoves,
+    getFirstLegalMove,
+    orderMovesCapturesFirst,
     getFirstKingRookMovePenaltyDelta,
 };
 
@@ -1527,19 +1529,54 @@ function collectLegalMoves(game) {
     return moves;
 }
 
+/**
+ * Emergency move when search times out or fails.
+ * Prefer checks, then highest-value captures, then {@link staticMoveBonus} — not raw board-scan order
+ * (which often returns a useless corner rook move like a8b8).
+ *
+ * Do not cache `game.GameState` across {@link withAppliedMove}: `undo()` replaces the state object,
+ * so a cached reference can point at a mid-move snapshot (false "captures" of own pieces).
+ */
 function getFirstLegalMove(game) {
     const moves = collectLegalMoves(game);
-    return moves.length > 0 ? moves[0] : null;
+    if (moves.length === 0) {
+        return null;
+    }
+    if (moves.length === 1) {
+        return moves[0];
+    }
+    const turn = game.Turn;
+    let best = moves[0];
+    let bestScore = -Infinity;
+    for (let i = 0; i < moves.length; i++) {
+        const move = moves[i];
+        const state = game.GameState;
+        const capture = state.board[move.target.row]?.[move.target.col];
+        const captureValue = (capture && capture.color !== turn)
+            ? pieceValueOnSquare(game, capture, move.target.col)
+            : 0;
+        const givesCheck = withAppliedMove(game, move, () => game.Check);
+        const bonus = staticMoveBonus(game, move);
+        const score = (givesCheck ? 1e9 : 0) + captureValue * 1e6 + bonus;
+        if (score > bestScore) {
+            bestScore = score;
+            best = move;
+        }
+    }
+    return best;
 }
 
 function orderMovesCapturesFirst(game, moves) {
-    const state = game.GameState;
-    if (!state?.board?.length || moves.length <= 1) {
+    if (!game.GameState?.board?.length || moves.length <= 1) {
         return moves.slice();
     }
+    const turn = game.Turn;
     const decorated = moves.map((move) => {
+        const state = game.GameState;
         const capture = state.board[move.target.row]?.[move.target.col];
-        const captureValue = capture ? pieceValueOnSquare(game, capture, move.target.col) : 0;
+        const captureValue = (capture && capture.color !== turn)
+            ? pieceValueOnSquare(game, capture, move.target.col)
+            : 0;
         const givesCheck = withAppliedMove(game, move, () => game.Check);
         return { move, captureValue, givesCheck };
     });
