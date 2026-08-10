@@ -15,6 +15,9 @@ for (const [key, value] of Object.entries(process.env)) {
 }
 webServerEnv.PORT = E2E_PORT;
 webServerEnv.DATABASE_URL = getWebE2EDatabaseUrl();
+/* Theme API must not rewrite the repo catalog during Playwright runs. */
+webServerEnv.SHMERLING_SYNC_CUSTOM_THEMES = "";
+process.env.SHMERLING_SYNC_CUSTOM_THEMES = "";
 
 /**
  * Web UI smoke tests. Starts a dedicated server on E2E_PORT (default 5100)
@@ -29,6 +32,7 @@ module.exports = defineConfig({
     workers: 1,
     reporter: [["list"]],
     globalSetup: require.resolve("./e2e/global-setup.js"),
+    globalTeardown: require.resolve("./e2e/global-teardown.js"),
     timeout: 60_000,
     expect: {
         timeout: 15_000,

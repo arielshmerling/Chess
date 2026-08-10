@@ -13,11 +13,27 @@ const PARTNER_PASSWORD = process.env.E2E_PARTNER_PASSWORD || "E2eTestPass!123";
  * @param {string} password
  */
 async function submitCredentials(page, username, password) {
-    await page.locator("#username").fill(username);
-    await page.locator("#loginNext").click();
-    await expect(page.locator("#password")).toBeVisible();
-    await page.locator("#password").fill(password);
-    await page.locator("#loginNext").click();
+    const screen = page.locator("#loginScreen");
+    const usernameInput = page.locator("#username");
+    const passwordInput = page.locator("#password");
+    const nextButton = page.locator("#loginNext");
+
+    await expect(screen).toBeVisible({ timeout: 15_000 });
+    await expect(screen).toHaveAttribute("data-step", "username", { timeout: 10_000 });
+    await expect(usernameInput).toBeVisible();
+    await usernameInput.fill(username);
+    await expect(usernameInput).toHaveValue(username);
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+
+    await expect(screen).toHaveAttribute("data-step", "password", { timeout: 10_000 });
+    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toBeEditable();
+    await passwordInput.fill("");
+    await passwordInput.fill(password);
+    await expect(passwordInput).toHaveValue(password);
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
 }
 
 /**
@@ -28,8 +44,11 @@ async function loginAs(page, creds = {}) {
     const username = creds.username || MEMBER_USERNAME;
     const password = creds.password || MEMBER_PASSWORD;
     await page.goto("/login");
+    await expect(page.locator("#loginScreen")).toHaveAttribute("data-step", "username", {
+        timeout: 15_000,
+    });
     await submitCredentials(page, username, password);
-    await expect(page).toHaveURL(/\/home/i);
+    await expect(page).toHaveURL(/\/home/i, { timeout: 30_000 });
 }
 
 /** @param {import("@playwright/test").Page} page */

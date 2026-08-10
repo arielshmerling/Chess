@@ -128,6 +128,41 @@ function manualSavedGames(page) {
 }
 
 /**
+ * Wait until Save is usable (engine idle), then save and assert a new manual entry.
+ * Retries because onSaveGame no-ops silently while engineThinking/animating.
+ * @param {import("@playwright/test").Page} page
+ * @param {import("@playwright/test").Locator} manuals
+ * @param {number} expectedCount
+ */
+async function saveManualGameExpectCount(page, manuals, expectedCount) {
+    const saveBtn = page.locator("#saveBtn");
+    const status = page.locator("#desktopPlayStatusBar");
+
+    await expect(saveBtn).toBeEnabled({ timeout: 30_000 });
+    await expect(page.locator("#desktopPlayHeaderWhite")).toHaveClass(
+        /desktop-play-header-clock--active/,
+        { timeout: 60_000 },
+    );
+    await expect(status).not.toHaveText(/Engine thinking/i, { timeout: 60_000 });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        await expect(saveBtn).toBeEnabled({ timeout: 10_000 });
+        await saveBtn.click();
+        try {
+            await expect(manuals).toHaveCount(expectedCount, { timeout: 4_000 });
+            return;
+        } catch {
+            await expect(status).not.toHaveText(/Engine thinking/i, { timeout: 30_000 });
+            await new Promise(function (resolve) {
+                setTimeout(resolve, 400);
+            });
+        }
+    }
+
+    await expect(manuals).toHaveCount(expectedCount, { timeout: 15_000 });
+}
+
+/**
  * Save mid-game, resign to unlock the Games dock, then load the manual save into Review.
  * @param {import("@playwright/test").Page} page
  * @param {{ expandDetails?: boolean }} [opts]
@@ -139,8 +174,7 @@ async function saveResignAndLoadReview(page, opts = {}) {
     const beforeManual = await manuals.count();
 
     await playE4AndWaitForReply(page);
-    await page.locator("#saveBtn").click();
-    await expect(manuals).toHaveCount(beforeManual + 1, { timeout: 15_000 });
+    await saveManualGameExpectCount(page, manuals, beforeManual + 1);
 
     await resignToUnlockGamesPanel(page);
     await openGamesSidebar(page);
@@ -168,5 +202,6 @@ module.exports = {
     resignToUnlockGamesPanel,
     openGamesSidebar,
     manualSavedGames,
+    saveManualGameExpectCount,
     saveResignAndLoadReview,
 };

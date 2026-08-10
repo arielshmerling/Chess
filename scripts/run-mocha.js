@@ -19,7 +19,13 @@ const extra = process.argv.slice(3).filter(function (arg) {
 });
 
 const mochaBin = path.join(root, "node_modules", "mocha", "bin", "mocha.js");
-const args = ["--exit", "--require", "./test/_teardownWorkers.js"];
+const args = [
+    "--exit",
+    "--require",
+    "./test/_teardownWorkers.js",
+    "--require",
+    "./test/_guardBundledThemes.js",
+];
 
 function pushIgnore(files) {
     files.forEach(function (file) {

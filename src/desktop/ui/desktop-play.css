@@ -577,6 +577,14 @@ html[dir="rtl"] .desktop-play-workspace {
   border-left: 1px solid var(--desktop-play-dock-border);
 }
 
+/*
+ * Expanded Games dock must stack above the floating Start-game panel
+ * (fixed z-index 950); otherwise Delete/load clicks are intercepted.
+ */
+.desktop-play-sidebar--right:not(.desktop-play-sidebar--collapsed) {
+  z-index: 1000;
+}
+
 .desktop-play-sidebar--collapsed {
   width: 0;
   min-width: 0;

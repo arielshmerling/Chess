@@ -3,6 +3,11 @@
  */
 require("dotenv").config();
 
+const { disableRepoSync } = require("./bundledThemesGuard");
+
+/* Never let web API tests rewrite data/desktop-custom-themes.json from .env. */
+disableRepoSync();
+
 function loadWebApp() {
     if (process.env.SHMERLING_MODE === "desktop") {
         throw new Error(
@@ -11,6 +16,7 @@ function loadWebApp() {
         );
     }
     delete process.env.SHMERLING_MODE;
+    disableRepoSync();
     return require("../../src/app");
 }
 

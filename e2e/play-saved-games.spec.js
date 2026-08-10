@@ -7,6 +7,7 @@ const {
     resignToUnlockGamesPanel,
     openGamesSidebar,
     manualSavedGames,
+    saveManualGameExpectCount,
 } = require("./helpers/playPartner");
 
 /**
@@ -24,8 +25,7 @@ test.describe("play saved games sidebar", () => {
         const beforeManual = await manuals.count();
 
         await playE4AndWaitForReply(page);
-        await page.locator("#saveBtn").click();
-        await expect(manuals).toHaveCount(beforeManual + 1, { timeout: 15_000 });
+        await saveManualGameExpectCount(page, manuals, beforeManual + 1);
 
         await resignToUnlockGamesPanel(page);
         await openGamesSidebar(page);
