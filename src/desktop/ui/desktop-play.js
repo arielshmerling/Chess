@@ -3251,26 +3251,23 @@
         }
         if (window.DesktopDockPanels && DesktopDockPanels.setSidebarCollapsed) {
             DesktopDockPanels.setSidebarCollapsed(sidebar, false, { persist: false });
-            return;
+        } else {
+            sidebar.classList.remove("desktop-play-sidebar--collapsed");
+            const expandTab = sidebar.querySelector(".desktop-play-sidebar-tab--expand");
+            if (expandTab) {
+                expandTab.hidden = true;
+            }
+            sidebar.querySelectorAll(".desktop-play-dock-toggle--collapse").forEach(function (btn) {
+                btn.hidden = false;
+            });
+            if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
+                window.DesktopBoardScale.refresh();
+            }
         }
-        sidebar.classList.remove("desktop-play-sidebar--collapsed");
-        const expandTab = sidebar.querySelector(".desktop-play-sidebar-tab--expand");
-        if (expandTab) {
-            expandTab.hidden = true;
-        }
-        sidebar.querySelectorAll(".desktop-play-dock-toggle--collapse").forEach(function (btn) {
-            btn.hidden = false;
-        });
-        if (window.DesktopBoardScale && typeof window.DesktopBoardScale.refresh === "function") {
-            window.DesktopBoardScale.refresh();
+        if (GameRun && typeof GameRun.ensureFloatingPlacement === "function") {
+            GameRun.ensureFloatingPlacement();
         }
     }
-
-    /**
-     * Right dock: Games/Positions for Admin/Partner (minimized+locked while a
-     * non-online game is in progress); Chat during online play; hidden for Members
-     * and watchers when not showing chat.
-     */
     let rightDockMode = null;
     let rightDockExpandLocked = false;
 

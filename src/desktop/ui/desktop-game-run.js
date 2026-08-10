@@ -17,7 +17,7 @@
     let floatingShellEl = null;
     let floatingDragState = null;
     let floatingBound = false;
-    const FLOATING_POS_KEY = "shmerling.desktop.gameRunPanelPos.v4";
+    const FLOATING_POS_KEY = "shmerling.desktop.gameRunPanelPos.v5";
     let floatingUserMoved = false;
     let runTurn = "white";
     let runComputerIsWhite = false;
@@ -321,36 +321,39 @@
     }
 
     /**
+     * Left edge of the Games/Positions dock in viewport coordinates.
+     * Falls back to the reserved sidebar column when the dock is collapsed.
+     */
+    function gamesDockLeft() {
+        const sidebar = document.getElementById("desktopPlaySidebarGames");
+        if (sidebar) {
+            const rect = sidebar.getBoundingClientRect();
+            if (rect.width > 8) {
+                return rect.left;
+            }
+        }
+        const page = document.querySelector(".desktop-play-page") || document.documentElement;
+        const raw = getComputedStyle(page).getPropertyValue("--desktop-play-sidebar-width");
+        const sidebarW = parseFloat(raw);
+        const w = Number.isFinite(sidebarW) && sidebarW > 0 ? sidebarW : 220;
+        return Math.max(0, window.innerWidth - w);
+    }
+
+    /**
      * Snap so the Start-game panel's right edge meets the Games/Positions
      * dock's left edge (panel sits just left of that column).
+     * Uses `right` (not `left`) so width measurement cannot push the panel
+     * into the games list.
      */
     function placeDefaultBesideGamesPanel() {
         if (!floatingShellEl) {
             return;
         }
-        const sidebar = document.getElementById("desktopPlaySidebarGames");
-        let dockLeft = window.innerWidth;
-        if (sidebar) {
-            const rect = sidebar.getBoundingClientRect();
-            if (rect.width > 8) {
-                dockLeft = rect.left;
-            } else {
-                const page = document.querySelector(".desktop-play-page") || document.documentElement;
-                const raw = getComputedStyle(page).getPropertyValue("--desktop-play-sidebar-width");
-                const sidebarW = parseFloat(raw);
-                dockLeft = window.innerWidth - (Number.isFinite(sidebarW) && sidebarW > 0 ? sidebarW : 220);
-            }
-        } else {
-            const page = document.querySelector(".desktop-play-page") || document.documentElement;
-            const raw = getComputedStyle(page).getPropertyValue("--desktop-play-sidebar-width");
-            const sidebarW = parseFloat(raw);
-            dockLeft = window.innerWidth - (Number.isFinite(sidebarW) && sidebarW > 0 ? sidebarW : 220);
-        }
-        const width = Math.max(floatingShellEl.offsetWidth || 0, floatingShellEl.scrollWidth || 0, 216);
-        const next = clampFloatingPosition(dockLeft - width, defaultFloatingTop());
-        floatingShellEl.style.left = next.left + "px";
-        floatingShellEl.style.top = next.top + "px";
-        floatingShellEl.style.right = "auto";
+        const rightPx = Math.max(0, Math.round(window.innerWidth - gamesDockLeft()));
+        const top = clampFloatingPosition(8, defaultFloatingTop()).top;
+        floatingShellEl.style.left = "auto";
+        floatingShellEl.style.right = rightPx + "px";
+        floatingShellEl.style.top = top + "px";
         floatingShellEl.style.bottom = "auto";
     }
 
