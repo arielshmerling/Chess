@@ -1,5 +1,6 @@
 
 const { isAdminSession } = require("./modules/user/roles");
+const { User } = require("./modules/user/model");
 
 /** JSON / data routes that are not under /api but must not become login returnTo. */
 const DATA_PATHS = new Set([
@@ -43,6 +44,48 @@ function isNonNavigationalRequest(req) {
     return false;
 }
 
+function clearSessionAuth(req) {
+    if (!req || !req.session) {
+        return;
+    }
+    req.session.user_id = null;
+    req.session.user_name = null;
+    req.session.admin = null;
+    req.session.userType = null;
+    req.session.credentialsVersion = null;
+}
+
+/**
+ * Reject sessions minted before a password change/reset.
+ * @returns {Promise<boolean>} true when the session is still valid
+ */
+async function sessionCredentialsStillValid(req) {
+    if (!req || !req.session || !req.session.user_id) {
+        return false;
+    }
+    try {
+        const user = await User.findById(req.session.user_id)
+            .select("credentialsVersion")
+            .lean();
+        if (!user) {
+            clearSessionAuth(req);
+            return false;
+        }
+        const expected = typeof user.credentialsVersion === "number" ? user.credentialsVersion : 0;
+        const actual = typeof req.session.credentialsVersion === "number"
+            ? req.session.credentialsVersion
+            : 0;
+        if (expected !== actual) {
+            clearSessionAuth(req);
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error("sessionCredentialsStillValid:", err && err.message ? err.message : err);
+        return true;
+    }
+}
+
 exports.normalizeReturnTo = (value) => {
     if (typeof value !== "string" ||
         value.charAt(0) !== "/" ||
@@ -61,6 +104,14 @@ exports.requireLogin = async (req, res, next) => {
         }
         req.session.returnTo = req.originalUrl;
         console.log("The user is not authenticated. Redirecting to login");
+        return res.redirect("/login");
+    }
+    const stillValid = await sessionCredentialsStillValid(req);
+    if (!stillValid) {
+        if (isNonNavigationalRequest(req)) {
+            return res.status(401).json({ ok: false });
+        }
+        req.session.returnTo = req.originalUrl;
         return res.redirect("/login");
     }
     return next();

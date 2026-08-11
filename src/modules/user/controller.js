@@ -4,6 +4,7 @@ const { version: appVersion } = require("../../../desktop/package.json");
 const { normalizeReturnTo } = require("../../utils");
 const catchAsync = require("../../utils/catchAsync");
 const ExpressError = require("../../utils/ExpressError");
+const smtpMail = require("../../utils/smtpMail");
 const userService = require("./service");
 const gamesManagerService = require("../gamesManager/service");
 
@@ -327,6 +328,9 @@ async function startUserSession(req, foundUser) {
         foundUser.userType = "Member";
     }
     req.session.userType = foundUser.userType;
+    req.session.credentialsVersion = typeof foundUser.credentialsVersion === "number"
+        ? foundUser.credentialsVersion
+        : 0;
     foundUser.lastLogin = Date.now();
     await foundUser.save();
 }
@@ -669,10 +673,49 @@ exports.deleteAccount = catchAsync(async (req, res) => {
 
 exports.changeAccountPassword = catchAsync(async (req, res) => {
     const body = req.body || {};
-    await userService.changeAccountPassword(req.session.user_id, {
+    const result = await userService.changeAccountPassword(req.session.user_id, {
         currentPassword: body.currentPassword,
         newPassword: body.newPassword,
         confirmPassword: body.confirmPassword,
     });
+    if (result && typeof result.credentialsVersion === "number") {
+        req.session.credentialsVersion = result.credentialsVersion;
+    }
     res.json({ ok: true });
+});
+
+exports.showForgotPasswordPage = (req, res) => {
+    res.render("forgot-password", {
+        pageTitle: t("auth.forgotPasswordTitle"),
+        pageLead: t("auth.forgotPasswordLead"),
+    });
+};
+
+exports.requestPasswordReset = catchAsync(async (req, res) => {
+    const body = req.body || {};
+    const email = body.email != null ? String(body.email) : "";
+    const baseUrl = smtpMail.resolvePublicBaseUrl(req);
+    const result = await userService.requestPasswordReset(email, { baseUrl });
+    res.json(result);
+});
+
+exports.showResetPasswordPage = (req, res) => {
+    const token = req.query && req.query.token != null ? String(req.query.token) : "";
+    res.render("reset-password", {
+        pageTitle: t("auth.resetPasswordTitle"),
+        pageLead: t("auth.resetPasswordLead"),
+        resetToken: token,
+        tokenMissing: !token,
+    });
+};
+
+exports.completePasswordReset = catchAsync(async (req, res) => {
+    const body = req.body || {};
+    await userService.completePasswordReset({
+        token: body.token,
+        email: body.email,
+        newPassword: body.newPassword,
+        confirmPassword: body.confirmPassword,
+    });
+    res.json({ ok: true, redirectUrl: "/login" });
 });

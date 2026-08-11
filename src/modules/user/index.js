@@ -12,6 +12,11 @@ router.route("/login")
 
 router.post("/api/login", storeReturnTo, userController.loginJson);
 
+router.get("/forgot-password", userController.showForgotPasswordPage);
+router.post("/api/forgot-password", userController.requestPasswordReset);
+router.get("/reset-password", userController.showResetPasswordPage);
+router.post("/api/reset-password", userController.completePasswordReset);
+
 router.get("/logout", userController.logout);
 router.get("/validateUsername", userController.validateUsername);
 router.get("/privacy", userController.showPrivacyPage);

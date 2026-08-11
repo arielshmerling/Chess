@@ -1,12 +1,49 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const { User, Bookmark, USER_TYPES, resolveUserType } = require("./model");
 const bcrypt = require("bcryptjs");
 const ExpressError = require("../../utils/ExpressError");
 const { notifyAdminPrivilegeChange } = require("../../utils/adminPrivilegeNotify");
+const smtpMail = require("../../utils/smtpMail");
 const gamesManagerService = require("../gamesManager/service");
 const { toClientBookmark } = require("../../play/bookmarkShape");
 
 const EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/** Password-reset token lifetime (30 minutes). */
+const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
+
+/** Max accounts that may share one email and still receive recovery mail. */
+const PASSWORD_RESET_MAX_ACCOUNTS_PER_EMAIL = 5;
+
+/** Injected for tests; production uses smtpMail.sendMail. */
+let sendMailImpl = smtpMail.sendMail;
+
+exports._setPasswordResetSendMailForTests = (fn) => {
+    sendMailImpl = typeof fn === "function" ? fn : smtpMail.sendMail;
+};
+
+function hashResetToken(rawToken) {
+    return crypto.createHash("sha256").update(String(rawToken), "utf8").digest("hex");
+}
+
+function escapeRegex(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeEmail(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function bumpCredentialsVersion(user) {
+    const current = typeof user.credentialsVersion === "number" ? user.credentialsVersion : 0;
+    user.credentialsVersion = current + 1;
+}
+
+function clearPasswordResetFields(user) {
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpires = null;
+}
 
 const PLAYER_LEVELS = ["Rookie", "Skilled", "Elite", "Grand Master"];
 
@@ -140,6 +177,8 @@ exports.updateUserByAdmin = async (userId, body, options = {}) => {
             throw new ExpressError("Password must be between 4 and 30 characters", 400);
         }
         user.password = await bcrypt.hash(plain, 12);
+        clearPasswordResetFields(user);
+        bumpCredentialsVersion(user);
     }
 
     await user.save();
@@ -599,6 +638,142 @@ exports.changeAccountPassword = async (userId, opts) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 12);
+    clearPasswordResetFields(user);
+    bumpCredentialsVersion(user);
+    await user.save();
+    return { ok: true, credentialsVersion: user.credentialsVersion };
+};
+
+/**
+ * Request a password-reset email. Always returns the same shape to avoid enumeration.
+ * Sends mail when SMTP is configured and one or more accounts match the email
+ * (each account gets its own single-use link; the email names the username).
+ * @param {string} email
+ * @param {{ baseUrl: string }} opts
+ */
+exports.requestPasswordReset = async (email, opts) => {
+    const generic = {
+        ok: true,
+        message: "If an account exists for that email, a recovery link has been sent.",
+    };
+    const normalized = normalizeEmail(email);
+    const baseUrl = opts && opts.baseUrl ? String(opts.baseUrl).replace(/\/+$/, "") : "";
+
+    if (!normalized || !EMAIL_RE.test(normalized)) {
+        return generic;
+    }
+    if (!baseUrl) {
+        console.warn("password reset skipped: could not resolve public base URL");
+        return generic;
+    }
+
+    const matches = await User.find({
+        email: { $regex: "^" + escapeRegex(normalized) + "$", $options: "i" },
+    }).limit(PASSWORD_RESET_MAX_ACCOUNTS_PER_EMAIL + 1);
+
+    if (matches.length === 0) {
+        return generic;
+    }
+    if (matches.length > PASSWORD_RESET_MAX_ACCOUNTS_PER_EMAIL) {
+        console.warn(
+            "password reset skipped: too many accounts share one email (cap "
+                + PASSWORD_RESET_MAX_ACCOUNTS_PER_EMAIL + ")",
+        );
+        return generic;
+    }
+
+    const canSend = sendMailImpl !== smtpMail.sendMail || smtpMail.isSmtpConfigured();
+    if (!canSend) {
+        console.warn("password reset requested but SMTP is not configured; email not sent");
+        return generic;
+    }
+
+    for (let i = 0; i < matches.length; i += 1) {
+        const user = matches[i];
+        const rawToken = crypto.randomBytes(32).toString("base64url");
+        user.passwordResetTokenHash = hashResetToken(rawToken);
+        user.passwordResetExpires = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+        try {
+            await user.save();
+        } catch (err) {
+            console.error(
+                "password reset token save failed:",
+                err && err.message ? err.message : err,
+            );
+            continue;
+        }
+
+        const resetUrl = baseUrl + "/reset-password?token=" + encodeURIComponent(rawToken);
+        const text = [
+            "You requested a password reset for your Shmerling Chess account.",
+            "",
+            "Username: " + user.username,
+            "",
+            "Open this link to choose a new password (expires in 30 minutes):",
+            resetUrl,
+            "",
+            "If you did not request this, you can ignore this email. Your password will stay the same.",
+        ].join("\n");
+
+        try {
+            await sendMailImpl({
+                to: user.email,
+                subject: "Reset your Shmerling Chess password (" + user.username + ")",
+                text,
+            });
+        } catch (err) {
+            console.error(
+                "password reset email failed:",
+                err && err.message ? err.message : err,
+            );
+            clearPasswordResetFields(user);
+            await user.save().catch(function () { /* ignore */ });
+        }
+    }
+
+    return generic;
+};
+
+/**
+ * Complete password reset using emailed token + matching email + new password.
+ * @param {{ token: string, email: string, newPassword: string, confirmPassword: string }} opts
+ */
+exports.completePasswordReset = async (opts) => {
+    const token = opts && opts.token != null ? String(opts.token).trim() : "";
+    const email = normalizeEmail(opts && opts.email);
+    const newPassword = opts && opts.newPassword != null ? String(opts.newPassword) : "";
+    const confirmPassword = opts && opts.confirmPassword != null ? String(opts.confirmPassword) : "";
+
+    if (!token || !email || !newPassword || !confirmPassword) {
+        throw new ExpressError("Email, new password, confirmation, and recovery token are required", 400);
+    }
+    if (!EMAIL_RE.test(email)) {
+        throw new ExpressError("Enter a valid email address", 400);
+    }
+    if (newPassword !== confirmPassword) {
+        throw new ExpressError("New password and confirmation do not match", 400);
+    }
+    if (newPassword.length < 4 || newPassword.length > 30) {
+        throw new ExpressError("Password must be between 4 and 30 characters", 400);
+    }
+
+    const tokenHash = hashResetToken(token);
+    const user = await User.findOne({
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpires: { $gt: new Date() },
+    });
+    if (!user) {
+        throw new ExpressError("This recovery link is invalid or has expired", 400);
+    }
+
+    const userEmail = normalizeEmail(user.email);
+    if (userEmail !== email) {
+        throw new ExpressError("Email does not match this recovery link", 400);
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    clearPasswordResetFields(user);
+    bumpCredentialsVersion(user);
     await user.save();
     return { ok: true };
 };

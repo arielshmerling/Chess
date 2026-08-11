@@ -38,6 +38,9 @@
     </div>
 
     <p class="login-error" id="loginError" role="alert"><%= errorMessage %></p>
+    <p class="login-forgot" id="loginForgot" hidden>
+      <a href="/forgot-password" id="loginForgotLink"><%= t('auth.forgotPassword') %></a>
+    </p>
   </form>
 
   <p class="login-version"><%= appVersion %></p>

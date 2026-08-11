@@ -166,6 +166,115 @@ html[dir="rtl"] .login-next-icon {
     display: none;
 }
 
+.login-forgot {
+    margin: 0;
+    text-align: center;
+}
+
+.login-forgot a {
+    color: var(--login-muted);
+    font-size: 0.95rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.login-forgot a:hover,
+.login-forgot a:focus-visible {
+    color: var(--login-text);
+    outline: none;
+}
+
+.login-recover-form {
+    gap: 1.1rem;
+}
+
+.login-recover-lead {
+    margin: 0;
+    max-width: 28rem;
+    color: var(--login-muted);
+    font-size: 1rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.login-recover-label {
+    align-self: stretch;
+    margin: 0.35rem 0 0;
+    color: var(--login-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-align: left;
+}
+
+html[dir="rtl"] .login-recover-label {
+    text-align: right;
+}
+
+.login-screen--recover .login-row {
+    width: 100%;
+}
+
+.login-screen--recover input.login-input {
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.login-recover-status {
+    margin: 0;
+    min-height: 1.2em;
+    color: #8fbf9a;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.login-recover-actions {
+    margin: 0.75rem 0 0;
+}
+
+.login-recover-btn {
+    min-height: 2.75rem;
+    padding: 0.65rem 1.4rem;
+    border: 1px solid var(--login-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--login-text);
+    font: inherit;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.login-recover-btn:hover,
+.login-recover-btn:focus-visible {
+    border-color: var(--login-accent);
+    outline: none;
+}
+
+.login-recover-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.login-recover-back {
+    margin: 0.35rem 0 0;
+    color: var(--login-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.login-recover-back a {
+    color: var(--login-muted);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.login-recover-back a:hover,
+.login-recover-back a:focus-visible {
+    color: var(--login-text);
+    outline: none;
+}
+
 .login-version {
     position: absolute;
     bottom: 1rem;

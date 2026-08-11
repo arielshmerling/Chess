@@ -84,6 +84,28 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, "email cannot be blank"],
     },
+
+    /** SHA-256 hex of the one-time password-reset token (plaintext never stored). */
+    passwordResetTokenHash: {
+        type: String,
+        default: null,
+    },
+
+    /** When the current password-reset token expires. */
+    passwordResetExpires: {
+        type: Date,
+        default: null,
+    },
+
+    /**
+     * Bumped on password change/reset. Session stores a copy so older
+     * cookies stop working on authenticated HTTP routes.
+     */
+    credentialsVersion: {
+        type: Number,
+        default: 0,
+    },
+
     level: {
         type: String,
         required: [true, "level cannot be blank"],

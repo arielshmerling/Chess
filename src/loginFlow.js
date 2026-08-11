@@ -1,12 +1,14 @@
 /**
  * Two-step login screen: "Who are you?" → password → authenticate.
  * Without JavaScript the form posts to /login with both fields as before.
+ * After three failed password attempts, show a Forgot password link.
  */
 (function () {
     "use strict";
 
     var SORRY_MS = 3000;
     var PROMPT_SWAP_MS = 220;
+    var FAILED_ATTEMPTS_BEFORE_FORGOT = 3;
 
     function t(key, params) {
         if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
@@ -23,6 +25,7 @@
     var nextButton = document.getElementById("loginNext");
     var errorText = document.getElementById("loginError");
     var row = document.getElementById("loginRow");
+    var forgotEl = document.getElementById("loginForgot");
 
     if (!screen || !form || !prompt || !usernameInput || !passwordInput || !nextButton || !row) {
         return;
@@ -34,6 +37,13 @@
     var pending = false;
     var sorryTimer = null;
     var promptTimer = null;
+    var failedPasswordAttempts = 0;
+
+    function revealForgotPassword() {
+        if (forgotEl) {
+            forgotEl.hidden = false;
+        }
+    }
 
     function setPrompt(text) {
         if (promptTimer) {
@@ -148,14 +158,23 @@
             })
             .then(function (data) {
                 if (data && data.ok) {
+                    failedPasswordAttempts = 0;
                     window.location.assign(safeRedirect(data.redirectUrl));
                     return;
                 }
                 pending = false;
+                failedPasswordAttempts += 1;
+                if (failedPasswordAttempts >= FAILED_ATTEMPTS_BEFORE_FORGOT) {
+                    revealForgotPassword();
+                }
                 showSorry();
             })
             .catch(function () {
                 pending = false;
+                failedPasswordAttempts += 1;
+                if (failedPasswordAttempts >= FAILED_ATTEMPTS_BEFORE_FORGOT) {
+                    revealForgotPassword();
+                }
                 showSorry();
             });
     }

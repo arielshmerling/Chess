@@ -17,6 +17,9 @@ const MARKUP = `<!DOCTYPE html><html><body>
       <button type="submit" class="login-next" id="loginNext"></button>
     </div>
     <p class="login-error" id="loginError"></p>
+    <p class="login-forgot" id="loginForgot" hidden>
+      <a href="/forgot-password" id="loginForgotLink">Forgot password?</a>
+    </p>
   </form>
 </section>
 </body></html>`;
@@ -76,6 +79,7 @@ function mountLoginScreen(respond) {
         prompt: doc.getElementById("loginPrompt"),
         username: doc.getElementById("username"),
         password: doc.getElementById("password"),
+        forgot: doc.getElementById("loginForgot"),
         submit: function () {
             doc.getElementById("loginForm").dispatchEvent(
                 new win.Event("submit", { bubbles: true, cancelable: true })
@@ -158,10 +162,43 @@ describe("login flow", function () {
         assert.strictEqual(ui.prompt.textContent, "Sorry");
         assert.strictEqual(ui.password.value, "");
         assert.deepStrictEqual(ui.navigated, []);
+        assert.strictEqual(ui.forgot.hidden, true);
 
         await wait(3100);
         assert.strictEqual(ui.screen.getAttribute("data-step"), "username");
         assert.strictEqual(ui.prompt.textContent, "Who are you?");
         assert.strictEqual(ui.username.value, "");
     });
+
+    it("reveals Forgot password after three failed attempts", async function () {
+        this.timeout(20000);
+        const ui = mountLoginScreen(function () {
+            return { status: 401, payload: { ok: false } };
+        });
+
+        assert.strictEqual(ui.forgot.hidden, true);
+
+        for (let i = 0; i < 3; i += 1) {
+            ui.username.value = "player";
+            ui.submit();
+            ui.password.value = "wrong";
+            ui.submit();
+            await wait(300);
+            if (i < 2) {
+                assert.strictEqual(ui.forgot.hidden, true);
+                await wait(3100);
+            }
+        }
+
+        assert.strictEqual(ui.forgot.hidden, false);
+        assert.strictEqual(
+            docLinkHref(ui),
+            "/forgot-password",
+        );
+    });
 });
+
+function docLinkHref(ui) {
+    const link = ui.win.document.getElementById("loginForgotLink");
+    return link ? link.getAttribute("href") : null;
+}

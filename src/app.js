@@ -144,11 +144,42 @@ const validateUsernameRateLimit = createRateLimiter({
     message: "Too many requests. Try again later.",
 });
 
+const forgotPasswordRateLimitMax = Math.max(
+    1,
+    Number(process.env.FORGOT_PASSWORD_RATE_LIMIT_MAX) || 5,
+);
+const resetPasswordRateLimitMax = Math.max(
+    1,
+    Number(process.env.RESET_PASSWORD_RATE_LIMIT_MAX) || 10,
+);
+
+const forgotPasswordRateLimit = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: forgotPasswordRateLimitMax,
+    keyFn: (req) => {
+        const email =
+            req.body && typeof req.body.email === "string"
+                ? req.body.email.trim().toLowerCase()
+                : "";
+        return String(req.ip || "") + "|forgot|" + email;
+    },
+    message: "Too many password recovery requests. Try again later.",
+});
+
+const resetPasswordRateLimit = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: resetPasswordRateLimitMax,
+    message: "Too many password reset attempts. Try again later.",
+});
+
 app.set("rateLimiters", {
     login: loginRateLimit,
     validateUsername: validateUsernameRateLimit,
+    forgotPassword: forgotPasswordRateLimit,
+    resetPassword: resetPasswordRateLimit,
     brain: require("./play/brainGuards").brainRateLimit,
 });
+
 
 const userRoutes = require("./modules/user"); // Import the user routes
 const gamesManagerRoutes = require("./modules/gamesManager"); // Import the games manager routes
@@ -211,6 +242,8 @@ if (process.env.SHMERLING_MODE !== "desktop") {
     require("./play/mountWebPlay").mountWebPlayRoutes(app);
     app.post("/login", loginRateLimit);
     app.post("/api/login", loginRateLimit);
+    app.post("/api/forgot-password", forgotPasswordRateLimit);
+    app.post("/api/reset-password", resetPasswordRateLimit);
     app.get("/validateUsername", validateUsernameRateLimit);
     app.use("/", userRoutes);
     app.use("/", gamesManagerRoutes);
