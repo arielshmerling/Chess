@@ -368,4 +368,237 @@ exports.deleteBookmark = async (userId, id) => {
     }
 };
 
+function toIso(value) {
+    if (!value) {
+        return null;
+    }
+    try {
+        return new Date(value).toISOString();
+    } catch (_err) {
+        return null;
+    }
+}
 
+/**
+ * Safe profile fields for the Account page (no password).
+ * @param {string} userId
+ */
+exports.getAccountProfile = async (userId) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    const user = await User.findById(userId)
+        .select("username email admin userType level elo joinedDate lastLogin lastGameOptions friends bookmarks")
+        .lean();
+    if (!user) {
+        throw new ExpressError("User not found", 404);
+    }
+    return {
+        id: String(user._id),
+        username: user.username,
+        email: user.email != null ? String(user.email) : "",
+        userType: resolveUserType(user),
+        level: user.level != null ? String(user.level) : "",
+        elo: user.elo != null ? Number(user.elo) : null,
+        joinedDate: toIso(user.joinedDate),
+        lastLogin: toIso(user.lastLogin),
+        friendsCount: Array.isArray(user.friends) ? user.friends.length : 0,
+        bookmarksCount: Array.isArray(user.bookmarks) ? user.bookmarks.length : 0,
+        lastGameOptions: user.lastGameOptions || null,
+    };
+};
+
+/**
+ * GDPR Art. 15/20 export payload (no password hash).
+ * @param {string} userId
+ */
+exports.buildAccountDataExport = async (userId) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    const user = await User.findById(userId).lean();
+    if (!user) {
+        throw new ExpressError("User not found", 404);
+    }
+    const username = user.username;
+    const friendIds = []
+        .concat(user.friends || [])
+        .concat(user.friendInvitesReceived || [])
+        .concat(user.friendInvitesSent || [])
+        .map((id) => String(id));
+    const uniqueFriendIds = [...new Set(friendIds)];
+    const friendDocs = uniqueFriendIds.length
+        ? await User.find({ _id: { $in: uniqueFriendIds } }).select("username").lean()
+        : [];
+    const nameById = new Map(friendDocs.map((u) => [String(u._id), u.username]));
+
+    const mapIds = (ids) => (Array.isArray(ids) ? ids : []).map((id) => ({
+        id: String(id),
+        username: nameById.get(String(id)) || null,
+    }));
+
+    const bookmarkIds = Array.isArray(user.bookmarks) ? user.bookmarks : [];
+    const bookmarks = bookmarkIds.length
+        ? await Bookmark.find({ _id: { $in: bookmarkIds } }).lean()
+        : [];
+
+    const { Game } = require("../game/model");
+    const games = await Game.find({
+        $or: [
+            { createByUserId: user._id },
+            { createBy: username },
+            { whitePlayer: username },
+            { blackPlayer: username },
+        ],
+    }).lean();
+
+    return {
+        exportedAt: new Date().toISOString(),
+        schemaVersion: 1,
+        profile: {
+            id: String(user._id),
+            username: user.username,
+            email: user.email,
+            userType: resolveUserType(user),
+            admin: !!user.admin,
+            level: user.level,
+            elo: user.elo,
+            joinedDate: toIso(user.joinedDate),
+            lastLogin: toIso(user.lastLogin),
+            lastGameOptions: user.lastGameOptions || null,
+            playUiSettings: user.playUiSettings || null,
+            playCustomThemes: user.playCustomThemes || null,
+        },
+        friends: mapIds(user.friends),
+        friendInvitesReceived: mapIds(user.friendInvitesReceived),
+        friendInvitesSent: mapIds(user.friendInvitesSent),
+        bookmarks: bookmarks.map((b) => ({
+            id: String(b._id),
+            name: b.name,
+            gameType: b.gameType,
+            engine: b.engine,
+            depth: b.depth,
+            date: toIso(b.date),
+            whitePlayerName: b.whitePlayerName,
+            blackPlayerName: b.blackPlayerName,
+            moves: b.moves,
+            state: b.state,
+            originState: b.originState,
+        })),
+        games: games.map((g) => ({
+            id: String(g._id),
+            createBy: g.createBy,
+            createByUserId: g.createByUserId != null ? String(g.createByUserId) : null,
+            state: g.state,
+            reason: g.reason,
+            result: g.result,
+            created: toIso(g.created),
+            whitePlayer: g.whitePlayer,
+            blackPlayer: g.blackPlayer,
+            gameType: g.gameType,
+            isPrivate: !!g.isPrivate,
+            timeMinutes: g.timeMinutes,
+            moves: g.moves,
+        })),
+    };
+};
+
+/**
+ * GDPR Art. 17 self-service erase with cascade.
+ * @param {string} userId
+ * @param {{ confirmUsername: string }} opts
+ */
+exports.deleteAccountCascade = async (userId, opts) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    const confirmUsername = opts && opts.confirmUsername != null
+        ? String(opts.confirmUsername).trim()
+        : "";
+    if (!confirmUsername) {
+        throw new ExpressError("Type your username to confirm deletion", 400);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ExpressError("User not found", 404);
+    }
+    if (confirmUsername !== user.username) {
+        throw new ExpressError("Username confirmation does not match", 400);
+    }
+    if (user.admin) {
+        const adminCount = await User.countDocuments({ admin: true });
+        if (adminCount <= 1) {
+            throw new ExpressError(
+                "There must always be at least one admin. Promote another user to admin before deleting this account.",
+                403,
+            );
+        }
+    }
+
+    const username = user.username;
+    const bookmarkIds = Array.isArray(user.bookmarks) ? user.bookmarks.slice() : [];
+
+    await gamesManagerService.eraseUserFromGames({
+        userId: String(user._id),
+        username,
+    });
+
+    if (bookmarkIds.length) {
+        await Bookmark.deleteMany({ _id: { $in: bookmarkIds } });
+    }
+
+    await User.updateMany(
+        {},
+        {
+            $pull: {
+                friends: user._id,
+                friendInvitesReceived: user._id,
+                friendInvitesSent: user._id,
+            },
+        },
+    );
+
+    await User.deleteOne({ _id: user._id });
+    return { ok: true, username };
+};
+
+/**
+ * Change password for the signed-in user (requires current password).
+ * @param {string} userId
+ * @param {{ currentPassword: string, newPassword: string, confirmPassword: string }} opts
+ */
+exports.changeAccountPassword = async (userId, opts) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ExpressError("Invalid user id", 400);
+    }
+    const currentPassword = opts && opts.currentPassword != null ? String(opts.currentPassword) : "";
+    const newPassword = opts && opts.newPassword != null ? String(opts.newPassword) : "";
+    const confirmPassword = opts && opts.confirmPassword != null ? String(opts.confirmPassword) : "";
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        throw new ExpressError("Current password, new password, and confirmation are required", 400);
+    }
+    if (newPassword !== confirmPassword) {
+        throw new ExpressError("New password and confirmation do not match", 400);
+    }
+    if (newPassword.length < 4 || newPassword.length > 30) {
+        throw new ExpressError("Password must be between 4 and 30 characters", 400);
+    }
+    if (newPassword === currentPassword) {
+        throw new ExpressError("New password must be different from the current password", 400);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ExpressError("User not found", 404);
+    }
+    const matches = await bcrypt.compare(currentPassword, user.password);
+    if (!matches) {
+        throw new ExpressError("Current password is incorrect", 400);
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+    return { ok: true };
+};

@@ -378,6 +378,88 @@ exports.renameUsernameInGames = async (oldUsername, newUsername) => {
     ]);
 };
 
+/** Display name used when a deleted account remains referenced in shared online games. */
+exports.ANONYMIZED_USERNAME = "Deleted User";
+
+/**
+ * Remove in-memory live games that involve this user id.
+ * @param {string|import("mongodb").ObjectId} userId
+ */
+exports.dropLiveGamesForUser = (userId) => {
+    if (userId == null || userId === "") {
+        return 0;
+    }
+    const uid = String(userId);
+    let removed = 0;
+    for (let i = games.length - 1; i >= 0; i -= 1) {
+        const g = games[i];
+        const createdById = g && g.createdBy && g.createdBy.userId != null
+            ? String(g.createdBy.userId)
+            : "";
+        const invitedId = g && g.invitedUserId != null ? String(g.invitedUserId) : "";
+        if (userInGame(g, uid) || createdById === uid || invitedId === uid) {
+            games.splice(i, 1);
+            removed += 1;
+        }
+    }
+    return removed;
+};
+
+/**
+ * GDPR erase/anonymize game history for an account.
+ * OnlineGame rows are anonymized so opponents keep history; other game types owned by the user are deleted.
+ *
+ * @param {{ userId: string, username: string }} opts
+ * @returns {Promise<{ anonymized: number, deleted: number }>}
+ */
+exports.eraseUserFromGames = async (opts) => {
+    const userId = opts && opts.userId != null ? String(opts.userId) : "";
+    const username = opts && opts.username != null ? String(opts.username) : "";
+    if (!userId || !username) {
+        return { anonymized: 0, deleted: 0 };
+    }
+    const anon = exports.ANONYMIZED_USERNAME;
+    exports.dropLiveGamesForUser(userId);
+
+    const filter = {
+        $or: [
+            { createByUserId: userId },
+            { createBy: username },
+            { whitePlayer: username },
+            { blackPlayer: username },
+        ],
+    };
+    const docs = await Game.find(filter).lean();
+    let anonymized = 0;
+    let deleted = 0;
+    for (let i = 0; i < docs.length; i += 1) {
+        const doc = docs[i];
+        if (doc.gameType === "OnlineGame") {
+            const patch = {};
+            if (doc.whitePlayer === username) {
+                patch.whitePlayer = anon;
+            }
+            if (doc.blackPlayer === username) {
+                patch.blackPlayer = anon;
+            }
+            if (doc.createBy === username) {
+                patch.createBy = anon;
+            }
+            if (doc.createByUserId != null && String(doc.createByUserId) === userId) {
+                patch.createByUserId = null;
+            }
+            if (Object.keys(patch).length > 0) {
+                await Game.updateOne({ _id: doc._id }, { $set: patch });
+                anonymized += 1;
+            }
+        } else {
+            await Game.deleteOne({ _id: doc._id });
+            deleted += 1;
+        }
+    }
+    return { anonymized, deleted };
+};
+
 /**
  * Headers-only PGN catalog for the web Search page (stable Ids, no move lists).
  * Avoids keeping the full corpus (~hundreds of MB) in the Node heap.

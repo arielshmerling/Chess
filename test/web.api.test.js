@@ -74,7 +74,7 @@ describe("web HTTP / auth", function () {
 
     it("protected pages without session redirect to login", async function () {
         // Prefer /play/ — bare /play is redirected 301 by static middleware (src/play/ directory).
-        for (const path of ["/friends", "/game", "/play/", "/list", "/active-games-list"]) {
+        for (const path of ["/friends", "/account", "/game", "/play/", "/list", "/active-games-list"]) {
             const res = await request(app).get(path).redirects(0);
             assert.strictEqual(res.status, 302, path);
             assert.ok(

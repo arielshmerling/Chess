@@ -18,6 +18,10 @@ router.get("/privacy", userController.showPrivacyPage);
 router.get("/terms", userController.showTermsPage);
 router.get("/contact", userController.showContactPage);
 router.get("/accessibility", userController.showAccessibilityPage);
+router.get("/account", requireLogin, userController.showAccountPage);
+router.get("/api/account/export", requireLogin, userController.exportAccountData);
+router.post("/api/account/password", requireLogin, userController.changeAccountPassword);
+router.post("/api/account/delete", requireLogin, userController.deleteAccount);
 
 
 router.post("/admin/generate-state/stop", requiresAdmin, userController.stopGenerateState);

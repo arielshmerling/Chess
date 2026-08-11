@@ -42,7 +42,7 @@
         </svg>
       </button>
       <div id="webUserMenuPanel" class="web-user-menu-panel" role="menu" hidden>
-        <button type="button" class="web-user-menu-item" role="menuitem" disabled><%= t('site.account') %></button>
+        <a href="/account" class="web-user-menu-item" role="menuitem"><%= t('site.account') %></a>
         <button type="button" id="webUserPreferencesAction" class="web-user-menu-item" role="menuitem"><%= t('site.preferences') %></button>
         <% if (admin) { %>
         <a href="/admin" class="web-user-menu-item" role="menuitem"><%= t('site.administrate') %></a>

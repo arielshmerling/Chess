@@ -577,3 +577,102 @@ exports.register = catchAsync(async (req, res) => {
 
     res.redirect("/home");
 });
+
+function formatAccountDateTime(value, locale) {
+    if (value == null || value === "") {
+        return "—";
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "—";
+    }
+    try {
+        return new Intl.DateTimeFormat(locale || "en", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
+    } catch {
+        return new Intl.DateTimeFormat("en", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
+    }
+}
+
+function localizeAccountUserType(userType, locale) {
+    const keyByType = {
+        Admin: "site.adminPage.userTypeAdmin",
+        Partner: "site.adminPage.userTypePartner",
+        Member: "site.adminPage.userTypeMember",
+    };
+    const key = keyByType[userType];
+    return key ? t(key, null, locale) : (userType || "—");
+}
+
+function localizeAccountLevel(level, locale) {
+    const normalized = level == null ? "" : String(level).trim().toLowerCase();
+    const keyByLevel = {
+        rookie: "site.register.rookie",
+        skilled: "site.register.skilled",
+        elite: "site.register.elite",
+        "grand master": "site.register.grandMaster",
+        grandmaster: "site.register.grandMaster",
+    };
+    const key = keyByLevel[normalized];
+    if (key) {
+        return t(key, null, locale);
+    }
+    return level == null || level === "" ? "—" : String(level);
+}
+
+exports.showAccountPage = catchAsync(async (req, res) => {
+    const locale = res.locals.locale || "en";
+    const tt = typeof res.locals.t === "function"
+        ? res.locals.t
+        : function (key, params) {
+            return t(key, params, locale);
+        };
+    const profile = await userService.getAccountProfile(req.session.user_id);
+    res.render("account", {
+        pageTitle: tt("site.accountPage.title"),
+        pageLead: tt("site.accountPage.lead"),
+        profile: {
+            ...profile,
+            userTypeLabel: localizeAccountUserType(profile.userType, locale),
+            levelLabel: localizeAccountLevel(profile.level, locale),
+            joinedDateLabel: formatAccountDateTime(profile.joinedDate, locale),
+            lastLoginLabel: formatAccountDateTime(profile.lastLogin, locale),
+        },
+    });
+});
+
+exports.exportAccountData = catchAsync(async (req, res) => {
+    const payload = await userService.buildAccountDataExport(req.session.user_id);
+    const safeName = String(payload.profile.username || "account")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_")
+        .slice(0, 64);
+    const filename = `shmerling-account-export-${safeName}.json`;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.status(200).send(JSON.stringify(payload, null, 2));
+});
+
+exports.deleteAccount = catchAsync(async (req, res) => {
+    const body = req.body || {};
+    await userService.deleteAccountCascade(req.session.user_id, {
+        confirmUsername: body.confirmUsername,
+    });
+    req.session.user_id = null;
+    req.session = null;
+    res.json({ ok: true, redirectUrl: "/login" });
+});
+
+exports.changeAccountPassword = catchAsync(async (req, res) => {
+    const body = req.body || {};
+    await userService.changeAccountPassword(req.session.user_id, {
+        currentPassword: body.currentPassword,
+        newPassword: body.newPassword,
+        confirmPassword: body.confirmPassword,
+    });
+    res.json({ ok: true });
+});

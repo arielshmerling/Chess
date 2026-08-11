@@ -1,0 +1,276 @@
+<% layout("../views/layouts/boilerplate") %>
+
+<link rel="stylesheet" href="/welcome.css">
+<link rel="stylesheet" href="/board-geometry.css">
+
+<div class="welcome-container legal-page account-page board-geometry">
+  <div class="legal-page-content account-page-content">
+    <h1 class="legal-page-title"><%= pageTitle %></h1>
+    <p class="legal-page-lead"><%= pageLead %></p>
+
+    <div class="account-layout">
+      <div class="account-details-column">
+      <section class="account-section account-section--details" aria-labelledby="accountDetailsHeading">
+        <h2 id="accountDetailsHeading" class="legal-page-subtitle"><%= t('site.accountPage.detailsHeading') %></h2>
+        <dl class="account-details">
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.username') %></dt>
+            <dd id="accountUsername"><%= profile.username %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.email') %></dt>
+            <dd><%= profile.email %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.userType') %></dt>
+            <dd><%= profile.userTypeLabel %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.level') %></dt>
+            <dd><%= profile.levelLabel %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.elo') %></dt>
+            <dd><%= profile.elo != null ? profile.elo : "—" %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.joined') %></dt>
+            <dd><%= profile.joinedDateLabel %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.lastLogin') %></dt>
+            <dd><%= profile.lastLoginLabel %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.friendsCount') %></dt>
+            <dd><%= profile.friendsCount %></dd>
+          </div>
+          <div class="account-detail-row">
+            <dt><%= t('site.accountPage.bookmarksCount') %></dt>
+            <dd><%= profile.bookmarksCount %></dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="account-section account-section--password" aria-labelledby="accountPasswordHeading">
+        <h2 id="accountPasswordHeading" class="legal-page-subtitle"><%= t('site.accountPage.passwordHeading') %></h2>
+        <p class="legal-page-body"><%= t('site.accountPage.passwordBody') %></p>
+        <form id="accountPasswordForm" class="account-password-form" novalidate>
+          <label class="account-field-label" for="accountCurrentPassword">
+            <%= t('site.accountPage.currentPassword') %>
+          </label>
+          <input
+            id="accountCurrentPassword"
+            name="currentPassword"
+            type="password"
+            class="account-field-input"
+            autocomplete="current-password"
+            maxlength="30"
+            required
+          >
+          <label class="account-field-label" for="accountNewPassword">
+            <%= t('site.accountPage.newPassword') %>
+          </label>
+          <input
+            id="accountNewPassword"
+            name="newPassword"
+            type="password"
+            class="account-field-input"
+            autocomplete="new-password"
+            minlength="4"
+            maxlength="30"
+            required
+          >
+          <label class="account-field-label" for="accountConfirmPassword">
+            <%= t('site.accountPage.confirmPassword') %>
+          </label>
+          <input
+            id="accountConfirmPassword"
+            name="confirmPassword"
+            type="password"
+            class="account-field-input"
+            autocomplete="new-password"
+            minlength="4"
+            maxlength="30"
+            required
+          >
+          <p id="accountPasswordError" class="account-error" role="alert" hidden></p>
+          <p id="accountPasswordSuccess" class="account-success" role="status" hidden></p>
+          <p class="account-actions">
+            <button type="submit" class="account-btn account-btn--primary"><%= t('site.accountPage.passwordButton') %></button>
+          </p>
+        </form>
+      </section>
+      </div>
+
+      <div class="account-actions-column">
+        <section class="account-section account-section--export" aria-labelledby="accountExportHeading">
+          <h2 id="accountExportHeading" class="legal-page-subtitle"><%= t('site.accountPage.exportHeading') %></h2>
+          <p class="legal-page-body"><%= t('site.accountPage.exportBody') %></p>
+          <p class="account-actions">
+            <a class="account-btn account-btn--primary" href="/api/account/export"><%= t('site.accountPage.exportButton') %></a>
+          </p>
+        </section>
+
+        <section class="account-section account-section--danger" aria-labelledby="accountDeleteHeading">
+          <h2 id="accountDeleteHeading" class="legal-page-subtitle"><%= t('site.accountPage.deleteHeading') %></h2>
+          <p class="legal-page-body"><%= t('site.accountPage.deleteBody') %></p>
+          <form id="accountDeleteForm" class="account-delete-form" novalidate>
+            <label class="account-delete-label" for="accountDeleteConfirm">
+              <%= t('site.accountPage.deleteConfirmLabel') %>
+            </label>
+            <input
+              id="accountDeleteConfirm"
+              name="confirmUsername"
+              type="text"
+              class="account-delete-input"
+              autocomplete="username"
+              maxlength="64"
+              required
+              aria-describedby="accountDeleteHelp accountDeleteError"
+            >
+            <p id="accountDeleteHelp" class="account-help"><%= t('site.accountPage.deleteConfirmHelp', { username: profile.username }) %></p>
+            <p id="accountDeleteError" class="account-error" role="alert" hidden></p>
+            <p class="account-actions">
+              <button type="submit" class="account-btn account-btn--danger"><%= t('site.accountPage.deleteButton') %></button>
+            </p>
+          </form>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/site-page-footer') %>
+</div>
+
+<script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+(function () {
+  function t(key, params) {
+    if (window.ShmerlingStrings && typeof window.ShmerlingStrings.t === "function") {
+      return window.ShmerlingStrings.t(key, params);
+    }
+    return key;
+  }
+
+  var deleteForm = document.getElementById("accountDeleteForm");
+  var deleteInput = document.getElementById("accountDeleteConfirm");
+  var deleteErrorEl = document.getElementById("accountDeleteError");
+  var expected = <%- JSON.stringify(profile.username) %>;
+
+  if (deleteForm && deleteInput) {
+    deleteForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (deleteErrorEl) {
+        deleteErrorEl.hidden = true;
+        deleteErrorEl.textContent = "";
+      }
+      var typed = String(deleteInput.value || "").trim();
+      if (typed !== expected) {
+        if (deleteErrorEl) {
+          deleteErrorEl.textContent = t("site.accountPage.deleteMismatch");
+          deleteErrorEl.hidden = false;
+        }
+        return;
+      }
+      if (!window.confirm(t("site.accountPage.deleteConfirmDialog"))) {
+        return;
+      }
+      fetch("/api/account/delete", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ confirmUsername: typed }),
+      })
+        .then(function (res) {
+          return res.json().catch(function () {
+            return { ok: false, message: t("site.accountPage.deleteFailed") };
+          }).then(function (body) {
+            return { res: res, body: body };
+          });
+        })
+        .then(function (result) {
+          if (result.res.ok && result.body && result.body.ok) {
+            window.location.href = result.body.redirectUrl || "/login";
+            return;
+          }
+          if (deleteErrorEl) {
+            deleteErrorEl.textContent = (result.body && result.body.message)
+              || t("site.accountPage.deleteFailed");
+            deleteErrorEl.hidden = false;
+          }
+        })
+        .catch(function () {
+          if (deleteErrorEl) {
+            deleteErrorEl.textContent = t("site.accountPage.deleteFailed");
+            deleteErrorEl.hidden = false;
+          }
+        });
+    });
+  }
+
+  var passwordForm = document.getElementById("accountPasswordForm");
+  var passwordErrorEl = document.getElementById("accountPasswordError");
+  var passwordSuccessEl = document.getElementById("accountPasswordSuccess");
+  if (passwordForm) {
+    passwordForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (passwordErrorEl) {
+        passwordErrorEl.hidden = true;
+        passwordErrorEl.textContent = "";
+      }
+      if (passwordSuccessEl) {
+        passwordSuccessEl.hidden = true;
+        passwordSuccessEl.textContent = "";
+      }
+      var currentPassword = String((document.getElementById("accountCurrentPassword") || {}).value || "");
+      var newPassword = String((document.getElementById("accountNewPassword") || {}).value || "");
+      var confirmPassword = String((document.getElementById("accountConfirmPassword") || {}).value || "");
+      if (newPassword !== confirmPassword) {
+        if (passwordErrorEl) {
+          passwordErrorEl.textContent = t("site.accountPage.passwordMismatch");
+          passwordErrorEl.hidden = false;
+        }
+        return;
+      }
+      fetch("/api/account/password", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
+        }),
+      })
+        .then(function (res) {
+          return res.json().catch(function () {
+            return { ok: false, message: t("site.accountPage.passwordFailed") };
+          }).then(function (body) {
+            return { res: res, body: body };
+          });
+        })
+        .then(function (result) {
+          if (result.res.ok && result.body && result.body.ok) {
+            passwordForm.reset();
+            if (passwordSuccessEl) {
+              passwordSuccessEl.textContent = t("site.accountPage.passwordUpdated");
+              passwordSuccessEl.hidden = false;
+            }
+            return;
+          }
+          if (passwordErrorEl) {
+            passwordErrorEl.textContent = (result.body && result.body.message)
+              || t("site.accountPage.passwordFailed");
+            passwordErrorEl.hidden = false;
+          }
+        })
+        .catch(function () {
+          if (passwordErrorEl) {
+            passwordErrorEl.textContent = t("site.accountPage.passwordFailed");
+            passwordErrorEl.hidden = false;
+          }
+        });
+    });
+  }
+})();
+</script>

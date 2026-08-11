@@ -164,12 +164,18 @@ test.describe("web smoke", () => {
         });
     });
 
-    test("home account menu shows username and preferences", async ({ page }) => {
+    test("home account menu opens Account page and preferences", async ({ page }) => {
         await login(page);
         await expect(page.locator(".web-user-menu-name")).toHaveText(username);
         await page.locator("#webUserMenuTrigger").click();
         await expect(page.locator("#webUserMenuPanel")).toBeVisible();
-        await expect(page.getByRole("menuitem", { name: "Account" })).toBeDisabled();
+        await expect(page.getByRole("menuitem", { name: "Account" })).toBeEnabled();
+        await page.getByRole("menuitem", { name: "Account" }).click();
+        await expect(page).toHaveURL(/\/account/);
+        await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
+        await expect(page.locator("#accountUsername")).toHaveText(username);
+        await page.goto("/home");
+        await page.locator("#webUserMenuTrigger").click();
         await expect(page.getByRole("menuitem", { name: "Administrate" })).toHaveCount(0);
         await page.getByRole("menuitem", { name: "Preferences" }).click();
         await expect(page.locator("#desktopPrefsPanel")).toBeVisible();

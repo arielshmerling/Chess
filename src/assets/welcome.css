@@ -1563,3 +1563,145 @@ html[dir="rtl"] .active-games-list-page .hero-greeting,
 html[dir="rtl"] .active-games-list-page .hero-tagline {
     text-align: right;
 }
+/* Account page (GDPR self-service) */
+.account-page-content {
+    max-width: 56rem;
+}
+
+.account-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 2rem 2.5rem;
+    align-items: start;
+    margin-top: 1.5rem;
+}
+
+.account-details-column,
+.account-actions-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.account-section {
+    margin-top: 0;
+}
+
+.account-section--danger {
+    border-top: 1px solid rgba(180, 60, 60, 0.35);
+    padding-top: 1.5rem;
+}
+
+@media (max-width: 800px) {
+    .account-layout {
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+    }
+}
+
+html[dir="rtl"] .account-layout {
+    direction: rtl;
+}
+
+html[dir="rtl"] .account-section--details,
+html[dir="rtl"] .account-details-column,
+html[dir="rtl"] .account-actions-column {
+    direction: rtl;
+}
+
+.account-details {
+    margin: 0;
+}
+
+.account-detail-row {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    gap: 0.5rem 1rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.account-detail-row dt {
+    margin: 0;
+    opacity: 0.75;
+    font-weight: 500;
+}
+
+.account-detail-row dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.account-actions {
+    margin: 1rem 0 0;
+}
+
+.account-btn {
+    display: inline-block;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    padding: 0.55rem 1rem;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.account-btn--primary {
+    background: #2f6fed;
+    color: #fff;
+}
+
+.account-btn--danger {
+    background: #8b1e1e;
+    color: #fff;
+}
+
+.account-delete-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 22rem;
+}
+
+.account-password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-width: 22rem;
+}
+
+.account-delete-label,
+.account-field-label {
+    font-weight: 500;
+}
+
+.account-delete-input,
+.account-field-input {
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    font: inherit;
+}
+
+.account-help {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.account-error {
+    margin: 0;
+    color: #ffb4b4;
+}
+
+.account-success {
+    margin: 0;
+    color: #b6f0c2;
+}
+
+.account-section--password {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1.5rem;
+}
